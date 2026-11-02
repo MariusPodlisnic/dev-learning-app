@@ -1,16 +1,18 @@
+import { Session } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { supabase } from "../../lib/supabase";
+import Auth from "../components/Auth";
 
 interface Lesson {
   id: string;
@@ -31,16 +33,35 @@ export default function HomeScreen() {
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
   const [pyodideReady, setPyodideReady] = useState<boolean>(false);
 
+  // Auth State
+  const [session, setSession] = useState<Session | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+
   const pyodideRef = useRef<any>(null);
 
   useEffect(() => {
     fetchLessons();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        if (session) setShowAuthModal(false);
+      },
+    );
+
     if (Platform.OS === "web") {
       loadPyodideEngine();
     }
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  // 1. Fetch Lessons from Supabase
   async function fetchLessons() {
     try {
       const { data, error } = await supabase
@@ -61,7 +82,6 @@ export default function HomeScreen() {
     }
   }
 
-  // 2. Load Pyodide WebAssembly Engine dynamically on Web
   async function loadPyodideEngine() {
     if (window.hasOwnProperty("loadPyodide") && pyodideRef.current) return;
 
@@ -82,7 +102,6 @@ export default function HomeScreen() {
     }
   }
 
-  // 3. Execute Python Code Client-Side
   async function runPythonCode() {
     setIsExecuting(true);
     setOutput("Executing code...");
@@ -90,7 +109,6 @@ export default function HomeScreen() {
     try {
       if (Platform.OS === "web" && pyodideRef.current) {
         let stdoutBuffer = "";
-        // Capture Python print statements
         pyodideRef.current.setStdout({
           batched: (str: string) => {
             stdoutBuffer += str + "\n";
@@ -122,29 +140,52 @@ export default function HomeScreen() {
     setOutput("");
   }
 
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>⚡ DevLearn Studio</Text>
-        <View style={styles.statusPill}>
-          <Text style={styles.statusText}>
-            {pyodideReady
-              ? "🟢 WASM Engine Ready"
-              : "⏳ Loading Python WASM..."}
-          </Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>⚡ DevLearn Studio</Text>
+          <View style={styles.statusPill}>
+            <Text style={styles.statusText}>
+              {pyodideReady ? "🟢 WASM Engine Ready" : "⏳ Loading WASM..."}
+            </Text>
+          </View>
+        </View>
+
+        {/* User Auth Control */}
+        <View style={styles.headerRight}>
+          {session ? (
+            <View style={styles.userSection}>
+              <Text style={styles.userEmail}>{session.user.email}</Text>
+              <Pressable style={styles.authBtn} onPress={handleSignOut}>
+                <Text style={styles.authBtnText}>Sign Out</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              style={[styles.authBtn, styles.loginBtn]}
+              onPress={() => setShowAuthModal(true)}
+            >
+              <Text style={styles.authBtnText}>Sign In / Register</Text>
+            </Pressable>
+          )}
         </View>
       </View>
 
       <View style={styles.content}>
-        {/* Left Sidebar: Lessons Navigation */}
+        {/* Left Sidebar */}
         <View style={styles.sidebar}>
           <Text style={styles.sectionTitle}>FREE TRACK: PYTHON BASICS</Text>
           {loading ? (
             <ActivityIndicator color="#38BDF8" />
           ) : (
             lessons.map((lesson) => (
-              <TouchableOpacity
+              <Pressable
                 key={lesson.id}
                 style={[
                   styles.lessonCard,
@@ -164,7 +205,7 @@ export default function HomeScreen() {
                 <Text style={styles.badge}>
                   {lesson.is_free ? "FREE" : "PRO"}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             ))
           )}
 
@@ -175,9 +216,7 @@ export default function HomeScreen() {
             <Text style={styles.lockedTitle}>
               🔒 Algorithms & Data Structures
             </Text>
-            <Text style={styles.lockedSub}>
-              Unlock 45+ LeetCode style challenges
-            </Text>
+            <Text style={styles.lockedSub}>Unlock 45+ LeetCode challenges</Text>
           </View>
           <View style={styles.lockedCard}>
             <Text style={styles.lockedTitle}>
@@ -187,7 +226,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Right Workspace: Interactive Code Editor & Output */}
+        {/* Right Workspace */}
         <ScrollView style={styles.workspace}>
           {selectedLesson ? (
             <View>
@@ -196,7 +235,6 @@ export default function HomeScreen() {
                 {selectedLesson.description}
               </Text>
 
-              {/* Editable Python Code Editor */}
               <Text style={styles.subHeader}>
                 Interactive Python Workspace:
               </Text>
@@ -210,8 +248,7 @@ export default function HomeScreen() {
                 spellCheck={false}
               />
 
-              {/* Run Code Action */}
-              <TouchableOpacity
+              <Pressable
                 style={[styles.runButton, isExecuting && styles.disabledButton]}
                 onPress={runPythonCode}
                 disabled={isExecuting}
@@ -219,9 +256,8 @@ export default function HomeScreen() {
                 <Text style={styles.runButtonText}>
                   {isExecuting ? "Running..." : "▶ Run Code"}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
 
-              {/* Console Output Terminal */}
               <Text style={[styles.subHeader, { marginTop: 20 }]}>
                 Console Output:
               </Text>
@@ -236,12 +272,31 @@ export default function HomeScreen() {
           )}
         </ScrollView>
       </View>
+
+      {/* Auth Modal Overlay */}
+      {showAuthModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Auth onSuccess={() => setShowAuthModal(false)} />
+            <Pressable
+              style={styles.closeModalBtn}
+              onPress={() => setShowAuthModal(false)}
+            >
+              <Text style={styles.closeModalText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B0F19" },
+  container: {
+    flex: 1,
+    backgroundColor: "#0B0F19",
+    position: "relative",
+  },
   header: {
     padding: 16,
     borderBottomWidth: 1,
@@ -249,7 +304,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    zIndex: 10,
   },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  headerRight: { flexDirection: "row", alignItems: "center" },
   headerTitle: { color: "#F8FAFC", fontSize: 20, fontWeight: "700" },
   statusPill: {
     backgroundColor: "#1E293B",
@@ -258,6 +316,22 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: { color: "#94A3B8", fontSize: 12 },
+  userSection: { flexDirection: "row", alignItems: "center", gap: 12 },
+  userEmail: { color: "#CBD5E1", fontSize: 13 },
+  authBtn: {
+    backgroundColor: "#334155",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        userSelect: "none",
+      },
+    }),
+  },
+  loginBtn: { backgroundColor: "#2563EB" },
+  authBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
   content: { flex: 1, flexDirection: "row" },
   sidebar: {
     width: 300,
@@ -280,6 +354,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        userSelect: "none",
+      },
+    }),
   },
   activeLessonCard: { backgroundColor: "#2563EB" },
   lessonTitle: { color: "#CBD5E1", fontSize: 14, fontWeight: "500" },
@@ -328,6 +408,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginTop: 12,
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        userSelect: "none",
+      },
+    }),
   },
   disabledButton: { backgroundColor: "#065F46" },
   runButtonText: { color: "#FFFFFF", fontWeight: "700", fontSize: 14 },
@@ -345,4 +431,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   infoText: { color: "#64748B" },
+  modalOverlay: {
+    position: Platform.OS === "web" ? ("fixed" as any) : "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999,
+  },
+  modalContent: { alignItems: "center" },
+  closeModalBtn: {
+    marginTop: 12,
+    padding: 8,
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        userSelect: "none",
+      },
+    }),
+  },
+  closeModalText: { color: "#94A3B8", fontSize: 13 },
 });
