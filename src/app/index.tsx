@@ -15,6 +15,7 @@ import { supabase } from "../../lib/supabase";
 import Auth from "../components/Auth";
 import HintAccordion from "../components/HintAccordion";
 import PaywallModal from "../components/PaywallModal";
+import SuccessModal from "../components/SuccessModal";
 import VisualLessonPanel from "../components/VisualLessonPanel";
 
 interface Lesson {
@@ -26,6 +27,7 @@ interface Lesson {
   initial_code: string;
   expected_output: string;
   is_free: boolean;
+  lesson_order: number;
   visual_type?: string;
   visual_data?: any;
   hints?: string[];
@@ -49,11 +51,12 @@ export default function HomeScreen() {
   const [xpPoints, setXpPoints] = useState<number>(0);
   const [streakCount, setStreakCount] = useState<number>(0);
 
-  // Auth & Premium State
+  // Auth & Modal States
   const [session, setSession] = useState<Session | null>(null);
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [upgrading, setUpgrading] = useState<boolean>(false);
 
   const pyodideRef = useRef<any>(null);
@@ -210,6 +213,30 @@ export default function HomeScreen() {
     setOutput("");
   }
 
+  function resetCodeSnippet() {
+    if (selectedLesson) {
+      setCode(selectedLesson.initial_code);
+      setOutput("");
+    }
+  }
+
+  function insertSymbol(symbol: string) {
+    setCode((prev) => prev + symbol);
+  }
+
+  function handleNextLesson() {
+    setShowSuccessModal(false);
+    if (!selectedLesson) return;
+    const currentTrackLessons = lessons.filter((l) => l.track === activeTrack);
+    const currentIndex = currentTrackLessons.findIndex(
+      (l) => l.id === selectedLesson.id,
+    );
+    if (currentIndex !== -1 && currentIndex < currentTrackLessons.length - 1) {
+      const nextLesson = currentTrackLessons[currentIndex + 1];
+      handleSelectLesson(nextLesson);
+    }
+  }
+
   async function runPythonCode() {
     setIsExecuting(true);
     setOutput("Executing code...");
@@ -235,6 +262,8 @@ export default function HomeScreen() {
           const expected = selectedLesson.expected_output.trim();
           if (rawOutput === expected) {
             finalLogs += "\n\n🎉 Test Passed! Solution verified (+50 XP).";
+            setShowSuccessModal(true);
+
             if (selectedLesson && session) {
               const isAlreadyCompleted = completedLessons[selectedLesson.id];
 
@@ -294,6 +323,12 @@ export default function HomeScreen() {
   const progressPercent = currentLessons.length
     ? Math.round((completedCount / currentLessons.length) * 100)
     : 0;
+
+  const currentLessonIndex = selectedLesson
+    ? currentLessons.findIndex((l) => l.id === selectedLesson.id)
+    : -1;
+  const hasNextLesson =
+    currentLessonIndex !== -1 && currentLessonIndex < currentLessons.length - 1;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -509,9 +544,24 @@ export default function HomeScreen() {
                   <Text style={styles.subHeader}>
                     Interactive Python Code Studio
                   </Text>
-                  <Text style={styles.editorHint}>
-                    Standard Library Enabled
-                  </Text>
+                  <Pressable style={styles.resetBtn} onPress={resetCodeSnippet}>
+                    <Text style={styles.resetBtnText}>↺ Reset Code</Text>
+                  </Pressable>
+                </View>
+
+                {/* Symbol Shortcut Toolbar */}
+                <View style={styles.symbolBar}>
+                  {[":", "()", '""', "[]", "def", "return", "print"].map(
+                    (sym) => (
+                      <Pressable
+                        key={sym}
+                        style={styles.symbolChip}
+                        onPress={() => insertSymbol(sym)}
+                      >
+                        <Text style={styles.symbolText}>{sym}</Text>
+                      </Pressable>
+                    ),
+                  )}
                 </View>
 
                 <TextInput
@@ -578,6 +628,19 @@ export default function HomeScreen() {
             onClose={() => setShowPaywallModal(false)}
             onUpgrade={handleUpgradeToPro}
             loading={upgrading}
+          />
+        </View>
+      )}
+
+      {/* Success Celebration Modal Overlay */}
+      {showSuccessModal && (
+        <View style={styles.modalOverlay}>
+          <SuccessModal
+            xpEarned={50}
+            lessonTitle={selectedLesson?.title || "Lesson"}
+            hasNextLesson={hasNextLesson}
+            onNextLesson={handleNextLesson}
+            onClose={() => setShowSuccessModal(false)}
           />
         </View>
       )}
@@ -767,7 +830,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  editorHint: { color: "#64748B", fontSize: 11 },
+  resetBtn: {
+    backgroundColor: "#1E293B",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
+  },
+  resetBtnText: { color: "#94A3B8", fontSize: 11, fontWeight: "600" },
+  symbolBar: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 8,
+    flexWrap: "wrap",
+  },
+  symbolChip: {
+    backgroundColor: "#1E293B",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#334155",
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
+  },
+  symbolText: {
+    color: "#38BDF8",
+    fontSize: 12,
+    fontFamily: "monospace",
+    fontWeight: "700",
+  },
   subHeader: {
     color: "#CBD5E1",
     fontSize: 13,
