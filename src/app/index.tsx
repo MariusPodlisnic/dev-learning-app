@@ -47,11 +47,9 @@ export default function HomeScreen() {
     Record<string, boolean>
   >({});
 
-  // Gamification & Profile State
   const [xpPoints, setXpPoints] = useState<number>(0);
   const [streakCount, setStreakCount] = useState<number>(0);
 
-  // Auth & Modal States
   const [session, setSession] = useState<Session | null>(null);
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
@@ -108,11 +106,6 @@ export default function HomeScreen() {
       else {
         const all = data || [];
         setLessons(all);
-        const freeLesson = all.find((l) => l.track === "python_basics");
-        if (freeLesson) {
-          setSelectedLesson(freeLesson);
-          setCode(freeLesson.initial_code);
-        }
       }
     } finally {
       setLoading(false);
@@ -185,13 +178,11 @@ export default function HomeScreen() {
     }
     setUpgrading(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({
-          id: session.user.id,
-          email: session.user.email,
-          is_premium: true,
-        });
+      const { error } = await supabase.from("profiles").upsert({
+        id: session.user.id,
+        email: session.user.email,
+        is_premium: true,
+      });
 
       if (error) throw error;
       setIsPremium(true);
@@ -239,7 +230,7 @@ export default function HomeScreen() {
 
   async function runPythonCode() {
     setIsExecuting(true);
-    setOutput("Executing code...");
+    setOutput("Compiling sequence...");
 
     try {
       if (Platform.OS === "web" && pyodideRef.current) {
@@ -256,12 +247,13 @@ export default function HomeScreen() {
           (result !== undefined ? String(result).trim() : "");
 
         let finalLogs =
-          rawOutput || "Code executed successfully with no output.";
+          rawOutput || "[Process completed successfully. No output generated.]";
 
         if (selectedLesson?.expected_output) {
           const expected = selectedLesson.expected_output.trim();
           if (rawOutput === expected) {
-            finalLogs += "\n\n🎉 Test Passed! Solution verified (+50 XP).";
+            finalLogs +=
+              "\n\n✅ LOGIC VERIFIED: Correct implementation (+50 XP)";
             setShowSuccessModal(true);
 
             if (selectedLesson && session) {
@@ -295,18 +287,16 @@ export default function HomeScreen() {
               }));
             }
           } else {
-            finalLogs += `\n\n❌ Test Failed.\nExpected Output:\n${expected}`;
+            finalLogs += `\n\n❌ VALIDATION FAILED.\n[Expected Output]:\n${expected}`;
           }
         }
 
         setOutput(finalLogs);
       } else {
-        setOutput(
-          'Native execution requires Web view preview. Run on Web (press "w") to test client-side WASM.',
-        );
+        setOutput("Environment mismatch: Requires Web execution context.");
       }
     } catch (err: any) {
-      setOutput(`Error:\n${err.message || String(err)}`);
+      setOutput(`[Traceback Exception]:\n${err.message || String(err)}`);
     } finally {
       setIsExecuting(false);
     }
@@ -323,7 +313,6 @@ export default function HomeScreen() {
   const progressPercent = currentLessons.length
     ? Math.round((completedCount / currentLessons.length) * 100)
     : 0;
-
   const currentLessonIndex = selectedLesson
     ? currentLessons.findIndex((l) => l.id === selectedLesson.id)
     : -1;
@@ -337,44 +326,48 @@ export default function HomeScreen() {
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>⚡ DevLearn Studio</Text>
           <View style={styles.statusPill}>
+            <View
+              style={[
+                styles.pulseDot,
+                pyodideReady
+                  ? { backgroundColor: "#10B981" }
+                  : { backgroundColor: "#F59E0B" },
+              ]}
+            />
             <Text style={styles.statusText}>
-              {pyodideReady
-                ? "🟢 Pyodide WASM Active"
-                : "⏳ Initializing WASM Engine..."}
+              {pyodideReady ? "System Online" : "Booting WASM Core..."}
             </Text>
           </View>
         </View>
 
-        {/* Gamification Stats Header */}
         <View style={styles.gamificationHeader}>
           <View style={styles.statPill}>
-            <Text style={styles.statText}>🔥 {streakCount} Day Streak</Text>
+            <Text style={styles.statText}>🔥 {streakCount} Days</Text>
           </View>
           <View style={styles.statPill}>
             <Text style={styles.statText}>⚡ {xpPoints} XP</Text>
           </View>
           {isPremium && (
             <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>PRO MEMBER</Text>
+              <Text style={styles.proBadgeText}>PRO ACCESS</Text>
             </View>
           )}
         </View>
 
-        {/* User Auth Control */}
         <View style={styles.headerRight}>
           {!isPremium && (
             <Pressable
               style={styles.upgradeHeaderBtn}
               onPress={() => setShowPaywallModal(true)}
             >
-              <Text style={styles.upgradeHeaderBtnText}>⭐ Upgrade to Pro</Text>
+              <Text style={styles.upgradeHeaderBtnText}>⭐ Upgrade Access</Text>
             </Pressable>
           )}
           {session ? (
             <View style={styles.userSection}>
               <Text style={styles.userEmail}>{session.user.email}</Text>
               <Pressable style={styles.authBtn} onPress={handleSignOut}>
-                <Text style={styles.authBtnText}>Sign Out</Text>
+                <Text style={styles.authBtnText}>Disconnect</Text>
               </Pressable>
             </View>
           ) : (
@@ -382,7 +375,7 @@ export default function HomeScreen() {
               style={[styles.authBtn, styles.loginBtn]}
               onPress={() => setShowAuthModal(true)}
             >
-              <Text style={styles.authBtnText}>Sign In / Register</Text>
+              <Text style={styles.authBtnText}>Initialize User</Text>
             </Pressable>
           )}
         </View>
@@ -391,7 +384,7 @@ export default function HomeScreen() {
       <View style={styles.content}>
         {/* Left Sidebar */}
         <View style={styles.sidebar}>
-          <Text style={styles.sectionTitle}>LEARNING TRACKS</Text>
+          <Text style={styles.sectionTitle}>TRAINING PROTOCOLS</Text>
           <Pressable
             style={[
               styles.trackTab,
@@ -399,7 +392,7 @@ export default function HomeScreen() {
             ]}
             onPress={() => setActiveTrack("python_basics")}
           >
-            <Text style={styles.trackTabText}>🐍 Python Basics (Free)</Text>
+            <Text style={styles.trackTabText}>🐍 Foundation Core</Text>
           </Pressable>
           <Pressable
             style={[
@@ -412,14 +405,14 @@ export default function HomeScreen() {
             }}
           >
             <Text style={styles.trackTabText}>
-              {isPremium ? "⚡ Algorithms & Data" : "🔒 Algorithms & Data"}
+              {isPremium ? "⚡ Algorithmic Mastery" : "🔒 Algorithmic Mastery"}
             </Text>
           </Pressable>
 
           {/* Progress Overview Bar */}
           <View style={styles.progressCard}>
             <View style={styles.progressHeader}>
-              <Text style={styles.progressTitle}>Track Completion</Text>
+              <Text style={styles.progressTitle}>Module Completion</Text>
               <Text style={styles.progressPercent}>{progressPercent}%</Text>
             </View>
             <View style={styles.progressBarTrack}>
@@ -433,7 +426,7 @@ export default function HomeScreen() {
           </View>
 
           <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
-            CURRICULUM
+            ACTIVE SYLLABUS
           </Text>
           {loading ? (
             <ActivityIndicator color="#38BDF8" style={{ marginTop: 12 }} />
@@ -441,32 +434,40 @@ export default function HomeScreen() {
             currentLessons.map((lesson) => {
               const isCompleted = completedLessons[lesson.id];
               const isLocked = !lesson.is_free && !isPremium;
+              const isActive = selectedLesson?.id === lesson.id;
               return (
                 <Pressable
                   key={lesson.id}
                   style={[
                     styles.lessonCard,
-                    selectedLesson?.id === lesson.id && styles.activeLessonCard,
+                    isActive && styles.activeLessonCard,
                   ]}
                   onPress={() => handleSelectLesson(lesson)}
                 >
                   <View style={styles.lessonCardLeft}>
                     <Text style={styles.statusIcon}>
-                      {isLocked ? "🔒" : isCompleted ? "✅" : "⚪"}
+                      {isLocked
+                        ? "🔒"
+                        : isCompleted
+                          ? "✅"
+                          : isActive
+                            ? "⚡"
+                            : "⚪"}
                     </Text>
                     <Text
                       style={[
                         styles.lessonTitle,
-                        selectedLesson?.id === lesson.id &&
-                          styles.activeLessonTitle,
+                        isActive && styles.activeLessonTitle,
                       ]}
                     >
                       {lesson.title}
                     </Text>
                   </View>
-                  <Text style={styles.badge}>
-                    {lesson.is_free ? "FREE" : "PRO"}
-                  </Text>
+                  {!lesson.is_free && (
+                    <View style={styles.proBadgeSmall}>
+                      <Text style={styles.proBadgeSmallText}>💎 PRO</Text>
+                    </View>
+                  )}
                 </Pressable>
               );
             })
@@ -477,14 +478,13 @@ export default function HomeScreen() {
         <View style={styles.workspaceContainer}>
           {selectedLesson ? (
             <View style={styles.workspaceGrid}>
-              {/* Left Column: Lesson Explanations & Visualizations */}
+              {/* Left Column: Lesson Explanations */}
               <ScrollView style={styles.explanationPanel}>
                 <Text style={styles.title}>{selectedLesson.title}</Text>
                 <Text style={styles.description}>
                   {selectedLesson.description}
                 </Text>
 
-                {/* Content Tabs */}
                 <View style={styles.tabBar}>
                   <Pressable
                     style={[
@@ -499,7 +499,7 @@ export default function HomeScreen() {
                         activeTab === "concept" && styles.activeTabText,
                       ]}
                     >
-                      📘 Concept Guide
+                      📘 Briefing Docs
                     </Text>
                   </Pressable>
 
@@ -516,7 +516,7 @@ export default function HomeScreen() {
                         activeTab === "visual" && styles.activeTabText,
                       ]}
                     >
-                      👁️ Visual Diagram
+                      👁️ Memory Map
                     </Text>
                   </Pressable>
                 </View>
@@ -534,45 +534,69 @@ export default function HomeScreen() {
                   />
                 )}
 
-                {/* Hints Accordion Component */}
                 <HintAccordion hints={selectedLesson.hints || []} />
               </ScrollView>
 
               {/* Right Column: Code Editor & Execution Terminal */}
               <View style={styles.editorPanel}>
-                <View style={styles.editorHeader}>
-                  <Text style={styles.subHeader}>
-                    Interactive Python Code Studio
-                  </Text>
-                  <Pressable style={styles.resetBtn} onPress={resetCodeSnippet}>
-                    <Text style={styles.resetBtnText}>↺ Reset Code</Text>
-                  </Pressable>
-                </View>
+                {/* IDE Window Frame */}
+                <View style={styles.ideFrame}>
+                  {/* macOS Style Header */}
+                  <View style={styles.ideHeader}>
+                    <View style={styles.windowControls}>
+                      <View
+                        style={[
+                          styles.controlDot,
+                          { backgroundColor: "#EF4444" },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.controlDot,
+                          { backgroundColor: "#F59E0B" },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.controlDot,
+                          { backgroundColor: "#10B981" },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.ideTitleText}>main.py — Workspace</Text>
+                    <Pressable
+                      style={styles.resetBtn}
+                      onPress={resetCodeSnippet}
+                    >
+                      <Text style={styles.resetBtnText}>↺ Reset</Text>
+                    </Pressable>
+                  </View>
 
-                {/* Symbol Shortcut Toolbar */}
-                <View style={styles.symbolBar}>
-                  {[":", "()", '""', "[]", "def", "return", "print"].map(
-                    (sym) => (
-                      <Pressable
-                        key={sym}
-                        style={styles.symbolChip}
-                        onPress={() => insertSymbol(sym)}
-                      >
-                        <Text style={styles.symbolText}>{sym}</Text>
-                      </Pressable>
-                    ),
-                  )}
-                </View>
+                  {/* Symbol Bar */}
+                  <View style={styles.symbolBar}>
+                    {[":", "()", '""', "[]", "def", "return", "print"].map(
+                      (sym) => (
+                        <Pressable
+                          key={sym}
+                          style={styles.symbolChip}
+                          onPress={() => insertSymbol(sym)}
+                        >
+                          <Text style={styles.symbolText}>{sym}</Text>
+                        </Pressable>
+                      ),
+                    )}
+                  </View>
 
-                <TextInput
-                  style={styles.codeEditor}
-                  value={code}
-                  onChangeText={setCode}
-                  multiline
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  spellCheck={false}
-                />
+                  <TextInput
+                    style={styles.codeEditor}
+                    value={code}
+                    onChangeText={setCode}
+                    multiline
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
+                  />
+                </View>
 
                 <Pressable
                   style={[
@@ -584,29 +608,38 @@ export default function HomeScreen() {
                 >
                   <Text style={styles.runButtonText}>
                     {isExecuting
-                      ? "Executing in WASM..."
-                      : "▶ Run & Verify Solution"}
+                      ? "Processing..."
+                      : "▶ Execute & Validate Logic"}
                   </Text>
                 </Pressable>
 
-                <Text style={[styles.subHeader, { marginTop: 16 }]}>
-                  Console Output & Validation:
-                </Text>
-                <View style={styles.terminal}>
-                  <Text style={styles.terminalText}>
-                    {output ||
-                      '# Click "Run & Verify Solution" to evaluate code output'}
-                  </Text>
+                {/* Terminal Window Frame */}
+                <View style={[styles.ideFrame, { marginTop: 20 }]}>
+                  <View style={styles.ideHeader}>
+                    <Text style={styles.ideTitleText}>/bin/zsh — Output</Text>
+                  </View>
+                  <View style={styles.terminal}>
+                    <Text style={styles.terminalText}>
+                      {output ||
+                        "// Awaiting compilation.\n// Execute logic to view standard output."}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>
           ) : (
-            <Text style={styles.infoText}>Select a lesson to start coding</Text>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateIcon}>🛰️</Text>
+              <Text style={styles.emptyStateTitle}>SYSTEM STANDBY</Text>
+              <Text style={styles.emptyStateSub}>
+                Select a training module from the active syllabus to initialize
+                the interface.
+              </Text>
+            </View>
           )}
         </View>
       </View>
 
-      {/* Auth Modal Overlay */}
       {showAuthModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -621,7 +654,6 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Paywall Pro Upgrade Modal Overlay */}
       {showPaywallModal && (
         <View style={styles.modalOverlay}>
           <PaywallModal
@@ -632,7 +664,6 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Success Celebration Modal Overlay */}
       {showSuccessModal && (
         <View style={styles.modalOverlay}>
           <SuccessModal
@@ -651,13 +682,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F19",
+    backgroundColor: "#070A11",
     position: "relative",
   },
   header: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#1E293B",
+    borderBottomColor: "#1A2133",
+    backgroundColor: "#0A0E17",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -670,250 +702,324 @@ const styles = StyleSheet.create({
     gap: 12,
     zIndex: 101,
   },
-  headerTitle: { color: "#F8FAFC", fontSize: 20, fontWeight: "700" },
-  statusPill: {
-    backgroundColor: "#1E293B",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  headerTitle: {
+    color: "#F8FAFC",
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
-  statusText: { color: "#94A3B8", fontSize: 12 },
+  statusPill: {
+    backgroundColor: "#131C2D",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: { color: "#94A3B8", fontSize: 11, fontWeight: "600" },
   gamificationHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   statPill: {
-    backgroundColor: "#0F172A",
+    backgroundColor: "#131C2D",
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#1E293B",
+    borderColor: "#223049",
   },
-  statText: { color: "#F8FAFC", fontSize: 12, fontWeight: "700" },
+  statText: { color: "#38BDF8", fontSize: 12, fontWeight: "700" },
   proBadge: {
-    backgroundColor: "#F59E0B",
+    backgroundColor: "#8B5CF6",
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: 6,
+    shadowColor: "#8B5CF6",
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
   },
-  proBadgeText: { color: "#000000", fontSize: 11, fontWeight: "800" },
+  proBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
   upgradeHeaderBtn: {
-    backgroundColor: "#D97706",
+    backgroundColor: "transparent",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    ...Platform.select({
-      web: { cursor: "pointer", userSelect: "none" },
-    }),
+    borderWidth: 1,
+    borderColor: "#D97706",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
-  upgradeHeaderBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  upgradeHeaderBtnText: { color: "#F59E0B", fontSize: 12, fontWeight: "700" },
   userSection: { flexDirection: "row", alignItems: "center", gap: 12 },
-  userEmail: { color: "#CBD5E1", fontSize: 13 },
+  userEmail: { color: "#94A3B8", fontSize: 12 },
   authBtn: {
-    backgroundColor: "#334155",
+    backgroundColor: "#1E293B",
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 8,
-    ...Platform.select({
-      web: { cursor: "pointer", userSelect: "none" },
-    }),
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
-  loginBtn: { backgroundColor: "#2563EB" },
-  authBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+  loginBtn: { backgroundColor: "#3B82F6" },
+  authBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
   content: { flex: 1, flexDirection: "row", zIndex: 1 },
   sidebar: {
-    width: 300,
+    width: 280,
     borderRightWidth: 1,
-    borderRightColor: "#1E293B",
+    borderRightColor: "#1A2133",
+    backgroundColor: "#0A0E17",
     padding: 16,
   },
   sectionTitle: {
-    color: "#64748B",
-    fontSize: 11,
-    fontWeight: "700",
+    color: "#475569",
+    fontSize: 10,
+    fontWeight: "800",
     marginBottom: 10,
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
   trackTab: {
-    padding: 10,
-    borderRadius: 6,
-    backgroundColor: "#1E293B",
-    marginBottom: 6,
-    ...Platform.select({
-      web: { cursor: "pointer", userSelect: "none" },
-    }),
-  },
-  activeTrackTab: { backgroundColor: "#2563EB" },
-  trackTabText: { color: "#F8FAFC", fontSize: 13, fontWeight: "600" },
-  progressCard: {
-    backgroundColor: "#0F172A",
     padding: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#1E293B",
+    backgroundColor: "#131C2D",
+    marginBottom: 8,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  activeTrackTab: {
+    backgroundColor: "#2563EB",
+    shadowColor: "#2563EB",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  trackTabText: { color: "#F8FAFC", fontSize: 13, fontWeight: "700" },
+  progressCard: {
+    backgroundColor: "#131C2D",
+    padding: 12,
+    borderRadius: 8,
     marginTop: 10,
   },
   progressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   progressTitle: { color: "#94A3B8", fontSize: 11, fontWeight: "600" },
-  progressPercent: { color: "#38BDF8", fontSize: 11, fontWeight: "700" },
+  progressPercent: { color: "#38BDF8", fontSize: 11, fontWeight: "800" },
   progressBarTrack: {
-    height: 6,
+    height: 4,
     backgroundColor: "#1E293B",
-    borderRadius: 3,
+    borderRadius: 2,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: "#10B981",
+    backgroundColor: "#38BDF8",
   },
   lessonCard: {
-    padding: 12,
+    padding: 14,
     borderRadius: 8,
-    backgroundColor: "#1E293B",
-    marginBottom: 8,
+    backgroundColor: "transparent",
+    marginBottom: 4,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    ...Platform.select({
-      web: { cursor: "pointer", userSelect: "none" },
-    }),
+    borderWidth: 1,
+    borderColor: "transparent",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
-  activeLessonCard: { backgroundColor: "#2563EB" },
-  lessonCardLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  activeLessonCard: { backgroundColor: "#131C2D", borderColor: "#223049" },
+  lessonCardLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   statusIcon: { fontSize: 12 },
-  lessonTitle: { color: "#CBD5E1", fontSize: 14, fontWeight: "500" },
-  activeLessonTitle: { color: "#FFFFFF", fontWeight: "700" },
-  badge: { color: "#10B981", fontSize: 10, fontWeight: "700" },
-  workspaceContainer: { flex: 1, padding: 20 },
-  workspaceGrid: { flex: 1, flexDirection: "row", gap: 20 },
-  explanationPanel: { flex: 1, paddingRight: 8 },
+  lessonTitle: { color: "#94A3B8", fontSize: 13, fontWeight: "600" },
+  activeLessonTitle: { color: "#38BDF8", fontWeight: "800" },
+  proBadgeSmall: {
+    backgroundColor: "#8B5CF620",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#8B5CF650",
+  },
+  proBadgeSmallText: { color: "#A78BFA", fontSize: 8, fontWeight: "800" },
+  workspaceContainer: { flex: 1, padding: 24, backgroundColor: "#070A11" },
+  workspaceGrid: { flex: 1, flexDirection: "row", gap: 24 },
+  explanationPanel: { flex: 1, paddingRight: 12 },
   editorPanel: { flex: 1 },
-  title: { color: "#F8FAFC", fontSize: 24, fontWeight: "700", marginBottom: 6 },
+  title: { color: "#F8FAFC", fontSize: 28, fontWeight: "800", marginBottom: 8 },
   description: {
     color: "#94A3B8",
-    fontSize: 14,
-    marginBottom: 16,
-    lineHeight: 20,
+    fontSize: 15,
+    marginBottom: 20,
+    lineHeight: 24,
   },
   tabBar: {
     flexDirection: "row",
-    backgroundColor: "#1E293B",
+    backgroundColor: "#131C2D",
     borderRadius: 8,
     padding: 4,
     marginBottom: 16,
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: "center",
     borderRadius: 6,
-    ...Platform.select({
-      web: { cursor: "pointer", userSelect: "none" },
-    }),
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
-  activeTabItem: { backgroundColor: "#2563EB" },
-  tabText: { color: "#94A3B8", fontSize: 12, fontWeight: "600" },
-  activeTabText: { color: "#FFFFFF" },
+  activeTabItem: { backgroundColor: "#1E293B" },
+  tabText: { color: "#64748B", fontSize: 12, fontWeight: "700" },
+  activeTabText: { color: "#38BDF8" },
   conceptCard: {
-    backgroundColor: "#0F172A",
-    padding: 16,
+    backgroundColor: "#131C2D",
+    padding: 20,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#1E293B",
   },
-  conceptText: { color: "#CBD5E1", fontSize: 14, lineHeight: 22 },
-  editorHeader: {
+  conceptText: { color: "#CBD5E1", fontSize: 15, lineHeight: 26 },
+
+  /* IDE Frame Styles */
+  ideFrame: {
+    backgroundColor: "#0F1524",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#1E293B",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  ideHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#131C2D",
+    borderBottomWidth: 1,
+    borderBottomColor: "#1E293B",
+  },
+  windowControls: {
+    flexDirection: "row",
+    gap: 6,
+    position: "absolute",
+    left: 16,
+  },
+  controlDot: { width: 10, height: 10, borderRadius: 5 },
+  ideTitleText: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
+    flex: 1,
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   resetBtn: {
-    backgroundColor: "#1E293B",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
-    ...Platform.select({
-      web: { cursor: "pointer", userSelect: "none" },
-    }),
+    backgroundColor: "#1E293B",
+    borderRadius: 4,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
-  resetBtnText: { color: "#94A3B8", fontSize: 11, fontWeight: "600" },
+  resetBtnText: { color: "#94A3B8", fontSize: 10, fontWeight: "700" },
   symbolBar: {
     flexDirection: "row",
     gap: 6,
-    marginBottom: 8,
-    flexWrap: "wrap",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "#0B0F19",
+    borderBottomWidth: 1,
+    borderBottomColor: "#1E293B",
   },
   symbolChip: {
-    backgroundColor: "#1E293B",
-    paddingHorizontal: 8,
+    backgroundColor: "#131C2D",
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: "#334155",
-    ...Platform.select({
-      web: { cursor: "pointer", userSelect: "none" },
-    }),
+    borderColor: "#223049",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   symbolText: {
     color: "#38BDF8",
     fontSize: 12,
     fontFamily: "monospace",
-    fontWeight: "700",
-  },
-  subHeader: {
-    color: "#CBD5E1",
-    fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "800",
   },
   codeEditor: {
-    backgroundColor: "#020617",
-    color: "#38BDF8",
+    color: "#E2E8F0",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     fontSize: 14,
     padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#334155",
-    minHeight: 200,
+    minHeight: 280,
     textAlignVertical: "top",
+    outlineStyle: "none" as any,
   },
-  runButton: {
-    backgroundColor: "#10B981",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 12,
-    ...Platform.select({
-      web: { cursor: "pointer", userSelect: "none" },
-    }),
-  },
-  disabledButton: { backgroundColor: "#065F46" },
-  runButtonText: { color: "#FFFFFF", fontWeight: "700", fontSize: 14 },
   terminal: {
-    backgroundColor: "#000000",
     padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#1E293B",
-    minHeight: 120,
-    marginTop: 8,
+    minHeight: 140,
+    backgroundColor: "#05070A",
   },
   terminalText: {
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     color: "#4ADE80",
     fontSize: 13,
+    lineHeight: 20,
   },
-  infoText: { color: "#64748B" },
+
+  runButton: {
+    backgroundColor: "#10B981",
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 16,
+    shadowColor: "#10B981",
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  disabledButton: { backgroundColor: "#065F46", shadowOpacity: 0 },
+  runButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 14,
+    letterSpacing: 0.5,
+  },
+
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyStateIcon: { fontSize: 48, marginBottom: 16 },
+  emptyStateTitle: {
+    color: "#475569",
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: 2,
+  },
+  emptyStateSub: {
+    color: "#334155",
+    fontSize: 13,
+    marginTop: 8,
+    maxWidth: 300,
+    textAlign: "center",
+  },
+
   modalOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 999,
@@ -922,9 +1028,7 @@ const styles = StyleSheet.create({
   closeModalBtn: {
     marginTop: 12,
     padding: 8,
-    ...Platform.select({
-      web: { cursor: "pointer", userSelect: "none" },
-    }),
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   closeModalText: { color: "#94A3B8", fontSize: 13 },
 });
