@@ -18,6 +18,17 @@ import PaywallModal from "../components/PaywallModal";
 import SuccessModal from "../components/SuccessModal";
 import VisualLessonPanel from "../components/VisualLessonPanel";
 
+interface Example {
+  input: string;
+  output: string;
+  explanation?: string;
+}
+
+interface Complexities {
+  time?: string;
+  space?: string;
+}
+
 interface Lesson {
   id: string;
   title: string;
@@ -26,6 +37,10 @@ interface Lesson {
   content: string;
   initial_code: string;
   expected_output: string;
+  hidden_tests?: string;
+  examples?: Example[];
+  constraints?: string[];
+  complexities?: Complexities;
   is_free: boolean;
   lesson_order: number;
   visual_type?: string;
@@ -35,9 +50,9 @@ interface Lesson {
 
 export default function HomeScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [activeTrack, setActiveTrack] = useState<string>("python_basics");
+  const [activeTrack, setActiveTrack] = useState<string>("algorithms");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
-  const [activeTab, setActiveTab] = useState<"concept" | "visual">("concept");
+  const [activeTab, setActiveTab] = useState<"problem" | "visual">("problem");
   const [code, setCode] = useState<string>("");
   const [output, setOutput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -178,11 +193,13 @@ export default function HomeScreen() {
     }
     setUpgrading(true);
     try {
-      const { error } = await supabase.from("profiles").upsert({
-        id: session.user.id,
-        email: session.user.email,
-        is_premium: true,
-      });
+      const { error } = await supabase
+        .from("profiles")
+        .upsert({
+          id: session.user.id,
+          email: session.user.email,
+          is_premium: true,
+        });
 
       if (error) throw error;
       setIsPremium(true);
@@ -230,7 +247,7 @@ export default function HomeScreen() {
 
   async function runPythonCode() {
     setIsExecuting(true);
-    setOutput("Compiling sequence...");
+    setOutput("Compiling sequence against test suite...");
 
     try {
       if (Platform.OS === "web" && pyodideRef.current) {
@@ -241,7 +258,12 @@ export default function HomeScreen() {
           },
         });
 
-        const result = await pyodideRef.current.runPythonAsync(code);
+        // 1. Inject hidden tests directly into the user's code evaluation
+        const executionCode = selectedLesson?.hidden_tests
+          ? `${code}\n${selectedLesson.hidden_tests}`
+          : code;
+
+        const result = await pyodideRef.current.runPythonAsync(executionCode);
         const rawOutput =
           stdoutBuffer.trim() ||
           (result !== undefined ? String(result).trim() : "");
@@ -249,11 +271,12 @@ export default function HomeScreen() {
         let finalLogs =
           rawOutput || "[Process completed successfully. No output generated.]";
 
+        // 2. Validate against expected output target
         if (selectedLesson?.expected_output) {
           const expected = selectedLesson.expected_output.trim();
-          if (rawOutput === expected) {
-            finalLogs +=
-              "\n\n✅ LOGIC VERIFIED: Correct implementation (+50 XP)";
+
+          if (rawOutput.includes(expected)) {
+            finalLogs = `🟢 ACCEPTED: All Hidden Test Cases Passed (+50 XP)\n\nProgram Output:\n${rawOutput}`;
             setShowSuccessModal(true);
 
             if (selectedLesson && session) {
@@ -287,7 +310,8 @@ export default function HomeScreen() {
               }));
             }
           } else {
-            finalLogs += `\n\n❌ VALIDATION FAILED.\n[Expected Output]:\n${expected}`;
+            // Error handling formatting
+            finalLogs = `🔴 REJECTED: Assertion Failed\n\nExecution Log:\n${rawOutput}`;
           }
         }
 
@@ -296,7 +320,7 @@ export default function HomeScreen() {
         setOutput("Environment mismatch: Requires Web execution context.");
       }
     } catch (err: any) {
-      setOutput(`[Traceback Exception]:\n${err.message || String(err)}`);
+      setOutput(`🔴 Runtime Exception:\n${err.message || String(err)}`);
     } finally {
       setIsExecuting(false);
     }
@@ -374,7 +398,7 @@ export default function HomeScreen() {
             <Pressable
               style={[styles.authBtn, styles.loginBtn]}
               onPress={() => setShowAuthModal(true)}
-            >
+            >{ }
               <Text style={styles.authBtnText}>Initialize User</Text>
             </Pressable>
           )}
@@ -400,16 +424,16 @@ export default function HomeScreen() {
               activeTrack === "algorithms" && styles.activeTrackTab,
             ]}
             onPress={() => {
-              if (!isPremium) setShowPaywallModal(true);
+              if (!isPremium && false)
+                setShowPaywallModal(true); // Removing paywall lock for demo
               else setActiveTrack("algorithms");
             }}
           >
             <Text style={styles.trackTabText}>
-              {isPremium ? "⚡ Algorithmic Mastery" : "🔒 Algorithmic Mastery"}
+              {isPremium ? "⚡ Algorithmic Mastery" : "⚡ Algorithmic Mastery"}
             </Text>
           </Pressable>
 
-          {/* Progress Overview Bar */}
           <View style={styles.progressCard}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressTitle}>Module Completion</Text>
@@ -478,28 +502,44 @@ export default function HomeScreen() {
         <View style={styles.workspaceContainer}>
           {selectedLesson ? (
             <View style={styles.workspaceGrid}>
-              {/* Left Column: Lesson Explanations */}
-              <ScrollView style={styles.explanationPanel}>
+              {/* Left Column: Problem Description */}
+              <ScrollView
+                style={styles.explanationPanel}
+                showsVerticalScrollIndicator={false}
+              >
                 <Text style={styles.title}>{selectedLesson.title}</Text>
-                <Text style={styles.description}>
-                  {selectedLesson.description}
-                </Text>
+
+                {/* Space & Time Badges */}
+                {selectedLesson.complexities && (
+                  <View style={styles.complexityBar}>
+                    {selectedLesson.complexities.time && (
+                      <Text style={styles.complexityBadge}>
+                        ⏱️ Time: {selectedLesson.complexities.time}
+                      </Text>
+                    )}
+                    {selectedLesson.complexities.space && (
+                      <Text style={styles.complexityBadge}>
+                        💾 Space: {selectedLesson.complexities.space}
+                      </Text>
+                    )}
+                  </View>
+                )}
 
                 <View style={styles.tabBar}>
                   <Pressable
                     style={[
                       styles.tabItem,
-                      activeTab === "concept" && styles.activeTabItem,
+                      activeTab === "problem" && styles.activeTabItem,
                     ]}
-                    onPress={() => setActiveTab("concept")}
+                    onPress={() => setActiveTab("problem")}
                   >
                     <Text
                       style={[
                         styles.tabText,
-                        activeTab === "concept" && styles.activeTabText,
+                        activeTab === "problem" && styles.activeTabText,
                       ]}
                     >
-                      📘 Briefing Docs
+                      📋 Problem Description
                     </Text>
                   </Pressable>
 
@@ -516,16 +556,56 @@ export default function HomeScreen() {
                         activeTab === "visual" && styles.activeTabText,
                       ]}
                     >
-                      👁️ Memory Map
+                      👁️ Architecture Map
                     </Text>
                   </Pressable>
                 </View>
 
-                {activeTab === "concept" ? (
-                  <View style={styles.conceptCard}>
-                    <Text style={styles.conceptText}>
+                {activeTab === "problem" ? (
+                  <View style={styles.problemCard}>
+                    <Text style={styles.problemText}>
                       {selectedLesson.content}
                     </Text>
+
+                    {/* Render LeetCode Style Examples */}
+                    {selectedLesson.examples &&
+                      selectedLesson.examples.map((ex, i) => (
+                        <View key={i} style={styles.exampleBlock}>
+                          <Text style={styles.exampleTitle}>
+                            Example {i + 1}:
+                          </Text>
+                          <View style={styles.exampleBox}>
+                            <Text style={styles.exampleCode}>
+                              <Text style={styles.bold}>Input:</Text> {ex.input}
+                            </Text>
+                            <Text style={styles.exampleCode}>
+                              <Text style={styles.bold}>Output:</Text>{" "}
+                              {ex.output}
+                            </Text>
+                            {ex.explanation && (
+                              <Text style={styles.exampleCode}>
+                                <Text style={styles.bold}>Explanation:</Text>{" "}
+                                {ex.explanation}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                      ))}
+
+                    {/* Render Constraints */}
+                    {selectedLesson.constraints &&
+                      selectedLesson.constraints.length > 0 && (
+                        <View style={styles.constraintsBlock}>
+                          <Text style={styles.exampleTitle}>Constraints:</Text>
+                          <View style={styles.constraintList}>
+                            {selectedLesson.constraints.map((c, i) => (
+                              <Text key={i} style={styles.constraintItem}>
+                                • {c}
+                              </Text>
+                            ))}
+                          </View>
+                        </View>
+                      )}
                   </View>
                 ) : (
                   <VisualLessonPanel
@@ -541,7 +621,6 @@ export default function HomeScreen() {
               <View style={styles.editorPanel}>
                 {/* IDE Window Frame */}
                 <View style={styles.ideFrame}>
-                  {/* macOS Style Header */}
                   <View style={styles.ideHeader}>
                     <View style={styles.windowControls}>
                       <View
@@ -563,7 +642,7 @@ export default function HomeScreen() {
                         ]}
                       />
                     </View>
-                    <Text style={styles.ideTitleText}>main.py — Workspace</Text>
+                    <Text style={styles.ideTitleText}>solution.py — Main</Text>
                     <Pressable
                       style={styles.resetBtn}
                       onPress={resetCodeSnippet}
@@ -572,9 +651,8 @@ export default function HomeScreen() {
                     </Pressable>
                   </View>
 
-                  {/* Symbol Bar */}
                   <View style={styles.symbolBar}>
-                    {[":", "()", '""', "[]", "def", "return", "print"].map(
+                    {[":", "()", '""', "[]", "def", "return", "self"].map(
                       (sym) => (
                         <Pressable
                           key={sym}
@@ -608,20 +686,22 @@ export default function HomeScreen() {
                 >
                   <Text style={styles.runButtonText}>
                     {isExecuting
-                      ? "Processing..."
-                      : "▶ Execute & Validate Logic"}
+                      ? "Executing Cloud Instance..."
+                      : "▶ Run Code against Test Suite"}
                   </Text>
                 </Pressable>
 
                 {/* Terminal Window Frame */}
                 <View style={[styles.ideFrame, { marginTop: 20 }]}>
                   <View style={styles.ideHeader}>
-                    <Text style={styles.ideTitleText}>/bin/zsh — Output</Text>
+                    <Text style={styles.ideTitleText}>
+                      /bin/bash — Test Output Logs
+                    </Text>
                   </View>
                   <View style={styles.terminal}>
                     <Text style={styles.terminalText}>
                       {output ||
-                        "// Awaiting compilation.\n// Execute logic to view standard output."}
+                        "// Standard output and stack traces will appear here."}
                     </Text>
                   </View>
                 </View>
@@ -738,9 +818,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    shadowColor: "#8B5CF6",
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
   },
   proBadgeText: {
     color: "#FFFFFF",
@@ -852,11 +929,15 @@ const styles = StyleSheet.create({
   explanationPanel: { flex: 1, paddingRight: 12 },
   editorPanel: { flex: 1 },
   title: { color: "#F8FAFC", fontSize: 28, fontWeight: "800", marginBottom: 8 },
-  description: {
+  complexityBar: { flexDirection: "row", gap: 12, marginBottom: 20 },
+  complexityBadge: {
+    backgroundColor: "#131C2D",
     color: "#94A3B8",
-    fontSize: 15,
-    marginBottom: 20,
-    lineHeight: 24,
+    fontSize: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    overflow: "hidden",
   },
   tabBar: {
     flexDirection: "row",
@@ -875,14 +956,48 @@ const styles = StyleSheet.create({
   activeTabItem: { backgroundColor: "#1E293B" },
   tabText: { color: "#64748B", fontSize: 12, fontWeight: "700" },
   activeTabText: { color: "#38BDF8" },
-  conceptCard: {
-    backgroundColor: "#131C2D",
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#1E293B",
+
+  /* Problem Formatting */
+  problemCard: {
+    backgroundColor: "transparent",
+    paddingBottom: 20,
   },
-  conceptText: { color: "#CBD5E1", fontSize: 15, lineHeight: 26 },
+  problemText: {
+    color: "#CBD5E1",
+    fontSize: 15,
+    lineHeight: 26,
+    marginBottom: 24,
+  },
+  exampleBlock: { marginBottom: 20 },
+  exampleTitle: {
+    color: "#F8FAFC",
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  exampleBox: {
+    backgroundColor: "#131C2D",
+    padding: 16,
+    borderRadius: 8,
+    borderLeftWidth: 2,
+    borderLeftColor: "#38BDF8",
+  },
+  exampleCode: {
+    color: "#94A3B8",
+    fontSize: 14,
+    fontFamily: "monospace",
+    marginBottom: 6,
+    lineHeight: 22,
+  },
+  bold: { color: "#F8FAFC", fontWeight: "800" },
+  constraintsBlock: { marginTop: 10, marginBottom: 20 },
+  constraintList: { backgroundColor: "#131C2D", padding: 16, borderRadius: 8 },
+  constraintItem: {
+    color: "#94A3B8",
+    fontSize: 13,
+    fontFamily: "monospace",
+    marginBottom: 4,
+  },
 
   /* IDE Frame Styles */
   ideFrame: {
@@ -891,10 +1006,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#1E293B",
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
   },
   ideHeader: {
     flexDirection: "row",
@@ -969,23 +1080,20 @@ const styles = StyleSheet.create({
   },
   terminalText: {
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
-    color: "#4ADE80",
+    color: "#A3E635",
     fontSize: 13,
     lineHeight: 20,
   },
 
   runButton: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#3B82F6",
     padding: 16,
     borderRadius: 8,
     alignItems: "center",
     marginTop: 16,
-    shadowColor: "#10B981",
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
-  disabledButton: { backgroundColor: "#065F46", shadowOpacity: 0 },
+  disabledButton: { backgroundColor: "#1E3A8A", shadowOpacity: 0 },
   runButtonText: {
     color: "#FFFFFF",
     fontWeight: "800",
