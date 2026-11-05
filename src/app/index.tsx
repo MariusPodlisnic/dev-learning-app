@@ -14,6 +14,7 @@ import {
 import { supabase } from "../../lib/supabase";
 import Auth from "../components/Auth";
 import PaywallModal from "../components/PaywallModal";
+import VisualLessonPanel from "../components/VisualLessonPanel";
 
 interface Lesson {
   id: string;
@@ -24,12 +25,15 @@ interface Lesson {
   initial_code: string;
   expected_output: string;
   is_free: boolean;
+  visual_type?: string;
+  visual_data?: any;
 }
 
 export default function HomeScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [activeTrack, setActiveTrack] = useState<string>("python_basics");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [activeTab, setActiveTab] = useState<"concept" | "visual">("concept");
   const [code, setCode] = useState<string>("");
   const [output, setOutput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -254,6 +258,12 @@ export default function HomeScreen() {
   }
 
   const currentLessons = lessons.filter((l) => l.track === activeTrack);
+  const completedCount = currentLessons.filter(
+    (l) => completedLessons[l.id],
+  ).length;
+  const progressPercent = currentLessons.length
+    ? Math.round((completedCount / currentLessons.length) * 100)
+    : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -263,12 +273,14 @@ export default function HomeScreen() {
           <Text style={styles.headerTitle}>⚡ DevLearn Studio</Text>
           <View style={styles.statusPill}>
             <Text style={styles.statusText}>
-              {pyodideReady ? "🟢 WASM Engine Ready" : "⏳ Loading WASM..."}
+              {pyodideReady
+                ? "🟢 Pyodide WASM Active"
+                : "⏳ Initializing WASM Engine..."}
             </Text>
           </View>
           {isPremium && (
             <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>PRO</Text>
+              <Text style={styles.proBadgeText}>PRO MEMBER</Text>
             </View>
           )}
         </View>
@@ -304,7 +316,6 @@ export default function HomeScreen() {
       <View style={styles.content}>
         {/* Left Sidebar */}
         <View style={styles.sidebar}>
-          {/* Track Switcher */}
           <Text style={styles.sectionTitle}>LEARNING TRACKS</Text>
           <Pressable
             style={[
@@ -313,7 +324,7 @@ export default function HomeScreen() {
             ]}
             onPress={() => setActiveTrack("python_basics")}
           >
-            <Text style={styles.trackTabText}>Python Basics (Free)</Text>
+            <Text style={styles.trackTabText}>🐍 Python Basics (Free)</Text>
           </Pressable>
           <Pressable
             style={[
@@ -326,13 +337,31 @@ export default function HomeScreen() {
             }}
           >
             <Text style={styles.trackTabText}>
-              {isPremium ? "Algorithms & Data" : "🔒 Algorithms & Data"}
+              {isPremium ? "⚡ Algorithms & Data" : "🔒 Algorithms & Data"}
             </Text>
           </Pressable>
 
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>LESSONS</Text>
+          {/* Progress Overview Bar */}
+          <View style={styles.progressCard}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressTitle}>Track Completion</Text>
+              <Text style={styles.progressPercent}>{progressPercent}%</Text>
+            </View>
+            <View style={styles.progressBarTrack}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${progressPercent}%` },
+                ]}
+              />
+            </View>
+          </View>
+
+          <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
+            CURRICULUM
+          </Text>
           {loading ? (
-            <ActivityIndicator color="#38BDF8" />
+            <ActivityIndicator color="#38BDF8" style={{ marginTop: 12 }} />
           ) : (
             currentLessons.map((lesson) => {
               const isCompleted = completedLessons[lesson.id];
@@ -369,51 +398,119 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Right Workspace */}
-        <ScrollView style={styles.workspace}>
+        {/* Workspace Layout */}
+        <View style={styles.workspaceContainer}>
           {selectedLesson ? (
-            <View>
-              <Text style={styles.title}>{selectedLesson.title}</Text>
-              <Text style={styles.description}>
-                {selectedLesson.description}
-              </Text>
-
-              <Text style={styles.subHeader}>
-                Interactive Python Workspace:
-              </Text>
-              <TextInput
-                style={styles.codeEditor}
-                value={code}
-                onChangeText={setCode}
-                multiline
-                autoCapitalize="none"
-                autoCorrect={false}
-                spellCheck={false}
-              />
-
-              <Pressable
-                style={[styles.runButton, isExecuting && styles.disabledButton]}
-                onPress={runPythonCode}
-                disabled={isExecuting}
-              >
-                <Text style={styles.runButtonText}>
-                  {isExecuting ? "Running..." : "▶ Run & Submit Solution"}
+            <View style={styles.workspaceGrid}>
+              {/* Left Column: Lesson Explanations & Visualizations */}
+              <ScrollView style={styles.explanationPanel}>
+                <Text style={styles.title}>{selectedLesson.title}</Text>
+                <Text style={styles.description}>
+                  {selectedLesson.description}
                 </Text>
-              </Pressable>
 
-              <Text style={[styles.subHeader, { marginTop: 20 }]}>
-                Console Output & Validation:
-              </Text>
-              <View style={styles.terminal}>
-                <Text style={styles.terminalText}>
-                  {output || '# Click "Run & Submit Solution" to execute code'}
+                {/* Content Tabs */}
+                <View style={styles.tabBar}>
+                  <Pressable
+                    style={[
+                      styles.tabItem,
+                      activeTab === "concept" && styles.activeTabItem,
+                    ]}
+                    onPress={() => setActiveTab("concept")}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        activeTab === "concept" && styles.activeTabText,
+                      ]}
+                    >
+                      📘 Concept Guide
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.tabItem,
+                      activeTab === "visual" && styles.activeTabItem,
+                    ]}
+                    onPress={() => setActiveTab("visual")}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        activeTab === "visual" && styles.activeTabText,
+                      ]}
+                    >
+                      👁️ Visual Diagram
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {activeTab === "concept" ? (
+                  <View style={styles.conceptCard}>
+                    <Text style={styles.conceptText}>
+                      {selectedLesson.content}
+                    </Text>
+                  </View>
+                ) : (
+                  <VisualLessonPanel
+                    type={selectedLesson.visual_type || "memory"}
+                    data={selectedLesson.visual_data}
+                  />
+                )}
+              </ScrollView>
+
+              {/* Right Column: Code Editor & Execution Terminal */}
+              <View style={styles.editorPanel}>
+                <View style={styles.editorHeader}>
+                  <Text style={styles.subHeader}>
+                    Interactive Python Code Studio
+                  </Text>
+                  <Text style={styles.editorHint}>
+                    Standard Library Enabled
+                  </Text>
+                </View>
+
+                <TextInput
+                  style={styles.codeEditor}
+                  value={code}
+                  onChangeText={setCode}
+                  multiline
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
+                />
+
+                <Pressable
+                  style={[
+                    styles.runButton,
+                    isExecuting && styles.disabledButton,
+                  ]}
+                  onPress={runPythonCode}
+                  disabled={isExecuting}
+                >
+                  <Text style={styles.runButtonText}>
+                    {isExecuting
+                      ? "Executing in WASM..."
+                      : "▶ Run & Verify Solution"}
+                  </Text>
+                </Pressable>
+
+                <Text style={[styles.subHeader, { marginTop: 16 }]}>
+                  Console Output & Validation:
                 </Text>
+                <View style={styles.terminal}>
+                  <Text style={styles.terminalText}>
+                    {output ||
+                      '# Click "Run & Verify Solution" to evaluate code output'}
+                  </Text>
+                </View>
               </View>
             </View>
           ) : (
             <Text style={styles.infoText}>Select a lesson to start coding</Text>
           )}
-        </ScrollView>
+        </View>
       </View>
 
       {/* Auth Modal Overlay */}
@@ -458,7 +555,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    position: "relative",
     zIndex: 100,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
@@ -531,6 +627,31 @@ const styles = StyleSheet.create({
   },
   activeTrackTab: { backgroundColor: "#2563EB" },
   trackTabText: { color: "#F8FAFC", fontSize: 13, fontWeight: "600" },
+  progressCard: {
+    backgroundColor: "#0F172A",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#1E293B",
+    marginTop: 10,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  progressTitle: { color: "#94A3B8", fontSize: 11, fontWeight: "600" },
+  progressPercent: { color: "#38BDF8", fontSize: 11, fontWeight: "700" },
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: "#1E293B",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: "#10B981",
+  },
   lessonCard: {
     padding: 12,
     borderRadius: 8,
@@ -549,19 +670,55 @@ const styles = StyleSheet.create({
   lessonTitle: { color: "#CBD5E1", fontSize: 14, fontWeight: "500" },
   activeLessonTitle: { color: "#FFFFFF", fontWeight: "700" },
   badge: { color: "#10B981", fontSize: 10, fontWeight: "700" },
-  workspace: { flex: 1, padding: 24 },
-  title: { color: "#F8FAFC", fontSize: 26, fontWeight: "700", marginBottom: 6 },
+  workspaceContainer: { flex: 1, padding: 20 },
+  workspaceGrid: { flex: 1, flexDirection: "row", gap: 20 },
+  explanationPanel: { flex: 1, paddingRight: 8 },
+  editorPanel: { flex: 1 },
+  title: { color: "#F8FAFC", fontSize: 24, fontWeight: "700", marginBottom: 6 },
   description: {
     color: "#94A3B8",
-    fontSize: 15,
-    marginBottom: 20,
-    lineHeight: 22,
+    fontSize: 14,
+    marginBottom: 16,
+    lineHeight: 20,
   },
+  tabBar: {
+    flexDirection: "row",
+    backgroundColor: "#1E293B",
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 16,
+  },
+  tabItem: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 6,
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
+  },
+  activeTabItem: { backgroundColor: "#2563EB" },
+  tabText: { color: "#94A3B8", fontSize: 12, fontWeight: "600" },
+  activeTabText: { color: "#FFFFFF" },
+  conceptCard: {
+    backgroundColor: "#0F172A",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#1E293B",
+  },
+  conceptText: { color: "#CBD5E1", fontSize: 14, lineHeight: 22 },
+  editorHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  editorHint: { color: "#64748B", fontSize: 11 },
   subHeader: {
     color: "#CBD5E1",
     fontSize: 13,
     fontWeight: "600",
-    marginBottom: 8,
   },
   codeEditor: {
     backgroundColor: "#020617",
@@ -572,7 +729,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#334155",
-    minHeight: 140,
+    minHeight: 200,
     textAlignVertical: "top",
   },
   runButton: {
@@ -594,6 +751,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#1E293B",
     minHeight: 120,
+    marginTop: 8,
   },
   terminalText: {
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
