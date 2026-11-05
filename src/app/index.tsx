@@ -43,6 +43,7 @@ interface Lesson {
   track: string;
   description: string;
   content: string;
+  assignment?: string;
   initial_code: string;
   expected_output: string;
   hidden_tests?: string;
@@ -54,6 +55,34 @@ interface Lesson {
   visual_type?: string;
   visual_data?: any;
   hints?: string[];
+}
+
+function FormattedText({ text, style }: { text?: string; style?: any }) {
+  if (!text) return null;
+  const normalized = text.replace(/\\n/g, "\n");
+  const paragraphs = normalized.split("\n\n");
+
+  return (
+    <View style={{ gap: 12 }}>
+      {paragraphs.map((para, pIdx) => {
+        const parts = para.split(/(`[^`]+`)/g);
+        return (
+          <Text key={pIdx} style={style}>
+            {parts.map((part, i) => {
+              if (part.startsWith("`") && part.endsWith("`")) {
+                return (
+                  <Text key={i} style={styles.inlineCode}>
+                    {part.slice(1, -1)}
+                  </Text>
+                );
+              }
+              return <Text key={i}>{part}</Text>;
+            })}
+          </Text>
+        );
+      })}
+    </View>
+  );
 }
 
 export default function HomeScreen() {
@@ -133,7 +162,7 @@ export default function HomeScreen() {
         const firstBeginner = all.find((l) => l.track === "python_basics");
         if (firstBeginner) {
           setSelectedLesson(firstBeginner);
-          setCode(firstBeginner.initial_code);
+          setCode((firstBeginner.initial_code || "").replace(/\\n/g, "\n"));
         }
       }
     } finally {
@@ -225,7 +254,7 @@ export default function HomeScreen() {
     const firstInTrack = lessons.find((l) => l.track === trackName);
     if (firstInTrack) {
       setSelectedLesson(firstInTrack);
-      setCode(firstInTrack.initial_code);
+      setCode((firstInTrack.initial_code || "").replace(/\\n/g, "\n"));
       setOutput("");
       setTestResults(null);
     }
@@ -237,7 +266,7 @@ export default function HomeScreen() {
       return;
     }
     setSelectedLesson(lesson);
-    setCode(lesson.initial_code);
+    setCode((lesson.initial_code || "").replace(/\\n/g, "\n"));
     setOutput("");
     setTestResults(null);
     setBottomTab("console");
@@ -291,7 +320,7 @@ export default function HomeScreen() {
 
   async function runPythonCode() {
     setIsExecuting(true);
-    setOutput("Checking your solution...");
+    setOutput("Checking your assignment...");
     setTestResults(null);
 
     try {
@@ -321,15 +350,30 @@ export default function HomeScreen() {
             );
             setBottomTab("console");
           } else {
-            setTestResults(parsedResult.results);
+            const expectedStdout = selectedLesson?.expected_output
+              ?.replace(/\\n/g, "\n")
+              .trim();
+            const resultsList: TestCaseResult[] = [...parsedResult.results];
+            let allPassed = parsedResult.all_passed;
+
+            if (expectedStdout && selectedLesson?.track === "python_basics") {
+              const stdoutMatch = rawOutput === expectedStdout;
+              resultsList.push({
+                id: resultsList.length + 1,
+                input: "Check printed console output",
+                expected: expectedStdout,
+                actual: rawOutput || "(Nothing printed)",
+                passed: stdoutMatch,
+              });
+              if (!stdoutMatch) allPassed = false;
+            }
+
+            setTestResults(resultsList);
             setSelectedTestIndex(0);
             setBottomTab("tests");
-            setOutput(
-              rawOutput ||
-                "Code executed. See Test Cases tab for verification.",
-            );
+            setOutput(rawOutput || "Code executed. See Assignment Checks tab.");
 
-            if (parsedResult.all_passed) {
+            if (allPassed) {
               setShowSuccessModal(true);
               if (selectedLesson && session) {
                 const isAlreadyCompleted = completedLessons[selectedLesson.id];
@@ -365,9 +409,11 @@ export default function HomeScreen() {
             rawOutput ||
             (result !== undefined ? String(result).trim() : "No output");
           if (selectedLesson?.expected_output) {
-            const expected = selectedLesson.expected_output.trim();
+            const expected = selectedLesson.expected_output
+              .replace(/\\n/g, "\n")
+              .trim();
             if (rawOutput === expected) {
-              finalLogs += "\n\n🎉 Challenge Passed! (+50 XP)";
+              finalLogs += "\n\n🎉 Assignment Passed! (+50 XP)";
               setShowSuccessModal(true);
               if (selectedLesson && session) {
                 setCompletedLessons((prev) => ({
@@ -480,7 +526,7 @@ export default function HomeScreen() {
           >
             <Text style={styles.trackTabText}>🐍 Foundation Core</Text>
             <Text style={styles.trackSubText}>
-              Step-by-step interactive basics
+              Interactive concepts & assignments
             </Text>
           </Pressable>
           <Pressable
@@ -599,7 +645,7 @@ export default function HomeScreen() {
                         activeTab === "problem" && styles.activeTabText,
                       ]}
                     >
-                      📘 Interactive Guide
+                      📘 Concept & Assignment
                     </Text>
                   </Pressable>
                   <Pressable
@@ -622,44 +668,72 @@ export default function HomeScreen() {
 
                 {activeTab === "problem" ? (
                   <View style={styles.problemCard}>
+                    {/* Pure Concept Explanation Card */}
                     <View style={styles.conceptBox}>
-                      <Text style={styles.problemText}>
-                        {selectedLesson.content}
+                      <Text style={styles.sectionHeaderLabel}>
+                        📖 CONCEPT EXPLANATION
                       </Text>
+                      <FormattedText
+                        text={selectedLesson.content}
+                        style={styles.problemText}
+                      />
                     </View>
 
-                    {selectedLesson.constraints &&
-                      selectedLesson.constraints.length > 0 && (
-                        <View style={styles.missionBlock}>
-                          <Text style={styles.missionHeader}>
-                            🎯 YOUR MISSION CHECKLIST
-                          </Text>
-                          {selectedLesson.constraints.map((c, i) => (
-                            <View key={i} style={styles.missionRow}>
-                              <Text style={styles.missionBullet}>▫️</Text>
-                              <Text style={styles.missionText}>{c}</Text>
-                            </View>
-                          ))}
-                        </View>
+                    {/* Dedicated Assignment Card */}
+                    <View style={styles.assignmentBox}>
+                      <View style={styles.assignmentHeaderRow}>
+                        <Text style={styles.assignmentHeaderLabel}>
+                          ✍️ YOUR CODING ASSIGNMENT
+                        </Text>
+                        <Text style={styles.xpRewardPill}>+50 XP</Text>
+                      </View>
+
+                      {selectedLesson.assignment && (
+                        <FormattedText
+                          text={selectedLesson.assignment}
+                          style={styles.assignmentDescription}
+                        />
                       )}
 
+                      {selectedLesson.constraints &&
+                        selectedLesson.constraints.length > 0 && (
+                          <View style={styles.checklistContainer}>
+                            {selectedLesson.constraints.map((c, i) => {
+                              const isStepPassed = testResults?.[i]?.passed;
+                              return (
+                                <View key={i} style={styles.missionRow}>
+                                  <Text style={styles.missionBullet}>
+                                    {isStepPassed ? "✅" : "⬜"}
+                                  </Text>
+                                  <FormattedText
+                                    text={c}
+                                    style={styles.missionText}
+                                  />
+                                </View>
+                              );
+                            })}
+                          </View>
+                        )}
+                    </View>
+
+                    {/* Clean Code Examples */}
                     {selectedLesson.examples?.map((ex, i) => (
                       <View key={i} style={styles.exampleBlock}>
                         <Text style={styles.exampleTitle}>
-                          Code Example {i + 1}:
+                          Reference Example {i + 1}
                         </Text>
                         <View style={styles.exampleBox}>
                           <Text style={styles.exampleCode}>
-                            <Text style={styles.bold}>Code: </Text>
+                            <Text style={styles.bold}>Syntax: </Text>
                             {ex.input}
                           </Text>
                           <Text style={styles.exampleCode}>
-                            <Text style={styles.bold}>Result: </Text>
+                            <Text style={styles.bold}>Effect: </Text>
                             {ex.output}
                           </Text>
                           {ex.explanation && (
                             <Text style={styles.exampleCode}>
-                              <Text style={styles.bold}>Why: </Text>
+                              <Text style={styles.bold}>Note: </Text>
                               {ex.explanation}
                             </Text>
                           )}
@@ -699,21 +773,24 @@ export default function HomeScreen() {
                         ]}
                       />
                     </View>
-                    <Text style={styles.ideTitleText}>
-                      main.py — Interactive Editor
-                    </Text>
+                    <Text style={styles.ideTitleText}>assignment.py</Text>
                     <Pressable
                       style={styles.resetBtn}
-                      onPress={() => setCode(selectedLesson.initial_code)}
+                      onPress={() =>
+                        setCode(
+                          (selectedLesson.initial_code || "").replace(
+                            /\\n/g,
+                            "\n",
+                          ),
+                        )
+                      }
                     >
-                      <Text style={styles.resetBtnText}>
-                        ↺ Reset Starter Code
-                      </Text>
+                      <Text style={styles.resetBtnText}>↺ Reset Code</Text>
                     </Pressable>
                   </View>
 
                   <View style={styles.symbolBar}>
-                    <Text style={styles.quickInsertLabel}>Quick Insert:</Text>
+                    <Text style={styles.quickInsertLabel}>Insert:</Text>
                     {["print()", '""', 'f""', "[]", ":", "=", "for "].map(
                       (sym) => (
                         <Pressable
@@ -756,7 +833,7 @@ export default function HomeScreen() {
                     onPress={runPlaygroundOnly}
                     disabled={isExecuting}
                   >
-                    <Text style={styles.secondaryRunBtnText}>▶ Run Output</Text>
+                    <Text style={styles.secondaryRunBtnText}>▶ Test Run</Text>
                   </Pressable>
 
                   <Pressable
@@ -769,8 +846,8 @@ export default function HomeScreen() {
                   >
                     <Text style={styles.runButtonText}>
                       {isExecuting
-                        ? "Checking..."
-                        : "✓ Verify & Submit (+50 XP)"}
+                        ? "Grading Assignment..."
+                        : "✓ Submit Assignment (+50 XP)"}
                     </Text>
                   </Pressable>
                 </View>
@@ -806,7 +883,7 @@ export default function HomeScreen() {
                           bottomTab === "tests" && styles.activeBottomTabText,
                         ]}
                       >
-                        ☑️ Mission Verification{" "}
+                        ☑️ Assignment Checks{" "}
                         {testResults
                           ? `(${testResults.filter((t) => t.passed).length}/${testResults.length})`
                           : ""}
@@ -818,7 +895,7 @@ export default function HomeScreen() {
                     {bottomTab === "console" ? (
                       <Text style={styles.terminalText}>
                         {output ||
-                          '// Click "▶ Run Output" to test your code or "✓ Verify & Submit" to complete the mission.'}
+                          '// Click "▶ Test Run" to see print output, or "✓ Submit Assignment" to verify your solution.'}
                       </Text>
                     ) : testResults ? (
                       <View>
@@ -843,14 +920,16 @@ export default function HomeScreen() {
                                     styles.activeTestPillText,
                                 ]}
                               >
-                                Check {tr.id}
+                                Task {tr.id}
                               </Text>
                             </Pressable>
                           ))}
                         </View>
 
                         <View style={styles.testDetails}>
-                          <Text style={styles.testHeader}>What We Checked</Text>
+                          <Text style={styles.testHeader}>
+                            Requirement Checked
+                          </Text>
                           <View style={styles.testDataBox}>
                             <Text style={styles.testDataText}>
                               {testResults[selectedTestIndex].input}
@@ -859,9 +938,7 @@ export default function HomeScreen() {
 
                           <View style={styles.comparisonRow}>
                             <View style={{ flex: 1 }}>
-                              <Text style={styles.testHeader}>
-                                Expected Value
-                              </Text>
+                              <Text style={styles.testHeader}>Expected</Text>
                               <View style={styles.testDataBox}>
                                 <Text style={styles.testDataText}>
                                   {testResults[selectedTestIndex].expected}
@@ -870,9 +947,7 @@ export default function HomeScreen() {
                             </View>
 
                             <View style={{ flex: 1 }}>
-                              <Text style={styles.testHeader}>
-                                Your Code Produced
-                              </Text>
+                              <Text style={styles.testHeader}>Your Result</Text>
                               <View
                                 style={[
                                   styles.testDataBox,
@@ -898,8 +973,8 @@ export default function HomeScreen() {
                       </View>
                     ) : (
                       <Text style={styles.terminalText}>
-                        // Click "✓ Verify & Submit" to check each requirement
-                        of this lesson.
+                        // Click "✓ Submit Assignment" to grade your code
+                        against each requirement.
                       </Text>
                     )}
                   </ScrollView>
@@ -1160,44 +1235,84 @@ const styles = StyleSheet.create({
   tabText: { color: "#64748B", fontSize: 12, fontWeight: "700" },
   activeTabText: { color: "#38BDF8" },
   problemCard: { paddingBottom: 20 },
-  conceptBox: {
-    backgroundColor: "#0F1524",
-    padding: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#1E293B",
-    marginBottom: 16,
-  },
-  problemText: { color: "#E2E8F0", fontSize: 14, lineHeight: 24 },
-  missionBlock: {
-    backgroundColor: "#064E3B20",
-    borderWidth: 1,
-    borderColor: "#05966960",
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 16,
-  },
-  missionHeader: {
-    color: "#34D399",
+  sectionHeaderLabel: {
+    color: "#38BDF8",
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1,
     marginBottom: 10,
   },
-  missionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 6,
+  conceptBox: {
+    backgroundColor: "#0F1524",
+    padding: 18,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#1E293B",
+    marginBottom: 16,
   },
-  missionBullet: { fontSize: 12 },
+  problemText: { color: "#CBD5E1", fontSize: 14, lineHeight: 24 },
+  inlineCode: {
+    backgroundColor: "#1E293B",
+    color: "#38BDF8",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontSize: 13,
+    fontWeight: "700",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  assignmentBox: {
+    backgroundColor: "#1E1B4B40",
+    borderWidth: 1,
+    borderColor: "#6366F160",
+    padding: 18,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  assignmentHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  assignmentHeaderLabel: {
+    color: "#818CF8",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  xpRewardPill: {
+    backgroundColor: "#10B98125",
+    color: "#34D399",
+    fontSize: 10,
+    fontWeight: "800",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  assignmentDescription: {
+    color: "#F8FAFC",
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  checklistContainer: {
+    backgroundColor: "#0A0E1780",
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  missionRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  missionBullet: { fontSize: 13 },
   missionText: { color: "#E2E8F0", fontSize: 13, fontWeight: "500" },
   exampleBlock: { marginBottom: 16 },
   exampleTitle: {
-    color: "#94A3B8",
-    fontSize: 12,
-    fontWeight: "700",
+    color: "#64748B",
+    fontSize: 11,
+    fontWeight: "800",
     marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
   exampleBox: {
     backgroundColor: "#131C2D",
@@ -1354,7 +1469,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
   },
-  testCasePills: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  testCasePills: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+    flexWrap: "wrap",
+  },
   testPill: {
     flexDirection: "row",
     alignItems: "center",
