@@ -21,6 +21,7 @@ interface Lesson {
   description: string;
   content: string;
   initial_code: string;
+  expected_output: string;
   is_free: boolean;
 }
 
@@ -32,6 +33,9 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
   const [pyodideReady, setPyodideReady] = useState<boolean>(false);
+  const [completedLessons, setCompletedLessons] = useState<
+    Record<string, boolean>
+  >({});
 
   // Auth State
   const [session, setSession] = useState<Session | null>(null);
@@ -44,12 +48,18 @@ export default function HomeScreen() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session) fetchUserProgress(session.user.id);
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
-        if (session) setShowAuthModal(false);
+        if (session) {
+          setShowAuthModal(false);
+          fetchUserProgress(session.user.id);
+        } else {
+          setCompletedLessons({});
+        }
       },
     );
 
@@ -82,8 +92,31 @@ export default function HomeScreen() {
     }
   }
 
+  async function fetchUserProgress(userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("user_progress")
+        .select("lesson_id, completed")
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Error fetching user progress:", error);
+        return;
+      }
+
+      const progressMap: Record<string, boolean> = {};
+      data?.forEach((row) => {
+        if (row.completed) progressMap[row.lesson_id] = true;
+      });
+      setCompletedLessons(progressMap);
+    } catch (err) {
+      console.error("Failed to load user progress:", err);
+    }
+  }
+
   async function loadPyodideEngine() {
-    if (window.hasOwnProperty("loadPyodide") && pyodideRef.current) return;
+    if (typeof window === "undefined") return;
+    if ("loadPyodide" in window && pyodideRef.current) return;
 
     try {
       if (!document.getElementById("pyodide-script")) {
@@ -92,13 +125,39 @@ export default function HomeScreen() {
         script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js";
         script.onload = async () => {
           // @ts-ignore
-          pyodideRef.current = await window.loadPyodide();
-          setPyodideReady(true);
+          if (window.loadPyodide) {
+            // @ts-ignore
+            pyodideRef.current = await window.loadPyodide();
+            setPyodideReady(true);
+          }
         };
         document.head.appendChild(script);
       }
     } catch (err) {
       console.error("Failed to load Pyodide engine:", err);
+    }
+  }
+
+  async function markLessonCompleted(lessonId: string) {
+    if (!session) return;
+    try {
+      const { error } = await supabase.from("user_progress").upsert(
+        {
+          user_id: session.user.id,
+          lesson_id: lessonId,
+          completed: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,lesson_id" },
+      );
+
+      if (error) {
+        console.error("Failed to save progress:", error);
+      } else {
+        setCompletedLessons((prev) => ({ ...prev, [lessonId]: true }));
+      }
+    } catch (err) {
+      console.error("Error saving progress:", err);
     }
   }
 
@@ -116,11 +175,26 @@ export default function HomeScreen() {
         });
 
         const result = await pyodideRef.current.runPythonAsync(code);
-        const finalLogs =
-          stdoutBuffer ||
-          (result !== undefined
-            ? String(result)
-            : "Code executed successfully with no output.");
+        const rawOutput =
+          stdoutBuffer.trim() ||
+          (result !== undefined ? String(result).trim() : "");
+
+        let finalLogs =
+          rawOutput || "Code executed successfully with no output.";
+
+        // Automated Verification
+        if (selectedLesson?.expected_output) {
+          const expected = selectedLesson.expected_output.trim();
+          if (rawOutput === expected) {
+            finalLogs += "\n\n🎉 Test Passed! Solution verified.";
+            if (selectedLesson && session) {
+              await markLessonCompleted(selectedLesson.id);
+            }
+          } else {
+            finalLogs += `\n\n❌ Test Failed.\nExpected Output:\n${expected}`;
+          }
+        }
+
         setOutput(finalLogs);
       } else {
         setOutput(
@@ -184,29 +258,37 @@ export default function HomeScreen() {
           {loading ? (
             <ActivityIndicator color="#38BDF8" />
           ) : (
-            lessons.map((lesson) => (
-              <Pressable
-                key={lesson.id}
-                style={[
-                  styles.lessonCard,
-                  selectedLesson?.id === lesson.id && styles.activeLessonCard,
-                ]}
-                onPress={() => handleSelectLesson(lesson)}
-              >
-                <Text
+            lessons.map((lesson) => {
+              const isCompleted = completedLessons[lesson.id];
+              return (
+                <Pressable
+                  key={lesson.id}
                   style={[
-                    styles.lessonTitle,
-                    selectedLesson?.id === lesson.id &&
-                      styles.activeLessonTitle,
+                    styles.lessonCard,
+                    selectedLesson?.id === lesson.id && styles.activeLessonCard,
                   ]}
+                  onPress={() => handleSelectLesson(lesson)}
                 >
-                  {lesson.title}
-                </Text>
-                <Text style={styles.badge}>
-                  {lesson.is_free ? "FREE" : "PRO"}
-                </Text>
-              </Pressable>
-            ))
+                  <View style={styles.lessonCardLeft}>
+                    <Text style={styles.statusIcon}>
+                      {isCompleted ? "✅" : "⚪"}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.lessonTitle,
+                        selectedLesson?.id === lesson.id &&
+                          styles.activeLessonTitle,
+                      ]}
+                    >
+                      {lesson.title}
+                    </Text>
+                  </View>
+                  <Text style={styles.badge}>
+                    {lesson.is_free ? "FREE" : "PRO"}
+                  </Text>
+                </Pressable>
+              );
+            })
           )}
 
           <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
@@ -254,16 +336,16 @@ export default function HomeScreen() {
                 disabled={isExecuting}
               >
                 <Text style={styles.runButtonText}>
-                  {isExecuting ? "Running..." : "▶ Run Code"}
+                  {isExecuting ? "Running..." : "▶ Run & Submit Solution"}
                 </Text>
               </Pressable>
 
               <Text style={[styles.subHeader, { marginTop: 20 }]}>
-                Console Output:
+                Console Output & Validation:
               </Text>
               <View style={styles.terminal}>
                 <Text style={styles.terminalText}>
-                  {output || '# Click "Run Code" to inspect output'}
+                  {output || '# Click "Run & Submit Solution" to execute code'}
                 </Text>
               </View>
             </View>
@@ -304,10 +386,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    zIndex: 10,
+    position: "relative",
+    zIndex: 100,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  headerRight: { flexDirection: "row", alignItems: "center" },
+  headerRight: { flexDirection: "row", alignItems: "center", zIndex: 101 },
   headerTitle: { color: "#F8FAFC", fontSize: 20, fontWeight: "700" },
   statusPill: {
     backgroundColor: "#1E293B",
@@ -332,7 +415,7 @@ const styles = StyleSheet.create({
   },
   loginBtn: { backgroundColor: "#2563EB" },
   authBtnText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
-  content: { flex: 1, flexDirection: "row" },
+  content: { flex: 1, flexDirection: "row", zIndex: 1 },
   sidebar: {
     width: 300,
     borderRightWidth: 1,
@@ -362,6 +445,8 @@ const styles = StyleSheet.create({
     }),
   },
   activeLessonCard: { backgroundColor: "#2563EB" },
+  lessonCardLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  statusIcon: { fontSize: 12 },
   lessonTitle: { color: "#CBD5E1", fontSize: 14, fontWeight: "500" },
   activeLessonTitle: { color: "#FFFFFF", fontWeight: "700" },
   badge: { color: "#10B981", fontSize: 10, fontWeight: "700" },
@@ -423,7 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#1E293B",
-    minHeight: 100,
+    minHeight: 120,
   },
   terminalText: {
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
@@ -432,7 +517,7 @@ const styles = StyleSheet.create({
   },
   infoText: { color: "#64748B" },
   modalOverlay: {
-    position: Platform.OS === "web" ? ("fixed" as any) : "absolute",
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -440,7 +525,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.8)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 9999,
+    zIndex: 999,
   },
   modalContent: { alignItems: "center" },
   closeModalBtn: {
