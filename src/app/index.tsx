@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { supabase } from "../../lib/supabase";
 import Auth from "../components/Auth";
+import PaywallModal from "../components/PaywallModal";
 
 interface Lesson {
   id: string;
@@ -27,6 +28,7 @@ interface Lesson {
 
 export default function HomeScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [activeTrack, setActiveTrack] = useState<string>("python_basics");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [code, setCode] = useState<string>("");
   const [output, setOutput] = useState<string>("");
@@ -37,9 +39,12 @@ export default function HomeScreen() {
     Record<string, boolean>
   >({});
 
-  // Auth State
+  // Auth & Premium State
   const [session, setSession] = useState<Session | null>(null);
+  const [isPremium, setIsPremium] = useState<boolean>(false);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
+  const [upgrading, setUpgrading] = useState<boolean>(false);
 
   const pyodideRef = useRef<any>(null);
 
@@ -48,7 +53,10 @@ export default function HomeScreen() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) fetchUserProgress(session.user.id);
+      if (session) {
+        fetchUserProgress(session.user.id);
+        fetchUserProfile(session.user.id);
+      }
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -57,8 +65,10 @@ export default function HomeScreen() {
         if (session) {
           setShowAuthModal(false);
           fetchUserProgress(session.user.id);
+          fetchUserProfile(session.user.id);
         } else {
           setCompletedLessons({});
+          setIsPremium(false);
         }
       },
     );
@@ -81,10 +91,12 @@ export default function HomeScreen() {
 
       if (error) console.error("Error fetching lessons:", error);
       else {
-        setLessons(data || []);
-        if (data && data.length > 0) {
-          setSelectedLesson(data[0]);
-          setCode(data[0].initial_code);
+        const all = data || [];
+        setLessons(all);
+        const freeLesson = all.find((l) => l.track === "python_basics");
+        if (freeLesson) {
+          setSelectedLesson(freeLesson);
+          setCode(freeLesson.initial_code);
         }
       }
     } finally {
@@ -92,17 +104,25 @@ export default function HomeScreen() {
     }
   }
 
+  async function fetchUserProfile(userId: string) {
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("is_premium")
+        .eq("id", userId)
+        .single();
+      if (data) setIsPremium(data.is_premium || false);
+    } catch (err) {
+      console.error("Failed to load profile:", err);
+    }
+  }
+
   async function fetchUserProgress(userId: string) {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("user_progress")
         .select("lesson_id, completed")
         .eq("user_id", userId);
-
-      if (error) {
-        console.error("Error fetching user progress:", error);
-        return;
-      }
 
       const progressMap: Record<string, boolean> = {};
       data?.forEach((row) => {
@@ -138,27 +158,40 @@ export default function HomeScreen() {
     }
   }
 
-  async function markLessonCompleted(lessonId: string) {
-    if (!session) return;
-    try {
-      const { error } = await supabase.from("user_progress").upsert(
-        {
-          user_id: session.user.id,
-          lesson_id: lessonId,
-          completed: true,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,lesson_id" },
-      );
-
-      if (error) {
-        console.error("Failed to save progress:", error);
-      } else {
-        setCompletedLessons((prev) => ({ ...prev, [lessonId]: true }));
-      }
-    } catch (err) {
-      console.error("Error saving progress:", err);
+  async function handleUpgradeToPro() {
+    if (!session) {
+      setShowPaywallModal(false);
+      setShowAuthModal(true);
+      return;
     }
+    setUpgrading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .upsert({
+          id: session.user.id,
+          email: session.user.email,
+          is_premium: true,
+        });
+
+      if (error) throw error;
+      setIsPremium(true);
+      setShowPaywallModal(false);
+    } catch (err: any) {
+      console.error("Upgrade error:", err.message);
+    } finally {
+      setUpgrading(false);
+    }
+  }
+
+  function handleSelectLesson(lesson: Lesson) {
+    if (!lesson.is_free && !isPremium) {
+      setShowPaywallModal(true);
+      return;
+    }
+    setSelectedLesson(lesson);
+    setCode(lesson.initial_code);
+    setOutput("");
   }
 
   async function runPythonCode() {
@@ -182,13 +215,21 @@ export default function HomeScreen() {
         let finalLogs =
           rawOutput || "Code executed successfully with no output.";
 
-        // Automated Verification
         if (selectedLesson?.expected_output) {
           const expected = selectedLesson.expected_output.trim();
           if (rawOutput === expected) {
             finalLogs += "\n\n🎉 Test Passed! Solution verified.";
             if (selectedLesson && session) {
-              await markLessonCompleted(selectedLesson.id);
+              await supabase.from("user_progress").upsert({
+                user_id: session.user.id,
+                lesson_id: selectedLesson.id,
+                completed: true,
+                updated_at: new Date().toISOString(),
+              });
+              setCompletedLessons((prev) => ({
+                ...prev,
+                [selectedLesson.id]: true,
+              }));
             }
           } else {
             finalLogs += `\n\n❌ Test Failed.\nExpected Output:\n${expected}`;
@@ -208,15 +249,11 @@ export default function HomeScreen() {
     }
   }
 
-  function handleSelectLesson(lesson: Lesson) {
-    setSelectedLesson(lesson);
-    setCode(lesson.initial_code);
-    setOutput("");
-  }
-
   async function handleSignOut() {
     await supabase.auth.signOut();
   }
+
+  const currentLessons = lessons.filter((l) => l.track === activeTrack);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -229,10 +266,23 @@ export default function HomeScreen() {
               {pyodideReady ? "🟢 WASM Engine Ready" : "⏳ Loading WASM..."}
             </Text>
           </View>
+          {isPremium && (
+            <View style={styles.proBadge}>
+              <Text style={styles.proBadgeText}>PRO</Text>
+            </View>
+          )}
         </View>
 
         {/* User Auth Control */}
         <View style={styles.headerRight}>
+          {!isPremium && (
+            <Pressable
+              style={styles.upgradeHeaderBtn}
+              onPress={() => setShowPaywallModal(true)}
+            >
+              <Text style={styles.upgradeHeaderBtnText}>⭐ Upgrade to Pro</Text>
+            </Pressable>
+          )}
           {session ? (
             <View style={styles.userSection}>
               <Text style={styles.userEmail}>{session.user.email}</Text>
@@ -254,12 +304,39 @@ export default function HomeScreen() {
       <View style={styles.content}>
         {/* Left Sidebar */}
         <View style={styles.sidebar}>
-          <Text style={styles.sectionTitle}>FREE TRACK: PYTHON BASICS</Text>
+          {/* Track Switcher */}
+          <Text style={styles.sectionTitle}>LEARNING TRACKS</Text>
+          <Pressable
+            style={[
+              styles.trackTab,
+              activeTrack === "python_basics" && styles.activeTrackTab,
+            ]}
+            onPress={() => setActiveTrack("python_basics")}
+          >
+            <Text style={styles.trackTabText}>Python Basics (Free)</Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.trackTab,
+              activeTrack === "algorithms" && styles.activeTrackTab,
+            ]}
+            onPress={() => {
+              if (!isPremium) setShowPaywallModal(true);
+              else setActiveTrack("algorithms");
+            }}
+          >
+            <Text style={styles.trackTabText}>
+              {isPremium ? "Algorithms & Data" : "🔒 Algorithms & Data"}
+            </Text>
+          </Pressable>
+
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>LESSONS</Text>
           {loading ? (
             <ActivityIndicator color="#38BDF8" />
           ) : (
-            lessons.map((lesson) => {
+            currentLessons.map((lesson) => {
               const isCompleted = completedLessons[lesson.id];
+              const isLocked = !lesson.is_free && !isPremium;
               return (
                 <Pressable
                   key={lesson.id}
@@ -271,7 +348,7 @@ export default function HomeScreen() {
                 >
                   <View style={styles.lessonCardLeft}>
                     <Text style={styles.statusIcon}>
-                      {isCompleted ? "✅" : "⚪"}
+                      {isLocked ? "🔒" : isCompleted ? "✅" : "⚪"}
                     </Text>
                     <Text
                       style={[
@@ -290,22 +367,6 @@ export default function HomeScreen() {
               );
             })
           )}
-
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
-            PAID TRACKS (LOCKED)
-          </Text>
-          <View style={styles.lockedCard}>
-            <Text style={styles.lockedTitle}>
-              🔒 Algorithms & Data Structures
-            </Text>
-            <Text style={styles.lockedSub}>Unlock 45+ LeetCode challenges</Text>
-          </View>
-          <View style={styles.lockedCard}>
-            <Text style={styles.lockedTitle}>
-              🔒 System Design & Architecture
-            </Text>
-            <Text style={styles.lockedSub}>Interactive node-based canvas</Text>
-          </View>
         </View>
 
         {/* Right Workspace */}
@@ -369,6 +430,17 @@ export default function HomeScreen() {
           </View>
         </View>
       )}
+
+      {/* Paywall Pro Upgrade Modal Overlay */}
+      {showPaywallModal && (
+        <View style={styles.modalOverlay}>
+          <PaywallModal
+            onClose={() => setShowPaywallModal(false)}
+            onUpgrade={handleUpgradeToPro}
+            loading={upgrading}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -390,7 +462,12 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  headerRight: { flexDirection: "row", alignItems: "center", zIndex: 101 },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    zIndex: 101,
+  },
   headerTitle: { color: "#F8FAFC", fontSize: 20, fontWeight: "700" },
   statusPill: {
     backgroundColor: "#1E293B",
@@ -399,6 +476,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: { color: "#94A3B8", fontSize: 12 },
+  proBadge: {
+    backgroundColor: "#F59E0B",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  proBadgeText: { color: "#000000", fontSize: 11, fontWeight: "800" },
+  upgradeHeaderBtn: {
+    backgroundColor: "#D97706",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
+  },
+  upgradeHeaderBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   userSection: { flexDirection: "row", alignItems: "center", gap: 12 },
   userEmail: { color: "#CBD5E1", fontSize: 13 },
   authBtn: {
@@ -407,10 +501,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     ...Platform.select({
-      web: {
-        cursor: "pointer",
-        userSelect: "none",
-      },
+      web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   loginBtn: { backgroundColor: "#2563EB" },
@@ -429,6 +520,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     letterSpacing: 1,
   },
+  trackTab: {
+    padding: 10,
+    borderRadius: 6,
+    backgroundColor: "#1E293B",
+    marginBottom: 6,
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
+  },
+  activeTrackTab: { backgroundColor: "#2563EB" },
+  trackTabText: { color: "#F8FAFC", fontSize: 13, fontWeight: "600" },
   lessonCard: {
     padding: 12,
     borderRadius: 8,
@@ -438,10 +540,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     ...Platform.select({
-      web: {
-        cursor: "pointer",
-        userSelect: "none",
-      },
+      web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   activeLessonCard: { backgroundColor: "#2563EB" },
@@ -450,17 +549,6 @@ const styles = StyleSheet.create({
   lessonTitle: { color: "#CBD5E1", fontSize: 14, fontWeight: "500" },
   activeLessonTitle: { color: "#FFFFFF", fontWeight: "700" },
   badge: { color: "#10B981", fontSize: 10, fontWeight: "700" },
-  lockedCard: {
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#0F172A",
-    opacity: 0.6,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#1E293B",
-  },
-  lockedTitle: { color: "#94A3B8", fontSize: 13, fontWeight: "600" },
-  lockedSub: { color: "#475569", fontSize: 11, marginTop: 2 },
   workspace: { flex: 1, padding: 24 },
   title: { color: "#F8FAFC", fontSize: 26, fontWeight: "700", marginBottom: 6 },
   description: {
@@ -494,10 +582,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 12,
     ...Platform.select({
-      web: {
-        cursor: "pointer",
-        userSelect: "none",
-      },
+      web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   disabledButton: { backgroundColor: "#065F46" },
@@ -532,10 +617,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 8,
     ...Platform.select({
-      web: {
-        cursor: "pointer",
-        userSelect: "none",
-      },
+      web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   closeModalText: { color: "#94A3B8", fontSize: 13 },
