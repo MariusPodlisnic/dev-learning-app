@@ -1,4 +1,5 @@
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 interface MemoryItem {
   label: string;
@@ -22,86 +23,171 @@ export default function VisualLessonPanel({
   type,
   data,
 }: VisualLessonPanelProps) {
-  if (!data) return null;
+  const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [selectedMemoryIndex, setSelectedMemoryIndex] = useState<number>(0);
+
+  useEffect(() => {
+    setActiveIndex(0);
+    setSelectedMemoryIndex(0);
+  }, [data, type]);
+
+  if (!data || !Array.isArray(data) || data.length === 0) return null;
+
+  function handleNextStep() {
+    setActiveIndex((prev) => (prev + 1) % data.length);
+  }
+
+  function handlePrevStep() {
+    setActiveIndex((prev) => (prev - 1 + data.length) % data.length);
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.pulseIcon}>🔴</Text>
-          <Text style={styles.title}>LIVE HEAP INSPECTOR</Text>
+          <Text style={styles.pulseIcon}>🟢</Text>
+          <Text style={styles.title}>INTERACTIVE MEMORY SIMULATOR</Text>
         </View>
-        <Text style={styles.hexCode}>
-          ADDR: 0x
-          {Math.floor(Math.random() * 1000000)
-            .toString(16)
-            .toUpperCase()}
-        </Text>
+        <Text style={styles.subtitle}>Click items below to inspect</Text>
       </View>
 
-      {/* Memory Reference Diagram */}
-      {type === "memory" && Array.isArray(data) && (
+      {type === "memory" && (
         <View style={styles.diagramContainer}>
-          {data.map((item: MemoryItem, idx: number) => (
-            <View key={idx} style={styles.memoryRow}>
-              {/* Stack Variable */}
-              <View style={styles.stackBox}>
-                <Text style={styles.stackLabel}>STACK</Text>
-                <Text style={styles.varName}>{item.label}</Text>
-              </View>
-
-              {/* Data Bus Arrow */}
-              <View style={styles.dataBus}>
-                <View style={styles.busLine} />
-                <Text style={styles.busIcon}>▶</Text>
-              </View>
-
-              {/* Heap Object */}
-              <View style={styles.heapBox}>
-                <View style={styles.heapHeader}>
-                  <Text style={styles.heapAddress}>{item.address}</Text>
-                  <Text style={styles.heapType}>{item.type}</Text>
+          {data.map((item: MemoryItem, idx: number) => {
+            const isSelected = selectedMemoryIndex === idx;
+            return (
+              <Pressable
+                key={idx}
+                style={[styles.memoryRow, isSelected && styles.memoryRowActive]}
+                onPress={() => setSelectedMemoryIndex(idx)}
+              >
+                <View
+                  style={[styles.stackBox, isSelected && styles.stackBoxActive]}
+                >
+                  <Text style={styles.stackLabel}>VARIABLE</Text>
+                  <Text style={styles.varName}>{item.label}</Text>
                 </View>
-                <Text style={styles.heapValue}>{item.value}</Text>
-              </View>
+
+                <View style={styles.dataBus}>
+                  <View
+                    style={[styles.busLine, isSelected && styles.busLineActive]}
+                  />
+                  <Text
+                    style={[styles.busIcon, isSelected && styles.busIconActive]}
+                  >
+                    ▶
+                  </Text>
+                </View>
+
+                <View
+                  style={[styles.heapBox, isSelected && styles.heapBoxActive]}
+                >
+                  <View style={styles.heapHeader}>
+                    <Text style={styles.heapAddress}>{item.address}</Text>
+                    <Text style={styles.heapType}>{item.type}</Text>
+                  </View>
+                  <Text style={styles.heapValue}>{item.value}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+
+          {data[selectedMemoryIndex] && (
+            <View style={styles.explainerCard}>
+              <Text style={styles.explainerTitle}>
+                🔍 What happens in RAM for `{data[selectedMemoryIndex].label}`?
+              </Text>
+              <Text style={styles.explainerText}>
+                Python allocates memory at address{" "}
+                <Text style={styles.highlight}>
+                  {data[selectedMemoryIndex].address}
+                </Text>{" "}
+                to store the{" "}
+                <Text style={styles.highlight}>
+                  {data[selectedMemoryIndex].type}
+                </Text>{" "}
+                value{" "}
+                <Text style={styles.highlight}>
+                  {data[selectedMemoryIndex].value}
+                </Text>
+                , and links the label{" "}
+                <Text style={styles.highlight}>
+                  {data[selectedMemoryIndex].label}
+                </Text>{" "}
+                directly to it.
+              </Text>
             </View>
-          ))}
+          )}
         </View>
       )}
 
-      {/* Array/List Contiguous Memory Diagram */}
-      {(type === "array" || type === "hashmap") && Array.isArray(data) && (
+      {(type === "array" || type === "hashmap") && (
         <View style={styles.diagramContainer}>
-          <Text style={styles.arrayLabel}>CONTIGUOUS MEMORY ALLOCATION</Text>
-          <View style={styles.arrayGrid}>
-            {data.map((item: ArrayItem, idx: number) => (
-              <View
-                key={idx}
-                style={[
-                  styles.arrayCell,
-                  item.active && styles.activeArrayCell,
-                ]}
+          <View style={styles.controlsBar}>
+            <Text style={styles.arrayLabel}>
+              {type === "hashmap"
+                ? "KEY-VALUE HASH TABLE"
+                : `LOOP STEPPER (INDEX ${activeIndex})`}
+            </Text>
+            <View style={styles.stepperBtns}>
+              <Pressable style={styles.stepBtn} onPress={handlePrevStep}>
+                <Text style={styles.stepBtnText}>◀ Prev</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.stepBtn, styles.stepBtnPrimary]}
+                onPress={handleNextStep}
               >
-                <View style={styles.cellHeader}>
-                  <Text style={styles.cellIndex}>
-                    {type === "hashmap" ? "KEY" : `IDX ${item.index}`}
-                  </Text>
-                </View>
-                <Text
+                <Text style={styles.stepBtnTextPrimary}>Step Next ▶</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.arrayGrid}>
+            {data.map((item: any, idx: number) => {
+              const isCurrent = idx === activeIndex;
+              return (
+                <Pressable
+                  key={idx}
                   style={[
-                    styles.cellValue,
-                    item.active && styles.activeCellValue,
+                    styles.arrayCell,
+                    isCurrent && styles.activeArrayCell,
                   ]}
+                  onPress={() => setActiveIndex(idx)}
                 >
-                  {item.value}
-                </Text>
-                {item.active && (
-                  <View style={styles.pointerTag}>
-                    <Text style={styles.pointerTagText}>▲ PTR</Text>
+                  <View style={styles.cellHeader}>
+                    <Text style={styles.cellIndex}>
+                      {type === "hashmap" ? item.label : `INDEX [${idx}]`}
+                    </Text>
                   </View>
-                )}
-              </View>
-            ))}
+                  <Text
+                    style={[
+                      styles.cellValue,
+                      isCurrent && styles.activeCellValue,
+                    ]}
+                  >
+                    {item.value}
+                  </Text>
+                  {isCurrent && (
+                    <View style={styles.pointerTag}>
+                      <Text style={styles.pointerTagText}>▲ ACTIVE</Text>
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.explainerCard}>
+            <Text style={styles.explainerTitle}>
+              {type === "hashmap"
+                ? `🔑 Key Lookup: ${data[activeIndex]?.label}`
+                : `🔄 Loop Iteration #${activeIndex + 1}`}
+            </Text>
+            <Text style={styles.explainerText}>
+              {type === "hashmap"
+                ? `Looking up key ${data[activeIndex]?.label} jumps straight to address ${data[activeIndex]?.address} in O(1) constant time and returns ${data[activeIndex]?.value}.`
+                : `At index [${activeIndex}], the loop variable holds ${data[activeIndex]?.value}. Clicking "Step Next ▶" advances the pointer to the next slot in memory.`}
+            </Text>
           </View>
         </View>
       )}
@@ -117,15 +203,12 @@ const styles = StyleSheet.create({
     borderColor: "#1E293B",
     padding: 16,
     marginBottom: 20,
-    shadowColor: "#38BDF8",
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#1A2133",
     paddingBottom: 12,
@@ -142,19 +225,27 @@ const styles = StyleSheet.create({
     color: "#38BDF8",
     fontSize: 12,
     fontWeight: "800",
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
-  hexCode: {
+  subtitle: {
     color: "#64748B",
-    fontSize: 10,
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontSize: 11,
   },
   diagramContainer: {
-    gap: 16,
+    gap: 14,
   },
   memoryRow: {
     flexDirection: "row",
     alignItems: "center",
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "transparent",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  memoryRowActive: {
+    backgroundColor: "#0F172A",
+    borderColor: "#1E293B",
   },
   stackBox: {
     backgroundColor: "#131C2D",
@@ -162,8 +253,11 @@ const styles = StyleSheet.create({
     borderColor: "#223049",
     borderRadius: 8,
     padding: 12,
-    width: 110,
+    width: 115,
     alignItems: "center",
+  },
+  stackBoxActive: {
+    borderColor: "#38BDF8",
   },
   stackLabel: {
     color: "#64748B",
@@ -189,10 +283,16 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: "#223049",
   },
+  busLineActive: {
+    backgroundColor: "#38BDF8",
+  },
   busIcon: {
-    color: "#38BDF8",
+    color: "#475569",
     fontSize: 12,
     marginLeft: -4,
+  },
+  busIconActive: {
+    color: "#38BDF8",
   },
   heapBox: {
     backgroundColor: "#064E3B15",
@@ -200,13 +300,17 @@ const styles = StyleSheet.create({
     borderColor: "#05966950",
     borderRadius: 8,
     padding: 12,
-    width: 140,
+    width: 150,
+  },
+  heapBoxActive: {
+    borderColor: "#10B981",
+    backgroundColor: "#064E3B35",
   },
   heapHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   heapAddress: {
     color: "#34D399",
@@ -214,11 +318,11 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   heapType: {
-    color: "#059669",
+    color: "#34D399",
     fontSize: 9,
     fontWeight: "800",
     backgroundColor: "#064E3B",
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 4,
   },
@@ -228,36 +332,67 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
+  controlsBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
   arrayLabel: {
-    color: "#64748B",
-    fontSize: 10,
+    color: "#94A3B8",
+    fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1,
-    marginBottom: 8,
+  },
+  stepperBtns: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  stepBtn: {
+    backgroundColor: "#131C2D",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#223049",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  stepBtnPrimary: {
+    backgroundColor: "#2563EB",
+    borderColor: "#3B82F6",
+  },
+  stepBtnText: {
+    color: "#94A3B8",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  stepBtnTextPrimary: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
   },
   arrayGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 10,
+    marginVertical: 8,
   },
   arrayCell: {
     backgroundColor: "#131C2D",
     borderWidth: 1,
     borderColor: "#223049",
     borderRadius: 8,
-    padding: 12,
-    minWidth: 90,
+    padding: 14,
+    minWidth: 105,
     position: "relative",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   activeArrayCell: {
     borderColor: "#38BDF8",
-    backgroundColor: "#0284C720",
-    shadowColor: "#38BDF8",
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
+    backgroundColor: "#0284C725",
   },
   cellHeader: {
-    marginBottom: 8,
+    marginBottom: 6,
   },
   cellIndex: {
     color: "#94A3B8",
@@ -276,7 +411,7 @@ const styles = StyleSheet.create({
   },
   pointerTag: {
     position: "absolute",
-    bottom: -10,
+    bottom: -9,
     alignSelf: "center",
     backgroundColor: "#38BDF8",
     paddingHorizontal: 6,
@@ -287,5 +422,29 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     fontSize: 8,
     fontWeight: "900",
+  },
+  explainerCard: {
+    backgroundColor: "#0F172A",
+    padding: 14,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: "#38BDF8",
+    marginTop: 6,
+  },
+  explainerTitle: {
+    color: "#F8FAFC",
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  explainerText: {
+    color: "#94A3B8",
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  highlight: {
+    color: "#38BDF8",
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
 });

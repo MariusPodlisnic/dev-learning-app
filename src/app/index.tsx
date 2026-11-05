@@ -12,7 +12,9 @@ import {
   View,
 } from "react-native";
 import { supabase } from "../../lib/supabase";
+import Auth from "../components/Auth";
 import HintAccordion from "../components/HintAccordion";
+import PaywallModal from "../components/PaywallModal";
 import SuccessModal from "../components/SuccessModal";
 import VisualLessonPanel from "../components/VisualLessonPanel";
 
@@ -21,10 +23,12 @@ interface Example {
   output: string;
   explanation?: string;
 }
+
 interface Complexities {
   time?: string;
   space?: string;
 }
+
 interface TestCaseResult {
   id: number;
   input: string;
@@ -54,14 +58,12 @@ interface Lesson {
 
 export default function HomeScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [activeTrack, setActiveTrack] = useState<string>("algorithms");
+  const [activeTrack, setActiveTrack] = useState<string>("python_basics");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
-  // UI Tabs State
   const [activeTab, setActiveTab] = useState<"problem" | "visual">("problem");
   const [bottomTab, setBottomTab] = useState<"console" | "tests">("console");
 
-  // IDE State
   const [code, setCode] = useState<string>("");
   const [output, setOutput] = useState<string>("");
   const [testResults, setTestResults] = useState<TestCaseResult[] | null>(null);
@@ -122,8 +124,18 @@ export default function HomeScreen() {
         .from("lessons")
         .select("*")
         .order("lesson_order", { ascending: true });
-      if (error) console.error("Error fetching lessons:", error);
-      else setLessons(data || []);
+
+      if (error) {
+        console.error("Error fetching lessons:", error);
+      } else {
+        const all = data || [];
+        setLessons(all);
+        const firstBeginner = all.find((l) => l.track === "python_basics");
+        if (firstBeginner) {
+          setSelectedLesson(firstBeginner);
+          setCode(firstBeginner.initial_code);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -208,6 +220,17 @@ export default function HomeScreen() {
     }
   }
 
+  function handleSwitchTrack(trackName: string) {
+    setActiveTrack(trackName);
+    const firstInTrack = lessons.find((l) => l.track === trackName);
+    if (firstInTrack) {
+      setSelectedLesson(firstInTrack);
+      setCode(firstInTrack.initial_code);
+      setOutput("");
+      setTestResults(null);
+    }
+  }
+
   function handleSelectLesson(lesson: Lesson) {
     if (!lesson.is_free && !isPremium) {
       setShowPaywallModal(true);
@@ -236,9 +259,39 @@ export default function HomeScreen() {
     }
   }
 
+  async function runPlaygroundOnly() {
+    setIsExecuting(true);
+    setBottomTab("console");
+    setOutput("Running code...");
+
+    try {
+      if (Platform.OS === "web" && pyodideRef.current) {
+        let stdoutBuffer = "";
+        pyodideRef.current.setStdout({
+          batched: (str: string) => {
+            stdoutBuffer += str + "\n";
+          },
+        });
+        const result = await pyodideRef.current.runPythonAsync(code);
+        const rawOutput =
+          stdoutBuffer.trim() ||
+          (result !== undefined
+            ? String(result).trim()
+            : "Code ran with no output. Use print() to see values!");
+        setOutput(rawOutput);
+      }
+    } catch (err: any) {
+      setOutput(
+        `💡 Python Tip — Check your syntax:\n${err.message || String(err)}`,
+      );
+    } finally {
+      setIsExecuting(false);
+    }
+  }
+
   async function runPythonCode() {
     setIsExecuting(true);
-    setOutput("Compiling sequence against test suite...");
+    setOutput("Checking your solution...");
     setTestResults(null);
 
     try {
@@ -256,7 +309,6 @@ export default function HomeScreen() {
         const result = await pyodideRef.current.runPythonAsync(executionCode);
         const rawOutput = stdoutBuffer.trim();
 
-        // Check if the script returned our JSON Test Suite payload
         let parsedResult = null;
         try {
           parsedResult = JSON.parse(String(result));
@@ -265,14 +317,17 @@ export default function HomeScreen() {
         if (parsedResult && parsedResult.is_test_suite) {
           if (parsedResult.error) {
             setOutput(
-              `🔴 Execution Error:\n${parsedResult.error}\n\nConsole:\n${rawOutput}`,
+              `🔴 Syntax or Runtime Issue:\n${parsedResult.error}\n\nConsole:\n${rawOutput}`,
             );
             setBottomTab("console");
           } else {
             setTestResults(parsedResult.results);
             setSelectedTestIndex(0);
             setBottomTab("tests");
-            setOutput(rawOutput || "Execution complete. Check test cases.");
+            setOutput(
+              rawOutput ||
+                "Code executed. See Test Cases tab for verification.",
+            );
 
             if (parsedResult.all_passed) {
               setShowSuccessModal(true);
@@ -304,20 +359,32 @@ export default function HomeScreen() {
                 }));
               }
             }
-          }{ }
+          }
         } else {
-          // Fallback for simple lessons without JSON runner
           let finalLogs =
             rawOutput ||
-            (result !== undefined
-              ? String(result).trim()
-              : "Success [No Output]");
+            (result !== undefined ? String(result).trim() : "No output");
+          if (selectedLesson?.expected_output) {
+            const expected = selectedLesson.expected_output.trim();
+            if (rawOutput === expected) {
+              finalLogs += "\n\n🎉 Challenge Passed! (+50 XP)";
+              setShowSuccessModal(true);
+              if (selectedLesson && session) {
+                setCompletedLessons((prev) => ({
+                  ...prev,
+                  [selectedLesson.id]: true,
+                }));
+              }
+            } else {
+              finalLogs += `\n\n❌ Almost there! Expected output:\n${expected}`;
+            }
+          }
           setOutput(finalLogs);
           setBottomTab("console");
         }
       }
     } catch (err: any) {
-      setOutput(`🔴 Runtime Exception:\n${err.message || String(err)}`);
+      setOutput(`💡 Friendly Debugger:\n${err.message || String(err)}`);
       setBottomTab("console");
     } finally {
       setIsExecuting(false);
@@ -336,6 +403,8 @@ export default function HomeScreen() {
     currentLessons.findIndex((l) => l.id === selectedLesson.id) <
       currentLessons.length - 1;
 
+  const lineCount = Math.max((code || "").split("\n").length, 8);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -351,14 +420,14 @@ export default function HomeScreen() {
               ]}
             />
             <Text style={styles.statusText}>
-              {pyodideReady ? "WASM Online" : "Booting..."}
+              {pyodideReady ? "Python 3.11 Ready" : "Loading Python..."}
             </Text>
           </View>
         </View>
 
         <View style={styles.gamificationHeader}>
           <View style={styles.statPill}>
-            <Text style={styles.statText}>🔥 {streakCount}</Text>
+            <Text style={styles.statText}>🔥 {streakCount} Streak</Text>
           </View>
           <View style={styles.statPill}>
             <Text style={styles.statText}>⚡ {xpPoints} XP</Text>
@@ -376,7 +445,7 @@ export default function HomeScreen() {
               style={styles.upgradeHeaderBtn}
               onPress={() => setShowPaywallModal(true)}
             >
-              <Text style={styles.upgradeHeaderBtnText}>⭐ Upgrade</Text>
+              <Text style={styles.upgradeHeaderBtnText}>⭐ Pro Tracks</Text>
             </Pressable>
           )}
           {session ? (
@@ -385,7 +454,7 @@ export default function HomeScreen() {
                 style={styles.authBtn}
                 onPress={() => supabase.auth.signOut()}
               >
-                <Text style={styles.authBtnText}>Disconnect</Text>
+                <Text style={styles.authBtnText}>Sign Out</Text>
               </Pressable>
             </View>
           ) : (
@@ -393,42 +462,43 @@ export default function HomeScreen() {
               style={[styles.authBtn, styles.loginBtn]}
               onPress={() => setShowAuthModal(true)}
             >
-              <Text style={styles.authBtnText}>Initialize</Text>
+              <Text style={styles.authBtnText}>Save Progress</Text>
             </Pressable>
           )}
         </View>
       </View>
 
       <View style={styles.content}>
-        {/* Left Sidebar */}
         <View style={styles.sidebar}>
-          <Text style={styles.sectionTitle}>PROTOCOLS</Text>
+          <Text style={styles.sectionTitle}>LEARNING PATHS</Text>
           <Pressable
             style={[
               styles.trackTab,
               activeTrack === "python_basics" && styles.activeTrackTab,
             ]}
-            onPress={() => setActiveTrack("python_basics")}
+            onPress={() => handleSwitchTrack("python_basics")}
           >
             <Text style={styles.trackTabText}>🐍 Foundation Core</Text>
+            <Text style={styles.trackSubText}>
+              Step-by-step interactive basics
+            </Text>
           </Pressable>
           <Pressable
             style={[
               styles.trackTab,
               activeTrack === "algorithms" && styles.activeTrackTab,
             ]}
-            onPress={() => {
-              if (!isPremium && false) setShowPaywallModal(true);
-              else setActiveTrack("algorithms");
-            }}
+            onPress={() => handleSwitchTrack("algorithms")}
           >
-            <Text style={styles.trackTabText}>
-              {isPremium ? "⚡ Algorithmic Mastery" : "⚡ Algorithmic Mastery"}
-            </Text>
+            <Text style={styles.trackTabText}>⚡ Algorithmic Mastery</Text>
+            <Text style={styles.trackSubText}>Interview data structures</Text>
           </Pressable>
+
           <View style={styles.progressCard}>
             <View style={styles.progressHeader}>
-              <Text style={styles.progressTitle}>Completion</Text>
+              <Text style={styles.progressTitle}>
+                {completedCount} of {currentLessons.length} Completed
+              </Text>
               <Text style={styles.progressPercent}>{progressPercent}%</Text>
             </View>
             <View style={styles.progressBarTrack}>
@@ -440,72 +510,81 @@ export default function HomeScreen() {
               />
             </View>
           </View>
-          <Text style={[styles.sectionTitle, { marginTop: 20 }]}>SYLLABUS</Text>
-          {loading ? (
-            <ActivityIndicator color="#38BDF8" style={{ marginTop: 12 }} />
-          ) : (
-            currentLessons.map((lesson) => {
-              const isCompleted = completedLessons[lesson.id];
-              const isLocked = !lesson.is_free && !isPremium;
-              const isActive = selectedLesson?.id === lesson.id;
-              return (
-                <Pressable
-                  key={lesson.id}
-                  style={[
-                    styles.lessonCard,
-                    isActive && styles.activeLessonCard,
-                  ]}
-                  onPress={() => handleSelectLesson(lesson)}
-                >
-                  <View style={styles.lessonCardLeft}>
-                    <Text style={styles.statusIcon}>
-                      {isLocked
-                        ? "🔒"
-                        : isCompleted
-                          ? "✅"
-                          : isActive
-                            ? "⚡"
-                            : "⚪"}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.lessonTitle,
-                        isActive && styles.activeLessonTitle,
-                      ]}
-                    >
-                      {lesson.title}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })
-          )}
+
+          <Text style={[styles.sectionTitle, { marginTop: 20 }]}>LESSONS</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {loading ? (
+              <ActivityIndicator color="#38BDF8" style={{ marginTop: 12 }} />
+            ) : (
+              currentLessons.map((lesson, idx) => {
+                const isCompleted = completedLessons[lesson.id];
+                const isLocked = !lesson.is_free && !isPremium;
+                const isActive = selectedLesson?.id === lesson.id;
+                return (
+                  <Pressable
+                    key={lesson.id}
+                    style={[
+                      styles.lessonCard,
+                      isActive && styles.activeLessonCard,
+                    ]}
+                    onPress={() => handleSelectLesson(lesson)}
+                  >
+                    <View style={styles.lessonCardLeft}>
+                      <View
+                        style={[
+                          styles.stepCircle,
+                          isCompleted && styles.stepCircleCompleted,
+                          isActive && styles.stepCircleActive,
+                        ]}
+                      >
+                        <Text style={styles.stepCircleText}>
+                          {isLocked ? "🔒" : isCompleted ? "✓" : idx + 1}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.lessonTitle,
+                          isActive && styles.activeLessonTitle,
+                        ]}
+                      >
+                        {lesson.title}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })
+            )}
+          </ScrollView>
         </View>
 
-        {/* Workspace Layout */}
         <View style={styles.workspaceContainer}>
           {selectedLesson ? (
             <View style={styles.workspaceGrid}>
-              {/* Left Column: Problem Description */}
               <ScrollView
                 style={styles.explanationPanel}
                 showsVerticalScrollIndicator={false}
               >
+                <View style={styles.lessonBadgeRow}>
+                  <Text style={styles.lessonStepPill}>
+                    MODULE {selectedLesson.lesson_order}
+                  </Text>
+                  {selectedLesson.complexities?.time && (
+                    <Text style={styles.complexityBadge}>
+                      🎯 {selectedLesson.complexities.time}
+                    </Text>
+                  )}
+                  {selectedLesson.complexities?.space && (
+                    <Text style={styles.complexityBadge}>
+                      🏆 {selectedLesson.complexities.space}
+                    </Text>
+                  )}
+                </View>
+
                 <Text style={styles.title}>{selectedLesson.title}</Text>
-                {selectedLesson.complexities && (
-                  <View style={styles.complexityBar}>
-                    {selectedLesson.complexities.time && (
-                      <Text style={styles.complexityBadge}>
-                        ⏱️ Time: {selectedLesson.complexities.time}
-                      </Text>
-                    )}
-                    {selectedLesson.complexities.space && (
-                      <Text style={styles.complexityBadge}>
-                        💾 Space: {selectedLesson.complexities.space}
-                      </Text>
-                    )}
-                  </View>
-                )}
+                <Text style={styles.subtitleDesc}>
+                  {selectedLesson.description}
+                </Text>
+
                 <View style={styles.tabBar}>
                   <Pressable
                     style={[
@@ -520,7 +599,7 @@ export default function HomeScreen() {
                         activeTab === "problem" && styles.activeTabText,
                       ]}
                     >
-                      📋 Problem
+                      📘 Interactive Guide
                     </Text>
                   </Pressable>
                   <Pressable
@@ -536,50 +615,57 @@ export default function HomeScreen() {
                         activeTab === "visual" && styles.activeTabText,
                       ]}
                     >
-                      👁️ Memory Map
+                      👁️ Memory Simulator
                     </Text>
                   </Pressable>
                 </View>
 
                 {activeTab === "problem" ? (
                   <View style={styles.problemCard}>
-                    <Text style={styles.problemText}>
-                      {selectedLesson.content}
-                    </Text>
+                    <View style={styles.conceptBox}>
+                      <Text style={styles.problemText}>
+                        {selectedLesson.content}
+                      </Text>
+                    </View>
+
+                    {selectedLesson.constraints &&
+                      selectedLesson.constraints.length > 0 && (
+                        <View style={styles.missionBlock}>
+                          <Text style={styles.missionHeader}>
+                            🎯 YOUR MISSION CHECKLIST
+                          </Text>
+                          {selectedLesson.constraints.map((c, i) => (
+                            <View key={i} style={styles.missionRow}>
+                              <Text style={styles.missionBullet}>▫️</Text>
+                              <Text style={styles.missionText}>{c}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
                     {selectedLesson.examples?.map((ex, i) => (
                       <View key={i} style={styles.exampleBlock}>
                         <Text style={styles.exampleTitle}>
-                          Example {i + 1}:
+                          Code Example {i + 1}:
                         </Text>
                         <View style={styles.exampleBox}>
                           <Text style={styles.exampleCode}>
-                            <Text style={styles.bold}>Input:</Text> {ex.input}
+                            <Text style={styles.bold}>Code: </Text>
+                            {ex.input}
                           </Text>
                           <Text style={styles.exampleCode}>
-                            <Text style={styles.bold}>Output:</Text> {ex.output}
+                            <Text style={styles.bold}>Result: </Text>
+                            {ex.output}
                           </Text>
                           {ex.explanation && (
                             <Text style={styles.exampleCode}>
-                              <Text style={styles.bold}>Explanation:</Text>{" "}
+                              <Text style={styles.bold}>Why: </Text>
                               {ex.explanation}
                             </Text>
                           )}
                         </View>
                       </View>
                     ))}
-                    {selectedLesson.constraints &&
-                      selectedLesson.constraints.length > 0 && (
-                        <View style={styles.constraintsBlock}>
-                          <Text style={styles.exampleTitle}>Constraints:</Text>
-                          <View style={styles.constraintList}>
-                            {selectedLesson.constraints.map((c, i) => (
-                              <Text key={i} style={styles.constraintItem}>
-                                • {c}
-                              </Text>
-                            ))}
-                          </View>
-                        </View>
-                      )}
                   </View>
                 ) : (
                   <VisualLessonPanel
@@ -590,7 +676,6 @@ export default function HomeScreen() {
                 <HintAccordion hints={selectedLesson.hints || []} />
               </ScrollView>
 
-              {/* Right Column: Code Editor & Execution Terminal */}
               <View style={styles.editorPanel}>
                 <View style={styles.ideFrame}>
                   <View style={styles.ideHeader}>
@@ -614,16 +699,22 @@ export default function HomeScreen() {
                         ]}
                       />
                     </View>
-                    <Text style={styles.ideTitleText}>solution.py</Text>
+                    <Text style={styles.ideTitleText}>
+                      main.py — Interactive Editor
+                    </Text>
                     <Pressable
                       style={styles.resetBtn}
                       onPress={() => setCode(selectedLesson.initial_code)}
                     >
-                      <Text style={styles.resetBtnText}>↺ Reset</Text>
+                      <Text style={styles.resetBtnText}>
+                        ↺ Reset Starter Code
+                      </Text>
                     </Pressable>
                   </View>
+
                   <View style={styles.symbolBar}>
-                    {[":", "()", '""', "[]", "def", "return", "self"].map(
+                    <Text style={styles.quickInsertLabel}>Quick Insert:</Text>
+                    {["print()", '""', 'f""', "[]", ":", "=", "for "].map(
                       (sym) => (
                         <Pressable
                           key={sym}
@@ -635,18 +726,39 @@ export default function HomeScreen() {
                       ),
                     )}
                   </View>
-                  <TextInput
-                    style={styles.codeEditor}
-                    value={code}
-                    onChangeText={setCode}
-                    multiline
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    spellCheck={false}
-                  />
+
+                  <View style={styles.editorBody}>
+                    <View style={styles.lineNumbers}>
+                      {Array.from({ length: lineCount }).map((_, i) => (
+                        <Text key={i} style={styles.lineNumberText}>
+                          {i + 1}
+                        </Text>
+                      ))}
+                    </View>
+                    <TextInput
+                      style={styles.codeEditor}
+                      value={code}
+                      onChangeText={setCode}
+                      multiline
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      spellCheck={false}
+                    />
+                  </View>
                 </View>
 
                 <View style={styles.actionRow}>
+                  <Pressable
+                    style={[
+                      styles.secondaryRunBtn,
+                      isExecuting && styles.disabledButton,
+                    ]}
+                    onPress={runPlaygroundOnly}
+                    disabled={isExecuting}
+                  >
+                    <Text style={styles.secondaryRunBtnText}>▶ Run Output</Text>
+                  </Pressable>
+
                   <Pressable
                     style={[
                       styles.runButton,
@@ -656,30 +768,15 @@ export default function HomeScreen() {
                     disabled={isExecuting}
                   >
                     <Text style={styles.runButtonText}>
-                      {isExecuting ? "Evaluating..." : "▶ Run Test Suite"}
+                      {isExecuting
+                        ? "Checking..."
+                        : "✓ Verify & Submit (+50 XP)"}
                     </Text>
                   </Pressable>
                 </View>
 
-                {/* Bottom Panel (Test Cases & Console) */}
                 <View style={styles.bottomPanel}>
                   <View style={styles.bottomTabBar}>
-                    <Pressable
-                      style={[
-                        styles.bottomTab,
-                        bottomTab === "tests" && styles.activeBottomTab,
-                      ]}
-                      onPress={() => setBottomTab("tests")}
-                    >
-                      <Text
-                        style={[
-                          styles.bottomTabText,
-                          bottomTab === "tests" && styles.activeBottomTabText,
-                        ]}
-                      >
-                        ☑️ Test Cases
-                      </Text>
-                    </Pressable>
                     <Pressable
                       style={[
                         styles.bottomTab,
@@ -693,15 +790,35 @@ export default function HomeScreen() {
                           bottomTab === "console" && styles.activeBottomTabText,
                         ]}
                       >
-                        ⌨️ Console
+                        ⌨️ Console Output
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={[
+                        styles.bottomTab,
+                        bottomTab === "tests" && styles.activeBottomTab,
+                      ]}
+                      onPress={() => setBottomTab("tests")}
+                    >
+                      <Text
+                        style={[
+                          styles.bottomTabText,
+                          bottomTab === "tests" && styles.activeBottomTabText,
+                        ]}
+                      >
+                        ☑️ Mission Verification{" "}
+                        {testResults
+                          ? `(${testResults.filter((t) => t.passed).length}/${testResults.length})`
+                          : ""}
                       </Text>
                     </Pressable>
                   </View>
 
-                  <View style={styles.bottomContent}>
+                  <ScrollView style={styles.bottomContent}>
                     {bottomTab === "console" ? (
                       <Text style={styles.terminalText}>
-                        {output || "// Standard output will appear here."}
+                        {output ||
+                          '// Click "▶ Run Output" to test your code or "✓ Verify & Submit" to complete the mission.'}
                       </Text>
                     ) : testResults ? (
                       <View>
@@ -716,16 +833,9 @@ export default function HomeScreen() {
                               ]}
                               onPress={() => setSelectedTestIndex(idx)}
                             >
-                              <View
-                                style={[
-                                  styles.testStatusDot,
-                                  {
-                                    backgroundColor: tr.passed
-                                      ? "#10B981"
-                                      : "#EF4444",
-                                  },
-                                ]}
-                              />
+                              <Text style={{ fontSize: 11 }}>
+                                {tr.passed ? "✅" : "❌"}
+                              </Text>
                               <Text
                                 style={[
                                   styles.testPillText,
@@ -733,77 +843,112 @@ export default function HomeScreen() {
                                     styles.activeTestPillText,
                                 ]}
                               >
-                                Case {tr.id}
+                                Check {tr.id}
                               </Text>
                             </Pressable>
                           ))}
                         </View>
 
                         <View style={styles.testDetails}>
-                          <Text style={styles.testHeader}>Input</Text>
+                          <Text style={styles.testHeader}>What We Checked</Text>
                           <View style={styles.testDataBox}>
                             <Text style={styles.testDataText}>
                               {testResults[selectedTestIndex].input}
                             </Text>
                           </View>
 
-                          <Text style={styles.testHeader}>Expected Output</Text>
-                          <View style={styles.testDataBox}>
-                            <Text style={styles.testDataText}>
-                              {testResults[selectedTestIndex].expected}
-                            </Text>
-                          </View>
+                          <View style={styles.comparisonRow}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.testHeader}>
+                                Expected Value
+                              </Text>
+                              <View style={styles.testDataBox}>
+                                <Text style={styles.testDataText}>
+                                  {testResults[selectedTestIndex].expected}
+                                </Text>
+                              </View>
+                            </View>
 
-                          <Text style={styles.testHeader}>Actual Output</Text>
-                          <View
-                            style={[
-                              styles.testDataBox,
-                              testResults[selectedTestIndex].passed
-                                ? styles.testDataSuccess
-                                : styles.testDataFail,
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.testDataText,
-                                testResults[selectedTestIndex].passed
-                                  ? { color: "#10B981" }
-                                  : { color: "#EF4444" },
-                              ]}
-                            >
-                              {testResults[selectedTestIndex].actual}
-                            </Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.testHeader}>
+                                Your Code Produced
+                              </Text>
+                              <View
+                                style={[
+                                  styles.testDataBox,
+                                  testResults[selectedTestIndex].passed
+                                    ? styles.testDataSuccess
+                                    : styles.testDataFail,
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.testDataText,
+                                    testResults[selectedTestIndex].passed
+                                      ? { color: "#10B981" }
+                                      : { color: "#EF4444" },
+                                  ]}
+                                >
+                                  {testResults[selectedTestIndex].actual}
+                                </Text>
+                              </View>
+                            </View>
                           </View>
                         </View>
                       </View>
                     ) : (
                       <Text style={styles.terminalText}>
-                        // Run the test suite to evaluate hidden cases.
+                        // Click "✓ Verify & Submit" to check each requirement
+                        of this lesson.
                       </Text>
                     )}
-                  </View>
+                  </ScrollView>
                 </View>
               </View>
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateIcon}>🛰️</Text>
-              <Text style={styles.emptyStateTitle}>SYSTEM STANDBY</Text>
+              <Text style={styles.emptyStateIcon}>🐍</Text>
+              <Text style={styles.emptyStateTitle}>CHOOSE A LESSON</Text>
               <Text style={styles.emptyStateSub}>
-                Select a module to initialize workspace.
+                Select any lesson on the left sidebar to begin your interactive
+                coding session.
               </Text>
             </View>
           )}
         </View>
       </View>
 
-      {/* Modals remain the same... */}
+      {showAuthModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Auth onSuccess={() => setShowAuthModal(false)} />
+            <Pressable
+              style={styles.closeModalBtn}
+              onPress={() => setShowAuthModal(false)}
+            >
+              <Text style={styles.closeModalText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {showPaywallModal && (
+        <View style={styles.modalOverlay}>
+          <PaywallModal
+            onClose={() => setShowPaywallModal(false)}
+            onUpgrade={handleUpgradeToPro}
+            loading={upgrading}
+          />
+        </View>
+      )}
+
       {showSuccessModal && (
         <View style={styles.modalOverlay}>
           <SuccessModal
             xpEarned={50}
             lessonTitle={selectedLesson?.title || ""}
-            hasNextLesson={hasNextLesson as any}
+            hasNextLesson={Boolean(hasNextLesson)}
             onNextLesson={handleNextLesson}
             onClose={() => setShowSuccessModal(false)}
           />
@@ -816,7 +961,8 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#070A11", position: "relative" },
   header: {
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: "#1A2133",
     backgroundColor: "#0A0E17",
@@ -842,12 +988,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  pulseDot: { width: 6, height: 6, borderRadius: 3 },
+  pulseDot: { width: 7, height: 7, borderRadius: 4 },
   statusText: { color: "#94A3B8", fontSize: 11, fontWeight: "600" },
   gamificationHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   statPill: {
     backgroundColor: "#131C2D",
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
@@ -862,35 +1008,35 @@ const styles = StyleSheet.create({
   },
   proBadgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
   upgradeHeaderBtn: {
-    backgroundColor: "transparent",
+    backgroundColor: "#D9770620",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#D97706",
+    borderColor: "#F59E0B",
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   upgradeHeaderBtnText: { color: "#F59E0B", fontSize: 12, fontWeight: "700" },
   userSection: { flexDirection: "row", alignItems: "center", gap: 12 },
   authBtn: {
     backgroundColor: "#1E293B",
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
-  loginBtn: { backgroundColor: "#3B82F6" },
-  authBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
+  loginBtn: { backgroundColor: "#2563EB" },
+  authBtnText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   content: { flex: 1, flexDirection: "row", zIndex: 1 },
   sidebar: {
-    width: 260,
+    width: 270,
     borderRightWidth: 1,
     borderRightColor: "#1A2133",
     backgroundColor: "#0A0E17",
     padding: 16,
   },
   sectionTitle: {
-    color: "#475569",
+    color: "#64748B",
     fontSize: 10,
     fontWeight: "800",
     marginBottom: 10,
@@ -898,18 +1044,21 @@ const styles = StyleSheet.create({
   },
   trackTab: {
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: "#131C2D",
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "transparent",
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
-  activeTrackTab: { backgroundColor: "#2563EB" },
+  activeTrackTab: { backgroundColor: "#1E293B", borderColor: "#38BDF8" },
   trackTabText: { color: "#F8FAFC", fontSize: 13, fontWeight: "700" },
+  trackSubText: { color: "#64748B", fontSize: 11, marginTop: 2 },
   progressCard: {
     backgroundColor: "#131C2D",
     padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
+    borderRadius: 10,
+    marginTop: 8,
   },
   progressHeader: {
     flexDirection: "row",
@@ -919,39 +1068,79 @@ const styles = StyleSheet.create({
   progressTitle: { color: "#94A3B8", fontSize: 11, fontWeight: "600" },
   progressPercent: { color: "#38BDF8", fontSize: 11, fontWeight: "800" },
   progressBarTrack: {
-    height: 4,
+    height: 6,
     backgroundColor: "#1E293B",
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: "hidden",
   },
-  progressBarFill: { height: "100%", backgroundColor: "#38BDF8" },
+  progressBarFill: { height: "100%", backgroundColor: "#10B981" },
   lessonCard: {
-    padding: 14,
+    padding: 12,
     borderRadius: 8,
     backgroundColor: "transparent",
-    marginBottom: 4,
+    marginBottom: 6,
     flexDirection: "row",
     alignItems: "center",
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
-  activeLessonCard: { backgroundColor: "#131C2D" },
-  lessonCardLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  statusIcon: { fontSize: 12 },
-  lessonTitle: { color: "#94A3B8", fontSize: 13, fontWeight: "600" },
-  activeLessonTitle: { color: "#38BDF8", fontWeight: "800" },
-  workspaceContainer: { flex: 1, padding: 24, backgroundColor: "#070A11" },
-  workspaceGrid: { flex: 1, flexDirection: "row", gap: 24 },
-  explanationPanel: { flex: 1, paddingRight: 12 },
-  editorPanel: { flex: 1 },
-  title: { color: "#F8FAFC", fontSize: 26, fontWeight: "800", marginBottom: 8 },
-  complexityBar: { flexDirection: "row", gap: 12, marginBottom: 20 },
+  activeLessonCard: {
+    backgroundColor: "#131C2D",
+    borderWidth: 1,
+    borderColor: "#223049",
+  },
+  lessonCardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  stepCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#1E293B",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stepCircleActive: { backgroundColor: "#2563EB" },
+  stepCircleCompleted: { backgroundColor: "#059669" },
+  stepCircleText: { color: "#F8FAFC", fontSize: 11, fontWeight: "800" },
+  lessonTitle: { color: "#94A3B8", fontSize: 13, fontWeight: "600", flex: 1 },
+  activeLessonTitle: { color: "#F8FAFC", fontWeight: "800" },
+  workspaceContainer: { flex: 1, padding: 20, backgroundColor: "#070A11" },
+  workspaceGrid: { flex: 1, flexDirection: "row", gap: 20 },
+  explanationPanel: { flex: 1, paddingRight: 8 },
+  editorPanel: { flex: 1.15 },
+  lessonBadgeRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+    alignItems: "center",
+  },
+  lessonStepPill: {
+    backgroundColor: "#2563EB30",
+    color: "#38BDF8",
+    fontSize: 10,
+    fontWeight: "800",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    letterSpacing: 1,
+  },
   complexityBadge: {
     backgroundColor: "#131C2D",
     color: "#94A3B8",
-    fontSize: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    fontSize: 11,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  title: { color: "#F8FAFC", fontSize: 26, fontWeight: "800", marginBottom: 4 },
+  subtitleDesc: {
+    color: "#94A3B8",
+    fontSize: 14,
+    marginBottom: 16,
+    lineHeight: 20,
   },
   tabBar: {
     flexDirection: "row",
@@ -962,7 +1151,7 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 9,
     alignItems: "center",
     borderRadius: 6,
     ...Platform.select({ web: { cursor: "pointer" } }),
@@ -970,43 +1159,61 @@ const styles = StyleSheet.create({
   activeTabItem: { backgroundColor: "#1E293B" },
   tabText: { color: "#64748B", fontSize: 12, fontWeight: "700" },
   activeTabText: { color: "#38BDF8" },
-  problemCard: { backgroundColor: "transparent", paddingBottom: 20 },
-  problemText: {
-    color: "#CBD5E1",
-    fontSize: 15,
-    lineHeight: 26,
-    marginBottom: 24,
+  problemCard: { paddingBottom: 20 },
+  conceptBox: {
+    backgroundColor: "#0F1524",
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#1E293B",
+    marginBottom: 16,
   },
-  exampleBlock: { marginBottom: 20 },
+  problemText: { color: "#E2E8F0", fontSize: 14, lineHeight: 24 },
+  missionBlock: {
+    backgroundColor: "#064E3B20",
+    borderWidth: 1,
+    borderColor: "#05966960",
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  missionHeader: {
+    color: "#34D399",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  missionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  missionBullet: { fontSize: 12 },
+  missionText: { color: "#E2E8F0", fontSize: 13, fontWeight: "500" },
+  exampleBlock: { marginBottom: 16 },
   exampleTitle: {
-    color: "#F8FAFC",
-    fontSize: 14,
+    color: "#94A3B8",
+    fontSize: 12,
     fontWeight: "700",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   exampleBox: {
     backgroundColor: "#131C2D",
-    padding: 16,
+    padding: 14,
     borderRadius: 8,
-    borderLeftWidth: 2,
+    borderLeftWidth: 3,
     borderLeftColor: "#38BDF8",
   },
   exampleCode: {
-    color: "#94A3B8",
-    fontSize: 14,
-    fontFamily: "monospace",
-    marginBottom: 6,
-    lineHeight: 22,
-  },
-  bold: { color: "#F8FAFC", fontWeight: "800" },
-  constraintsBlock: { marginTop: 10, marginBottom: 20 },
-  constraintList: { backgroundColor: "#131C2D", padding: 16, borderRadius: 8 },
-  constraintItem: {
-    color: "#94A3B8",
+    color: "#CBD5E1",
     fontSize: 13,
-    fontFamily: "monospace",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     marginBottom: 4,
+    lineHeight: 20,
   },
+  bold: { color: "#38BDF8", fontWeight: "700" },
   ideFrame: {
     backgroundColor: "#0F1524",
     borderRadius: 12,
@@ -1019,24 +1226,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     backgroundColor: "#131C2D",
     borderBottomWidth: 1,
     borderBottomColor: "#1E293B",
   },
-  windowControls: {
-    flexDirection: "row",
-    gap: 6,
-    position: "absolute",
-    left: 16,
-  },
+  windowControls: { flexDirection: "row", gap: 6 },
   controlDot: { width: 10, height: 10, borderRadius: 5 },
   ideTitleText: {
-    color: "#64748B",
+    color: "#94A3B8",
     fontSize: 12,
-    fontWeight: "700",
-    textAlign: "center",
-    flex: 1,
+    fontWeight: "600",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   resetBtn: {
@@ -1049,18 +1249,21 @@ const styles = StyleSheet.create({
   resetBtnText: { color: "#94A3B8", fontSize: 10, fontWeight: "700" },
   symbolBar: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     backgroundColor: "#0B0F19",
     borderBottomWidth: 1,
     borderBottomColor: "#1E293B",
+    flexWrap: "wrap",
   },
+  quickInsertLabel: { color: "#64748B", fontSize: 11, marginRight: 4 },
   symbolChip: {
     backgroundColor: "#131C2D",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: "#223049",
     ...Platform.select({ web: { cursor: "pointer" } }),
@@ -1069,32 +1272,60 @@ const styles = StyleSheet.create({
     color: "#38BDF8",
     fontSize: 12,
     fontFamily: "monospace",
-    fontWeight: "800",
+    fontWeight: "700",
+  },
+  editorBody: { flexDirection: "row", minHeight: 230 },
+  lineNumbers: {
+    backgroundColor: "#0A0E17",
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    borderRightWidth: 1,
+    borderRightColor: "#1E293B",
+    alignItems: "flex-end",
+  },
+  lineNumberText: {
+    color: "#475569",
+    fontSize: 13,
+    lineHeight: 21,
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   codeEditor: {
+    flex: 1,
     color: "#E2E8F0",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     fontSize: 14,
+    lineHeight: 21,
     padding: 16,
-    minHeight: 250,
     textAlignVertical: "top",
     outlineStyle: "none" as any,
   },
-
-  actionRow: { marginTop: 16, alignItems: "flex-end" },
-  runButton: {
-    backgroundColor: "#3B82F6",
-    paddingHorizontal: 24,
+  actionRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+  secondaryRunBtn: {
+    backgroundColor: "#1E293B",
+    paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#334155",
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
-  disabledButton: { backgroundColor: "#1E3A8A" },
+  secondaryRunBtnText: { color: "#E2E8F0", fontWeight: "700", fontSize: 13 },
+  runButton: {
+    flex: 1,
+    backgroundColor: "#10B981",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    ...Platform.select({ web: { cursor: "pointer" } }),
+  },
+  disabledButton: { opacity: 0.6 },
   runButtonText: { color: "#FFFFFF", fontWeight: "800", fontSize: 13 },
-
-  /* Modern Interactive Bottom Panel */
   bottomPanel: {
-    marginTop: 16,
+    marginTop: 12,
     backgroundColor: "#0F1524",
     borderRadius: 12,
     borderWidth: 1,
@@ -1109,22 +1340,21 @@ const styles = StyleSheet.create({
     borderBottomColor: "#1E293B",
   },
   bottomTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   activeBottomTab: { borderBottomWidth: 2, borderBottomColor: "#38BDF8" },
   bottomTabText: { color: "#64748B", fontSize: 12, fontWeight: "700" },
   activeBottomTabText: { color: "#38BDF8" },
-  bottomContent: { padding: 16, flex: 1 },
+  bottomContent: { padding: 14, flex: 1 },
   terminalText: {
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     color: "#A3E635",
     fontSize: 13,
     lineHeight: 20,
   },
-
-  testCasePills: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  testCasePills: { flexDirection: "row", gap: 8, marginBottom: 12 },
   testPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -1132,27 +1362,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#131C2D",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 16,
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   activeTestPill: {
     backgroundColor: "#1E293B",
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: "#38BDF8",
   },
-  testStatusDot: { width: 8, height: 8, borderRadius: 4 },
   testPillText: { color: "#94A3B8", fontSize: 12, fontWeight: "700" },
   activeTestPillText: { color: "#F8FAFC" },
-
-  testDetails: { flex: 1 },
+  testDetails: { gap: 6 },
+  comparisonRow: { flexDirection: "row", gap: 12, marginTop: 4 },
   testHeader: {
     color: "#64748B",
     fontSize: 11,
     fontWeight: "700",
-    marginBottom: 6,
-    marginTop: 12,
+    marginBottom: 4,
   },
-  testDataBox: { backgroundColor: "#131C2D", padding: 12, borderRadius: 8 },
+  testDataBox: { backgroundColor: "#131C2D", padding: 10, borderRadius: 8 },
   testDataSuccess: {
     backgroundColor: "#10B98115",
     borderWidth: 1,
@@ -1163,21 +1391,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#EF444440",
   },
-  testDataText: { color: "#E2E8F0", fontFamily: "monospace", fontSize: 13 },
-
+  testDataText: { color: "#E2E8F0", fontFamily: "monospace", fontSize: 12 },
   emptyState: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyStateIcon: { fontSize: 48, marginBottom: 16 },
+  emptyStateIcon: { fontSize: 48, marginBottom: 12 },
   emptyStateTitle: {
-    color: "#475569",
+    color: "#F8FAFC",
     fontSize: 18,
     fontWeight: "800",
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   emptyStateSub: {
-    color: "#334155",
+    color: "#64748B",
     fontSize: 13,
-    marginTop: 8,
-    maxWidth: 300,
+    marginTop: 6,
+    maxWidth: 320,
     textAlign: "center",
   },
   modalOverlay: {
