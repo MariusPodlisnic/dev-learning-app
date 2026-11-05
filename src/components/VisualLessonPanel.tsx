@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 
 interface MemoryItem {
   label: string;
@@ -26,32 +26,42 @@ export default function VisualLessonPanel({
 
   return (
     <View style={styles.container}>
-      <View style={styles.badgeHeader}>
-        <Text style={styles.badgeTitle}>💡 LIVE CONCEPT VISUALIZER</Text>
-        <Text style={styles.badgeSubtitle}>
-          {type === "memory"
-            ? "RAM Object Allocations"
-            : "Contiguous Array Slots & Iteration"}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.pulseIcon}>🔴</Text>
+          <Text style={styles.title}>LIVE HEAP INSPECTOR</Text>
+        </View>
+        <Text style={styles.hexCode}>
+          ADDR: 0x
+          {Math.floor(Math.random() * 1000000)
+            .toString(16)
+            .toUpperCase()}
         </Text>
       </View>
 
       {/* Memory Reference Diagram */}
       {type === "memory" && Array.isArray(data) && (
-        <View style={styles.memoryContainer}>
+        <View style={styles.diagramContainer}>
           {data.map((item: MemoryItem, idx: number) => (
             <View key={idx} style={styles.memoryRow}>
-              {/* Variable Reference Name */}
-              <View style={styles.pointerBox}>
-                <Text style={styles.pointerName}>{item.label}</Text>
-                <Text style={styles.pointerType}>ref ({item.type})</Text>
+              {/* Stack Variable */}
+              <View style={styles.stackBox}>
+                <Text style={styles.stackLabel}>STACK</Text>
+                <Text style={styles.varName}>{item.label}</Text>
               </View>
 
-              {/* Arrow Connector */}
-              <Text style={styles.arrowText}>──►</Text>
+              {/* Data Bus Arrow */}
+              <View style={styles.dataBus}>
+                <View style={styles.busLine} />
+                <Text style={styles.busIcon}>▶</Text>
+              </View>
 
-              {/* Memory Heap Object */}
-              <View style={styles.heapObject}>
-                <Text style={styles.addressText}>{item.address}</Text>
+              {/* Heap Object */}
+              <View style={styles.heapBox}>
+                <View style={styles.heapHeader}>
+                  <Text style={styles.heapAddress}>{item.address}</Text>
+                  <Text style={styles.heapType}>{item.type}</Text>
+                </View>
                 <Text style={styles.heapValue}>{item.value}</Text>
               </View>
             </View>
@@ -59,10 +69,10 @@ export default function VisualLessonPanel({
         </View>
       )}
 
-      {/* Array Pointer Diagram */}
-      {type === "array" && Array.isArray(data) && (
-        <View style={styles.arrayContainer}>
-          <Text style={styles.arrayTitle}>List Structure in Memory:</Text>
+      {/* Array/List Contiguous Memory Diagram */}
+      {(type === "array" || type === "hashmap") && Array.isArray(data) && (
+        <View style={styles.diagramContainer}>
+          <Text style={styles.arrayLabel}>CONTIGUOUS MEMORY ALLOCATION</Text>
           <View style={styles.arrayGrid}>
             {data.map((item: ArrayItem, idx: number) => (
               <View
@@ -72,10 +82,23 @@ export default function VisualLessonPanel({
                   item.active && styles.activeArrayCell,
                 ]}
               >
-                <Text style={styles.indexLabel}>Index [{item.index}]</Text>
-                <Text style={styles.cellValue}>{item.value}</Text>
+                <View style={styles.cellHeader}>
+                  <Text style={styles.cellIndex}>
+                    {type === "hashmap" ? "KEY" : `IDX ${item.index}`}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.cellValue,
+                    item.active && styles.activeCellValue,
+                  ]}
+                >
+                  {item.value}
+                </Text>
                 {item.active && (
-                  <Text style={styles.pointerMarker}>▲ Current Iteration</Text>
+                  <View style={styles.pointerTag}>
+                    <Text style={styles.pointerTagText}>▲ PTR</Text>
+                  </View>
                 )}
               </View>
             ))}
@@ -88,124 +111,181 @@ export default function VisualLessonPanel({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#0F172A",
+    backgroundColor: "#05070A",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#1E293B",
     padding: 16,
     marginBottom: 20,
+    shadowColor: "#38BDF8",
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
   },
-  badgeHeader: {
-    marginBottom: 16,
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
     borderBottomWidth: 1,
-    borderBottomColor: "#1E293B",
-    paddingBottom: 8,
+    borderBottomColor: "#1A2133",
+    paddingBottom: 12,
   },
-  badgeTitle: {
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  pulseIcon: {
+    fontSize: 10,
+  },
+  title: {
     color: "#38BDF8",
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-  },
-  badgeSubtitle: {
-    color: "#94A3B8",
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: "800",
+    letterSpacing: 2,
   },
-  memoryContainer: {
-    gap: 12,
+  hexCode: {
+    color: "#64748B",
+    fontSize: 10,
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+  },
+  diagramContainer: {
+    gap: 16,
   },
   memoryRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
   },
-  pointerBox: {
-    backgroundColor: "#1E293B",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+  stackBox: {
+    backgroundColor: "#131C2D",
     borderWidth: 1,
-    borderColor: "#334155",
-    minWidth: 100,
+    borderColor: "#223049",
+    borderRadius: 8,
+    padding: 12,
+    width: 110,
+    alignItems: "center",
   },
-  pointerName: {
-    color: "#F8FAFC",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  pointerType: {
+  stackLabel: {
     color: "#64748B",
-    fontSize: 10,
-    marginTop: 2,
-  },
-  arrowText: {
-    color: "#38BDF8",
+    fontSize: 9,
     fontWeight: "800",
-    fontSize: 16,
+    letterSpacing: 1,
+    marginBottom: 4,
   },
-  heapObject: {
-    backgroundColor: "#020617",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#10B981",
+  varName: {
+    color: "#F8FAFC",
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+  },
+  dataBus: {
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
+    paddingHorizontal: 8,
   },
-  addressText: {
+  busLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: "#223049",
+  },
+  busIcon: {
+    color: "#38BDF8",
+    fontSize: 12,
+    marginLeft: -4,
+  },
+  heapBox: {
+    backgroundColor: "#064E3B15",
+    borderWidth: 1,
+    borderColor: "#05966950",
+    borderRadius: 8,
+    padding: 12,
+    width: 140,
+  },
+  heapHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  heapAddress: {
+    color: "#34D399",
+    fontSize: 9,
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+  },
+  heapType: {
     color: "#059669",
-    fontSize: 10,
-    fontFamily: "monospace",
+    fontSize: 9,
+    fontWeight: "800",
+    backgroundColor: "#064E3B",
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   heapValue: {
-    color: "#34D399",
+    color: "#A3E635",
     fontSize: 14,
-    fontWeight: "600",
-    marginTop: 2,
-    fontFamily: "monospace",
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
-  arrayContainer: {
-    gap: 8,
-  },
-  arrayTitle: {
-    color: "#94A3B8",
-    fontSize: 12,
-    fontWeight: "600",
+  arrayLabel: {
+    color: "#64748B",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   arrayGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 8,
   },
   arrayCell: {
-    backgroundColor: "#1E293B",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: "#131C2D",
     borderWidth: 1,
-    borderColor: "#334155",
-    minWidth: 100,
-    alignItems: "center",
+    borderColor: "#223049",
+    borderRadius: 8,
+    padding: 12,
+    minWidth: 90,
+    position: "relative",
   },
   activeArrayCell: {
     borderColor: "#38BDF8",
     backgroundColor: "#0284C720",
+    shadowColor: "#38BDF8",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
   },
-  indexLabel: {
-    color: "#64748B",
-    fontSize: 10,
-    fontWeight: "700",
+  cellHeader: {
+    marginBottom: 8,
+  },
+  cellIndex: {
+    color: "#94A3B8",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
   cellValue: {
     color: "#F8FAFC",
-    fontSize: 13,
-    fontWeight: "600",
-    marginVertical: 4,
-    fontFamily: "monospace",
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
-  pointerMarker: {
+  activeCellValue: {
     color: "#38BDF8",
-    fontSize: 9,
-    fontWeight: "800",
+  },
+  pointerTag: {
+    position: "absolute",
+    bottom: -10,
+    alignSelf: "center",
+    backgroundColor: "#38BDF8",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  pointerTagText: {
+    color: "#0F172A",
+    fontSize: 8,
+    fontWeight: "900",
   },
 });
