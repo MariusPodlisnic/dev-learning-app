@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { supabase } from "../../lib/supabase";
 import Auth from "../components/Auth";
+import HintAccordion from "../components/HintAccordion";
 import PaywallModal from "../components/PaywallModal";
 import VisualLessonPanel from "../components/VisualLessonPanel";
 
@@ -27,6 +28,7 @@ interface Lesson {
   is_free: boolean;
   visual_type?: string;
   visual_data?: any;
+  hints?: string[];
 }
 
 export default function HomeScreen() {
@@ -42,6 +44,10 @@ export default function HomeScreen() {
   const [completedLessons, setCompletedLessons] = useState<
     Record<string, boolean>
   >({});
+
+  // Gamification & Profile State
+  const [xpPoints, setXpPoints] = useState<number>(0);
+  const [streakCount, setStreakCount] = useState<number>(0);
 
   // Auth & Premium State
   const [session, setSession] = useState<Session | null>(null);
@@ -73,6 +79,8 @@ export default function HomeScreen() {
         } else {
           setCompletedLessons({});
           setIsPremium(false);
+          setXpPoints(0);
+          setStreakCount(0);
         }
       },
     );
@@ -112,10 +120,14 @@ export default function HomeScreen() {
     try {
       const { data } = await supabase
         .from("profiles")
-        .select("is_premium")
+        .select("is_premium, xp_points, streak_count")
         .eq("id", userId)
         .single();
-      if (data) setIsPremium(data.is_premium || false);
+      if (data) {
+        setIsPremium(data.is_premium || false);
+        setXpPoints(data.xp_points || 0);
+        setStreakCount(data.streak_count || 0);
+      }
     } catch (err) {
       console.error("Failed to load profile:", err);
     }
@@ -222,14 +234,32 @@ export default function HomeScreen() {
         if (selectedLesson?.expected_output) {
           const expected = selectedLesson.expected_output.trim();
           if (rawOutput === expected) {
-            finalLogs += "\n\n🎉 Test Passed! Solution verified.";
+            finalLogs += "\n\n🎉 Test Passed! Solution verified (+50 XP).";
             if (selectedLesson && session) {
+              const isAlreadyCompleted = completedLessons[selectedLesson.id];
+
               await supabase.from("user_progress").upsert({
                 user_id: session.user.id,
                 lesson_id: selectedLesson.id,
                 completed: true,
                 updated_at: new Date().toISOString(),
               });
+
+              if (!isAlreadyCompleted) {
+                const newXp = xpPoints + 50;
+                const newStreak = streakCount === 0 ? 1 : streakCount;
+                setXpPoints(newXp);
+                setStreakCount(newStreak);
+
+                await supabase.from("profiles").upsert({
+                  id: session.user.id,
+                  email: session.user.email,
+                  xp_points: newXp,
+                  streak_count: newStreak,
+                  last_completed_at: new Date().toISOString(),
+                });
+              }
+
               setCompletedLessons((prev) => ({
                 ...prev,
                 [selectedLesson.id]: true,
@@ -277,6 +307,16 @@ export default function HomeScreen() {
                 ? "🟢 Pyodide WASM Active"
                 : "⏳ Initializing WASM Engine..."}
             </Text>
+          </View>
+        </View>
+
+        {/* Gamification Stats Header */}
+        <View style={styles.gamificationHeader}>
+          <View style={styles.statPill}>
+            <Text style={styles.statText}>🔥 {streakCount} Day Streak</Text>
+          </View>
+          <View style={styles.statPill}>
+            <Text style={styles.statText}>⚡ {xpPoints} XP</Text>
           </View>
           {isPremium && (
             <View style={styles.proBadge}>
@@ -458,6 +498,9 @@ export default function HomeScreen() {
                     data={selectedLesson.visual_data}
                   />
                 )}
+
+                {/* Hints Accordion Component */}
+                <HintAccordion hints={selectedLesson.hints || []} />
               </ScrollView>
 
               {/* Right Column: Code Editor & Execution Terminal */}
@@ -572,6 +615,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: { color: "#94A3B8", fontSize: 12 },
+  gamificationHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  statPill: {
+    backgroundColor: "#0F172A",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#1E293B",
+  },
+  statText: { color: "#F8FAFC", fontSize: 12, fontWeight: "700" },
   proBadge: {
     backgroundColor: "#F59E0B",
     paddingHorizontal: 8,
