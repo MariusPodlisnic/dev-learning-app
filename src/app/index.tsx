@@ -16,6 +16,9 @@ import { supabase } from "../../lib/supabase";
 import Auth from "../components/Auth";
 import HintAccordion from "../components/HintAccordion";
 import PaywallModal from "../components/PaywallModal";
+import ProfileStatsModal, {
+  getDeveloperRank,
+} from "../components/ProfileStatsModal";
 import RoadmapTree from "../components/RoadmapTree";
 import SuccessModal from "../components/SuccessModal";
 import VisualLessonPanel from "../components/VisualLessonPanel";
@@ -315,6 +318,7 @@ export default function HomeScreen() {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [upgrading, setUpgrading] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
 
@@ -619,32 +623,43 @@ export default function HomeScreen() {
 
             if (allPassed) {
               setShowSuccessModal(true);
-              if (selectedLesson && session) {
+              if (selectedLesson) {
                 const isAlreadyCompleted = completedLessons[selectedLesson.id];
-                await supabase.from("user_progress").upsert({
-                  user_id: session.user.id,
-                  lesson_id: selectedLesson.id,
-                  completed: true,
-                  updated_at: new Date().toISOString(),
-                });
+                const newXp = isAlreadyCompleted ? xpPoints : xpPoints + 50;
+                const newStreak =
+                  isAlreadyCompleted
+                    ? streakCount
+                    : streakCount === 0
+                      ? 1
+                      : streakCount;
 
                 if (!isAlreadyCompleted) {
-                  const newXp = xpPoints + 50;
-                  const newStreak = streakCount === 0 ? 1 : streakCount;
                   setXpPoints(newXp);
                   setStreakCount(newStreak);
-                  await supabase.from("profiles").upsert({
-                    id: session.user.id,
-                    email: session.user.email,
-                    xp_points: newXp,
-                    streak_count: newStreak,
-                    last_completed_at: new Date().toISOString(),
-                  });
                 }
                 setCompletedLessons((prev) => ({
                   ...prev,
                   [selectedLesson.id]: true,
                 }));
+
+                if (session) {
+                  await supabase.from("user_progress").upsert({
+                    user_id: session.user.id,
+                    lesson_id: selectedLesson.id,
+                    completed: true,
+                    updated_at: new Date().toISOString(),
+                  });
+
+                  if (!isAlreadyCompleted) {
+                    await supabase.from("profiles").upsert({
+                      id: session.user.id,
+                      email: session.user.email,
+                      xp_points: newXp,
+                      streak_count: newStreak,
+                      last_completed_at: new Date().toISOString(),
+                    });
+                  }
+                }
               }
             }
           }
@@ -659,7 +674,12 @@ export default function HomeScreen() {
             if (rawOutput === expected) {
               finalLogs += "\n\n🎉 Assignment Passed! (+50 XP)";
               setShowSuccessModal(true);
-              if (selectedLesson && session) {
+              if (selectedLesson) {
+                const isAlreadyCompleted = completedLessons[selectedLesson.id];
+                if (!isAlreadyCompleted) {
+                  setXpPoints((prev) => prev + 50);
+                  setStreakCount((prev) => (prev === 0 ? 1 : prev));
+                }
                 setCompletedLessons((prev) => ({
                   ...prev,
                   [selectedLesson.id]: true,
@@ -683,6 +703,7 @@ export default function HomeScreen() {
 
   const currentTrackTheme =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
+  const devRank = getDeveloperRank(xpPoints);
   const currentLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = currentLessons.filter(
     (l) => completedLessons[l.id],
@@ -914,7 +935,21 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.headerRight}>
-          <View style={styles.gamificationHeader}>
+          <Pressable
+            style={styles.gamificationHeader}
+            onPress={() => setShowProfileModal(true)}
+          >
+            <View
+              style={[
+                styles.rankPill,
+                { borderColor: `${devRank.accent}55` },
+              ]}
+            >
+              <Text style={[styles.rankPillText, { color: devRank.accent }]}>
+                {devRank.badge} Lvl {devRank.level}
+                {!isCompactHeader ? ` · ${devRank.title}` : ""}
+              </Text>
+            </View>
             <View style={styles.statPill}>
               <Text style={styles.statText}>
                 🔥 {streakCount}
@@ -929,7 +964,7 @@ export default function HomeScreen() {
                 <Text style={styles.proBadgeText}>PRO</Text>
               </View>
             )}
-          </View>
+          </Pressable>
 
           {!isPremium && (
             <Pressable
@@ -1676,6 +1711,24 @@ export default function HomeScreen() {
           />
         </View>
       )}
+
+      {showProfileModal && (
+        <View style={styles.modalOverlay}>
+          <ProfileStatsModal
+            xpPoints={xpPoints}
+            streakCount={streakCount}
+            isPremium={isPremium}
+            userEmail={session?.user?.email}
+            lessons={lessons}
+            completedLessons={completedLessons}
+            onSelectTrack={(trackKey) => {
+              handleSwitchTrack(trackKey);
+            }}
+            onOpenAuth={() => setShowAuthModal(true)}
+            onClose={() => setShowProfileModal(false)}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1761,7 +1814,25 @@ const styles = StyleSheet.create({
   },
   pulseDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { color: "#A1A1AA", fontSize: 11, fontWeight: "600" },
-  gamificationHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  gamificationHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  rankPill: {
+    backgroundColor: "#121215",
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#27272A",
+  },
+  rankPillText: {
+    color: "#38BDF8",
+    fontSize: 12,
+    fontWeight: "800",
+  },
   statPill: {
     backgroundColor: "#121215",
     paddingHorizontal: 12,
