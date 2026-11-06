@@ -23,6 +23,7 @@ import ProfileStatsModal, {
 import RoadmapTree from "../components/RoadmapTree";
 import SuccessModal from "../components/SuccessModal";
 import VisualLessonPanel from "../components/VisualLessonPanel";
+import { getLessonEnrichment } from "../constants/curriculum";
 import { TrackThemes } from "../constants/theme";
 
 interface Example {
@@ -308,6 +309,13 @@ export default function HomeScreen() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
   const [activeTab, setActiveTab] = useState<"problem" | "visual">("problem");
+  const [explainStyle, setExplainStyle] = useState<
+    "analogy" | "guide" | "cheatsheet"
+  >("analogy");
+  const [quizSelection, setQuizSelection] = useState<number | null>(null);
+  const [solvedQuizzes, setSolvedQuizzes] = useState<Record<string, boolean>>(
+    {},
+  );
   const [bottomTab, setBottomTab] = useState<"console" | "tests">("console");
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState<boolean>(false);
@@ -597,6 +605,7 @@ export default function HomeScreen() {
     setHasSavedDraft(draft !== undefined && draft !== defaultCode);
     setOutput("");
     setTestResults(null);
+    setQuizSelection(null);
     setBottomTab("console");
     setMobileDrawerOpen(false);
     setViewMode("studio");
@@ -881,6 +890,21 @@ export default function HomeScreen() {
   const currentTrackTheme =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
   const devRank = getDeveloperRank(xpPoints);
+  const lessonEnrichment = selectedLesson
+    ? getLessonEnrichment(selectedLesson)
+    : null;
+
+  function handleSelectQuizOption(optionIdx: number) {
+    if (!selectedLesson || !lessonEnrichment) return;
+    setQuizSelection(optionIdx);
+    if (
+      optionIdx === lessonEnrichment.quiz.correctIndex &&
+      !solvedQuizzes[selectedLesson.id]
+    ) {
+      setSolvedQuizzes((prev) => ({ ...prev, [selectedLesson.id]: true }));
+      setXpPoints((prev) => prev + 10);
+    }
+  }
   const currentLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = currentLessons.filter(
     (l) => completedLessons[l.id],
@@ -1407,15 +1431,182 @@ export default function HomeScreen() {
 
                   {activeTab === "problem" ? (
                     <View style={styles.problemCard}>
+                      {/* 3-Style Explanation Card */}
                       <View style={styles.conceptBox}>
-                        <Text style={styles.sectionHeaderLabel}>
-                          📖 CONCEPT EXPLANATION
-                        </Text>
-                        <FormattedText
-                          text={selectedLesson.content}
-                          style={styles.problemText}
-                        />
+                        <View style={styles.conceptTopRow}>
+                          <Text style={styles.sectionHeaderLabel}>
+                            📖 LEARN THE CONCEPT
+                          </Text>
+                          <View style={styles.explainStyleSwitcher}>
+                            {[
+                              { id: "analogy", label: "🌱 Simple" },
+                              { id: "guide", label: "📘 Full Guide" },
+                              { id: "cheatsheet", label: "⚡ Cheat Sheet" },
+                            ].map((mode) => {
+                              const isActiveStyle = explainStyle === mode.id;
+                              return (
+                                <Pressable
+                                  key={mode.id}
+                                  style={[
+                                    styles.explainStyleBtn,
+                                    isActiveStyle &&
+                                      styles.explainStyleBtnActive,
+                                  ]}
+                                  onPress={() =>
+                                    setExplainStyle(
+                                      mode.id as
+                                        | "analogy"
+                                        | "guide"
+                                        | "cheatsheet",
+                                    )
+                                  }
+                                >
+                                  <Text
+                                    style={[
+                                      styles.explainStyleBtnText,
+                                      isActiveStyle &&
+                                        styles.explainStyleBtnTextActive,
+                                    ]}
+                                  >
+                                    {mode.label}
+                                  </Text>
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        </View>
+
+                        {explainStyle === "analogy" && lessonEnrichment ? (
+                          <View style={styles.analogyContainer}>
+                            <View style={styles.realWorldBanner}>
+                              <Text style={styles.realWorldLabel}>
+                                🌍 REAL-WORLD USE
+                              </Text>
+                              <Text style={styles.realWorldText}>
+                                {lessonEnrichment.realWorldUse}
+                              </Text>
+                            </View>
+
+                            <Text style={styles.analogyHeading}>
+                              💡 {lessonEnrichment.analogyTitle}
+                            </Text>
+                            <FormattedText
+                              text={lessonEnrichment.analogyText}
+                              style={styles.problemText}
+                            />
+                          </View>
+                        ) : explainStyle === "cheatsheet" &&
+                          lessonEnrichment ? (
+                          <View style={styles.cheatSheetContainer}>
+                            <Text style={styles.cheatSheetIntro}>
+                              Copy or reference this pattern while solving the
+                              assignment on the right:
+                            </Text>
+                            <View style={styles.codeBlockContainer}>
+                              <View style={styles.codeBlockHeader}>
+                                <Text style={styles.codeBlockLang}>
+                                  PYTHON SYNTAX PATTERN
+                                </Text>
+                              </View>
+                              <Text style={styles.codeBlockText}>
+                                {lessonEnrichment.cheatSheet}
+                              </Text>
+                            </View>
+                          </View>
+                        ) : (
+                          <FormattedText
+                            text={selectedLesson.content}
+                            style={styles.problemText}
+                          />
+                        )}
                       </View>
+
+                      {/* Interactive 1-Question Warm-Up Quiz */}
+                      {lessonEnrichment && (
+                        <View style={styles.quizCard}>
+                          <View style={styles.quizHeaderRow}>
+                            <Text style={styles.quizBadgeText}>
+                              🎯 QUICK WARM-UP CHECK
+                            </Text>
+                            <Text
+                              style={[
+                                styles.quizXpPill,
+                                solvedQuizzes[selectedLesson.id] &&
+                                  styles.quizXpPillDone,
+                              ]}
+                            >
+                              {solvedQuizzes[selectedLesson.id]
+                                ? "✓ +10 XP Earned"
+                                : "+10 XP"}
+                            </Text>
+                          </View>
+                          <Text style={styles.quizQuestion}>
+                            {lessonEnrichment.quiz.question}
+                          </Text>
+
+                          <View style={styles.quizOptionsList}>
+                            {lessonEnrichment.quiz.options.map((opt, idx) => {
+                              const isPicked = quizSelection === idx;
+                              const isCorrect =
+                                idx === lessonEnrichment.quiz.correctIndex;
+                              const showSuccess = isPicked && isCorrect;
+                              const showWrong = isPicked && !isCorrect;
+
+                              return (
+                                <Pressable
+                                  key={idx}
+                                  style={[
+                                    styles.quizOptionBtn,
+                                    showSuccess && styles.quizOptionCorrect,
+                                    showWrong && styles.quizOptionWrong,
+                                  ]}
+                                  onPress={() => handleSelectQuizOption(idx)}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.quizOptionText,
+                                      showSuccess && {
+                                        color: "#34D399",
+                                        fontWeight: "800",
+                                      },
+                                      showWrong && {
+                                        color: "#F87171",
+                                        fontWeight: "700",
+                                      },
+                                    ]}
+                                  >
+                                    {showSuccess
+                                      ? "✅ "
+                                      : showWrong
+                                        ? "❌ "
+                                        : "○ "}
+                                    {opt}
+                                  </Text>
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+
+                          {quizSelection !== null && (
+                            <View
+                              style={[
+                                styles.quizFeedbackBox,
+                                quizSelection ===
+                                  lessonEnrichment.quiz.correctIndex
+                                  ? styles.quizFeedbackSuccess
+                                  : styles.quizFeedbackRetry,
+                              ]}
+                            >
+                              <Text style={styles.quizFeedbackText}>
+                                {quizSelection ===
+                                lessonEnrichment.quiz.correctIndex
+                                  ? `🎉 Spot on! ${lessonEnrichment.quiz.explanation}`
+                                  : "💡 Not quite — tap another option to test your intuition!"}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
 
                       <View style={styles.assignmentBox}>
                         <View style={styles.assignmentHeaderRow}>
@@ -2426,6 +2617,161 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#27272A",
     marginBottom: 16,
+  },
+  conceptTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 14,
+  },
+  explainStyleSwitcher: {
+    flexDirection: "row",
+    backgroundColor: "#09090B",
+    padding: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#27272A",
+    gap: 2,
+  },
+  explainStyleBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  explainStyleBtnActive: {
+    backgroundColor: "#27272A",
+  },
+  explainStyleBtnText: {
+    color: "#71717A",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  explainStyleBtnTextActive: {
+    color: "#FAFAFA",
+    fontWeight: "800",
+  },
+  analogyContainer: {
+    gap: 10,
+  },
+  realWorldBanner: {
+    backgroundColor: "#09090B",
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "#27272A",
+    borderLeftWidth: 3,
+    borderLeftColor: "#38BDF8",
+    padding: 12,
+    gap: 4,
+  },
+  realWorldLabel: {
+    color: "#38BDF8",
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+  realWorldText: {
+    color: "#E4E4E7",
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  analogyHeading: {
+    color: "#FAFAFA",
+    fontSize: 16,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+  cheatSheetContainer: {
+    gap: 8,
+  },
+  cheatSheetIntro: {
+    color: "#A1A1AA",
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  quizCard: {
+    backgroundColor: "#121215",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F59E0B40",
+    padding: 16,
+    marginBottom: 16,
+    gap: 10,
+  },
+  quizHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  quizBadgeText: {
+    color: "#F59E0B",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.1,
+  },
+  quizXpPill: {
+    backgroundColor: "#F59E0B20",
+    color: "#F59E0B",
+    fontSize: 10,
+    fontWeight: "800",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  quizXpPillDone: {
+    backgroundColor: "#10B98120",
+    color: "#34D399",
+  },
+  quizQuestion: {
+    color: "#FAFAFA",
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 20,
+  },
+  quizOptionsList: {
+    gap: 8,
+  },
+  quizOptionBtn: {
+    backgroundColor: "#09090B",
+    borderWidth: 1,
+    borderColor: "#27272A",
+    borderRadius: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  quizOptionCorrect: {
+    borderColor: "#10B981",
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+  },
+  quizOptionWrong: {
+    borderColor: "#EF4444",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+  },
+  quizOptionText: {
+    color: "#D4D4D8",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  quizFeedbackBox: {
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  quizFeedbackSuccess: {
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    borderColor: "rgba(16, 185, 129, 0.35)",
+  },
+  quizFeedbackRetry: {
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    borderColor: "rgba(245, 158, 11, 0.35)",
+  },
+  quizFeedbackText: {
+    color: "#E4E4E7",
+    fontSize: 12,
+    lineHeight: 18,
   },
   problemText: { color: "#D4D4D8", fontSize: 14, lineHeight: 24 },
   boldInline: { color: "#FAFAFA", fontWeight: "800" },
