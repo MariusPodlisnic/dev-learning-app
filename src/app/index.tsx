@@ -279,6 +279,26 @@ function FormattedText({ text, style }: { text?: string; style?: any }) {
   );
 }
 
+const STORAGE_DRAFTS_KEY = "devlearn_code_drafts_v1";
+const STORAGE_STATE_KEY = "devlearn_state_v1";
+
+function readLocalJson<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined" || !window.localStorage) return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch (_e) {
+    return fallback;
+  }
+}
+
+function writeLocalJson(key: string, value: unknown) {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (_e) {}
+}
+
 export default function HomeScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [viewMode, setViewMode] = useState<"roadmap" | "studio" | "bughunt">(
@@ -327,16 +347,66 @@ export default function HomeScreen() {
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [upgrading, setUpgrading] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
+  const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(false);
 
   const pyodideRef = useRef<any>(null);
+  const codeDraftsRef = useRef<Record<string, string>>({});
+  const hydratedRef = useRef<boolean>(false);
   const selectionRef = useRef<{ start: number; end: number }>({
     start: 0,
     end: 0,
   });
 
+  function updateCodeWithDraft(nextCode: string, lessonObj?: Lesson | null) {
+    setCode(nextCode);
+    const targetLesson = lessonObj !== undefined ? lessonObj : selectedLesson;
+    if (!targetLesson) return;
+    const defaultCode = (targetLesson.initial_code || "").replace(/\\n/g, "\n");
+    if (nextCode !== defaultCode) {
+      codeDraftsRef.current[targetLesson.id] = nextCode;
+      setHasSavedDraft(true);
+    } else {
+      delete codeDraftsRef.current[targetLesson.id];
+      setHasSavedDraft(false);
+    }
+    writeLocalJson(STORAGE_DRAFTS_KEY, codeDraftsRef.current);
+  }
+
   useEffect(() => {
     setIsMounted(true);
-    fetchLessons();
+    const savedDrafts = readLocalJson<Record<string, string>>(
+      STORAGE_DRAFTS_KEY,
+      {},
+    );
+    codeDraftsRef.current = savedDrafts;
+
+    const savedState = readLocalJson<{
+      completedLessons?: Record<string, boolean>;
+      solvedIncidents?: Record<string, boolean>;
+      xpPoints?: number;
+      streakCount?: number;
+      activeTrack?: string;
+      lastLessonId?: string;
+    }>(STORAGE_STATE_KEY, {});
+
+    if (savedState.completedLessons) {
+      setCompletedLessons(savedState.completedLessons);
+    }
+    if (savedState.solvedIncidents) {
+      setSolvedIncidents(savedState.solvedIncidents);
+    }
+    if (typeof savedState.xpPoints === "number") {
+      setXpPoints(savedState.xpPoints);
+    }
+    if (typeof savedState.streakCount === "number") {
+      setStreakCount(savedState.streakCount);
+    }
+    if (savedState.activeTrack) {
+      setActiveTrack(savedState.activeTrack);
+    }
+    hydratedRef.current = true;
+
+    fetchLessons(savedState.activeTrack, savedState.lastLessonId as string | undefined);
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
@@ -353,10 +423,7 @@ export default function HomeScreen() {
           fetchUserProgress(session.user.id);
           fetchUserProfile(session.user.id);
         } else {
-          setCompletedLessons({});
           setIsPremium(false);
-          setXpPoints(0);
-          setStreakCount(0);
         }
       },
     );
@@ -365,7 +432,29 @@ export default function HomeScreen() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  async function fetchLessons() {
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    writeLocalJson(STORAGE_STATE_KEY, {
+      completedLessons,
+      solvedIncidents,
+      xpPoints,
+      streakCount,
+      activeTrack,
+      lastLessonId: selectedLesson?.id,
+    });
+  }, [
+    completedLessons,
+    solvedIncidents,
+    xpPoints,
+    streakCount,
+    activeTrack,
+    selectedLesson?.id,
+  ]);
+
+  async function fetchLessons(
+    preferredTrack?: string,
+    preferredLessonId?: string,
+  ) {
     try {
       const { data, error } = await supabase
         .from("lessons")
@@ -377,10 +466,20 @@ export default function HomeScreen() {
       } else {
         const all = data || [];
         setLessons(all);
-        const firstBeginner = all.find((l) => l.track === "python_basics");
-        if (firstBeginner) {
-          setSelectedLesson(firstBeginner);
-          setCode((firstBeginner.initial_code || "").replace(/\\n/g, "\n"));
+        const targetTrack = preferredTrack || "python_basics";
+        const initialLesson =
+          (preferredLessonId && all.find((l) => l.id === preferredLessonId)) ||
+          all.find((l) => l.track === targetTrack) ||
+          all.find((l) => l.track === "python_basics");
+        if (initialLesson) {
+          setSelectedLesson(initialLesson);
+          const defaultCode = (initialLesson.initial_code || "").replace(
+            /\\n/g,
+            "\n",
+          );
+          const draft = codeDraftsRef.current[initialLesson.id];
+          setCode(draft !== undefined ? draft : defaultCode);
+          setHasSavedDraft(draft !== undefined && draft !== defaultCode);
         }
       }
     } finally {
@@ -397,8 +496,8 @@ export default function HomeScreen() {
         .single();
       if (data) {
         setIsPremium(data.is_premium || false);
-        setXpPoints(data.xp_points || 0);
-        setStreakCount(data.streak_count || 0);
+        setXpPoints((prev) => Math.max(prev, data.xp_points || 0));
+        setStreakCount((prev) => Math.max(prev, data.streak_count || 0));
       }
     } catch (err) {
       console.error("Failed to load profile:", err);
@@ -415,7 +514,7 @@ export default function HomeScreen() {
       data?.forEach((row) => {
         if (row.completed) progressMap[row.lesson_id] = true;
       });
-      setCompletedLessons(progressMap);
+      setCompletedLessons((prev) => ({ ...prev, ...progressMap }));
     } catch (err) {
       console.error("Failed to load user progress:", err);
     }
@@ -470,7 +569,13 @@ export default function HomeScreen() {
     const firstInTrack = lessons.find((l) => l.track === trackName);
     if (firstInTrack) {
       setSelectedLesson(firstInTrack);
-      setCode((firstInTrack.initial_code || "").replace(/\\n/g, "\n"));
+      const defaultCode = (firstInTrack.initial_code || "").replace(
+        /\\n/g,
+        "\n",
+      );
+      const draft = codeDraftsRef.current[firstInTrack.id];
+      setCode(draft !== undefined ? draft : defaultCode);
+      setHasSavedDraft(draft !== undefined && draft !== defaultCode);
       setOutput("");
       setTestResults(null);
     }
@@ -486,7 +591,10 @@ export default function HomeScreen() {
     }
     setActiveTrack(fullLesson.track);
     setSelectedLesson(fullLesson);
-    setCode((fullLesson.initial_code || "").replace(/\\n/g, "\n"));
+    const defaultCode = (fullLesson.initial_code || "").replace(/\\n/g, "\n");
+    const draft = codeDraftsRef.current[fullLesson.id];
+    setCode(draft !== undefined ? draft : defaultCode);
+    setHasSavedDraft(draft !== undefined && draft !== defaultCode);
     setOutput("");
     setTestResults(null);
     setBottomTab("console");
@@ -495,21 +603,19 @@ export default function HomeScreen() {
   }
 
   function insertSymbol(symbol: string) {
-    setCode((prev) => {
-      const start = Math.min(
-        Math.max(0, selectionRef.current.start),
-        prev.length,
-      );
-      const end = Math.min(Math.max(start, selectionRef.current.end), prev.length);
-      const nextCode = prev.slice(0, start) + symbol + prev.slice(end);
-      const cursorOffset =
-        symbol === "print()" || symbol === '""' || symbol === 'f""' || symbol === "[]"
-          ? symbol.length - 1
-          : symbol.length;
-      const nextPos = start + cursorOffset;
-      selectionRef.current = { start: nextPos, end: nextPos };
-      return nextCode;
-    });
+    const start = Math.min(
+      Math.max(0, selectionRef.current.start),
+      code.length,
+    );
+    const end = Math.min(Math.max(start, selectionRef.current.end), code.length);
+    const nextCode = code.slice(0, start) + symbol + code.slice(end);
+    const cursorOffset =
+      symbol === "print()" || symbol === '""' || symbol === 'f""' || symbol === "[]"
+        ? symbol.length - 1
+        : symbol.length;
+    const nextPos = start + cursorOffset;
+    selectionRef.current = { start: nextPos, end: nextPos };
+    updateCodeWithDraft(nextCode);
   }
 
   async function handleCopyCode() {
@@ -1408,6 +1514,13 @@ export default function HomeScreen() {
                       <View style={styles.ideTitleGroup}>
                         <Text style={styles.ideTitleText}>assignment.py</Text>
                         <Text style={styles.ideMetaPill}>Python 3.11</Text>
+                        {hasSavedDraft && (
+                          <View style={styles.savedDraftPill}>
+                            <Text style={styles.savedDraftPillText}>
+                              💾 Draft Saved
+                            </Text>
+                          </View>
+                        )}
                       </View>
                       <View style={styles.ideHeaderActions}>
                         <Pressable
@@ -1429,11 +1542,12 @@ export default function HomeScreen() {
                         <Pressable
                           style={styles.resetBtn}
                           onPress={() =>
-                            setCode(
+                            updateCodeWithDraft(
                               (selectedLesson.initial_code || "").replace(
                                 /\\n/g,
                                 "\n",
                               ),
+                              selectedLesson,
                             )
                           }
                         >
@@ -1503,7 +1617,9 @@ export default function HomeScreen() {
                             { minHeight: lineCount * 21 + 32 },
                           ]}
                           value={code}
-                          onChangeText={setCode}
+                          onChangeText={(nextText) =>
+                            updateCodeWithDraft(nextText)
+                          }
                           onSelectionChange={(e) => {
                             selectionRef.current = e.nativeEvent.selection;
                           }}
@@ -2472,6 +2588,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+  },
+  savedDraftPill: {
+    backgroundColor: "rgba(16, 185, 129, 0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.35)",
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  savedDraftPillText: {
+    color: "#34D399",
+    fontSize: 9,
+    fontWeight: "800",
   },
   ideHeaderActions: {
     flexDirection: "row",
