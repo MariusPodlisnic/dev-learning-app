@@ -61,28 +61,92 @@ interface Lesson {
   hints?: string[];
 }
 
+function renderInlineSegments(text: string) {
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <Text key={i} style={styles.inlineCode}>
+          {part.slice(1, -1)}
+        </Text>
+      );
+    }
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <Text key={i} style={styles.boldInline}>
+          {part.slice(2, -2)}
+        </Text>
+      );
+    }
+    return <Text key={i}>{part}</Text>;
+  });
+}
+
 function FormattedText({ text, style }: { text?: string; style?: any }) {
   if (!text) return null;
   const normalized = text.replace(/\\n/g, "\n");
-  const paragraphs = normalized.split("\n\n");
+  const blocks = normalized.split(/(```[\s\S]*?```)/g);
 
   return (
     <View style={{ gap: 12 }}>
-      {paragraphs.map((para, pIdx) => {
-        const parts = para.split(/(`[^`]+`)/g);
+      {blocks.map((block, bIdx) => {
+        const trimmedBlock = block.trim();
+        if (!trimmedBlock) return null;
+
+        if (trimmedBlock.startsWith("```") && trimmedBlock.endsWith("```")) {
+          const rawCode = trimmedBlock
+            .slice(3, -3)
+            .replace(/^[a-zA-Z]+\n/, "")
+            .trim();
+          return (
+            <View key={bIdx} style={styles.codeBlockContainer}>
+              <View style={styles.codeBlockHeader}>
+                <Text style={styles.codeBlockLang}>PYTHON</Text>
+              </View>
+              <Text style={styles.codeBlockText}>{rawCode}</Text>
+            </View>
+          );
+        }
+
+        const paragraphs = trimmedBlock.split("\n\n");
         return (
-          <Text key={pIdx} style={style}>
-            {parts.map((part, i) => {
-              if (part.startsWith("`") && part.endsWith("`")) {
+          <View key={bIdx} style={{ gap: 10 }}>
+            {paragraphs.map((para, pIdx) => {
+              const lines = para.split("\n");
+              const isBulletList =
+                lines.length > 1 &&
+                lines.every(
+                  (l) =>
+                    l.trim().startsWith("- ") || l.trim().startsWith("• "),
+                );
+
+              if (isBulletList) {
                 return (
-                  <Text key={i} style={styles.inlineCode}>
-                    {part.slice(1, -1)}
-                  </Text>
+                  <View key={pIdx} style={{ gap: 6 }}>
+                    {lines.map((line, lIdx) => {
+                      const cleanLine = line
+                        .trim()
+                        .replace(/^[-•]\s+/, "");
+                      return (
+                        <View key={lIdx} style={styles.bulletRow}>
+                          <Text style={styles.bulletDot}>•</Text>
+                          <Text style={[style, { flex: 1 }]}>
+                            {renderInlineSegments(cleanLine)}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
                 );
               }
-              return <Text key={i}>{part}</Text>;
+
+              return (
+                <Text key={pIdx} style={style}>
+                  {renderInlineSegments(para)}
+                </Text>
+              );
             })}
-          </Text>
+          </View>
         );
       })}
     </View>
@@ -121,6 +185,10 @@ export default function HomeScreen() {
   const [upgrading, setUpgrading] = useState<boolean>(false);
 
   const pyodideRef = useRef<any>(null);
+  const selectionRef = useRef<{ start: number; end: number }>({
+    start: 0,
+    end: 0,
+  });
 
   useEffect(() => {
     fetchLessons();
@@ -281,7 +349,21 @@ export default function HomeScreen() {
   }
 
   function insertSymbol(symbol: string) {
-    setCode((prev) => prev + symbol);
+    setCode((prev) => {
+      const start = Math.min(
+        Math.max(0, selectionRef.current.start),
+        prev.length,
+      );
+      const end = Math.min(Math.max(start, selectionRef.current.end), prev.length);
+      const nextCode = prev.slice(0, start) + symbol + prev.slice(end);
+      const cursorOffset =
+        symbol === "print()" || symbol === '""' || symbol === 'f""' || symbol === "[]"
+          ? symbol.length - 1
+          : symbol.length;
+      const nextPos = start + cursorOffset;
+      selectionRef.current = { start: nextPos, end: nextPos };
+      return nextCode;
+    });
   }
 
   function handleNextLesson() {
@@ -842,7 +924,10 @@ export default function HomeScreen() {
                           ]}
                         />
                       </View>
-                      <Text style={styles.ideTitleText}>assignment.py</Text>
+                      <View style={styles.ideTitleGroup}>
+                        <Text style={styles.ideTitleText}>assignment.py</Text>
+                        <Text style={styles.ideMetaPill}>Python 3.11</Text>
+                      </View>
                       <Pressable
                         style={styles.resetBtn}
                         onPress={() =>
@@ -859,18 +944,25 @@ export default function HomeScreen() {
                     </View>
 
                     <View style={styles.symbolBar}>
-                      <Text style={styles.quickInsertLabel}>Insert:</Text>
-                      {["print()", '""', 'f""', "[]", ":", "=", "return "].map(
-                        (sym) => (
-                          <Pressable
-                            key={sym}
-                            style={styles.symbolChip}
-                            onPress={() => insertSymbol(sym)}
-                          >
-                            <Text style={styles.symbolText}>{sym}</Text>
-                          </Pressable>
-                        ),
-                      )}
+                      <Text style={styles.quickInsertLabel}>QUICK INSERT</Text>
+                      {[
+                        { label: "⇥ Tab", val: "    " },
+                        { label: "print()", val: "print()" },
+                        { label: '""', val: '""' },
+                        { label: 'f""', val: 'f""' },
+                        { label: "[]", val: "[]" },
+                        { label: ":", val: ":" },
+                        { label: "=", val: " = " },
+                        { label: "return", val: "return " },
+                      ].map((item) => (
+                        <Pressable
+                          key={item.label}
+                          style={styles.symbolChip}
+                          onPress={() => insertSymbol(item.val)}
+                        >
+                          <Text style={styles.symbolText}>{item.label}</Text>
+                        </Pressable>
+                      ))}
                     </View>
 
                     <View style={styles.editorBody}>
@@ -885,11 +977,24 @@ export default function HomeScreen() {
                         style={styles.codeEditor}
                         value={code}
                         onChangeText={setCode}
+                        onSelectionChange={(e) => {
+                          selectionRef.current = e.nativeEvent.selection;
+                        }}
                         multiline
                         autoCapitalize="none"
                         autoCorrect={false}
                         spellCheck={false}
                       />
+                    </View>
+
+                    <View style={styles.ideFooter}>
+                      <Text style={styles.ideFooterText}>
+                        UTF-8 · { (code || "").split("\n").length } lines ·{" "}
+                        {(code || "").length} chars
+                      </Text>
+                      <Text style={styles.ideFooterText}>
+                        {pyodideReady ? "● Engine Ready" : "○ Loading Engine"}
+                      </Text>
                     </View>
                   </View>
 
@@ -923,52 +1028,96 @@ export default function HomeScreen() {
 
                   <View style={styles.bottomPanel}>
                     <View style={styles.bottomTabBar}>
-                      <Pressable
-                        style={[
-                          styles.bottomTab,
-                          bottomTab === "console" && styles.activeBottomTab,
-                        ]}
-                        onPress={() => setBottomTab("console")}
-                      >
-                        <Text
+                      <View style={styles.bottomTabsLeft}>
+                        <Pressable
                           style={[
-                            styles.bottomTabText,
-                            bottomTab === "console" &&
-                              styles.activeBottomTabText,
+                            styles.bottomTab,
+                            bottomTab === "console" && styles.activeBottomTab,
                           ]}
+                          onPress={() => setBottomTab("console")}
                         >
-                          ⌨️ Console Output
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        style={[
-                          styles.bottomTab,
-                          bottomTab === "tests" && styles.activeBottomTab,
-                        ]}
-                        onPress={() => setBottomTab("tests")}
-                      >
-                        <Text
+                          <Text
+                            style={[
+                              styles.bottomTabText,
+                              bottomTab === "console" &&
+                                styles.activeBottomTabText,
+                            ]}
+                          >
+                            ⌨️ Console Output
+                          </Text>
+                        </Pressable>
+                        <Pressable
                           style={[
-                            styles.bottomTabText,
-                            bottomTab === "tests" && styles.activeBottomTabText,
+                            styles.bottomTab,
+                            bottomTab === "tests" && styles.activeBottomTab,
                           ]}
+                          onPress={() => setBottomTab("tests")}
                         >
-                          ☑️ Assignment Checks{" "}
-                          {testResults
-                            ? `(${testResults.filter((t) => t.passed).length}/${testResults.length})`
-                            : ""}
-                        </Text>
-                      </Pressable>
+                          <Text
+                            style={[
+                              styles.bottomTabText,
+                              bottomTab === "tests" &&
+                                styles.activeBottomTabText,
+                            ]}
+                          >
+                            ☑️ Assignment Checks{" "}
+                            {testResults
+                              ? `(${testResults.filter((t) => t.passed).length}/${testResults.length})`
+                              : ""}
+                          </Text>
+                        </Pressable>
+                      </View>
+
+                      {bottomTab === "console" && output ? (
+                        <Pressable
+                          style={styles.clearConsoleBtn}
+                          onPress={() => setOutput("")}
+                        >
+                          <Text style={styles.clearConsoleText}>Clear</Text>
+                        </Pressable>
+                      ) : null}
                     </View>
 
                     <ScrollView style={styles.bottomContent}>
                       {bottomTab === "console" ? (
-                        <Text style={styles.terminalText}>
-                          {output ||
-                            '// Click "▶ Test Run" to see print output, or "✓ Submit Assignment" to verify your solution.'}
-                        </Text>
+                        output ? (
+                          <Text style={styles.terminalText}>{output}</Text>
+                        ) : (
+                          <View style={styles.emptyConsoleBox}>
+                            <Text style={styles.emptyConsoleTitle}>
+                              Ready to Execute
+                            </Text>
+                            <Text style={styles.emptyConsoleHint}>
+                              Click &quot;▶ Test Run&quot; to inspect print() output, or
+                              &quot;✓ Submit Assignment&quot; to run automated grading
+                              checks.
+                            </Text>
+                          </View>
+                        )
                       ) : testResults ? (
                         <View>
+                          <View
+                            style={[
+                              styles.testSummaryBanner,
+                              testResults.every((t) => t.passed)
+                                ? styles.testSummarySuccess
+                                : styles.testSummaryWarn,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.testSummaryText,
+                                testResults.every((t) => t.passed)
+                                  ? { color: "#34D399" }
+                                  : { color: "#FBBF24" },
+                              ]}
+                            >
+                              {testResults.every((t) => t.passed)
+                                ? `🎉 All ${testResults.length} Assignment Checks Passed!`
+                                : `⚡ ${testResults.filter((t) => t.passed).length} of ${testResults.length} Checks Passed — Select a task below to inspect`}
+                            </Text>
+                          </View>
+
                           <View style={styles.testCasePills}>
                             {testResults.map((tr, idx) => (
                               <Pressable
@@ -996,58 +1145,67 @@ export default function HomeScreen() {
                             ))}
                           </View>
 
-                          <View style={styles.testDetails}>
-                            <Text style={styles.testHeader}>
-                              Requirement Checked
-                            </Text>
-                            <View style={styles.testDataBox}>
-                              <Text style={styles.testDataText}>
-                                {testResults[selectedTestIndex].input}
+                          {testResults[selectedTestIndex] && (
+                            <View style={styles.testDetails}>
+                              <Text style={styles.testHeader}>
+                                Requirement Checked
                               </Text>
-                            </View>
-
-                            <View style={styles.comparisonRow}>
-                              <View style={{ flex: 1 }}>
-                                <Text style={styles.testHeader}>Expected</Text>
-                                <View style={styles.testDataBox}>
-                                  <Text style={styles.testDataText}>
-                                    {testResults[selectedTestIndex].expected}
-                                  </Text>
-                                </View>
+                              <View style={styles.testDataBox}>
+                                <Text style={styles.testDataText}>
+                                  {testResults[selectedTestIndex].input}
+                                </Text>
                               </View>
 
-                              <View style={{ flex: 1 }}>
-                                <Text style={styles.testHeader}>
-                                  Your Result
-                                </Text>
-                                <View
-                                  style={[
-                                    styles.testDataBox,
-                                    testResults[selectedTestIndex].passed
-                                      ? styles.testDataSuccess
-                                      : styles.testDataFail,
-                                  ]}
-                                >
-                                  <Text
+                              <View style={styles.comparisonRow}>
+                                <View style={{ flex: 1 }}>
+                                  <Text style={styles.testHeader}>
+                                    Expected Output
+                                  </Text>
+                                  <View style={styles.testDataBox}>
+                                    <Text style={styles.testDataText}>
+                                      {testResults[selectedTestIndex].expected}
+                                    </Text>
+                                  </View>
+                                </View>
+
+                                <View style={{ flex: 1 }}>
+                                  <Text style={styles.testHeader}>
+                                    Your Result
+                                  </Text>
+                                  <View
                                     style={[
-                                      styles.testDataText,
+                                      styles.testDataBox,
                                       testResults[selectedTestIndex].passed
-                                        ? { color: "#10B981" }
-                                        : { color: "#EF4444" },
+                                        ? styles.testDataSuccess
+                                        : styles.testDataFail,
                                     ]}
                                   >
-                                    {testResults[selectedTestIndex].actual}
-                                  </Text>
+                                    <Text
+                                      style={[
+                                        styles.testDataText,
+                                        testResults[selectedTestIndex].passed
+                                          ? { color: "#10B981" }
+                                          : { color: "#EF4444" },
+                                      ]}
+                                    >
+                                      {testResults[selectedTestIndex].actual}
+                                    </Text>
+                                  </View>
                                 </View>
                               </View>
                             </View>
-                          </View>
+                          )}
                         </View>
                       ) : (
-                        <Text style={styles.terminalText}>
-                          // Click "✓ Submit Assignment" to grade your code
-                          against each requirement.
-                        </Text>
+                        <View style={styles.emptyConsoleBox}>
+                          <Text style={styles.emptyConsoleTitle}>
+                            No Assignment Checks Run Yet
+                          </Text>
+                          <Text style={styles.emptyConsoleHint}>
+                            Click &quot;✓ Submit Assignment (+50 XP)&quot; above to
+                            validate your code against each requirement.
+                          </Text>
+                        </View>
                       )}
                     </ScrollView>
                   </View>
@@ -1366,6 +1524,46 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   problemText: { color: "#D4D4D8", fontSize: 14, lineHeight: 24 },
+  boldInline: { color: "#FAFAFA", fontWeight: "800" },
+  bulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    paddingLeft: 4,
+  },
+  bulletDot: {
+    color: "#F59E0B",
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: "800",
+  },
+  codeBlockContainer: {
+    backgroundColor: "#09090B",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#27272A",
+    overflow: "hidden",
+  },
+  codeBlockHeader: {
+    backgroundColor: "#18181B",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#27272A",
+  },
+  codeBlockLang: {
+    color: "#A1A1AA",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  codeBlockText: {
+    color: "#E4E4E7",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontSize: 13,
+    lineHeight: 20,
+    padding: 12,
+  },
   inlineCode: {
     backgroundColor: "#18181B",
     color: "#F59E0B",
@@ -1465,20 +1663,34 @@ const styles = StyleSheet.create({
   },
   windowControls: { flexDirection: "row", gap: 6 },
   controlDot: { width: 10, height: 10, borderRadius: 5 },
+  ideTitleGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   ideTitleText: {
-    color: "#A1A1AA",
+    color: "#E4E4E7",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
-  resetBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  ideMetaPill: {
     backgroundColor: "#27272A",
-    borderRadius: 5,
+    color: "#A1A1AA",
+    fontSize: 9,
+    fontWeight: "800",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  resetBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: "#27272A",
+    borderRadius: 6,
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
-  resetBtnText: { color: "#D4D4D8", fontSize: 10, fontWeight: "700" },
+  resetBtnText: { color: "#E4E4E7", fontSize: 11, fontWeight: "700" },
   symbolBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -1490,7 +1702,13 @@ const styles = StyleSheet.create({
     borderBottomColor: "#27272A",
     flexWrap: "wrap",
   },
-  quickInsertLabel: { color: "#71717A", fontSize: 11, marginRight: 4 },
+  quickInsertLabel: {
+    color: "#71717A",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 1,
+    marginRight: 4,
+  },
   symbolChip: {
     backgroundColor: "#18181B",
     paddingHorizontal: 10,
@@ -1529,7 +1747,27 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     padding: 16,
     textAlignVertical: "top",
-    outlineStyle: "none" as any,
+    ...Platform.select({
+      web: {
+        outlineStyle: "none" as any,
+      },
+    }),
+  },
+  ideFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: "#0C0C0E",
+    borderTopWidth: 1,
+    borderTopColor: "#1F1F23",
+  },
+  ideFooterText: {
+    color: "#52525B",
+    fontSize: 10,
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   actionRow: {
     flexDirection: "row",
@@ -1567,9 +1805,16 @@ const styles = StyleSheet.create({
   },
   bottomTabBar: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     backgroundColor: "#18181B",
     borderBottomWidth: 1,
     borderBottomColor: "#27272A",
+    paddingRight: 12,
+  },
+  bottomTabsLeft: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   bottomTab: {
     paddingHorizontal: 18,
@@ -1579,7 +1824,52 @@ const styles = StyleSheet.create({
   activeBottomTab: { borderBottomWidth: 2, borderBottomColor: "#F59E0B" },
   bottomTabText: { color: "#71717A", fontSize: 12, fontWeight: "700" },
   activeBottomTabText: { color: "#FAFAFA" },
+  clearConsoleBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 5,
+    backgroundColor: "#27272A",
+    ...Platform.select({ web: { cursor: "pointer" } }),
+  },
+  clearConsoleText: {
+    color: "#A1A1AA",
+    fontSize: 10,
+    fontWeight: "700",
+  },
   bottomContent: { padding: 14, flex: 1 },
+  emptyConsoleBox: {
+    paddingVertical: 12,
+    gap: 4,
+  },
+  emptyConsoleTitle: {
+    color: "#A1A1AA",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  emptyConsoleHint: {
+    color: "#71717A",
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  testSummaryBanner: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  testSummarySuccess: {
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    borderColor: "rgba(16, 185, 129, 0.35)",
+  },
+  testSummaryWarn: {
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    borderColor: "rgba(245, 158, 11, 0.35)",
+  },
+  testSummaryText: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
   terminalText: {
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     color: "#34D399",
