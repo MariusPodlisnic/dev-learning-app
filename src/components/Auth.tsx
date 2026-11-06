@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { supabase } from "../../lib/supabase";
+import { StudioColors } from "../constants/theme";
 
 interface AuthProps {
   onSuccess?: () => void;
@@ -20,15 +21,21 @@ export default function Auth({ onSuccess }: AuthProps) {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isSuccessMsg, setIsSuccessMsg] = useState(false);
+  const [focusedField, setFocusedField] = useState<"email" | "password" | null>(
+    null,
+  );
 
   async function handleAuth() {
     if (!email || !password) {
-      setErrorMsg("Please fill in all fields.");
+      setIsSuccessMsg(false);
+      setErrorMsg("Please enter both your email address and password.");
       return;
     }
 
     setLoading(true);
     setErrorMsg("");
+    setIsSuccessMsg(false);
 
     try {
       if (isSignUp) {
@@ -37,8 +44,9 @@ export default function Auth({ onSuccess }: AuthProps) {
           password,
         });
         if (error) throw error;
+        setIsSuccessMsg(true);
         setErrorMsg(
-          "Success! Check your email to confirm registration or sign in.",
+          "Account created! Check your email to confirm or sign in directly.",
         );
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -49,6 +57,7 @@ export default function Auth({ onSuccess }: AuthProps) {
         if (onSuccess) onSuccess();
       }
     } catch (err: any) {
+      setIsSuccessMsg(false);
       setErrorMsg(err.message || "Authentication failed");
     } finally {
       setLoading(false);
@@ -57,38 +66,89 @@ export default function Auth({ onSuccess }: AuthProps) {
 
   return (
     <View style={styles.card}>
+      <View style={styles.headerBadge}>
+        <Text style={styles.headerBadgeText}>⚡ CLOUD SYNC</Text>
+      </View>
+
       <Text style={styles.title}>
-        {isSignUp ? "Create Account" : "Sign In"}
+        {isSignUp ? "Create Your Developer Profile" : "Welcome Back"}
       </Text>
-      {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
+      <Text style={styles.subtitle}>
+        {isSignUp
+          ? "Sync your solved modules, XP streak, and Pro tracks across all devices."
+          : "Sign in to restore your completed modules and streak progress."}
+      </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email address"
-        placeholderTextColor="#64748B"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        onSubmitEditing={handleAuth}
-      />
+      {errorMsg ? (
+        <View
+          style={[
+            styles.feedbackBanner,
+            isSuccessMsg ? styles.feedbackSuccess : styles.feedbackError,
+          ]}
+        >
+          <Text
+            style={[
+              styles.feedbackText,
+              isSuccessMsg
+                ? { color: StudioColors.emeraldLight }
+                : { color: "#FCA5A5" },
+            ]}
+          >
+            {errorMsg}
+          </Text>
+        </View>
+      ) : null}
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#64748B"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        onSubmitEditing={handleAuth}
-      />
+      <View style={styles.fieldGroup}>
+        <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+        <TextInput
+          style={[
+            styles.input,
+            focusedField === "email" && styles.inputFocused,
+          ]}
+          placeholder="you@domain.com"
+          placeholderTextColor={StudioColors.textDim}
+          value={email}
+          onChangeText={setEmail}
+          onFocus={() => setFocusedField("email")}
+          onBlur={() => setFocusedField(null)}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          onSubmitEditing={handleAuth}
+        />
+      </View>
 
-      <Pressable style={styles.button} onPress={handleAuth} disabled={loading}>
+      <View style={styles.fieldGroup}>
+        <Text style={styles.inputLabel}>PASSWORD</Text>
+        <TextInput
+          style={[
+            styles.input,
+            focusedField === "password" && styles.inputFocused,
+          ]}
+          placeholder="••••••••"
+          placeholderTextColor={StudioColors.textDim}
+          value={password}
+          onChangeText={setPassword}
+          onFocus={() => setFocusedField("password")}
+          onBlur={() => setFocusedField(null)}
+          secureTextEntry
+          onSubmitEditing={handleAuth}
+        />
+      </View>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          pressed && { opacity: 0.9 },
+        ]}
+        onPress={handleAuth}
+        disabled={loading}
+      >
         {loading ? (
-          <ActivityIndicator color="#FFF" />
+          <ActivityIndicator color={StudioColors.bg} />
         ) : (
           <Text style={styles.buttonText}>
-            {isSignUp ? "Sign Up" : "Sign In"}
+            {isSignUp ? "Create Free Account ➔" : "Sign In ➔"}
           </Text>
         )}
       </Pressable>
@@ -101,9 +161,10 @@ export default function Auth({ onSuccess }: AuthProps) {
         style={styles.switchBtn}
       >
         <Text style={styles.switchText}>
-          {isSignUp
-            ? "Already have an account? Sign In"
-            : "Don't have an account? Sign Up"}
+          {isSignUp ? "Already have an account? " : "New to DevLearn? "}
+          <Text style={styles.switchTextHighlight}>
+            {isSignUp ? "Sign In" : "Create Account"}
+          </Text>
         </Text>
       </Pressable>
     </View>
@@ -112,43 +173,100 @@ export default function Auth({ onSuccess }: AuthProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#1E293B",
-    padding: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#334155",
-    width: 340,
+    backgroundColor: StudioColors.surface,
+    padding: 28,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: StudioColors.borderStrong,
+    width: 370,
+    maxWidth: "92%",
     alignSelf: "center",
   },
-  title: {
-    color: "#F8FAFC",
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  errorText: {
-    color: "#F87171",
-    fontSize: 12,
+  headerBadge: {
+    alignSelf: "center",
+    backgroundColor: StudioColors.amberSoft,
+    borderWidth: 1,
+    borderColor: StudioColors.amberBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
     marginBottom: 12,
+  },
+  headerBadgeText: {
+    color: StudioColors.amber,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
+  title: {
+    color: StudioColors.textPrimary,
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 6,
     textAlign: "center",
+    letterSpacing: -0.4,
+  },
+  subtitle: {
+    color: StudioColors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  feedbackBanner: {
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  feedbackError: {
+    backgroundColor: StudioColors.roseSoft,
+    borderColor: StudioColors.roseBorder,
+  },
+  feedbackSuccess: {
+    backgroundColor: StudioColors.emeraldSoft,
+    borderColor: StudioColors.emeraldBorder,
+  },
+  feedbackText: {
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+    lineHeight: 17,
+  },
+  fieldGroup: {
+    marginBottom: 14,
+  },
+  inputLabel: {
+    color: StudioColors.textMuted,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+    marginBottom: 6,
   },
   input: {
-    backgroundColor: "#0F172A",
-    color: "#F8FAFC",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#334155",
+    backgroundColor: StudioColors.bg,
+    color: StudioColors.textPrimary,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
     fontSize: 14,
+    ...Platform.select({
+      web: {
+        outlineStyle: "none" as any,
+      },
+    }),
+  },
+  inputFocused: {
+    borderColor: StudioColors.amber,
   },
   button: {
-    backgroundColor: "#2563EB",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: StudioColors.amber,
+    paddingVertical: 13,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 4,
+    marginTop: 6,
     ...Platform.select({
       web: {
         cursor: "pointer",
@@ -156,9 +274,13 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  buttonText: { color: "#FFFFFF", fontWeight: "700", fontSize: 14 },
+  buttonText: {
+    color: StudioColors.bg,
+    fontWeight: "900",
+    fontSize: 14,
+  },
   switchBtn: {
-    marginTop: 14,
+    marginTop: 18,
     alignItems: "center",
     ...Platform.select({
       web: {
@@ -167,5 +289,12 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  switchText: { color: "#38BDF8", fontSize: 13 },
+  switchText: {
+    color: StudioColors.textMuted,
+    fontSize: 13,
+  },
+  switchTextHighlight: {
+    color: StudioColors.amber,
+    fontWeight: "700",
+  },
 });

@@ -1,4 +1,5 @@
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { MonoFont, StudioColors } from "../constants/theme";
 
 interface SuccessModalProps {
   xpEarned: number;
@@ -17,29 +18,60 @@ export default function SuccessModal({
 }: SuccessModalProps) {
   return (
     <View style={styles.card}>
-      <Text style={styles.emoji}>🎉</Text>
+      <View style={styles.topGlowBar} />
+
+      <View style={styles.iconCircle}>
+        <Text style={styles.emoji}>🎉</Text>
+      </View>
+
+      <View style={styles.statusPill}>
+        <Text style={styles.statusPillText}>✓ ALL CHECKS PASSED</Text>
+      </View>
+
       <Text style={styles.title}>Challenge Solved!</Text>
       <Text style={styles.subtitle}>
         You mastered <Text style={styles.highlight}>{lessonTitle}</Text>
       </Text>
 
       <View style={styles.rewardBox}>
-        <Text style={styles.rewardLabel}>REWARD</Text>
-        <Text style={styles.rewardText}>+{xpEarned} XP</Text>
+        <View style={styles.rewardCol}>
+          <Text style={styles.rewardLabel}>EXPERIENCE EARNED</Text>
+          <Text style={styles.rewardText}>+{xpEarned} XP</Text>
+        </View>
+        <View style={styles.rewardDivider} />
+        <View style={styles.rewardCol}>
+          <Text style={styles.rewardLabel}>STATUS</Text>
+          <Text style={styles.rewardStatusText}>Mastered</Text>
+        </View>
       </View>
 
       {hasNextLesson ? (
-        <Pressable style={styles.nextBtn} onPress={onNextLesson}>
-          <Text style={styles.nextBtnText}>Next Lesson ➔</Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.nextBtn,
+            pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
+          ]}
+          onPress={onNextLesson}
+        >
+          <Text style={styles.nextBtnText}>Continue to Next Module ➔</Text>
         </Pressable>
       ) : (
-        <Pressable style={styles.nextBtn} onPress={onClose}>
-          <Text style={styles.nextBtnText}>Complete Track</Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.nextBtn,
+            pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
+          ]}
+          onPress={onClose}
+        >
+          <Text style={styles.nextBtnText}>Return to Skill Tree ➔</Text>
         </Pressable>
       )}
 
-      <Pressable style={styles.closeBtn} onPress={onClose}>
-        <Text style={styles.closeBtnText}>Review Code</Text>
+      <Pressable
+        style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
+        onPress={onClose}
+      >
+        <Text style={styles.closeBtnText}>Stay & Review Code</Text>
       </Pressable>
     </View>
   );
@@ -47,81 +79,138 @@ export default function SuccessModal({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#1E293B",
+    backgroundColor: StudioColors.surface,
     padding: 28,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#334155",
-    width: 340,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: StudioColors.emeraldBorder,
+    width: 360,
+    maxWidth: "92%",
     alignItems: "center",
+    overflow: "hidden",
+    position: "relative",
+  },
+  topGlowBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: StudioColors.emerald,
+  },
+  iconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: StudioColors.emeraldSoft,
+    borderWidth: 1,
+    borderColor: StudioColors.emeraldBorder,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 14,
   },
   emoji: {
-    fontSize: 44,
-    marginBottom: 8,
+    fontSize: 32,
+  },
+  statusPill: {
+    backgroundColor: StudioColors.emeraldSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: StudioColors.emeraldBorder,
+    marginBottom: 10,
+  },
+  statusPillText: {
+    color: StudioColors.emeraldLight,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.2,
   },
   title: {
-    color: "#F8FAFC",
-    fontSize: 22,
+    color: StudioColors.textPrimary,
+    fontSize: 24,
     fontWeight: "800",
     textAlign: "center",
-    marginBottom: 4,
+    letterSpacing: -0.4,
+    marginBottom: 6,
   },
   subtitle: {
-    color: "#94A3B8",
+    color: StudioColors.textSecondary,
     fontSize: 13,
     textAlign: "center",
-    marginBottom: 20,
+    lineHeight: 19,
+    marginBottom: 22,
   },
   highlight: {
-    color: "#38BDF8",
+    color: StudioColors.textPrimary,
     fontWeight: "700",
   },
   rewardBox: {
-    backgroundColor: "#0F172A",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
+    flexDirection: "row",
+    width: "100%",
+    backgroundColor: StudioColors.surfaceElevated,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#10B981",
+    borderColor: StudioColors.border,
     alignItems: "center",
-    marginBottom: 20,
+    justifyContent: "space-around",
+    marginBottom: 22,
+  },
+  rewardCol: {
+    alignItems: "center",
+    gap: 4,
+  },
+  rewardDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: StudioColors.border,
   },
   rewardLabel: {
-    color: "#10B981",
-    fontSize: 10,
+    color: StudioColors.textMuted,
+    fontSize: 9,
     fontWeight: "800",
-    letterSpacing: 1,
+    letterSpacing: 1.1,
   },
   rewardText: {
-    color: "#34D399",
-    fontSize: 20,
+    color: StudioColors.amber,
+    fontSize: 18,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  rewardStatusText: {
+    color: StudioColors.emeraldLight,
+    fontSize: 15,
     fontWeight: "800",
-    marginTop: 2,
   },
   nextBtn: {
-    backgroundColor: "#10B981",
+    backgroundColor: StudioColors.emerald,
     width: "100%",
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 13,
+    borderRadius: 12,
     alignItems: "center",
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   nextBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
+    color: StudioColors.bg,
+    fontWeight: "900",
     fontSize: 14,
   },
   closeBtn: {
-    marginTop: 12,
-    padding: 6,
+    marginTop: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   closeBtnText: {
-    color: "#64748B",
+    color: StudioColors.textMuted,
     fontSize: 13,
+    fontWeight: "600",
   },
 });
