@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { supabase } from "../../lib/supabase";
@@ -18,6 +19,7 @@ import PaywallModal from "../components/PaywallModal";
 import RoadmapTree from "../components/RoadmapTree";
 import SuccessModal from "../components/SuccessModal";
 import VisualLessonPanel from "../components/VisualLessonPanel";
+import { TrackThemes } from "../constants/theme";
 
 interface Example {
   input: string;
@@ -161,6 +163,17 @@ export default function HomeScreen() {
 
   const [activeTab, setActiveTab] = useState<"problem" | "visual">("problem");
   const [bottomTab, setBottomTab] = useState<"console" | "tests">("console");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState<boolean>(false);
+  const [mobileStudioPane, setMobileStudioPane] = useState<"learn" | "code">(
+    "learn",
+  );
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+  const { width: rawWindowWidth } = useWindowDimensions();
+  const viewportWidth =
+    isMounted && rawWindowWidth > 0 ? rawWindowWidth : 1280;
+  const isCompactStudio = viewportWidth < 920;
+  const isCompactHeader = viewportWidth < 720;
 
   const [code, setCode] = useState<string>("");
   const [output, setOutput] = useState<string>("");
@@ -191,6 +204,7 @@ export default function HomeScreen() {
   });
 
   useEffect(() => {
+    setIsMounted(true);
     fetchLessons();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -345,6 +359,7 @@ export default function HomeScreen() {
     setOutput("");
     setTestResults(null);
     setBottomTab("console");
+    setMobileDrawerOpen(false);
     setViewMode("studio");
   }
 
@@ -529,6 +544,8 @@ export default function HomeScreen() {
     }
   }
 
+  const currentTrackTheme =
+    TrackThemes[activeTrack] || TrackThemes.python_basics;
   const currentLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = currentLessons.filter(
     (l) => completedLessons[l.id],
@@ -536,18 +553,175 @@ export default function HomeScreen() {
   const progressPercent = currentLessons.length
     ? Math.round((completedCount / currentLessons.length) * 100)
     : 0;
+  const currentLessonIndex = selectedLesson
+    ? currentLessons.findIndex((l) => l.id === selectedLesson.id)
+    : -1;
+  const hasPrevLesson = currentLessonIndex > 0;
   const hasNextLesson =
-    selectedLesson &&
-    currentLessons.findIndex((l) => l.id === selectedLesson.id) <
-      currentLessons.length - 1;
+    currentLessonIndex !== -1 &&
+    currentLessonIndex < currentLessons.length - 1;
+
+  function handlePrevLesson() {
+    if (hasPrevLesson) {
+      handleSelectLesson(currentLessons[currentLessonIndex - 1]);
+    }
+  }
 
   const lineCount = Math.max((code || "").split("\n").length, 8);
 
+  function renderCurriculumList() {
+    return (
+      <>
+        <Pressable
+          style={styles.backToMapBtn}
+          onPress={() => {
+            setMobileDrawerOpen(false);
+            setViewMode("roadmap");
+          }}
+        >
+          <Text style={styles.backToMapText}>◀ Back to Skill Tree Map</Text>
+        </Pressable>
+
+        <Text style={styles.sectionTitle}>TRACK SWITCHER</Text>
+        {(["python_basics", "algorithms", "system_design"] as const).map(
+          (tKey) => {
+            const meta = TrackThemes[tKey];
+            const isSelected = activeTrack === tKey;
+            return (
+              <Pressable
+                key={tKey}
+                style={[
+                  styles.trackTab,
+                  isSelected && [
+                    styles.activeTrackTab,
+                    { borderColor: meta.accentBorder },
+                  ],
+                ]}
+                onPress={() => handleSwitchTrack(tKey)}
+              >
+                <Text
+                  style={[
+                    styles.trackTabText,
+                    isSelected && { color: "#FAFAFA" },
+                  ]}
+                >
+                  {meta.icon} {meta.label}
+                </Text>
+              </Pressable>
+            );
+          },
+        )}
+
+        <View style={styles.progressCard}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressTitle}>
+              {completedCount} of {currentLessons.length} Completed
+            </Text>
+            <Text
+              style={[
+                styles.progressPercent,
+                { color: currentTrackTheme.accent },
+              ]}
+            >
+              {progressPercent}%
+            </Text>
+          </View>
+          <View style={styles.progressBarTrack}>
+            <View
+              style={[
+                styles.progressBarFill,
+                {
+                  width: `${progressPercent}%`,
+                  backgroundColor: currentTrackTheme.accent,
+                },
+              ]}
+            />
+          </View>
+        </View>
+
+        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>MODULES</Text>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {loading ? (
+            <ActivityIndicator
+              color={currentTrackTheme.accent}
+              style={{ marginTop: 12 }}
+            />
+          ) : (
+            currentLessons.map((lesson, idx) => {
+              const isCompleted = completedLessons[lesson.id];
+              const isLocked = !lesson.is_free && !isPremium;
+              const isActive = selectedLesson?.id === lesson.id;
+              return (
+                <Pressable
+                  key={lesson.id}
+                  style={[
+                    styles.lessonCard,
+                    isActive && [
+                      styles.activeLessonCard,
+                      { borderColor: currentTrackTheme.accentBorder },
+                    ],
+                  ]}
+                  onPress={() => handleSelectLesson(lesson)}
+                >
+                  <View style={styles.lessonCardLeft}>
+                    <View
+                      style={[
+                        styles.stepCircle,
+                        isCompleted && styles.stepCircleCompleted,
+                        isActive && {
+                          backgroundColor: currentTrackTheme.accent,
+                          borderColor: currentTrackTheme.accent,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.stepCircleText,
+                          (isActive || isCompleted) && { color: "#09090B" },
+                        ]}
+                      >
+                        {isLocked ? "🔒" : isCompleted ? "✓" : idx + 1}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.lessonTitle,
+                        isActive && styles.activeLessonTitle,
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {lesson.title}
+                    </Text>
+                    {isLocked && (
+                      <View style={styles.sidebarProPill}>
+                        <Text style={styles.sidebarProText}>PRO</Text>
+                      </View>
+                    )}
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
+        </ScrollView>
+      </>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, isCompactHeader && styles.headerCompact]}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>⚡ DevLearn</Text>
+          <Pressable
+            style={styles.brandGroup}
+            onPress={() => setViewMode("roadmap")}
+          >
+            <View style={styles.brandIconBox}>
+              <Text style={styles.brandIconText}>⚡</Text>
+            </View>
+            {!isCompactHeader && (
+              <Text style={styles.headerTitle}>DevLearn</Text>
+            )}
+          </Pressable>
 
           {/* Primary Navigation Mode Switcher */}
           <View style={styles.modeSwitcher}>
@@ -585,42 +759,49 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.statusPill}>
-            <View
-              style={[
-                styles.pulseDot,
-                pyodideReady
-                  ? { backgroundColor: "#10B981" }
-                  : { backgroundColor: "#F59E0B" },
-              ]}
-            />
-            <Text style={styles.statusText}>
-              {pyodideReady ? "Python 3.11 Ready" : "Loading Python..."}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.gamificationHeader}>
-          <View style={styles.statPill}>
-            <Text style={styles.statText}>🔥 {streakCount} Streak</Text>
-          </View>
-          <View style={styles.statPill}>
-            <Text style={styles.statText}>⚡ {xpPoints} XP</Text>
-          </View>
-          {isPremium && (
-            <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>PRO</Text>
+          {!isCompactHeader && (
+            <View style={styles.statusPill}>
+              <View
+                style={[
+                  styles.pulseDot,
+                  pyodideReady
+                    ? { backgroundColor: "#10B981" }
+                    : { backgroundColor: "#F59E0B" },
+                ]}
+              />
+              <Text style={styles.statusText}>
+                {pyodideReady ? "Python 3.11 Ready" : "Loading Python..."}
+              </Text>
             </View>
           )}
         </View>
 
         <View style={styles.headerRight}>
+          <View style={styles.gamificationHeader}>
+            <View style={styles.statPill}>
+              <Text style={styles.statText}>
+                🔥 {streakCount}
+                {!isCompactHeader ? " Streak" : ""}
+              </Text>
+            </View>
+            <View style={styles.statPill}>
+              <Text style={styles.statText}>⚡ {xpPoints} XP</Text>
+            </View>
+            {isPremium && (
+              <View style={styles.proBadge}>
+                <Text style={styles.proBadgeText}>PRO</Text>
+              </View>
+            )}
+          </View>
+
           {!isPremium && (
             <Pressable
               style={styles.upgradeHeaderBtn}
               onPress={() => setShowPaywallModal(true)}
             >
-              <Text style={styles.upgradeHeaderBtnText}>⭐ Pro Tracks</Text>
+              <Text style={styles.upgradeHeaderBtnText}>
+                {isCompactHeader ? "⭐ Pro" : "⭐ Pro Tracks"}
+              </Text>
             </Pressable>
           )}
           {session ? (
@@ -637,7 +818,9 @@ export default function HomeScreen() {
               style={[styles.authBtn, styles.loginBtn]}
               onPress={() => setShowAuthModal(true)}
             >
-              <Text style={styles.authBtnText}>Save Progress</Text>
+              <Text style={styles.loginBtnText}>
+                {isCompactHeader ? "Sign In" : "Save Progress"}
+              </Text>
             </Pressable>
           )}
         </View>
@@ -654,131 +837,160 @@ export default function HomeScreen() {
         />
       ) : (
         <View style={styles.content}>
-          <View style={styles.sidebar}>
-            <Pressable
-              style={styles.backToMapBtn}
-              onPress={() => setViewMode("roadmap")}
-            >
-              <Text style={styles.backToMapText}>◀ Back to Skill Tree Map</Text>
-            </Pressable>
+          {!isCompactStudio && !sidebarCollapsed && (
+            <View style={styles.sidebar}>{renderCurriculumList()}</View>
+          )}
 
-            <Text style={styles.sectionTitle}>TRACK SWITCHER</Text>
-            <Pressable
-              style={[
-                styles.trackTab,
-                activeTrack === "python_basics" && styles.activeTrackTab,
-              ]}
-              onPress={() => handleSwitchTrack("python_basics")}
-            >
-              <Text style={styles.trackTabText}>🐍 Foundation Core</Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.trackTab,
-                activeTrack === "algorithms" && styles.activeTrackTab,
-              ]}
-              onPress={() => handleSwitchTrack("algorithms")}
-            >
-              <Text style={styles.trackTabText}>⚡ Algorithmic Mastery</Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.trackTab,
-                activeTrack === "system_design" && styles.activeTrackTab,
-              ]}
-              onPress={() => handleSwitchTrack("system_design")}
-            >
-              <Text style={styles.trackTabText}>🛰️ System Architecture</Text>
-            </Pressable>
-
-            <View style={styles.progressCard}>
-              <View style={styles.progressHeader}>
-                <Text style={styles.progressTitle}>
-                  {completedCount} of {currentLessons.length} Completed
-                </Text>
-                <Text style={styles.progressPercent}>{progressPercent}%</Text>
+          {isCompactStudio && mobileDrawerOpen && (
+            <View style={styles.drawerOverlay}>
+              <View style={styles.mobileDrawer}>
+                <View style={styles.drawerHeader}>
+                  <Text style={styles.drawerTitle}>Curriculum Modules</Text>
+                  <Pressable
+                    style={styles.drawerCloseBtn}
+                    onPress={() => setMobileDrawerOpen(false)}
+                  >
+                    <Text style={styles.drawerCloseText}>✕</Text>
+                  </Pressable>
+                </View>
+                {renderCurriculumList()}
               </View>
-              <View style={styles.progressBarTrack}>
-                <View
+              <Pressable
+                style={styles.drawerBackdrop}
+                onPress={() => setMobileDrawerOpen(false)}
+              />
+            </View>
+          )}
+
+          <View style={styles.workspaceContainer}>
+            {/* Studio Subheader Bar */}
+            <View style={styles.studioTopBar}>
+              <View style={styles.studioTopBarLeft}>
+                {isCompactStudio ? (
+                  <Pressable
+                    style={styles.sidebarToggleBtn}
+                    onPress={() => setMobileDrawerOpen(true)}
+                  >
+                    <Text style={styles.sidebarToggleText}>
+                      ☰ Modules ({currentLessonIndex + 1}/{currentLessons.length})
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    style={styles.sidebarToggleBtn}
+                    onPress={() => setSidebarCollapsed((prev) => !prev)}
+                  >
+                    <Text style={styles.sidebarToggleText}>
+                      {sidebarCollapsed ? "☰ Show Curriculum" : "◧ Hide Sidebar"}
+                    </Text>
+                  </Pressable>
+                )}
+
+                {isCompactStudio && (
+                  <View style={styles.mobilePaneSwitcher}>
+                    <Pressable
+                      style={[
+                        styles.mobilePaneBtn,
+                        mobileStudioPane === "learn" &&
+                          styles.mobilePaneBtnActive,
+                      ]}
+                      onPress={() => setMobileStudioPane("learn")}
+                    >
+                      <Text
+                        style={[
+                          styles.mobilePaneText,
+                          mobileStudioPane === "learn" &&
+                            styles.mobilePaneTextActive,
+                        ]}
+                      >
+                        📖 Lesson
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={[
+                        styles.mobilePaneBtn,
+                        mobileStudioPane === "code" &&
+                          styles.mobilePaneBtnActive,
+                      ]}
+                      onPress={() => setMobileStudioPane("code")}
+                    >
+                      <Text
+                        style={[
+                          styles.mobilePaneText,
+                          mobileStudioPane === "code" &&
+                            styles.mobilePaneTextActive,
+                        ]}
+                      >
+                        💻 Code & Run
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.lessonNavBtns}>
+                <Pressable
                   style={[
-                    styles.progressBarFill,
-                    { width: `${progressPercent}%` },
+                    styles.lessonNavBtn,
+                    !hasPrevLesson && styles.disabledNavBtn,
                   ]}
-                />
+                  onPress={handlePrevLesson}
+                  disabled={!hasPrevLesson}
+                >
+                  <Text style={styles.lessonNavBtnText}>◀ Prev</Text>
+                </Pressable>
+                <Text style={styles.lessonNavCounter}>
+                  {currentLessonIndex + 1} / {currentLessons.length || 1}
+                </Text>
+                <Pressable
+                  style={[
+                    styles.lessonNavBtn,
+                    !hasNextLesson && styles.disabledNavBtn,
+                  ]}
+                  onPress={handleNextLesson}
+                  disabled={!hasNextLesson}
+                >
+                  <Text style={styles.lessonNavBtnText}>Next ▶</Text>
+                </Pressable>
               </View>
             </View>
 
-            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
-              MODULES
-            </Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {loading ? (
-                <ActivityIndicator color="#38BDF8" style={{ marginTop: 12 }} />
-              ) : (
-                currentLessons.map((lesson, idx) => {
-                  const isCompleted = completedLessons[lesson.id];
-                  const isLocked = !lesson.is_free && !isPremium;
-                  const isActive = selectedLesson?.id === lesson.id;
-                  return (
-                    <Pressable
-                      key={lesson.id}
-                      style={[
-                        styles.lessonCard,
-                        isActive && styles.activeLessonCard,
-                      ]}
-                      onPress={() => handleSelectLesson(lesson)}
-                    >
-                      <View style={styles.lessonCardLeft}>
-                        <View
-                          style={[
-                            styles.stepCircle,
-                            isCompleted && styles.stepCircleCompleted,
-                            isActive && styles.stepCircleActive,
-                          ]}
-                        >
-                          <Text style={styles.stepCircleText}>
-                            {isLocked ? "🔒" : isCompleted ? "✓" : idx + 1}
-                          </Text>
-                        </View>
-                        <Text
-                          style={[
-                            styles.lessonTitle,
-                            isActive && styles.activeLessonTitle,
-                          ]}
-                        >
-                          {lesson.title}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })
-              )}
-            </ScrollView>
-          </View>
-
-          <View style={styles.workspaceContainer}>
             {selectedLesson ? (
               <View style={styles.workspaceGrid}>
-                <ScrollView
-                  style={styles.explanationPanel}
-                  showsVerticalScrollIndicator={false}
-                >
-                  <View style={styles.lessonBadgeRow}>
-                    <Text style={styles.lessonStepPill}>
-                      {selectedLesson.category ||
-                        `MODULE ${selectedLesson.lesson_order}`}
-                    </Text>
-                    {selectedLesson.complexities?.time && (
-                      <Text style={styles.complexityBadge}>
-                        ⏱️ {selectedLesson.complexities.time}
+                {(!isCompactStudio || mobileStudioPane === "learn") && (
+                  <ScrollView
+                    style={styles.explanationPanel}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <View style={styles.lessonBadgeRow}>
+                      <Text
+                        style={[
+                          styles.lessonStepPill,
+                          {
+                            backgroundColor: currentTrackTheme.accentSoft,
+                            color: currentTrackTheme.accent,
+                          },
+                        ]}
+                      >
+                        {selectedLesson.category ||
+                          `MODULE ${selectedLesson.lesson_order}`}
                       </Text>
-                    )}
-                    {selectedLesson.complexities?.space && (
-                      <Text style={styles.complexityBadge}>
-                        💾 {selectedLesson.complexities.space}
-                      </Text>
-                    )}
-                  </View>
+                      {completedLessons[selectedLesson.id] && (
+                        <Text style={styles.completedLessonPill}>
+                          ✓ SOLVED
+                        </Text>
+                      )}
+                      {selectedLesson.complexities?.time && (
+                        <Text style={styles.complexityBadge}>
+                          ⏱️ {selectedLesson.complexities.time}
+                        </Text>
+                      )}
+                      {selectedLesson.complexities?.space && (
+                        <Text style={styles.complexityBadge}>
+                          💾 {selectedLesson.complexities.space}
+                        </Text>
+                      )}
+                    </View>
 
                   <Text style={styles.title}>{selectedLesson.title}</Text>
                   <Text style={styles.subtitleDesc}>
@@ -899,9 +1111,11 @@ export default function HomeScreen() {
                     />
                   )}
                   <HintAccordion hints={selectedLesson.hints || []} />
-                </ScrollView>
+                  </ScrollView>
+                )}
 
-                <View style={styles.editorPanel}>
+                {(!isCompactStudio || mobileStudioPane === "code") && (
+                  <View style={styles.editorPanel}>
                   <View style={styles.ideFrame}>
                     <View style={styles.ideHeader}>
                       <View style={styles.windowControls}>
@@ -1220,7 +1434,8 @@ export default function HomeScreen() {
                       )}
                     </ScrollView>
                   </View>
-                </View>
+                  </View>
+                )}
               </View>
             ) : null}
           </View>
@@ -1269,8 +1484,8 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#09090B", position: "relative" },
   header: {
-    paddingHorizontal: 22,
-    paddingVertical: 13,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#1F1F23",
     backgroundColor: "#09090B",
@@ -1278,19 +1493,44 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     zIndex: 100,
+    flexWrap: "wrap",
+    gap: 10,
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 16 },
+  headerCompact: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     zIndex: 101,
+  },
+  brandGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  brandIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: "rgba(245, 158, 11, 0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  brandIconText: {
+    fontSize: 14,
   },
   headerTitle: {
     color: "#FAFAFA",
     fontSize: 18,
     fontWeight: "800",
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   modeSwitcher: {
     flexDirection: "row",
@@ -1360,14 +1600,65 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   loginBtn: { backgroundColor: "#FAFAFA", borderColor: "#FAFAFA" },
-  authBtnText: { color: "#71717A", fontSize: 12, fontWeight: "700" },
-  content: { flex: 1, flexDirection: "row", zIndex: 1 },
+  authBtnText: { color: "#A1A1AA", fontSize: 12, fontWeight: "700" },
+  loginBtnText: { color: "#09090B", fontSize: 12, fontWeight: "800" },
+  content: { flex: 1, flexDirection: "row", zIndex: 1, position: "relative" },
   sidebar: {
-    width: 255,
+    width: 260,
     borderRightWidth: 1,
     borderRightColor: "#1F1F23",
     backgroundColor: "#0C0C0E",
     padding: 16,
+  },
+  drawerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 250,
+    flexDirection: "row",
+  },
+  mobileDrawer: {
+    width: 280,
+    maxWidth: "84%",
+    backgroundColor: "#0C0C0E",
+    borderRightWidth: 1,
+    borderRightColor: "#27272A",
+    padding: 16,
+    zIndex: 252,
+  },
+  drawerBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(9, 9, 11, 0.75)",
+    zIndex: 251,
+  },
+  drawerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1F1F23",
+  },
+  drawerTitle: {
+    color: "#FAFAFA",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  drawerCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: "#18181B",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  drawerCloseText: {
+    color: "#A1A1AA",
+    fontSize: 12,
+    fontWeight: "800",
   },
   backToMapBtn: {
     backgroundColor: "#121215",
@@ -1455,11 +1746,110 @@ const styles = StyleSheet.create({
   stepCircleText: { color: "#FAFAFA", fontSize: 10, fontWeight: "800" },
   lessonTitle: { color: "#71717A", fontSize: 12, fontWeight: "600", flex: 1 },
   activeLessonTitle: { color: "#FAFAFA", fontWeight: "700" },
+  sidebarProPill: {
+    backgroundColor: "rgba(99, 102, 241, 0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(99, 102, 241, 0.38)",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  sidebarProText: {
+    color: "#818CF8",
+    fontSize: 8,
+    fontWeight: "800",
+  },
   workspaceContainer: {
     flex: 1,
-    padding: 22,
+    paddingHorizontal: 22,
+    paddingTop: 14,
+    paddingBottom: 18,
     backgroundColor: "#09090B",
     overflow: "hidden",
+  },
+  studioTopBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1A1A1F",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  studioTopBarLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  sidebarToggleBtn: {
+    backgroundColor: "#121215",
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: "#27272A",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  sidebarToggleText: {
+    color: "#D4D4D8",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  mobilePaneSwitcher: {
+    flexDirection: "row",
+    backgroundColor: "#121215",
+    padding: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#27272A",
+  },
+  mobilePaneBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  mobilePaneBtnActive: {
+    backgroundColor: "#27272A",
+  },
+  mobilePaneText: {
+    color: "#71717A",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  mobilePaneTextActive: {
+    color: "#FAFAFA",
+  },
+  lessonNavBtns: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  lessonNavBtn: {
+    backgroundColor: "#121215",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: "#27272A",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  disabledNavBtn: {
+    opacity: 0.4,
+  },
+  lessonNavBtnText: {
+    color: "#D4D4D8",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  lessonNavCounter: {
+    color: "#71717A",
+    fontSize: 11,
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   workspaceGrid: { flex: 1, flexDirection: "row", gap: 22, overflow: "hidden" },
   explanationPanel: { flex: 1, paddingRight: 8 },
@@ -1469,6 +1859,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
     alignItems: "center",
+    flexWrap: "wrap",
   },
   lessonStepPill: {
     backgroundColor: "#F59E0B18",
@@ -1480,6 +1871,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     letterSpacing: 1,
     textTransform: "uppercase",
+  },
+  completedLessonPill: {
+    backgroundColor: "rgba(16, 185, 129, 0.14)",
+    color: "#34D399",
+    fontSize: 10,
+    fontWeight: "800",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
+    letterSpacing: 0.8,
   },
   complexityBadge: {
     backgroundColor: "#121215",
