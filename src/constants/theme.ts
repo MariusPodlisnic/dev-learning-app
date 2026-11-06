@@ -1,11 +1,9 @@
 /**
  * DevLearn Design System — Direction #3:
  * Neo-Brutalist Tactile Arcade (Gumroad / Poolsuite / Figma Config / Playdate)
- * - Warm Sand/Cream Canvas (#F4F0E6) + Crisp Paper White Cards (#FFFFFF)
- * - 2px Solid Ink Borders (#111111) + Hard 4px Offset Shadows (4px 4px 0px #111111)
- * - Vibrant Sticker Accents: Acid Lime (#B8FF3B), Sunny Yellow (#FFDE59),
- *   Electric Violet (#A855F7 / #DDD6FE), Bubblegum Pink (#FF90E8), Mint (#6EE7B7)
- * - High-Contrast Dark Charcoal Code Editor Island (#141413)
+ * Supports both:
+ *  - LIGHT MODE ("Warm Cream Arcade"): #F4F0E6 canvas, #FFFFFF paper cards, #111111 ink
+ *  - DARK MODE ("Midnight Obsidian Arcade"): #111217 canvas, #1B1D24 cards, #F4F0E6 text
  */
 
 import '@/global.css';
@@ -18,45 +16,124 @@ export const Colors = {
     background: '#F4F0E6',
     backgroundElement: '#FFFFFF',
     backgroundSelected: '#EAE3D2',
-    textSecondary: '#3F3D37',
+    textSecondary: '#38352F',
   },
   dark: {
-    text: '#111111',
-    background: '#F4F0E6',
-    backgroundElement: '#FFFFFF',
-    backgroundSelected: '#EAE3D2',
-    textSecondary: '#3F3D37',
+    text: '#F4F0E6',
+    background: '#111217',
+    backgroundElement: '#1B1D24',
+    backgroundSelected: '#262936',
+    textSecondary: '#B8B5AC',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-export const StudioColors = {
-  // Warm Cream / Paper Surfaces
-  bg: '#F4F0E6',
-  surface: '#FFFFFF',
-  surfaceElevated: '#EDE7D9',
-  surfaceHover: '#E4DEC9',
-  surfaceGlass: 'rgba(255, 255, 255, 0.95)',
+export type ThemeMode = 'light' | 'dark';
 
-  // Deep Ink Code Editor Island (stays dark for high-contrast coding)
-  codeBg: '#141413',
-  codeSurface: '#1E1E1C',
-  codeBorder: '#2E2E2A',
+export const ThemePalettes: Record<
+  ThemeMode,
+  {
+    bg: string;
+    surface: string;
+    surfaceElevated: string;
+    surfaceHover: string;
+    border: string;
+    borderSubtle: string;
+    inkShadow: string;
+    textPrimary: string;
+    textSecondary: string;
+    textMuted: string;
+    textDim: string;
+    cardDoneBg: string;
+    cardLockedBg: string;
+  }
+> = {
+  light: {
+    bg: '#F4F0E6',
+    surface: '#FFFFFF',
+    surfaceElevated: '#EDE7D9',
+    surfaceHover: '#E4DEC9',
+    border: '#111111',
+    borderSubtle: '#D5CFC0',
+    inkShadow: '#111111',
+    textPrimary: '#111111',
+    textSecondary: '#38352F',
+    textMuted: '#686359',
+    textDim: '#8C8579',
+    cardDoneBg: '#F4FFF8',
+    cardLockedBg: '#E6E0D0',
+  },
+  dark: {
+    bg: '#111217',
+    surface: '#1B1D24',
+    surfaceElevated: '#252833',
+    surfaceHover: '#2E3240',
+    border: '#484D62',
+    borderSubtle: '#2C2F3E',
+    inkShadow: '#000000',
+    textPrimary: '#F4F0E6',
+    textSecondary: '#B9B5AC',
+    textMuted: '#8B877E',
+    textDim: '#68655E',
+    cardDoneBg: '#162621',
+    cardLockedBg: '#16171D',
+  },
+};
+
+export function applyColorTheme(mode: ThemeMode) {
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    const pal = ThemePalettes[mode];
+    const root = document.documentElement;
+    root.style.setProperty('--dl-bg', pal.bg);
+    root.style.setProperty('--dl-surface', pal.surface);
+    root.style.setProperty('--dl-surface-elevated', pal.surfaceElevated);
+    root.style.setProperty('--dl-surface-hover', pal.surfaceHover);
+    root.style.setProperty('--dl-border', pal.border);
+    root.style.setProperty('--dl-border-subtle', pal.borderSubtle);
+    root.style.setProperty('--dl-ink-shadow', pal.inkShadow);
+    root.style.setProperty('--dl-text-primary', pal.textPrimary);
+    root.style.setProperty('--dl-text-secondary', pal.textSecondary);
+    root.style.setProperty('--dl-text-muted', pal.textMuted);
+    root.style.setProperty('--dl-text-dim', pal.textDim);
+    root.style.setProperty('--dl-card-done-bg', pal.cardDoneBg);
+    root.style.setProperty('--dl-card-locked-bg', pal.cardLockedBg);
+  }
+}
+
+const isWeb = Platform.OS === 'web';
+
+export const StudioColors = {
+  // Dynamic Theme Surfaces (automatically switch between Warm Cream & Midnight Obsidian)
+  bg: isWeb ? 'var(--dl-bg, #F4F0E6)' : '#F4F0E6',
+  surface: isWeb ? 'var(--dl-surface, #FFFFFF)' : '#FFFFFF',
+  surfaceElevated: isWeb ? 'var(--dl-surface-elevated, #EDE7D9)' : '#EDE7D9',
+  surfaceHover: isWeb ? 'var(--dl-surface-hover, #E4DEC9)' : '#E4DEC9',
+  surfaceGlass: 'rgba(255, 255, 255, 0.95)',
+  cardDoneBg: isWeb ? 'var(--dl-card-done-bg, #F4FFF8)' : '#F4FFF8',
+  cardLockedBg: isWeb ? 'var(--dl-card-locked-bg, #E6E0D0)' : '#E6E0D0',
+
+  // Constant Jet Black Ink (for text/borders on bright neon stickers & buttons)
+  ink: '#111111',
+
+  // Deep Ink Code Editor Island (stays dark in both themes for high-contrast coding)
+  codeBg: '#121214',
+  codeSurface: '#1A1A1E',
+  codeBorder: '#2E2E36',
   codeText: '#F4F0E6',
   codeMuted: '#8E8B82',
 
-  // Crisp Neo-Brutalist Ink Borders
-  border: '#111111',
-  borderSubtle: '#D5CFC0',
-  borderStrong: '#111111',
-  inkShadow: '#111111',
+  // Crisp Neo-Brutalist Borders
+  border: isWeb ? 'var(--dl-border, #111111)' : '#111111',
+  borderSubtle: isWeb ? 'var(--dl-border-subtle, #D5CFC0)' : '#D5CFC0',
+  borderStrong: isWeb ? 'var(--dl-border, #111111)' : '#111111',
+  inkShadow: isWeb ? 'var(--dl-ink-shadow, #111111)' : '#111111',
 
-  // High-Contrast Ink Typography on Paper
-  textPrimary: '#111111',
-  textSecondary: '#38352F',
-  textMuted: '#686359',
-  textDim: '#8C8579',
+  // High-Contrast Typography on Surfaces
+  textPrimary: isWeb ? 'var(--dl-text-primary, #111111)' : '#111111',
+  textSecondary: isWeb ? 'var(--dl-text-secondary, #38352F)' : '#38352F',
+  textMuted: isWeb ? 'var(--dl-text-muted, #686359)' : '#686359',
+  textDim: isWeb ? 'var(--dl-text-dim, #8C8579)' : '#8C8579',
 
   // Tactile Sticker & Button Accents
   lime: '#B8FF3B',
@@ -66,6 +143,7 @@ export const StudioColors = {
   mint: '#6EE7B7',
   violet: '#C4B5FD',
   coral: '#FF6B6B',
+  orange: '#FF7A45',
 
   // Mapped Semantic Tokens
   amber: '#D97706',
@@ -80,8 +158,8 @@ export const StudioColors = {
   indigoSoft: '#EDE9FE',
   indigoBorder: '#111111',
 
-  emerald: '#059669',
-  emeraldLight: '#10B981',
+  emerald: '#10B981',
+  emeraldLight: '#34D399',
   emeraldSoft: '#D1FAE5',
   emeraldBorder: '#111111',
 
@@ -104,6 +182,7 @@ export const TrackThemes: Record<
     subtitle: string;
     tag: string;
     icon: string;
+    isPro: boolean;
     accent: string;
     accentSoft: string;
     accentBorder: string;
@@ -117,7 +196,8 @@ export const TrackThemes: Record<
     subtitle: 'Variables, control flow, data structures & clean syntax',
     tag: '01',
     icon: 'PY',
-    accent: '#111111',
+    isPro: false,
+    accent: '#FFDE59',
     accentSoft: '#FFDE59',
     accentBorder: '#111111',
     stickerBg: '#FFDE59',
@@ -129,7 +209,8 @@ export const TrackThemes: Record<
     subtitle: 'Two pointers, hash maps, sliding windows & optimal runtime',
     tag: '02',
     icon: 'ALG',
-    accent: '#111111',
+    isPro: true,
+    accent: '#C4B5FD',
     accentSoft: '#C4B5FD',
     accentBorder: '#111111',
     stickerBg: '#C4B5FD',
@@ -141,7 +222,8 @@ export const TrackThemes: Record<
     subtitle: 'Caching, load balancing, sharding & distributed consensus',
     tag: '03',
     icon: 'SYS',
-    accent: '#111111',
+    isPro: true,
+    accent: '#6EE7B7',
     accentSoft: '#6EE7B7',
     accentBorder: '#111111',
     stickerBg: '#6EE7B7',
@@ -183,15 +265,21 @@ export const SerifFont =
     default: 'sans-serif',
   }) || 'sans-serif';
 
+export const HardShadowHero =
+  Platform.select({
+    web: { boxShadow: '5px 5px 0px var(--dl-ink-shadow, #111111)' } as any,
+    default: {},
+  }) || {};
+
 export const HardShadow =
   Platform.select({
-    web: { boxShadow: '4px 4px 0px #111111' } as any,
+    web: { boxShadow: '4px 4px 0px var(--dl-ink-shadow, #111111)' } as any,
     default: {},
   }) || {};
 
 export const HardShadowSm =
   Platform.select({
-    web: { boxShadow: '2px 2px 0px #111111' } as any,
+    web: { boxShadow: '2px 2px 0px var(--dl-ink-shadow, #111111)' } as any,
     default: {},
   }) || {};
 

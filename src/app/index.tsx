@@ -25,11 +25,13 @@ import SuccessModal from "../components/SuccessModal";
 import VisualLessonPanel from "../components/VisualLessonPanel";
 import { getLessonEnrichment } from "../constants/curriculum";
 import {
+  applyColorTheme,
   HardShadow,
+  HardShadowHero,
   HardShadowSm,
   MonoFont,
-  SerifFont,
   StudioColors,
+  ThemeMode,
   TrackThemes,
 } from "../constants/theme";
 
@@ -356,6 +358,7 @@ export default function HomeScreen() {
 
   const [session, setSession] = useState<Session | null>(null);
   const [isPremium, setIsPremium] = useState<boolean>(false);
+  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
@@ -402,6 +405,7 @@ export default function HomeScreen() {
       streakCount?: number;
       activeTrack?: string;
       lastLessonId?: string;
+      themeMode?: ThemeMode;
     }>(STORAGE_STATE_KEY, {});
 
     if (savedState.completedLessons) {
@@ -416,12 +420,20 @@ export default function HomeScreen() {
     if (typeof savedState.streakCount === "number") {
       setStreakCount(savedState.streakCount);
     }
-    if (savedState.activeTrack) {
-      setActiveTrack(savedState.activeTrack);
-    }
+    const initialTheme: ThemeMode =
+      savedState.themeMode === "dark" ? "dark" : "light";
+    setThemeMode(initialTheme);
+    applyColorTheme(initialTheme);
+
+    // Non-pro users start on python_basics until profile confirms Pro status
+    const safeInitialTrack =
+      savedState.activeTrack && !TrackThemes[savedState.activeTrack]?.isPro
+        ? savedState.activeTrack
+        : "python_basics";
+    setActiveTrack(safeInitialTrack);
     hydratedRef.current = true;
 
-    fetchLessons(savedState.activeTrack, savedState.lastLessonId as string | undefined);
+    fetchLessons(safeInitialTrack, savedState.lastLessonId as string | undefined);
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
@@ -439,6 +451,7 @@ export default function HomeScreen() {
           fetchUserProfile(session.user.id);
         } else {
           setIsPremium(false);
+          setActiveTrack("python_basics");
         }
       },
     );
@@ -446,6 +459,10 @@ export default function HomeScreen() {
     if (Platform.OS === "web") loadPyodideEngine();
     return () => authListener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    applyColorTheme(themeMode);
+  }, [themeMode]);
 
   useEffect(() => {
     if (!hydratedRef.current) return;
@@ -456,6 +473,7 @@ export default function HomeScreen() {
       streakCount,
       activeTrack,
       lastLessonId: selectedLesson?.id,
+      themeMode,
     });
   }, [
     completedLessons,
@@ -464,6 +482,7 @@ export default function HomeScreen() {
     streakCount,
     activeTrack,
     selectedLesson?.id,
+    themeMode,
   ]);
 
   async function fetchLessons(
@@ -481,10 +500,26 @@ export default function HomeScreen() {
       } else {
         const all = data || [];
         setLessons(all);
-        const targetTrack = preferredTrack || "python_basics";
+        const targetTrack =
+          preferredTrack && (!TrackThemes[preferredTrack]?.isPro || isPremium)
+            ? preferredTrack
+            : "python_basics";
+        const candidateById = preferredLessonId
+          ? all.find((l) => l.id === preferredLessonId)
+          : undefined;
+        const allowedCandidate =
+          candidateById &&
+          (isPremium ||
+            (candidateById.is_free &&
+              !TrackThemes[candidateById.track]?.isPro))
+            ? candidateById
+            : undefined;
         const initialLesson =
-          (preferredLessonId && all.find((l) => l.id === preferredLessonId)) ||
-          all.find((l) => l.track === targetTrack) ||
+          allowedCandidate ||
+          all.find(
+            (l) => l.track === targetTrack && (l.is_free || isPremium),
+          ) ||
+          all.find((l) => l.track === "python_basics" && l.is_free) ||
           all.find((l) => l.track === "python_basics");
         if (initialLesson) {
           setSelectedLesson(initialLesson);
@@ -580,8 +615,14 @@ export default function HomeScreen() {
   }
 
   function handleSwitchTrack(trackName: string) {
+    if (TrackThemes[trackName]?.isPro && !isPremium) {
+      setShowPaywallModal(true);
+      return;
+    }
     setActiveTrack(trackName);
-    const firstInTrack = lessons.find((l) => l.track === trackName);
+    const firstInTrack = lessons.find(
+      (l) => l.track === trackName && (l.is_free || isPremium),
+    );
     if (firstInTrack) {
       setSelectedLesson(firstInTrack);
       const defaultCode = (firstInTrack.initial_code || "").replace(
@@ -600,7 +641,10 @@ export default function HomeScreen() {
     const fullLesson = lessons.find((item) => item.id === lesson.id);
     if (!fullLesson) return;
 
-    if (!fullLesson.is_free && !isPremium) {
+    if (
+      (!fullLesson.is_free || TrackThemes[fullLesson.track]?.isPro) &&
+      !isPremium
+    ) {
       setShowPaywallModal(true);
       return;
     }
@@ -953,6 +997,7 @@ export default function HomeScreen() {
           (tKey) => {
             const meta = TrackThemes[tKey];
             const isSelected = activeTrack === tKey;
+            const isTrackLocked = meta.isPro && !isPremium;
             return (
               <Pressable
                 key={tKey}
@@ -965,14 +1010,21 @@ export default function HomeScreen() {
                 ]}
                 onPress={() => handleSwitchTrack(tKey)}
               >
-                <Text
-                  style={[
-                    styles.trackTabText,
-                    isSelected && { color: "#111111", fontWeight: "900" },
-                  ]}
-                >
-                  [{meta.icon}] {meta.label}
-                </Text>
+                <View style={styles.trackTabInnerRow}>
+                  <Text
+                    style={[
+                      styles.trackTabText,
+                      isSelected && { color: StudioColors.ink, fontWeight: "900" },
+                    ]}
+                  >
+                    [{isTrackLocked ? "🔒" : meta.icon}] {meta.label}
+                  </Text>
+                  {isTrackLocked && (
+                    <View style={styles.sidebarProPill}>
+                      <Text style={styles.sidebarProText}>PRO</Text>
+                    </View>
+                  )}
+                </View>
               </Pressable>
             );
           },
@@ -991,7 +1043,7 @@ export default function HomeScreen() {
                 styles.progressBarFill,
                 {
                   width: `${Math.max(progressPercent, 4)}%`,
-                  backgroundColor: StudioColors.lime,
+                  backgroundColor: StudioColors.mint,
                 },
               ]}
             />
@@ -1153,55 +1205,142 @@ export default function HomeScreen() {
 
         <View style={styles.headerRight}>
           <Pressable
-            style={styles.gamificationHeader}
+            style={({ pressed }) => [
+              styles.themeToggleBtn,
+              pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+            ]}
+            onPress={() =>
+              setThemeMode((prev) => (prev === "light" ? "dark" : "light"))
+            }
+          >
+            <Text style={styles.themeToggleBtnText}>
+              {themeMode === "light" ? "☾ DARK" : "☀ LIGHT"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.gamificationHeader,
+              pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+            ]}
             onPress={() => setShowProfileModal(true)}
           >
+            {/* 1. Profile & Developer Rank Button */}
             <View style={styles.rankPill}>
-              <Text style={styles.rankPillText}>
-                LVL 0{devRank.level}
-                {!isCompactHeader ? ` · ${devRank.title.toUpperCase()}` : ""}
-              </Text>
+              <View style={styles.rankLevelBadge}>
+                <Text style={styles.rankLevelBadgeText}>
+                  LVL 0{devRank.level}
+                </Text>
+              </View>
+              <View style={styles.headerBtnTextStack}>
+                {!isCompactHeader && (
+                  <Text style={styles.headerBtnMicroLabel}>
+                    MY PROFILE & STATS ↗
+                  </Text>
+                )}
+                <Text style={styles.rankPillText}>
+                  {isCompactHeader
+                    ? "PROFILE ↗"
+                    : devRank.title.toUpperCase()}
+                </Text>
+              </View>
             </View>
+
+            {/* 2. Daily Streak Telemetry Button */}
             <View style={styles.statPill}>
-              <Text style={styles.statText}>STREAK {streakCount}D</Text>
+              <View style={styles.headerBtnTextStack}>
+                {!isCompactHeader && (
+                  <Text style={styles.headerBtnMicroLabel}>DAILY STREAK</Text>
+                )}
+                <Text style={styles.statText}>
+                  🔥 {streakCount}{" "}
+                  {isCompactHeader
+                    ? "D"
+                    : streakCount === 1
+                      ? "DAY"
+                      : "DAYS"}
+                </Text>
+              </View>
             </View>
-            <View style={styles.xpStickerPill}>
-              <Text style={styles.xpStickerText}>{xpPoints} XP</Text>
-            </View>
+
             {isPremium && (
               <View style={styles.proBadge}>
-                <Text style={styles.proBadgeText}>PRO</Text>
+                <Text style={styles.proBadgeText}>★ PRO MEMBER</Text>
               </View>
             )}
           </Pressable>
 
+          {!isCompactHeader && <View style={styles.headerActionDivider} />}
+
+          {/* 4. Unlock Pro Primary CTA Button */}
           {!isPremium && (
             <Pressable
-              style={styles.upgradeHeaderBtn}
+              style={({ pressed }) => [
+                styles.upgradeHeaderBtn,
+                pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
+              ]}
               onPress={() => setShowPaywallModal(true)}
             >
-              <Text style={styles.upgradeHeaderBtnText}>
-                {isCompactHeader ? "PRO ★" : "UNLOCK PRO ★"}
-              </Text>
+              <View style={styles.headerBtnTextStack}>
+                {!isCompactHeader && (
+                  <Text style={styles.headerBtnMicroLabel}>
+                    UNLOCK ALL 3 TRACKS
+                  </Text>
+                )}
+                <Text style={styles.upgradeHeaderBtnText}>
+                  {isCompactHeader ? "GET PRO" : "UPGRADE TO PRO"}
+                </Text>
+              </View>
+              <View style={styles.headerCtaKeycap}>
+                <Text style={styles.headerCtaKeycapPinkText}>★ PRO →</Text>
+              </View>
             </Pressable>
           )}
+
+          {/* 5. Cloud Sync / Save Progress Primary CTA Button */}
           {session ? (
             <View style={styles.userSection}>
               <Pressable
-                style={styles.authBtn}
+                style={({ pressed }) => [
+                  styles.authBtn,
+                  pressed && {
+                    transform: [{ translateX: 1 }, { translateY: 1 }],
+                  },
+                ]}
                 onPress={() => supabase.auth.signOut()}
               >
-                <Text style={styles.authBtnText}>SIGN OUT</Text>
+                <View style={styles.headerBtnTextStack}>
+                  {!isCompactHeader && (
+                    <Text style={styles.headerBtnMicroLabelMuted}>
+                      CLOUD SYNCED ✓
+                    </Text>
+                  )}
+                  <Text style={styles.authBtnText}>SIGN OUT</Text>
+                </View>
               </Pressable>
             </View>
           ) : (
             <Pressable
-              style={[styles.authBtn, styles.loginBtn]}
+              style={({ pressed }) => [
+                styles.authBtn,
+                styles.loginBtn,
+                pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
+              ]}
               onPress={() => setShowAuthModal(true)}
             >
-              <Text style={styles.loginBtnText}>
-                {isCompactHeader ? "SIGN IN" : "SAVE PROGRESS"}
-              </Text>
+              <View style={styles.headerBtnTextStack}>
+                {!isCompactHeader && (
+                  <Text style={styles.headerBtnMicroLabel}>
+                    FREE CLOUD BACKUP
+                  </Text>
+                )}
+                <Text style={styles.loginBtnText}>
+                  {isCompactHeader ? "SAVE PROGRESS" : "SAVE MY PROGRESS"}
+                </Text>
+              </View>
+              <View style={styles.headerCtaKeycap}>
+                <Text style={styles.headerCtaKeycapLimeText}>SIGN IN →</Text>
+              </View>
             </Pressable>
           )}
         </View>
@@ -1219,6 +1358,8 @@ export default function HomeScreen() {
       ) : viewMode === "bughunt" ? (
         <BugHuntArena
           pyodideReady={pyodideReady}
+          isPremium={isPremium}
+          onRequirePro={() => setShowPaywallModal(true)}
           onExecutePatch={handleExecuteBugPatch}
           onAwardBugHuntXp={handleAwardBugHuntXp}
           solvedIncidents={solvedIncidents}
@@ -1865,9 +2006,12 @@ export default function HomeScreen() {
 
                   <View style={styles.actionRow}>
                     <Pressable
-                      style={[
+                      style={({ pressed }) => [
                         styles.secondaryRunBtn,
                         isExecuting && styles.disabledButton,
+                        pressed && {
+                          transform: [{ translateX: 1 }, { translateY: 1 }],
+                        },
                       ]}
                       onPress={runPlaygroundOnly}
                       disabled={isExecuting}
@@ -1879,9 +2023,12 @@ export default function HomeScreen() {
                     </Pressable>
 
                     <Pressable
-                      style={[
+                      style={({ pressed }) => [
                         styles.runButton,
                         isExecuting && styles.disabledButton,
+                        pressed && {
+                          transform: [{ translateX: 2 }, { translateY: 2 }],
+                        },
                       ]}
                       onPress={runPythonCode}
                       disabled={isExecuting}
@@ -1889,11 +2036,13 @@ export default function HomeScreen() {
                       <Text style={styles.runButtonText}>
                         {isExecuting
                           ? "CHECKING CODE..."
-                          : "SUBMIT CODE (+50 XP) →"}
+                          : "SUBMIT CODE (+50 XP)"}
                       </Text>
                       {!isExecuting && (
                         <View style={styles.shortcutBadgeLight}>
-                          <Text style={styles.shortcutBadgeLightText}>⇧⌘↵</Text>
+                          <Text style={styles.shortcutBadgeLightText}>
+                            → ⇧⌘↵
+                          </Text>
                         </View>
                       )}
                     </Pressable>
@@ -2165,8 +2314,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 2,
-    borderBottomColor: "#111111",
-    backgroundColor: "#FFFFFF",
+    borderBottomColor: StudioColors.border,
+    backgroundColor: StudioColors.surface,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -2182,7 +2331,7 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     zIndex: 101,
   },
   brandGroup: {
@@ -2194,10 +2343,10 @@ const styles = StyleSheet.create({
   brandIconBox: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 5,
-    backgroundColor: "#111111",
+    borderRadius: 6,
+    backgroundColor: StudioColors.ink,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
     ...HardShadowSm,
@@ -2217,46 +2366,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   modeBtnActive: {
-    backgroundColor: StudioColors.lime,
-    borderColor: "#111111",
+    backgroundColor: StudioColors.yellow,
+    borderColor: StudioColors.ink,
   },
   modeBtnBugHuntActive: {
     backgroundColor: StudioColors.coral,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
   },
   modeBtnText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.6,
   },
-  modeBtnTextActive: { color: "#111111" },
+  modeBtnTextActive: { color: StudioColors.ink },
   modeBtnBugHuntTextActive: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontWeight: "900",
   },
   statusPill: {
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
   pulseDot: { width: 7, height: 7, borderRadius: 4 },
   statusText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  themeToggleBtn: {
+    backgroundColor: StudioColors.surfaceElevated,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  themeToggleBtnText: {
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2264,82 +2430,156 @@ const styles = StyleSheet.create({
   },
   gamificationHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "stretch",
     gap: 8,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  headerBtnTextStack: {
+    flexDirection: "column",
+    justifyContent: "center",
+    gap: 1,
+  },
+  headerBtnMicroLabel: {
+    color: "rgba(17, 17, 17, 0.72)",
+    fontSize: 8.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  headerBtnMicroLabelMuted: {
+    color: StudioColors.textMuted,
+    fontSize: 8.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
   },
   rankPill: {
     backgroundColor: StudioColors.violet,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "#111111",
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     ...HardShadowSm,
   },
-  rankPillText: {
-    color: "#111111",
+  rankLevelBadge: {
+    backgroundColor: StudioColors.ink,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 5,
+  },
+  rankLevelBadgeText: {
+    color: StudioColors.violet,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.5,
+  },
+  rankPillText: {
+    color: StudioColors.ink,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.4,
   },
   statPill: {
     backgroundColor: StudioColors.yellow,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "#111111",
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    justifyContent: "center",
     ...HardShadowSm,
   },
   statText: {
-    color: "#111111",
-    fontSize: 10,
+    color: StudioColors.ink,
+    fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   xpStickerPill: {
-    backgroundColor: StudioColors.pink,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "#111111",
+    backgroundColor: StudioColors.mint,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    justifyContent: "center",
     ...HardShadowSm,
   },
   xpStickerText: {
-    color: "#111111",
+    color: StudioColors.ink,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.4,
+  },
+  proBadge: {
+    backgroundColor: StudioColors.ink,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: StudioColors.lime,
+    justifyContent: "center",
+  },
+  proBadgeText: {
+    color: StudioColors.lime,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.5,
   },
-  proBadge: {
-    backgroundColor: "#111111",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  proBadgeText: {
-    color: StudioColors.lime,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
+  headerActionDivider: {
+    width: 2,
+    height: 28,
+    backgroundColor: StudioColors.border,
+    marginHorizontal: 2,
+    borderRadius: 1,
   },
   upgradeHeaderBtn: {
-    backgroundColor: StudioColors.yellow,
-    paddingHorizontal: 11,
+    backgroundColor: StudioColors.pink,
+    paddingLeft: 12,
+    paddingRight: 8,
     paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "#111111",
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer" } }),
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    ...HardShadow,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   upgradeHeaderBtnText: {
-    color: "#111111",
+    color: StudioColors.ink,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  headerCtaKeycap: {
+    backgroundColor: StudioColors.ink,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerCtaKeycapPinkText: {
+    color: StudioColors.pink,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  headerCtaKeycapLimeText: {
+    color: StudioColors.lime,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2347,38 +2587,46 @@ const styles = StyleSheet.create({
   },
   userSection: { flexDirection: "row", alignItems: "center", gap: 12 },
   authBtn: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surfaceElevated,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: "#111111",
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
     ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer" } }),
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   loginBtn: {
-    backgroundColor: "#111111",
-    borderColor: "#111111",
-    ...HardShadowSm,
+    backgroundColor: StudioColors.lime,
+    paddingLeft: 12,
+    paddingRight: 8,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    ...HardShadow,
   },
   authBtnText: {
-    color: "#111111",
-    fontSize: 10,
+    color: StudioColors.textPrimary,
+    fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
+    letterSpacing: 0.4,
   },
   loginBtnText: {
-    color: StudioColors.lime,
-    fontSize: 10,
+    color: StudioColors.ink,
+    fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
+    letterSpacing: 0.5,
   },
   content: { flex: 1, flexDirection: "row", zIndex: 1, position: "relative" },
   sidebar: {
     width: 268,
     borderRightWidth: 2,
-    borderRightColor: "#111111",
-    backgroundColor: "#FFFFFF",
+    borderRightColor: StudioColors.border,
+    backgroundColor: StudioColors.surface,
     padding: 16,
   },
   drawerOverlay: {
@@ -2393,9 +2641,9 @@ const styles = StyleSheet.create({
   mobileDrawer: {
     width: 280,
     maxWidth: "84%",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     borderRightWidth: 2,
-    borderRightColor: "#111111",
+    borderRightColor: StudioColors.border,
     padding: 16,
     zIndex: 252,
   },
@@ -2411,10 +2659,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     paddingBottom: 10,
     borderBottomWidth: 2,
-    borderBottomColor: "#111111",
+    borderBottomColor: StudioColors.border,
   },
   drawerTitle: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 16,
     fontWeight: "900",
   },
@@ -2422,31 +2670,31 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 6,
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
   },
   drawerCloseText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 12,
     fontWeight: "900",
   },
   backToMapBtn: {
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     paddingVertical: 9,
     paddingHorizontal: 12,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     marginBottom: 18,
     alignItems: "center",
     ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   backToMapText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2463,27 +2711,33 @@ const styles = StyleSheet.create({
   trackTab: {
     padding: 10,
     borderRadius: 6,
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     marginBottom: 6,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
+  trackTabInnerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
   activeTrackTab: {
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     ...HardShadowSm,
   },
   trackTabText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 12,
     fontWeight: "700",
   },
   progressCard: {
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     marginTop: 10,
     ...HardShadowSm,
   },
@@ -2493,35 +2747,35 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   progressTitle: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 11,
     fontWeight: "800",
   },
   progressPercent: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   progressBarTrack: {
     height: 8,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: StudioColors.lime,
+    backgroundColor: StudioColors.mint,
     borderRightWidth: 1.5,
-    borderRightColor: "#111111",
+    borderRightColor: StudioColors.ink,
   },
   lessonCard: {
     paddingVertical: 9,
     paddingHorizontal: 10,
     borderRadius: 6,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     marginBottom: 5,
     flexDirection: "row",
     alignItems: "center",
@@ -2530,7 +2784,7 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   activeLessonCard: {
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     ...HardShadowSm,
   },
   lessonCardLeft: {
@@ -2543,17 +2797,18 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 5,
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
   },
   stepCircleCompleted: {
     backgroundColor: StudioColors.mint,
+    borderColor: StudioColors.ink,
   },
   stepCircleText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2564,17 +2819,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     flex: 1,
   },
-  activeLessonTitle: { color: "#111111", fontWeight: "900" },
+  activeLessonTitle: { color: StudioColors.ink, fontWeight: "900" },
   sidebarProPill: {
     backgroundColor: StudioColors.pink,
     borderWidth: 1,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 3,
   },
   sidebarProText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 8,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2594,7 +2849,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     paddingBottom: 10,
     borderBottomWidth: 2,
-    borderBottomColor: "#111111",
+    borderBottomColor: StudioColors.border,
     flexWrap: "wrap",
     gap: 10,
   },
@@ -2605,17 +2860,17 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   sidebarToggleBtn: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   sidebarToggleText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2623,11 +2878,11 @@ const styles = StyleSheet.create({
   },
   mobilePaneSwitcher: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     padding: 3,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
   },
   mobilePaneBtn: {
     paddingHorizontal: 12,
@@ -2636,16 +2891,16 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   mobilePaneBtnActive: {
-    backgroundColor: StudioColors.lime,
+    backgroundColor: StudioColors.yellow,
   },
   mobilePaneText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   mobilePaneTextActive: {
-    color: "#111111",
+    color: StudioColors.ink,
   },
   lessonNavBtns: {
     flexDirection: "row",
@@ -2653,12 +2908,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   lessonNavBtn: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     paddingHorizontal: 11,
     paddingVertical: 5,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
@@ -2666,13 +2921,13 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   lessonNavBtnText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   lessonNavCounter: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2689,7 +2944,7 @@ const styles = StyleSheet.create({
   },
   lessonStepPill: {
     backgroundColor: StudioColors.yellow,
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2697,13 +2952,13 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     letterSpacing: 0.8,
     textTransform: "uppercase",
   },
   completedLessonPill: {
     backgroundColor: StudioColors.mint,
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2711,12 +2966,12 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     letterSpacing: 0.6,
   },
   complexityBadge: {
-    backgroundColor: "#FFFFFF",
-    color: "#111111",
+    backgroundColor: StudioColors.surface,
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2724,10 +2979,10 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
   },
   title: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 28,
     fontWeight: "900",
     letterSpacing: -0.6,
@@ -2742,12 +2997,12 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     borderRadius: 8,
     padding: 4,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     ...HardShadowSm,
   },
   tabItem: {
@@ -2758,9 +3013,9 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   activeTabItem: {
-    backgroundColor: StudioColors.lime,
+    backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
   },
   tabText: {
     color: StudioColors.textMuted,
@@ -2769,10 +3024,10 @@ const styles = StyleSheet.create({
     fontFamily: MonoFont,
     letterSpacing: 0.6,
   },
-  activeTabText: { color: "#111111" },
+  activeTabText: { color: StudioColors.ink },
   problemCard: { paddingBottom: 20 },
   sectionStickerBadge: {
-    backgroundColor: "#111111",
+    backgroundColor: StudioColors.ink,
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 4,
@@ -2785,11 +3040,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   conceptBox: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     padding: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     marginBottom: 16,
     ...HardShadow,
   },
@@ -2802,15 +3057,15 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     paddingBottom: 12,
     borderBottomWidth: 1.5,
-    borderBottomColor: "#111111",
+    borderBottomColor: StudioColors.border,
   },
   explainStyleSwitcher: {
     flexDirection: "row",
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     padding: 3,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     gap: 3,
   },
   explainStyleBtn: {
@@ -2822,7 +3077,7 @@ const styles = StyleSheet.create({
   explainStyleBtnActive: {
     backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
   },
   explainStyleBtnText: {
     color: StudioColors.textSecondary,
@@ -2832,36 +3087,36 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   explainStyleBtnTextActive: {
-    color: "#111111",
+    color: StudioColors.ink,
   },
   analogyContainer: {
     gap: 12,
   },
   realWorldBanner: {
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     borderLeftWidth: 5,
-    borderLeftColor: "#111111",
+    borderLeftColor: StudioColors.border,
     padding: 13,
     gap: 4,
   },
   realWorldLabel: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 9,
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 1,
   },
   realWorldText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 13,
     fontWeight: "600",
     lineHeight: 20,
   },
   analogyHeading: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 18,
     fontWeight: "900",
     marginTop: 4,
@@ -2876,10 +3131,10 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   quizCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     padding: 18,
     marginBottom: 16,
     gap: 10,
@@ -2893,37 +3148,38 @@ const styles = StyleSheet.create({
   quizSticker: {
     backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     paddingHorizontal: 9,
     paddingVertical: 3,
     borderRadius: 4,
   },
   quizBadgeText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.8,
   },
   quizXpPill: {
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
   },
   quizXpPillDone: {
     backgroundColor: StudioColors.mint,
+    borderColor: StudioColors.ink,
   },
   quizXpPillText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   quizQuestion: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 15,
     fontWeight: "800",
     lineHeight: 21,
@@ -2932,24 +3188,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   quizOptionBtn: {
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 10,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   quizOptionCorrect: {
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     backgroundColor: StudioColors.lime,
   },
   quizOptionWrong: {
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     backgroundColor: "#FECDD3",
   },
   quizOptionText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -2957,7 +3213,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
   },
   quizFeedbackSuccess: {
     backgroundColor: "#D1FAE5",
@@ -2966,18 +3222,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEF3C7",
   },
   quizFeedbackText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 12,
     fontWeight: "700",
     lineHeight: 18,
   },
   problemText: {
-    color: "#22201D",
+    color: StudioColors.textSecondary,
     fontSize: 14,
     fontWeight: "500",
     lineHeight: 24,
   },
-  boldInline: { color: "#111111", fontWeight: "900" },
+  boldInline: { color: StudioColors.textPrimary, fontWeight: "900" },
   bulletRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -2985,7 +3241,7 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   bulletDot: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 15,
     lineHeight: 22,
     fontWeight: "900",
@@ -2994,7 +3250,7 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.codeBg,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     overflow: "hidden",
   },
   codeBlockHeader: {
@@ -3019,8 +3275,8 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   inlineCode: {
-    backgroundColor: "#EAE3D2",
-    color: "#111111",
+    backgroundColor: StudioColors.surfaceElevated,
+    color: StudioColors.textPrimary,
     fontFamily: MonoFont,
     fontSize: 12.5,
     fontWeight: "800",
@@ -3029,9 +3285,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   assignmentBox: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     padding: 18,
     borderRadius: 10,
     marginBottom: 16,
@@ -3044,15 +3300,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   missionSticker: {
-    backgroundColor: StudioColors.lime,
+    backgroundColor: StudioColors.mint,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     paddingHorizontal: 9,
     paddingVertical: 3,
     borderRadius: 4,
   },
   assignmentHeaderLabel: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -3061,30 +3317,30 @@ const styles = StyleSheet.create({
   xpRewardPill: {
     backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   xpRewardPillText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   assignmentDescription: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 14,
     fontWeight: "600",
     lineHeight: 22,
     marginBottom: 12,
   },
   checklistContainer: {
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     gap: 10,
   },
   missionRow: { flexDirection: "row", alignItems: "center", gap: 10 },
@@ -3092,26 +3348,26 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 4,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
   },
   missionBullet: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   missionText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 13,
     fontWeight: "600",
   },
   exampleBlock: { marginBottom: 16 },
   exampleTitle: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -3124,7 +3380,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     ...HardShadowSm,
   },
   exampleCode: {
@@ -3141,7 +3397,7 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.codeBg,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     overflow: "hidden",
     ...HardShadow,
   },
@@ -3372,32 +3628,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 13,
+    borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer" } }),
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   secondaryRunBtnText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontWeight: "900",
     fontSize: 11,
     fontFamily: MonoFont,
     letterSpacing: 0.6,
   },
   shortcutBadgeDark: {
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
   },
   shortcutBadgeDarkText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -3409,26 +3665,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     backgroundColor: StudioColors.lime,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: "#111111",
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer" } }),
+    paddingVertical: 13,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    borderWidth: 2.5,
+    borderColor: StudioColors.ink,
+    ...HardShadowHero,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   disabledButton: { opacity: 0.6 },
   runButtonText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontWeight: "900",
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: MonoFont,
     letterSpacing: 0.7,
   },
   shortcutBadgeLight: {
-    backgroundColor: "#111111",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: StudioColors.ink,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
   },
   shortcutBadgeLightText: {
     color: StudioColors.lime,
@@ -3441,7 +3698,7 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.codeBg,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     flex: 1,
     overflow: "hidden",
     ...HardShadow,

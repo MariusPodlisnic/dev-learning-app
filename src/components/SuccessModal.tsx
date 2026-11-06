@@ -1,9 +1,9 @@
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   HardShadow,
+  HardShadowHero,
   HardShadowSm,
   MonoFont,
-  SerifFont,
   StudioColors,
 } from "../constants/theme";
 
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     ...HardShadowSm,
   },
   emoji: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 26,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -133,11 +133,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     marginBottom: 10,
   },
   statusPillText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1.1,
@@ -209,16 +209,16 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingVertical: 14,
     borderRadius: 10,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderWidth: 2.5,
+    borderColor: StudioColors.ink,
     alignItems: "center",
-    ...HardShadowSm,
+    ...HardShadowHero,
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   nextBtnText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontWeight: "900",
     fontSize: 13,
     letterSpacing: 0.6,

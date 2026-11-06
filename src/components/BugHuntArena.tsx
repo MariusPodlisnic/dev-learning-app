@@ -10,9 +10,9 @@ import {
 } from "react-native";
 import {
   HardShadow,
+  HardShadowHero,
   HardShadowSm,
   MonoFont,
-  SerifFont,
   StudioColors,
   TrackThemes,
 } from "../constants/theme";
@@ -322,6 +322,8 @@ interface BugTestResult {
 
 interface BugHuntArenaProps {
   pyodideReady: boolean;
+  isPremium?: boolean;
+  onRequirePro?: () => void;
   onExecutePatch: (
     userCode: string,
     testHarness: string,
@@ -338,6 +340,8 @@ interface BugHuntArenaProps {
 
 export default function BugHuntArena({
   pyodideReady,
+  isPremium = false,
+  onRequirePro,
   onExecutePatch,
   onAwardBugHuntXp,
   solvedIncidents,
@@ -363,6 +367,10 @@ export default function BugHuntArena({
   function startMission(index: number) {
     const inc = BUG_INCIDENTS[index];
     if (!inc) return;
+    if (TrackThemes[inc.track]?.isPro && !isPremium) {
+      onRequirePro?.();
+      return;
+    }
     setActiveMissionIdx(index);
     setCode(inc.buggyCode);
     setSecondsLeft(inc.timeLimitSec);
@@ -418,13 +426,16 @@ export default function BugHuntArena({
           {BUG_INCIDENTS.map((inc, idx) => {
             const isSolved = Boolean(solvedIncidents[inc.id]);
             const tMeta = TrackThemes[inc.track] || TrackThemes.python_basics;
+            const isLockedPro = Boolean(tMeta.isPro && !isPremium);
 
             return (
               <Pressable
                 key={inc.id}
-                style={[
+                style={({ pressed }) => [
                   styles.missionCard,
                   isSolved && styles.missionCardSolved,
+                  isLockedPro && styles.missionCardLocked,
+                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
                 ]}
                 onPress={() => startMission(idx)}
               >
@@ -432,28 +443,32 @@ export default function BugHuntArena({
                   style={[
                     styles.missionTopRibbon,
                     {
-                      backgroundColor: isSolved
-                        ? StudioColors.mint
-                        : tMeta.stickerBg || StudioColors.yellow,
+                      backgroundColor: isLockedPro
+                        ? StudioColors.pink
+                        : isSolved
+                          ? StudioColors.mint
+                          : tMeta.stickerBg || StudioColors.yellow,
                     },
                   ]}
                 />
                 <View style={styles.missionCardTop}>
                   <Text style={styles.missionNumber}>
-                    {inc.codeId}
+                    {isLockedPro ? `🔒 ${inc.codeId}` : inc.codeId}
                   </Text>
                   <View
                     style={[
                       styles.diffBadge,
-                      inc.difficulty === "Easy"
-                        ? styles.diffEasy
-                        : inc.difficulty === "Medium"
-                          ? styles.diffMedium
-                          : styles.diffHard,
+                      isLockedPro
+                        ? { backgroundColor: StudioColors.pink }
+                        : inc.difficulty === "Easy"
+                          ? styles.diffEasy
+                          : inc.difficulty === "Medium"
+                            ? styles.diffMedium
+                            : styles.diffHard,
                     ]}
                   >
                     <Text style={styles.diffBadgeText}>
-                      {inc.difficulty.toUpperCase()}
+                      {isLockedPro ? "PRO TRACK" : inc.difficulty.toUpperCase()}
                     </Text>
                   </View>
                 </View>
@@ -476,10 +491,15 @@ export default function BugHuntArena({
                   style={[
                     styles.playBtn,
                     isSolved && styles.playBtnSolved,
+                    isLockedPro && styles.playBtnProLocked,
                   ]}
                 >
                   <Text style={styles.playBtnText}>
-                    {isSolved ? "✓ PATCHED · REPLAY" : "START MISSION →"}
+                    {isLockedPro
+                      ? "🔒 UNLOCK PRO TRACK →"
+                      : isSolved
+                        ? "✓ PATCHED · REPLAY"
+                        : "START MISSION →"}
                   </Text>
                 </View>
               </Pressable>
@@ -787,14 +807,14 @@ const styles = StyleSheet.create({
   lobbyPill: {
     backgroundColor: StudioColors.coral,
     borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 7,
     ...HardShadowSm,
   },
   lobbyPillText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1,
@@ -819,14 +839,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
     backgroundColor: StudioColors.mint,
     borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 8,
     ...HardShadowSm,
   },
   lobbyProgressText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -855,6 +875,9 @@ const styles = StyleSheet.create({
   missionCardSolved: {
     borderColor: StudioColors.border,
   },
+  missionCardLocked: {
+    opacity: 0.85,
+  },
   missionTopRibbon: {
     position: "absolute",
     top: 0,
@@ -881,7 +904,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
   },
   diffEasy: {
     backgroundColor: StudioColors.mint,
@@ -893,7 +916,7 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.coral,
   },
   diffBadgeText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -925,18 +948,21 @@ const styles = StyleSheet.create({
   playBtn: {
     marginTop: 6,
     backgroundColor: StudioColors.lime,
-    paddingVertical: 11,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 9,
     borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     alignItems: "center",
-    ...HardShadowSm,
+    ...HardShadow,
   },
   playBtnSolved: {
     backgroundColor: StudioColors.mint,
   },
+  playBtnProLocked: {
+    backgroundColor: StudioColors.pink,
+  },
   playBtnText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 12,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -1056,7 +1082,7 @@ const styles = StyleSheet.create({
   hintPillBtn: {
     backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1064,7 +1090,7 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   hintPillText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 12,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -1073,12 +1099,12 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.yellow,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     padding: 12,
     ...HardShadowSm,
   },
   hintBannerText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 13,
     fontWeight: "800",
     lineHeight: 19,
@@ -1087,7 +1113,7 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.mint,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     padding: 16,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1097,12 +1123,12 @@ const styles = StyleSheet.create({
     ...HardShadow,
   },
   winTitle: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 16,
     fontWeight: "900",
   },
   winSub: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 12,
     fontWeight: "700",
     marginTop: 2,
@@ -1114,7 +1140,7 @@ const styles = StyleSheet.create({
   nextBtn: {
     backgroundColor: StudioColors.lime,
     borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -1122,7 +1148,7 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   nextBtnText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 13,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -1131,7 +1157,7 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.coral,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     padding: 14,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1141,19 +1167,19 @@ const styles = StyleSheet.create({
     ...HardShadowSm,
   },
   failTitle: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 14,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   failSub: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 12,
     fontWeight: "700",
     marginTop: 2,
   },
   failCode: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 12,
     fontWeight: "800",
     fontFamily: MonoFont,
@@ -1161,7 +1187,7 @@ const styles = StyleSheet.create({
   retryBtn: {
     backgroundColor: StudioColors.surface,
     borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1274,26 +1300,26 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 18,
     borderRadius: 10,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderWidth: 2.5,
+    borderColor: StudioColors.ink,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
-    ...HardShadow,
+    ...HardShadowHero,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   deployBtnDisabled: {
     opacity: 0.5,
   },
   deployBtnText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 14,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   deployShortcutBadge: {
-    backgroundColor: StudioColors.border,
+    backgroundColor: StudioColors.ink,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 5,

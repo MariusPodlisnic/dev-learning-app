@@ -123,7 +123,7 @@ export default function ProfileStatsModal({
                 <Text
                   style={[
                     styles.tierBadgeText,
-                    { color: StudioColors.textPrimary },
+                    { color: StudioColors.ink },
                   ]}
                 >
                   {isPremium ? "PRO" : "FREE"}
@@ -188,6 +188,7 @@ export default function ProfileStatsModal({
         <View style={styles.tracksList}>
           {TRACK_KEYS.map((tKey) => {
             const meta = TrackThemes[tKey];
+            const isTrackLocked = meta.isPro && !isPremium;
             const tLessons = lessons.filter((l) => l.track === tKey);
             const tDone = tLessons.filter((l) => completedLessons[l.id]).length;
             const pct = tLessons.length
@@ -205,19 +206,24 @@ export default function ProfileStatsModal({
               >
                 <View style={styles.trackRowHeader}>
                   <Text style={styles.trackRowTitle}>
-                    {meta.icon} {meta.label}
+                    {isTrackLocked ? `🔒 ${meta.label}` : `[${meta.icon}] ${meta.label}`}
                   </Text>
                   <Text
-                    style={[styles.trackRowCount, { color: meta.accent }]}
+                    style={[
+                      styles.trackRowCount,
+                      { color: StudioColors.textPrimary },
+                    ]}
                   >
-                    {tDone}/{tLessons.length} ({pct}%)
+                    {isTrackLocked
+                      ? "PRO TRACK"
+                      : `${tDone}/${tLessons.length} (${pct}%)`}
                   </Text>
                 </View>
                 <View style={styles.trackRowBarBg}>
                   <View
                     style={[
                       styles.trackRowBarFill,
-                      { width: `${pct}%`, backgroundColor: meta.accent },
+                      { width: `${pct}%`, backgroundColor: meta.stickerBg },
                     ]}
                   />
                 </View>
@@ -325,7 +331,7 @@ const styles = StyleSheet.create({
     ...HardShadowSm,
   },
   levelNumberText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 16,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -443,13 +449,13 @@ const styles = StyleSheet.create({
     ...HardShadowSm,
   },
   statValue: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 16,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   statLabel: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 1,
@@ -566,7 +572,7 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   syncCtaText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 12,
     fontWeight: "900",
     fontFamily: MonoFont,

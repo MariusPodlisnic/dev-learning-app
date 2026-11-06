@@ -444,13 +444,13 @@ const styles = StyleSheet.create({
   playingPill: {
     backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 5,
   },
   playingPillText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 0.8,
@@ -459,13 +459,13 @@ const styles = StyleSheet.create({
   modeBadge: {
     backgroundColor: StudioColors.violet,
     borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
   modeBadgeText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 0.8,
@@ -688,16 +688,17 @@ const styles = StyleSheet.create({
   },
   autoPlayBtnActive: {
     backgroundColor: StudioColors.mint,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
   },
   autoPlayBtnTextActive: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontWeight: "900",
   },
   stepBtnPrimary: {
     backgroundColor: StudioColors.lime,
-    borderColor: StudioColors.border,
-    ...HardShadowSm,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    ...HardShadow,
   },
   stepBtnText: {
     color: StudioColors.textPrimary,
@@ -706,7 +707,7 @@ const styles = StyleSheet.create({
     fontFamily: MonoFont,
   },
   stepBtnTextPrimary: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -760,13 +761,13 @@ const styles = StyleSheet.create({
     fontFamily: MonoFont,
   },
   activeCellValue: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
   },
   pointerTag: {
     position: "absolute",
     bottom: -9,
     alignSelf: "center",
-    backgroundColor: StudioColors.border,
+    backgroundColor: StudioColors.ink,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -794,12 +795,12 @@ const styles = StyleSheet.create({
   },
   explainerBadge: {
     backgroundColor: StudioColors.yellow,
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 0.9,

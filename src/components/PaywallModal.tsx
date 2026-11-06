@@ -8,9 +8,8 @@ import {
 } from "react-native";
 import {
   HardShadow,
-  HardShadowSm,
+  HardShadowHero,
   MonoFont,
-  SerifFont,
   StudioColors,
 } from "../constants/theme";
 
@@ -134,7 +133,7 @@ const styles = StyleSheet.create({
   badge: {
     backgroundColor: StudioColors.pink,
     borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
@@ -142,7 +141,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   badgeText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1.1,
@@ -185,12 +184,12 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     justifyContent: "center",
     alignItems: "center",
   },
   featureIcon: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -255,18 +254,18 @@ const styles = StyleSheet.create({
   upgradeBtn: {
     backgroundColor: StudioColors.lime,
     width: "100%",
-    paddingVertical: 14,
+    paddingVertical: 15,
     borderRadius: 10,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderWidth: 2.5,
+    borderColor: StudioColors.ink,
     alignItems: "center",
-    ...HardShadowSm,
+    ...HardShadowHero,
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   upgradeBtnText: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     fontWeight: "900",
     fontSize: 13,
     letterSpacing: 0.8,

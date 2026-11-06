@@ -8,9 +8,9 @@ import {
 } from "react-native";
 import {
   HardShadow,
+  HardShadowHero,
   HardShadowSm,
   MonoFont,
-  SerifFont,
   StudioColors,
   TrackThemes,
 } from "../constants/theme";
@@ -75,7 +75,6 @@ function getDifficultyColor(difficulty?: string) {
 function TreeConnector({
   fromCount,
   toCount,
-  accent,
   isCompleted,
 }: {
   fromCount: number;
@@ -83,8 +82,8 @@ function TreeConnector({
   accent: string;
   isCompleted: boolean;
 }) {
-  const lineColor = "#111111";
-  const dotBg = isCompleted ? "#B8FF3B" : "#FFFFFF";
+  const lineColor = StudioColors.border;
+  const dotBg = isCompleted ? StudioColors.mint : StudioColors.surface;
 
   if (fromCount === 1 && toCount === 1) {
     return (
@@ -259,6 +258,25 @@ export default function RoadmapTree({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      {/* Decorative Upper-Right Neo-Brutalist Blueprint & Geometric Arcade Backdrop */}
+      <View style={styles.topRightBackdrop} pointerEvents="none">
+        <View style={styles.backdropOrbitOuter} />
+        <View style={styles.backdropOrbitMiddle} />
+        <View style={styles.backdropOrbitInner} />
+        <View
+          style={[
+            styles.backdropAccentDiamond,
+            { backgroundColor: currentTrackMeta.stickerBg },
+          ]}
+        />
+        <View style={styles.backdropCrosshairTop}>
+          <Text style={styles.backdropCrosshairText}>+ SYS_GRID // 01</Text>
+        </View>
+        <View style={styles.backdropCrosshairBottom}>
+          <Text style={styles.backdropCrosshairText}>+ 60HZ_SYNC</Text>
+        </View>
+      </View>
+
       {/* Top Neo-Brutalist Track Header & Selector */}
       <View style={styles.headerSection}>
         <View style={styles.editorialTopRow}>
@@ -276,6 +294,98 @@ export default function RoadmapTree({
             <Text style={styles.mainHeading}>{currentTrackMeta.label}</Text>
             <Text style={styles.subHeading}>{currentTrackMeta.subtitle}</Text>
           </View>
+
+          {/* Right-Side Thematic Retro CRT & Code Cartridge Illustration */}
+          <View style={styles.heroIllustrationWrap} pointerEvents="none">
+            {/* Inserted ROM Cartridge on Top */}
+            <View
+              style={[
+                styles.crtCartridge,
+                { backgroundColor: currentTrackMeta.stickerBg },
+              ]}
+            >
+              <View style={styles.crtCartridgeGrip} />
+              <Text style={styles.crtCartridgeText}>
+                ROM // {currentTrackMeta.tag}
+              </Text>
+            </View>
+
+            {/* Retro Arcade Monitor Bezel */}
+            <View style={styles.crtMonitorFrame}>
+              <View style={styles.crtScreen}>
+                <View style={styles.crtScreenTopBar}>
+                  <Text style={styles.crtScreenTag}>
+                    ● {activeTrack === "python_basics"
+                      ? "PYTHON_KERNEL.PY"
+                      : activeTrack === "algorithms"
+                        ? "GRAPH_ENGINE.PY"
+                        : "CLUSTER_MESH.PY"}
+                  </Text>
+                  <Text style={styles.crtScreenFps}>60Hz</Text>
+                </View>
+
+                {activeTrack === "python_basics" && (
+                  <View style={styles.crtCodeBlock}>
+                    <Text style={styles.crtCodeLineLime}>
+                      {"def train_skill(dev):"}
+                    </Text>
+                    <Text style={styles.crtCodeLineYellow}>
+                      {"  while dev.curious:"}
+                    </Text>
+                    <Text style={styles.crtCodeLinePink}>
+                      {"    yield dev.level_up()"}
+                    </Text>
+                  </View>
+                )}
+
+                {activeTrack === "algorithms" && (
+                  <View style={styles.crtCodeBlock}>
+                    <Text style={styles.crtCodeLineViolet}>
+                      {"      [ROOT: 42]"}
+                    </Text>
+                    <Text style={styles.crtCodeLineYellow}>
+                      {"     /          \\"}
+                    </Text>
+                    <Text style={styles.crtCodeLineLime}>
+                      {" [L: 18]      [R: 89]"}
+                    </Text>
+                  </View>
+                )}
+
+                {activeTrack === "system_design" && (
+                  <View style={styles.crtCodeBlock}>
+                    <Text style={styles.crtCodeLinePink}>
+                      {"[CDN] ──► [LB: NGINX]"}
+                    </Text>
+                    <Text style={styles.crtCodeLineLime}>
+                      {"  ├──► [API_NODE_01]"}
+                    </Text>
+                    <Text style={styles.crtCodeLineYellow}>
+                      {"  └──► [REDIS_CACHE]"}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.crtMonitorChin}>
+                <View style={styles.crtPowerLed} />
+                <Text style={styles.crtMonitorBrand}>DEVLEARN // DECK-01</Text>
+                <View style={styles.crtVentSlots}>
+                  <View style={styles.crtVentSlot} />
+                  <View style={styles.crtVentSlot} />
+                  <View style={styles.crtVentSlot} />
+                </View>
+              </View>
+            </View>
+
+            {/* Decorative Floating Arcade Stickers */}
+            <View style={styles.heroArtStickerTopLeft}>
+              <Text style={styles.heroArtStickerText}>✦ {currentTrackMeta.icon}</Text>
+            </View>
+            <View style={styles.heroArtStickerBottomRight}>
+              <Text style={styles.heroArtStickerText}>⚡ XP+50</Text>
+            </View>
+          </View>
         </View>
 
         {/* Tactile Color-Blocked Track Selector */}
@@ -283,13 +393,14 @@ export default function RoadmapTree({
           {TRACK_KEYS.map((trackKey) => {
             const meta = TrackThemes[trackKey];
             const isSelected = activeTrack === trackKey;
+            const isTrackLocked = meta.isPro && !isPremium;
             const tLessons = lessons.filter((l) => l.track === trackKey);
             const tDone = tLessons.filter((l) => completedLessons[l.id]).length;
 
             return (
               <Pressable
                 key={trackKey}
-                style={[
+                style={({ pressed }) => [
                   styles.trackTabPill,
                   isSelected && [
                     styles.trackTabPillActive,
@@ -297,6 +408,8 @@ export default function RoadmapTree({
                       backgroundColor: meta.stickerBg,
                     },
                   ],
+                  isTrackLocked && styles.trackTabPillLocked,
+                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
                 ]}
                 onPress={() => onSelectTrack(trackKey)}
               >
@@ -304,7 +417,7 @@ export default function RoadmapTree({
                   style={[
                     styles.trackCodeBadge,
                     isSelected && {
-                      backgroundColor: "#111111",
+                      backgroundColor: StudioColors.ink,
                     },
                   ]}
                 >
@@ -314,17 +427,29 @@ export default function RoadmapTree({
                       isSelected && { color: meta.stickerBg },
                     ]}
                   >
-                    {meta.tag}
+                    {isTrackLocked ? "🔒" : meta.tag}
                   </Text>
                 </View>
-                <Text style={styles.trackTabTitle} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.trackTabTitle,
+                    isSelected && { color: StudioColors.ink, fontWeight: "900" },
+                  ]}
+                  numberOfLines={1}
+                >
                   {meta.label}
                 </Text>
-                <View style={styles.trackCountBadge}>
-                  <Text style={styles.trackCountText}>
-                    {tDone}/{tLessons.length}
-                  </Text>
-                </View>
+                {isTrackLocked ? (
+                  <View style={styles.trackProBadge}>
+                    <Text style={styles.trackProBadgeText}>PRO</Text>
+                  </View>
+                ) : (
+                  <View style={styles.trackCountBadge}>
+                    <Text style={styles.trackCountText}>
+                      {tDone}/{tLessons.length}
+                    </Text>
+                  </View>
+                )}
               </Pressable>
             );
           })}
@@ -362,7 +487,7 @@ export default function RoadmapTree({
                   styles.progressBarFill,
                   {
                     width: `${Math.max(progressPercent, 4)}%`,
-                    backgroundColor: StudioColors.lime,
+                    backgroundColor: StudioColors.mint,
                   },
                 ]}
               />
@@ -394,14 +519,20 @@ export default function RoadmapTree({
               </View>
 
               <Pressable
-                style={styles.upNextButton}
+                style={({ pressed }) => [
+                  styles.upNextButton,
+                  pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
+                ]}
                 onPress={() => onSelectLesson(nextUpLesson)}
               >
                 <Text style={styles.upNextButtonText}>
                   {completedLessons[nextUpLesson.id]
-                    ? "REVIEW MODULE →"
-                    : "START MISSION →"}
+                    ? "REVIEW MODULE"
+                    : "START MISSION"}
                 </Text>
+                <View style={styles.upNextArrowCapsule}>
+                  <Text style={styles.upNextArrowCapsuleText}>→</Text>
+                </View>
               </Pressable>
             </View>
           )}
@@ -585,35 +716,278 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: StudioColors.bg,
+    position: "relative",
   },
   content: {
     paddingVertical: 32,
     paddingHorizontal: 24,
     alignItems: "center",
     paddingBottom: 72,
+    position: "relative",
+  },
+  topRightBackdrop: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 340,
+    height: 300,
+    zIndex: 0,
+    overflow: "hidden",
+  },
+  backdropOrbitOuter: {
+    position: "absolute",
+    top: -90,
+    right: -90,
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: StudioColors.borderSubtle,
+  },
+  backdropOrbitMiddle: {
+    position: "absolute",
+    top: -45,
+    right: -45,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    borderWidth: 1.5,
+    borderColor: StudioColors.borderSubtle,
+  },
+  backdropOrbitInner: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: StudioColors.borderSubtle,
+  },
+  backdropAccentDiamond: {
+    position: "absolute",
+    top: 34,
+    right: 42,
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    transform: [{ rotate: "45deg" }],
+    opacity: 0.85,
+  },
+  backdropCrosshairTop: {
+    position: "absolute",
+    top: 18,
+    right: 90,
+  },
+  backdropCrosshairBottom: {
+    position: "absolute",
+    top: 155,
+    right: 22,
+  },
+  backdropCrosshairText: {
+    color: StudioColors.textDim,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 1,
   },
   headerSection: {
     width: "100%",
-    maxWidth: 680,
+    maxWidth: 780,
     marginBottom: 28,
+    zIndex: 2,
   },
   editorialTopRow: {
-    marginBottom: 18,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 20,
+    marginBottom: 22,
   },
   editorialLeft: {
+    flex: 1,
+    minWidth: 280,
     alignItems: "flex-start",
     gap: 8,
+  },
+  heroIllustrationWrap: {
+    position: "relative",
+    width: 248,
+    alignItems: "center",
+    paddingTop: 14,
+  },
+  crtCartridge: {
+    width: 136,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderTopLeftRadius: 7,
+    borderTopRightRadius: 7,
+    borderWidth: 2,
+    borderBottomWidth: 0,
+    borderColor: StudioColors.ink,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  crtCartridgeGrip: {
+    width: 22,
+    height: 6,
+    borderRadius: 2,
+    backgroundColor: StudioColors.ink,
+    opacity: 0.35,
+  },
+  crtCartridgeText: {
+    color: StudioColors.ink,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  crtMonitorFrame: {
+    width: "100%",
+    backgroundColor: StudioColors.surfaceElevated,
+    borderRadius: 12,
+    borderWidth: 2.5,
+    borderColor: StudioColors.ink,
+    padding: 10,
+    ...HardShadow,
+  },
+  crtScreen: {
+    backgroundColor: "#121216",
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    padding: 10,
+    gap: 6,
+  },
+  crtScreenTopBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#2C2E3B",
+    paddingBottom: 4,
+  },
+  crtScreenTag: {
+    color: "#8E8B82",
+    fontSize: 8.5,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+  },
+  crtScreenFps: {
+    color: StudioColors.lime,
+    fontSize: 8.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  crtCodeBlock: {
+    gap: 2,
+    paddingVertical: 2,
+  },
+  crtCodeLineLime: {
+    color: StudioColors.lime,
+    fontSize: 10,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+  },
+  crtCodeLineYellow: {
+    color: StudioColors.yellow,
+    fontSize: 10,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+  },
+  crtCodeLinePink: {
+    color: StudioColors.pink,
+    fontSize: 10,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+  },
+  crtCodeLineViolet: {
+    color: StudioColors.violet,
+    fontSize: 10,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+  },
+  crtMonitorChin: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 7,
+    paddingHorizontal: 2,
+  },
+  crtPowerLed: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: StudioColors.lime,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+  },
+  crtMonitorBrand: {
+    color: StudioColors.textPrimary,
+    fontSize: 8.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  crtVentSlots: {
+    flexDirection: "row",
+    gap: 3,
+  },
+  crtVentSlot: {
+    width: 4,
+    height: 9,
+    borderRadius: 1,
+    backgroundColor: StudioColors.border,
+  },
+  heroArtStickerTopLeft: {
+    position: "absolute",
+    top: 4,
+    left: -10,
+    backgroundColor: StudioColors.yellow,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    transform: [{ rotate: "-8deg" }],
+    ...HardShadowSm,
+  },
+  heroArtStickerBottomRight: {
+    position: "absolute",
+    bottom: -8,
+    right: -8,
+    backgroundColor: StudioColors.lime,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    transform: [{ rotate: "6deg" }],
+    ...HardShadowSm,
+  },
+  heroArtStickerText: {
+    color: StudioColors.ink,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.4,
   },
   eyebrowSticker: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     ...HardShadowSm,
   },
   eyebrow: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1.2,
@@ -645,54 +1019,73 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderRadius: 8,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   trackTabPillActive: {
+    borderColor: StudioColors.ink,
     ...HardShadow,
   },
+  trackTabPillLocked: {
+    opacity: 0.9,
+  },
   trackCodeBadge: {
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   trackCodeText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   trackTabTitle: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 13,
     fontWeight: "800",
   },
   trackCountBadge: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 4,
   },
   trackCountText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
+  trackProBadge: {
+    backgroundColor: StudioColors.pink,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  trackProBadgeText: {
+    color: StudioColors.ink,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
   overviewCard: {
     width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
+    backgroundColor: StudioColors.surface,
+    borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     overflow: "hidden",
     ...HardShadow,
   },
@@ -709,7 +1102,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   progressLabel: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -725,36 +1118,36 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
   },
   progressPercentText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 12,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   progressBarBg: {
     height: 12,
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.bg,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
     borderRightWidth: 1.5,
-    borderRightColor: "#111111",
+    borderRightColor: StudioColors.ink,
   },
   upNextBanner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 18,
-    paddingVertical: 14,
-    backgroundColor: "#F4F0E6",
+    paddingVertical: 16,
+    backgroundColor: StudioColors.surfaceElevated,
     borderTopWidth: 2,
-    borderTopColor: "#111111",
+    borderTopColor: StudioColors.border,
     gap: 14,
     flexWrap: "wrap",
   },
@@ -770,7 +1163,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   upNextSticker: {
-    backgroundColor: "#111111",
+    backgroundColor: StudioColors.ink,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -785,41 +1178,56 @@ const styles = StyleSheet.create({
   upNextXpPill: {
     backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     paddingHorizontal: 7,
     paddingVertical: 1,
     borderRadius: 4,
   },
   upNextXpPillText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   upNextTitle: {
-    color: "#111111",
-    fontSize: 16,
+    color: StudioColors.textPrimary,
+    fontSize: 17,
     fontWeight: "900",
   },
   upNextDesc: {
     color: StudioColors.textSecondary,
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 12.5,
+    fontWeight: "600",
   },
   upNextButton: {
-    backgroundColor: StudioColors.lime,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: "#111111",
+    flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+    backgroundColor: StudioColors.lime,
+    paddingHorizontal: 20,
+    paddingVertical: 13,
+    borderRadius: 10,
+    borderWidth: 2.5,
+    borderColor: StudioColors.ink,
     justifyContent: "center",
-    ...HardShadowSm,
+    ...HardShadowHero,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   upNextButtonText: {
-    color: "#111111",
+    color: StudioColors.ink,
+    fontSize: 13,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  upNextArrowCapsule: {
+    backgroundColor: StudioColors.ink,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  upNextArrowCapsuleText: {
+    color: StudioColors.lime,
     fontSize: 12,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -834,7 +1242,7 @@ const styles = StyleSheet.create({
   },
   tierLabelWrapper: {
     marginBottom: 8,
-    backgroundColor: "#111111",
+    backgroundColor: StudioColors.ink,
     paddingHorizontal: 9,
     paddingVertical: 3,
     borderRadius: 4,
@@ -854,12 +1262,12 @@ const styles = StyleSheet.create({
   },
   nodeCard: {
     width: CARD_WIDTH,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: StudioColors.surface,
     borderRadius: 10,
     padding: 16,
     paddingTop: 18,
     borderWidth: 2,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     gap: 10,
     position: "relative",
     overflow: "hidden",
@@ -871,19 +1279,21 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 6,
+    height: 7,
     borderBottomWidth: 1.5,
-    borderBottomColor: "#111111",
+    borderBottomColor: StudioColors.border,
   },
   nodeCardDone: {
-    backgroundColor: "#F9FFF9",
+    backgroundColor: StudioColors.cardDoneBg,
   },
   nodeCardNextUp: {
-    backgroundColor: "#FFFFFF",
+    borderWidth: 2.5,
+    borderColor: StudioColors.border,
+    ...HardShadowHero,
   },
   nodeCardLocked: {
     opacity: 0.72,
-    backgroundColor: "#EAE3D2",
+    backgroundColor: StudioColors.cardLockedBg,
   },
   nodeCardHeader: {
     flexDirection: "row",
@@ -902,9 +1312,9 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 6,
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -912,19 +1322,19 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.mint,
   },
   statusNumberText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   lockIcon: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 8,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   statusIconDone: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 13,
     fontWeight: "900",
   },
@@ -940,13 +1350,14 @@ const styles = StyleSheet.create({
   nextUpNodePill: {
     backgroundColor: StudioColors.lime,
     borderWidth: 1.5,
-    borderColor: "#111111",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 5,
+    ...HardShadowSm,
   },
   nextUpNodePillText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 0.5,
@@ -955,13 +1366,13 @@ const styles = StyleSheet.create({
   proNodePill: {
     backgroundColor: StudioColors.pink,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 4,
   },
   proNodePillText: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 0.6,
@@ -971,19 +1382,19 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 6,
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.surfaceElevated,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
   },
   arrowIcon: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 13,
     fontWeight: "900",
   },
   nodeTitle: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 17,
     fontWeight: "900",
     lineHeight: 22,
@@ -1015,15 +1426,15 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   complexityMiniPill: {
-    backgroundColor: "#F4F0E6",
-    borderColor: "#111111",
+    backgroundColor: StudioColors.surfaceElevated,
+    borderColor: StudioColors.border,
     borderWidth: 1.5,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   complexityMiniText: {
-    color: "#111111",
+    color: StudioColors.textPrimary,
     fontSize: 9,
     fontFamily: MonoFont,
     fontWeight: "800",
@@ -1032,13 +1443,13 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
     backgroundColor: StudioColors.yellow,
     borderWidth: 1.5,
-    borderColor: "#111111",
+    borderColor: StudioColors.ink,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   xpMiniLabel: {
-    color: "#111111",
+    color: StudioColors.ink,
     fontSize: 9,
     fontWeight: "900",
     fontFamily: MonoFont,
