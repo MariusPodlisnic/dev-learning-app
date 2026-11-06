@@ -20,11 +20,30 @@ export default function VisualLessonPanel({
 }: VisualLessonPanelProps) {
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [selectedMemoryIndex, setSelectedMemoryIndex] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [fastSpeed, setFastSpeed] = useState<boolean>(false);
 
   useEffect(() => {
     setActiveIndex(0);
     setSelectedMemoryIndex(0);
+    setIsPlaying(false);
   }, [data, type]);
+
+  const itemCount = Array.isArray(data) ? data.length : 0;
+
+  useEffect(() => {
+    if (!isPlaying || itemCount <= 1) return;
+    const intervalMs = fastSpeed ? 900 : 1600;
+    const timer = setInterval(() => {
+      if (type === "memory") {
+        setSelectedMemoryIndex((prev) => (prev + 1) % itemCount);
+      } else {
+        setActiveIndex((prev) => (prev + 1) % itemCount);
+      }
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [isPlaying, fastSpeed, itemCount, type]);
 
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
@@ -42,13 +61,34 @@ export default function VisualLessonPanel({
   const safeMemoryIndex =
     selectedMemoryIndex < data.length ? selectedMemoryIndex : 0;
   const safeActiveIndex = activeIndex < data.length ? activeIndex : 0;
+  const currentStepIndex =
+    type === "memory" ? safeMemoryIndex : safeActiveIndex;
+
+  function handleSelectStep(idx: number) {
+    setIsPlaying(false);
+    if (type === "memory") {
+      setSelectedMemoryIndex(idx);
+    } else {
+      setActiveIndex(idx);
+    }
+  }
 
   function handleNextStep() {
-    setActiveIndex((prev) => (prev + 1) % data.length);
+    setIsPlaying(false);
+    if (type === "memory") {
+      setSelectedMemoryIndex((prev) => (prev + 1) % data.length);
+    } else {
+      setActiveIndex((prev) => (prev + 1) % data.length);
+    }
   }
 
   function handlePrevStep() {
-    setActiveIndex((prev) => (prev - 1 + data.length) % data.length);
+    setIsPlaying(false);
+    if (type === "memory") {
+      setSelectedMemoryIndex((prev) => (prev - 1 + data.length) % data.length);
+    } else {
+      setActiveIndex((prev) => (prev - 1 + data.length) % data.length);
+    }
   }
 
   return (
@@ -56,8 +96,18 @@ export default function VisualLessonPanel({
       {/* Top Visualizer Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.liveDot} />
+          <View
+            style={[
+              styles.liveDot,
+              isPlaying && { backgroundColor: StudioColors.amber },
+            ]}
+          />
           <Text style={styles.title}>MEMORY & EXECUTION INSPECTOR</Text>
+          {isPlaying && (
+            <View style={styles.playingPill}>
+              <Text style={styles.playingPillText}>LIVE TRACE</Text>
+            </View>
+          )}
         </View>
         <View style={styles.modeBadge}>
           <Text style={styles.modeBadgeText}>
@@ -67,6 +117,79 @@ export default function VisualLessonPanel({
                 ? "HASH TABLE O(1)"
                 : "ARRAY POINTER"}
           </Text>
+        </View>
+      </View>
+
+      {/* Unified Controls Bar across all visual modes */}
+      <View style={styles.controlsBar}>
+        <View style={styles.controlsLeft}>
+          <Text style={styles.arrayLabel}>
+            {type === "memory"
+              ? `ACTIVE BINDING: ${data[safeMemoryIndex]?.label || ""}`
+              : type === "hashmap"
+                ? "KEY-VALUE BUCKETS"
+                : `POINTER AT INDEX [${safeActiveIndex}]`}
+          </Text>
+          <View style={styles.stepDotsRow}>
+            {data.map((_: any, i: number) => (
+              <Pressable
+                key={i}
+                style={[
+                  styles.stepDot,
+                  i === currentStepIndex && styles.stepDotActive,
+                ]}
+                onPress={() => handleSelectStep(i)}
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.stepperBtns}>
+          {data.length > 1 && (
+            <>
+              <Pressable
+                style={[
+                  styles.speedBtn,
+                  fastSpeed && styles.speedBtnActive,
+                ]}
+                onPress={() => setFastSpeed((prev) => !prev)}
+              >
+                <Text
+                  style={[
+                    styles.speedBtnText,
+                    fastSpeed && styles.speedBtnTextActive,
+                  ]}
+                >
+                  {fastSpeed ? "2x" : "1x"}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.stepBtn,
+                  isPlaying && styles.autoPlayBtnActive,
+                ]}
+                onPress={() => setIsPlaying((prev) => !prev)}
+              >
+                <Text
+                  style={[
+                    styles.stepBtnText,
+                    isPlaying && styles.autoPlayBtnTextActive,
+                  ]}
+                >
+                  {isPlaying ? "⏸ Pause" : "▶ Auto-Play"}
+                </Text>
+              </Pressable>
+            </>
+          )}
+          <Pressable style={styles.stepBtn} onPress={handlePrevStep}>
+            <Text style={styles.stepBtnText}>◀ Prev</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.stepBtn, styles.stepBtnPrimary]}
+            onPress={handleNextStep}
+          >
+            <Text style={styles.stepBtnTextPrimary}>Step Next ▶</Text>
+          </Pressable>
         </View>
       </View>
 
@@ -85,7 +208,7 @@ export default function VisualLessonPanel({
               <Pressable
                 key={idx}
                 style={[styles.memoryRow, isSelected && styles.memoryRowActive]}
-                onPress={() => setSelectedMemoryIndex(idx)}
+                onPress={() => handleSelectStep(idx)}
               >
                 <View
                   style={[styles.stackBox, isSelected && styles.stackBoxActive]}
@@ -165,39 +288,6 @@ export default function VisualLessonPanel({
       {/* ARRAY OR HASHMAP STEPPER MODE */}
       {(type === "array" || type === "hashmap") && (
         <View style={styles.diagramContainer}>
-          <View style={styles.controlsBar}>
-            <View style={styles.controlsLeft}>
-              <Text style={styles.arrayLabel}>
-                {type === "hashmap"
-                  ? "KEY-VALUE BUCKETS"
-                  : `POINTER AT INDEX [${safeActiveIndex}]`}
-              </Text>
-              <View style={styles.stepDotsRow}>
-                {data.map((_: any, i: number) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.stepDot,
-                      i === safeActiveIndex && styles.stepDotActive,
-                    ]}
-                  />
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.stepperBtns}>
-              <Pressable style={styles.stepBtn} onPress={handlePrevStep}>
-                <Text style={styles.stepBtnText}>◀ Prev</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.stepBtn, styles.stepBtnPrimary]}
-                onPress={handleNextStep}
-              >
-                <Text style={styles.stepBtnTextPrimary}>Step Next ▶</Text>
-              </Pressable>
-            </View>
-          </View>
-
           <View style={styles.arrayGrid}>
             {data.map((item: any, idx: number) => {
               const isCurrent = idx === safeActiveIndex;
@@ -208,7 +298,7 @@ export default function VisualLessonPanel({
                     styles.arrayCell,
                     isCurrent && styles.activeArrayCell,
                   ]}
-                  onPress={() => setActiveIndex(idx)}
+                  onPress={() => handleSelectStep(idx)}
                 >
                   <View style={styles.cellHeader}>
                     <Text
@@ -329,6 +419,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1.4,
+  },
+  playingPill: {
+    backgroundColor: StudioColors.amberSoft,
+    borderWidth: 1,
+    borderColor: StudioColors.amberBorder,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  playingPillText: {
+    color: StudioColors.amber,
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    fontFamily: MonoFont,
   },
   modeBadge: {
     backgroundColor: StudioColors.surfaceElevated,
@@ -480,9 +585,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 14,
     flexWrap: "wrap",
     gap: 10,
+    backgroundColor: StudioColors.bg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
   },
   controlsLeft: {
     gap: 6,
@@ -492,6 +603,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.1,
+    fontFamily: MonoFont,
   },
   stepDotsRow: {
     flexDirection: "row",
@@ -499,26 +611,59 @@ const styles = StyleSheet.create({
   },
   stepDot: {
     width: 14,
-    height: 4,
-    borderRadius: 2,
+    height: 5,
+    borderRadius: 3,
     backgroundColor: StudioColors.borderStrong,
+    ...Platform.select({ web: { cursor: "pointer" } }),
   },
   stepDotActive: {
     backgroundColor: StudioColors.amber,
-    width: 22,
+    width: 24,
   },
   stepperBtns: {
     flexDirection: "row",
-    gap: 8,
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  speedBtn: {
+    backgroundColor: StudioColors.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  speedBtnActive: {
+    borderColor: StudioColors.skyBorder,
+    backgroundColor: StudioColors.skySoft,
+  },
+  speedBtnText: {
+    color: StudioColors.textMuted,
+    fontSize: 10,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+  },
+  speedBtnTextActive: {
+    color: StudioColors.sky,
   },
   stepBtn: {
     backgroundColor: StudioColors.surfaceElevated,
-    paddingHorizontal: 12,
+    paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: StudioColors.borderStrong,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  autoPlayBtnActive: {
+    backgroundColor: StudioColors.emeraldSoft,
+    borderColor: StudioColors.emeraldBorder,
+  },
+  autoPlayBtnTextActive: {
+    color: StudioColors.emeraldLight,
+    fontWeight: "800",
   },
   stepBtnPrimary: {
     backgroundColor: StudioColors.amber,
