@@ -36,13 +36,23 @@ interface RoadmapTreeProps {
 }
 
 const TRACKS = [
-  { key: "python_basics", label: "🐍 Foundation Core", accent: "#38BDF8" },
-  { key: "algorithms", label: "⚡ Algorithms", accent: "#818CF8" },
-  { key: "system_design", label: "🛰️ System Design", accent: "#34D399" },
+  {
+    key: "python_basics",
+    label: "Foundation Core",
+    tag: "01",
+    accent: "#F59E0B",
+  },
+  { key: "algorithms", label: "Algorithms", tag: "02", accent: "#6366F1" },
+  {
+    key: "system_design",
+    label: "System Design",
+    tag: "03",
+    accent: "#10B981",
+  },
 ];
 
-const CARD_WIDTH = 260;
-const CARD_GAP = 24;
+const CARD_WIDTH = 270;
+const CARD_GAP = 28;
 const BRANCH_SPAN = CARD_WIDTH + CARD_GAP;
 
 function TreeConnector({
@@ -56,15 +66,15 @@ function TreeConnector({
   accent: string;
   isCompleted: boolean;
 }) {
-  const lineColor = isCompleted ? accent : "#223049";
+  const lineColor = isCompleted ? accent : "#27272A";
 
   if (fromCount === 1 && toCount === 1) {
     return (
       <View style={styles.connectorContainer}>
         <View
-          style={[styles.vLine, { height: 36, backgroundColor: lineColor }]}
+          style={[styles.vLine, { height: 34, backgroundColor: lineColor }]}
         />
-        <Text style={[styles.downArrow, { color: lineColor }]}>▼</Text>
+        <Text style={[styles.downArrow, { color: lineColor }]}>▾</Text>
       </View>
     );
   }
@@ -73,7 +83,7 @@ function TreeConnector({
     return (
       <View style={styles.connectorContainer}>
         <View
-          style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+          style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
         />
         <View
           style={[
@@ -84,15 +94,15 @@ function TreeConnector({
         <View style={[styles.legsRow, { width: BRANCH_SPAN }]}>
           <View style={styles.legCol}>
             <View
-              style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+              style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
             />
-            <Text style={[styles.downArrow, { color: lineColor }]}>▼</Text>
+            <Text style={[styles.downArrow, { color: lineColor }]}>▾</Text>
           </View>
           <View style={styles.legCol}>
             <View
-              style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+              style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
             />
-            <Text style={[styles.downArrow, { color: lineColor }]}>▼</Text>
+            <Text style={[styles.downArrow, { color: lineColor }]}>▾</Text>
           </View>
         </View>
       </View>
@@ -105,15 +115,15 @@ function TreeConnector({
         <View style={[styles.legsRow, { width: BRANCH_SPAN }]}>
           <View style={styles.legCol}>
             <View
-              style={[styles.vLine, { height: 36, backgroundColor: lineColor }]}
+              style={[styles.vLine, { height: 34, backgroundColor: lineColor }]}
             />
-            <Text style={[styles.downArrow, { color: lineColor }]}>▼</Text>
+            <Text style={[styles.downArrow, { color: lineColor }]}>▾</Text>
           </View>
           <View style={styles.legCol}>
             <View
-              style={[styles.vLine, { height: 36, backgroundColor: lineColor }]}
+              style={[styles.vLine, { height: 34, backgroundColor: lineColor }]}
             />
-            <Text style={[styles.downArrow, { color: lineColor }]}>▼</Text>
+            <Text style={[styles.downArrow, { color: lineColor }]}>▾</Text>
           </View>
         </View>
       </View>
@@ -125,10 +135,10 @@ function TreeConnector({
       <View style={styles.connectorContainer}>
         <View style={[styles.legsRow, { width: BRANCH_SPAN }]}>
           <View
-            style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+            style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
           />
           <View
-            style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+            style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
           />
         </View>
         <View
@@ -138,9 +148,9 @@ function TreeConnector({
           ]}
         />
         <View
-          style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+          style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
         />
-        <Text style={[styles.downArrow, { color: lineColor }]}>▼</Text>
+        <Text style={[styles.downArrow, { color: lineColor }]}>▾</Text>
       </View>
     );
   }
@@ -150,7 +160,7 @@ function TreeConnector({
       <View
         style={[styles.vLine, { height: 32, backgroundColor: lineColor }]}
       />
-      <Text style={[styles.downArrow, { color: lineColor }]}>▼</Text>
+      <Text style={[styles.downArrow, { color: lineColor }]}>▾</Text>
     </View>
   );
 }
@@ -188,6 +198,9 @@ export default function RoadmapTree({
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.headerSection}>
+        <Text style={styles.eyebrow}>CURRICULUM ROADMAP</Text>
+        <Text style={styles.mainHeading}>Select a path to master</Text>
+
         <View style={styles.trackTabs}>
           {TRACKS.map((track) => {
             const isSelected = activeTrack === track.key;
@@ -197,7 +210,7 @@ export default function RoadmapTree({
                 style={[
                   styles.trackPill,
                   isSelected && {
-                    backgroundColor: "#1E293B",
+                    backgroundColor: "#18181B",
                     borderColor: track.accent,
                   },
                 ]}
@@ -205,8 +218,16 @@ export default function RoadmapTree({
               >
                 <Text
                   style={[
+                    styles.trackTag,
+                    { color: isSelected ? track.accent : "#52525B" },
+                  ]}
+                >
+                  {track.tag}
+                </Text>
+                <Text
+                  style={[
                     styles.trackPillText,
-                    isSelected && { color: "#F8FAFC" },
+                    isSelected && { color: "#FAFAFA" },
                   ]}
                 >
                   {track.label}
@@ -218,12 +239,12 @@ export default function RoadmapTree({
 
         <View style={styles.progressContainer}>
           <View style={styles.progressLabelRow}>
-            <Text style={styles.progressLabel}>Track Progress</Text>
+            <Text style={styles.progressLabel}>MASTERY PROGRESS</Text>
             <Text
               style={[styles.progressCount, { color: currentTrackMeta.accent }]}
             >
-              {completedCount} / {trackLessons.length} Completed (
-              {progressPercent}%)
+              {completedCount} of {trackLessons.length} completed ·{" "}
+              {progressPercent}%
             </Text>
           </View>
           <View style={styles.progressBarBg}>
@@ -260,6 +281,7 @@ export default function RoadmapTree({
                       style={[
                         styles.nodeCard,
                         isDone && styles.nodeCardDone,
+                        !isDone && !isLocked && { borderColor: "#27272A" },
                         isLocked && styles.nodeCardLocked,
                       ]}
                       onPress={() => onSelectLesson(node)}
@@ -272,16 +294,32 @@ export default function RoadmapTree({
                             !isDone &&
                               !isLocked && {
                                 borderColor: currentTrackMeta.accent,
+                                backgroundColor: currentTrackMeta.accent + "12",
                               },
                           ]}
                         >
-                          <Text style={styles.statusIcon}>
-                            {isLocked ? "🔒" : isDone ? "✓" : ""}
-                          </Text>
+                          {isLocked ? (
+                            <Text style={styles.lockIcon}>🔒</Text>
+                          ) : isDone ? (
+                            <Text style={styles.statusIconDone}>✓</Text>
+                          ) : (
+                            <View
+                              style={[
+                                styles.innerDot,
+                                { backgroundColor: currentTrackMeta.accent },
+                              ]}
+                            />
+                          )}
                         </View>
                         <View style={styles.nodeTextContainer}>
-                          <Text style={styles.nodeCategory} numberOfLines={1}>
-                            {node.category || `Step ${node.lesson_order}`}
+                          <Text
+                            style={[
+                              styles.nodeCategory,
+                              !isLocked && { color: currentTrackMeta.accent },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {node.category || `Module ${node.lesson_order}`}
                           </Text>
                           <Text style={styles.nodeTitle} numberOfLines={2}>
                             {node.title}
@@ -290,14 +328,7 @@ export default function RoadmapTree({
                       </View>
 
                       <View style={styles.arrowBadge}>
-                        <Text
-                          style={[
-                            styles.arrowIcon,
-                            { color: currentTrackMeta.accent },
-                          ]}
-                        >
-                          →
-                        </Text>
+                        <Text style={styles.arrowIcon}>↗</Text>
                       </View>
                     </Pressable>
                   );
@@ -323,10 +354,10 @@ export default function RoadmapTree({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#070A11",
+    backgroundColor: "#09090B",
   },
   content: {
-    paddingVertical: 40,
+    paddingVertical: 44,
     paddingHorizontal: 24,
     alignItems: "center",
   },
@@ -336,51 +367,79 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 44,
   },
+  eyebrow: {
+    color: "#F59E0B",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginBottom: 6,
+  },
+  mainHeading: {
+    color: "#FAFAFA",
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    marginBottom: 24,
+  },
   trackTabs: {
     flexDirection: "row",
-    backgroundColor: "#0F1524",
-    padding: 6,
-    borderRadius: 14,
+    backgroundColor: "#121215",
+    padding: 5,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#1E293B",
-    gap: 8,
-    marginBottom: 24,
+    borderColor: "#27272A",
+    gap: 6,
+    marginBottom: 28,
     flexWrap: "wrap",
     justifyContent: "center",
   },
   trackPill: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "transparent",
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
+  trackTag: {
+    fontSize: 11,
+    fontWeight: "800",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+  },
   trackPillText: {
-    color: "#64748B",
+    color: "#71717A",
     fontSize: 13,
     fontWeight: "700",
   },
   progressContainer: {
     width: "100%",
+    backgroundColor: "#121215",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#27272A",
   },
   progressLabelRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   progressLabel: {
-    color: "#94A3B8",
-    fontSize: 12,
-    fontWeight: "600",
+    color: "#71717A",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.2,
   },
   progressCount: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   progressBarBg: {
-    height: 6,
-    backgroundColor: "#131C2D",
+    height: 5,
+    backgroundColor: "#18181B",
     borderRadius: 3,
     overflow: "hidden",
   },
@@ -403,24 +462,24 @@ const styles = StyleSheet.create({
   },
   nodeCard: {
     width: CARD_WIDTH,
-    backgroundColor: "#0F1524",
+    backgroundColor: "#121215",
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderWidth: 1.5,
-    borderColor: "#1E293B",
+    borderWidth: 1,
+    borderColor: "#27272A",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 10,
+    gap: 12,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   nodeCardDone: {
-    borderColor: "#10B98180",
-    backgroundColor: "#064E3B15",
+    borderColor: "#10B98150",
+    backgroundColor: "#10B9810A",
   },
   nodeCardLocked: {
-    opacity: 0.6,
+    opacity: 0.55,
   },
   nodeLeft: {
     flexDirection: "row",
@@ -432,12 +491,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statusBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#131C2D",
-    borderWidth: 2,
-    borderColor: "#334155",
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: "#18181B",
+    borderWidth: 1.5,
+    borderColor: "#3F3F46",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -445,45 +504,56 @@ const styles = StyleSheet.create({
     backgroundColor: "#10B981",
     borderColor: "#10B981",
   },
-  statusIcon: {
-    color: "#070A11",
-    fontSize: 11,
+  innerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  lockIcon: {
+    fontSize: 10,
+  },
+  statusIconDone: {
+    color: "#09090B",
+    fontSize: 12,
     fontWeight: "900",
   },
   nodeCategory: {
-    color: "#64748B",
+    color: "#71717A",
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: "800",
     textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginBottom: 2,
+    letterSpacing: 0.8,
+    marginBottom: 3,
   },
   nodeTitle: {
-    color: "#F8FAFC",
+    color: "#FAFAFA",
     fontSize: 14,
     fontWeight: "700",
     lineHeight: 19,
   },
   arrowBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    backgroundColor: "#131C2D",
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    backgroundColor: "#18181B",
+    borderWidth: 1,
+    borderColor: "#27272A",
     justifyContent: "center",
     alignItems: "center",
   },
   arrowIcon: {
-    fontSize: 13,
-    fontWeight: "800",
+    color: "#A1A1AA",
+    fontSize: 12,
+    fontWeight: "700",
   },
   connectorContainer: {
     alignItems: "center",
   },
   vLine: {
-    width: 2,
+    width: 1.5,
   },
   hLine: {
-    height: 2,
+    height: 1.5,
   },
   legsRow: {
     flexDirection: "row",
@@ -493,9 +563,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   downArrow: {
-    fontSize: 9,
-    lineHeight: 10,
-    marginTop: -2,
-    marginBottom: -1,
+    fontSize: 12,
+    lineHeight: 12,
+    marginTop: -4,
+    marginBottom: -2,
   },
 });
