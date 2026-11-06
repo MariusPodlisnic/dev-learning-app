@@ -177,6 +177,85 @@ print(user.get("role"))        # "admin"`,
 
 print(f"User {user['username']} has role {user.get('role')}")`,
   },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 6,
+    matchKeywords: ["string", "format", "clean", "strip", "lower"],
+    realWorldUse:
+      "Used in login forms and search bars so typing '  Alex@Email.com ' still matches 'alex@email.com'.",
+    analogyTitle: "Strings Have Built-In Cleaning Tools",
+    analogyText:
+      "Users type messy input all the time — accidental spaces at the end, random CAPS, or typos. Python strings come with built-in methods you chain with a dot (`.`):\n\n• **`.strip()`** trims extra spaces off both ends.\n• **`.lower()`** converts every letter to lowercase.\n• **`.replace(old, new)`** swaps out characters.",
+    cheatSheet: `raw_name = "  Alex_Coder  "
+
+# Chain .strip() and .lower() together:
+clean_name = raw_name.strip().lower()
+
+print(clean_name)  # "alex_coder"`,
+    quiz: {
+      question: 'What does `"  HELLO ".strip().lower()` produce?',
+      options: ['"hello"', '"  hello "', '"HELLO"'],
+      correctIndex: 0,
+      explanation:
+        "`.strip()` removes the leading and trailing spaces, and `.lower()` turns `HELLO` into `hello`!",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 7,
+    matchKeywords: ["filter", "comprehension", "high", "score"],
+    realWorldUse:
+      "Used in e-commerce ('Show items under $50'), Spotify ('Songs rated 80+'), and notification feeds.",
+    analogyTitle: "Filtering Is a VIP Bouncer for Your List",
+    analogyText:
+      "Imagine going through a list of numbers and keeping **only** the ones that pass a rule (like `score >= 80`).\n\nYou can create a new empty list `passed = []`, loop through every item, and use `if score >= 80:` with `passed.append(score)` to collect the winners!",
+    cheatSheet: `scores = [65, 92, 88, 40]
+top_scores = []
+
+for s in scores:
+    if s >= 80:
+        top_scores.append(s)
+
+print(top_scores)  # [92, 88]`,
+    quiz: {
+      question: "Which list method adds a new item to the end of a list?",
+      options: [
+        "my_list.append(item)",
+        "my_list.push_back(item)",
+        "my_list.insert_end(item)",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`append()` adds a single item right onto the end of a Python list!",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 8,
+    matchKeywords: ["try", "except", "error", "safe", "exception"],
+    realWorldUse:
+      "Used in payment apps, file uploads, and network calls so one bad input shows a friendly message instead of crashing the app.",
+    analogyTitle: "Try / Except Is a Safety Net for Your Code",
+    analogyText:
+      "Normally, dividing a number by `0` crashes your entire Python program immediately.\n\nWith **`try:`** and **`except:`**, you tell Python:\n• **`try:`** Attempt this risky calculation.\n• **`except ZeroDivisionError:`** If it fails, catch the fall gracefully and return a safe fallback value (like `0`) instead of crashing!",
+    cheatSheet: `def safe_divide(total, people):
+    try:
+        return total / people
+    except ZeroDivisionError:
+        return 0`,
+    quiz: {
+      question:
+        "When does the code inside the `except:` block run?",
+      options: [
+        "Only when an error happens inside the `try:` block",
+        "Every single time the function is called",
+        "Before the `try:` block starts",
+      ],
+      correctIndex: 0,
+      explanation:
+        "If `try:` succeeds without errors, Python skips `except:` completely. `except:` only triggers when an error occurs!",
+    },
+  },
 
   // ============================================================================
   // TRACK 2: ALGORITHMS
@@ -238,6 +317,88 @@ while left < right:
         "Once `left >= right`, you've already inspected every pair from the outside in!",
     },
   },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 6,
+    matchKeywords: ["frequency", "count", "most", "active", "tally"],
+    realWorldUse:
+      "Used by Twitter/X to find trending hashtags, Spotify Wrapped to count your top artist, and spam detectors.",
+    analogyTitle: "Frequency Map: Tally Marks on a Scoreboard",
+    analogyText:
+      "How do you count how many times each word appears in a list in a single pass?\n\nUse a dictionary as a scoreboard! For every item `x` you see, look up its current count with `counts.get(x, 0)` (which gives `0` the first time) and add `1`: `counts[x] = counts.get(x, 0) + 1`.",
+    cheatSheet: `counts = {}
+for item in items:
+    counts[item] = counts.get(item, 0) + 1
+
+# Example: {"alex": 3, "sam": 1}`,
+    quiz: {
+      question:
+        'What does `counts.get("alex", 0)` return if `"alex"` is NOT in the dictionary yet?',
+      options: ["0 (the default value)", "It crashes with KeyError", "None"],
+      correctIndex: 0,
+      explanation:
+        "The second argument to `.get(key, default)` is returned whenever the key isn't in the dictionary yet!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 7,
+    matchKeywords: ["sliding", "window", "subarray", "consecutive", "spike"],
+    realWorldUse:
+      "Used in network monitoring (5-minute traffic averages), stock chart moving averages, and video streaming buffers.",
+    analogyTitle: "Sliding a Picture Frame Across a Wall",
+    analogyText:
+      "Imagine finding the highest sum of any `k` consecutive numbers in a list.\n\nInstead of re-adding all `k` numbers from scratch at every position, slide your window one step right: **add the new number entering on the right**, and **subtract the old number leaving on the left**!",
+    cheatSheet: `# Sum of first window of size k:
+window_sum = sum(nums[:k])
+best = window_sum
+
+for i in range(k, len(nums)):
+    window_sum += nums[i] - nums[i - k]
+    best = max(best, window_sum)`,
+    quiz: {
+      question:
+        "When a window of size `k` slides 1 step to the right, how many numbers enter and leave the window?",
+      options: [
+        "1 new number enters on the right, 1 old number leaves on the left",
+        "All k numbers are recalculated from zero",
+        "The window doubles in size",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Updating the sum with `+ entering - leaving` takes O(1) constant time per step!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 8,
+    matchKeywords: ["stack", "bracket", "valid", "parentheses", "lifo"],
+    realWorldUse:
+      "Used in code editors (syntax highlighting & linting), browser Back buttons, and Undo/Redo history.",
+    analogyTitle: "A Stack Is a Stack of Cafeteria Plates",
+    analogyText:
+      "A **Stack** follows **Last-In, First-Out (LIFO)**: the last plate you put on top is the first one you take off.\n\n• When you see an opening bracket `(`, **push** it onto the stack (`stack.append(ch)`).\n• When you see a closing bracket `)`, **pop** the top of the stack (`stack.pop()`) and check that they match!",
+    cheatSheet: `stack = []
+for ch in text:
+    if ch == "(":
+        stack.append(ch)
+    elif ch == ")":
+        if not stack:
+            return False
+        stack.pop()
+return len(stack) == 0`,
+    quiz: {
+      question: "What does LIFO (Last-In, First-Out) mean in a Stack?",
+      options: [
+        "The most recently added item is the first one removed",
+        "Items are removed in alphabetical order",
+        "The oldest item at index 0 is removed first",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`stack.append()` pushes to the top (end), and `stack.pop()` removes that exact most recent item!",
+    },
+  },
 
   // ============================================================================
   // TRACK 3: SYSTEM DESIGN
@@ -270,6 +431,104 @@ while left < right:
       correctIndex: 0,
       explanation:
         "A Cache Hit means the data was already in fast memory, saving an expensive trip to the database!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 4,
+    matchKeywords: ["round-robin", "round robin", "load balancer", "route"],
+    realWorldUse:
+      "Used by NGINX, Cloudflare, and AWS Application Load Balancers to distribute millions of requests across server fleets.",
+    analogyTitle: "Dealing Cards Around a Table",
+    analogyText:
+      "How does a **Round-Robin Load Balancer** share requests fairly across 3 servers?\n\nJust like dealing cards in a circle: Request 0 goes to Server 0, Request 1 to Server 1, Request 2 to Server 2, and Request 3 wraps right back around to Server 0 using the **modulo operator (`%`)**: `index = request_num % len(servers)`!",
+    cheatSheet: `def pick_server(servers, request_index):
+    # Modulo (%) wraps around automatically!
+    slot = request_index % len(servers)
+    return servers[slot]`,
+    quiz: {
+      question:
+        "If you have 3 servers and `request_index` is `3`, what is `3 % 3`?",
+      options: [
+        "0 (it wraps back to the first server at index 0)",
+        "3 (index out of bounds)",
+        "1",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`3 divided by 3` has a remainder of `0`, so `3 % 3 == 0` — wrapping cleanly back to the first server!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 5,
+    matchKeywords: ["shard", "sharding", "partition", "database"],
+    realWorldUse:
+      "Used by Discord, Instagram, and Uber when a single database table grows too large (billions of rows) to fit on one machine.",
+    analogyTitle: "Splitting an Encyclopedia Into Volumes A–Z",
+    analogyText:
+      "When one database gets too full, **Database Sharding** splits the data across multiple smaller databases (**shards**).\n\nTo know which shard holds `user_id = 42`, we compute `shard_id = user_id % num_shards`. That way, we always know the exact database to query without searching all of them!",
+    cheatSheet: `def get_shard_name(user_id, num_shards):
+    shard_index = user_id % num_shards
+    return f"shard_{shard_index}"`,
+    quiz: {
+      question:
+        "Why must the sharding formula (`user_id % num_shards`) always give the exact same answer for the same `user_id`?",
+      options: [
+        "So we can find that user's data later on the exact same shard",
+        "To use more CPU power",
+        "So every shard stores a duplicate copy of every user",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Deterministic routing ensures writes and reads for User #42 always go to the exact same database shard!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 6,
+    matchKeywords: ["circuit", "breaker", "health", "failover", "outage"],
+    realWorldUse:
+      "Used by Netflix Hystrix and Stripe to stop a slow or failing microservice from freezing the entire app.",
+    analogyTitle: "A Home Electrical Circuit Breaker for APIs",
+    analogyText:
+      "If a third-party service crashes, continuing to send it 10,000 requests per second will freeze your own servers waiting for timeouts.\n\nA **Circuit Breaker** counts recent failures:\n• If `failures >= threshold`, the circuit trips **`\"OPEN\"`** (blocking calls immediately and returning a fast fallback).\n• Otherwise, it stays **`\"CLOSED\"`** (normal traffic flows).",
+    cheatSheet: `def check_circuit_state(failures, threshold):
+    if failures >= threshold:
+        return "OPEN"
+    return "CLOSED"`,
+    quiz: {
+      question:
+        "In System Design, what does an `OPEN` circuit breaker mean?",
+      options: [
+        "The circuit has tripped due to errors — requests are blocked immediately to protect the system",
+        "All requests are allowed through with zero limits",
+        "The server was deleted",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Just like an electrical circuit breaker in your house, when it trips `OPEN`, current stops flowing until the fault recovers!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 7,
+    matchKeywords: ["quorum", "consensus", "leader", "majority", "vote"],
+    realWorldUse:
+      "Used in Raft, Kubernetes (etcd), and distributed databases to agree on data even if some servers go offline.",
+    analogyTitle: "Majority Vote: More Than Half the Room",
+    analogyText:
+      "In a distributed cluster of 5 servers, what if 2 servers lose power? Can the remaining 3 servers safely save data?\n\nYes — if they reach a **Quorum (strict majority)**: `yes_votes > total_nodes / 2`. With 5 nodes, at least 3 `True` votes are needed!",
+    cheatSheet: `def has_quorum(votes):
+    yes_count = sum(1 for v in votes if v is True)
+    return yes_count > len(votes) / 2`,
+    quiz: {
+      question:
+        "In a cluster of 5 servers, how many `True` votes are required to reach a strict majority (quorum)?",
+      options: ["At least 3 out of 5", "1 out of 5", "All 5 out of 5"],
+      correctIndex: 0,
+      explanation:
+        "Half of 5 is 2.5, so the smallest whole number strictly greater than 2.5 is 3 servers!",
     },
   },
 ];
