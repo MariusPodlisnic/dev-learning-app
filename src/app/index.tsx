@@ -965,7 +965,14 @@ export default function HomeScreen() {
                       ))}
                     </View>
 
-                    <View style={styles.editorBody}>
+                    <ScrollView
+                      style={styles.editorScroll}
+                      contentContainerStyle={[
+                        styles.editorBody,
+                        { minHeight: lineCount * 21 + 32 },
+                      ]}
+                      showsVerticalScrollIndicator={true}
+                    >
                       <View style={styles.lineNumbers}>
                         {Array.from({ length: lineCount }).map((_, i) => (
                           <Text key={i} style={styles.lineNumberText}>
@@ -974,18 +981,22 @@ export default function HomeScreen() {
                         ))}
                       </View>
                       <TextInput
-                        style={styles.codeEditor}
+                        style={[
+                          styles.codeEditor,
+                          { minHeight: lineCount * 21 + 32 },
+                        ]}
                         value={code}
                         onChangeText={setCode}
                         onSelectionChange={(e) => {
                           selectionRef.current = e.nativeEvent.selection;
                         }}
                         multiline
+                        scrollEnabled={false}
                         autoCapitalize="none"
                         autoCorrect={false}
                         spellCheck={false}
                       />
-                    </View>
+                    </ScrollView>
 
                     <View style={styles.ideFooter}>
                       <Text style={styles.ideFooterText}>
@@ -1444,10 +1455,15 @@ const styles = StyleSheet.create({
   stepCircleText: { color: "#FAFAFA", fontSize: 10, fontWeight: "800" },
   lessonTitle: { color: "#71717A", fontSize: 12, fontWeight: "600", flex: 1 },
   activeLessonTitle: { color: "#FAFAFA", fontWeight: "700" },
-  workspaceContainer: { flex: 1, padding: 22, backgroundColor: "#09090B" },
-  workspaceGrid: { flex: 1, flexDirection: "row", gap: 22 },
+  workspaceContainer: {
+    flex: 1,
+    padding: 22,
+    backgroundColor: "#09090B",
+    overflow: "hidden",
+  },
+  workspaceGrid: { flex: 1, flexDirection: "row", gap: 22, overflow: "hidden" },
   explanationPanel: { flex: 1, paddingRight: 8 },
-  editorPanel: { flex: 1.15 },
+  editorPanel: { flex: 1.15, overflow: "hidden" },
   lessonBadgeRow: {
     flexDirection: "row",
     gap: 8,
@@ -1645,6 +1661,8 @@ const styles = StyleSheet.create({
   },
   bold: { color: "#F59E0B", fontWeight: "700" },
   ideFrame: {
+    flex: 1.45,
+    minHeight: 240,
     backgroundColor: "#121215",
     borderRadius: 12,
     borderWidth: 1,
@@ -1724,7 +1742,14 @@ const styles = StyleSheet.create({
     fontFamily: "monospace",
     fontWeight: "700",
   },
-  editorBody: { flexDirection: "row", minHeight: 230 },
+  editorScroll: {
+    flex: 1,
+    backgroundColor: "#121215",
+  },
+  editorBody: {
+    flexDirection: "row",
+    minHeight: 220,
+  },
   lineNumbers: {
     backgroundColor: "#0C0C0E",
     paddingVertical: 16,
@@ -1732,6 +1757,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: "#1F1F23",
     alignItems: "flex-end",
+    ...Platform.select({ web: { userSelect: "none" as any } }),
   },
   lineNumberText: {
     color: "#52525B",
@@ -1750,6 +1776,8 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         outlineStyle: "none" as any,
+        resize: "none" as any,
+        overflow: "hidden" as any,
       },
     }),
   },
