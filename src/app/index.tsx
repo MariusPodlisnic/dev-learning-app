@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { supabase } from "../../lib/supabase";
 import Auth from "../components/Auth";
+import BugHuntArena from "../components/BugHuntArena";
 import HintAccordion from "../components/HintAccordion";
 import PaywallModal from "../components/PaywallModal";
 import ProfileStatsModal, {
@@ -280,7 +281,9 @@ function FormattedText({ text, style }: { text?: string; style?: any }) {
 
 export default function HomeScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [viewMode, setViewMode] = useState<"roadmap" | "studio">("roadmap");
+  const [viewMode, setViewMode] = useState<"roadmap" | "studio" | "bughunt">(
+    "roadmap",
+  );
   const [activeTrack, setActiveTrack] = useState<string>("python_basics");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
@@ -307,6 +310,9 @@ export default function HomeScreen() {
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
   const [pyodideReady, setPyodideReady] = useState<boolean>(false);
   const [completedLessons, setCompletedLessons] = useState<
+    Record<string, boolean>
+  >({});
+  const [solvedIncidents, setSolvedIncidents] = useState<
     Record<string, boolean>
   >({});
 
@@ -701,6 +707,71 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleExecuteBugPatch(
+    userCode: string,
+    testHarness: string,
+  ): Promise<{
+    allPassed: boolean;
+    results: TestCaseResult[];
+    stdout: string;
+    error?: string;
+  }> {
+    try {
+      if (Platform.OS === "web" && pyodideRef.current) {
+        let stdoutBuffer = "";
+        pyodideRef.current.setStdout({
+          batched: (str: string) => {
+            stdoutBuffer += str + "\n";
+          },
+        });
+        const fullScript = `${userCode}\n${testHarness}`;
+        const rawRes = await pyodideRef.current.runPythonAsync(fullScript);
+        const parsed = JSON.parse(String(rawRes));
+        return {
+          allPassed: Boolean(parsed.all_passed),
+          results: parsed.results || [],
+          stdout: stdoutBuffer.trim(),
+        };
+      }
+      return {
+        allPassed: false,
+        results: [],
+        stdout: "",
+        error: "Python engine is still initializing.",
+      };
+    } catch (err: any) {
+      return {
+        allPassed: false,
+        results: [],
+        stdout: "",
+        error: err.message || String(err),
+      };
+    }
+  }
+
+  async function handleAwardBugHuntXp(xpEarned: number, incidentId: string) {
+    const alreadySolved = solvedIncidents[incidentId];
+    setSolvedIncidents((prev) => ({ ...prev, [incidentId]: true }));
+    if (alreadySolved) return;
+
+    const newXp = xpPoints + xpEarned;
+    const newStreak = streakCount === 0 ? 1 : streakCount;
+    setXpPoints(newXp);
+    setStreakCount(newStreak);
+
+    if (session) {
+      try {
+        await supabase.from("profiles").upsert({
+          id: session.user.id,
+          email: session.user.email,
+          xp_points: newXp,
+          streak_count: newStreak,
+          last_completed_at: new Date().toISOString(),
+        });
+      } catch (_e) {}
+    }
+  }
+
   const currentTrackTheme =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
   const devRank = getDeveloperRank(xpPoints);
@@ -915,6 +986,22 @@ export default function HomeScreen() {
                 💻 Code Studio
               </Text>
             </Pressable>
+            <Pressable
+              style={[
+                styles.modeBtn,
+                viewMode === "bughunt" && styles.modeBtnBugHuntActive,
+              ]}
+              onPress={() => setViewMode("bughunt")}
+            >
+              <Text
+                style={[
+                  styles.modeBtnText,
+                  viewMode === "bughunt" && styles.modeBtnBugHuntTextActive,
+                ]}
+              >
+                🐛 Bug Hunt
+              </Text>
+            </Pressable>
           </View>
 
           {!isCompactHeader && (
@@ -1006,6 +1093,14 @@ export default function HomeScreen() {
           activeTrack={activeTrack}
           onSelectTrack={handleSwitchTrack}
           onSelectLesson={handleSelectLesson}
+        />
+      ) : viewMode === "bughunt" ? (
+        <BugHuntArena
+          pyodideReady={pyodideReady}
+          onExecutePatch={handleExecuteBugPatch}
+          onAwardBugHuntXp={handleAwardBugHuntXp}
+          solvedIncidents={solvedIncidents}
+          renderHighlightedPython={renderHighlightedPython}
         />
       ) : (
         <View style={styles.content}>
@@ -1799,8 +1894,14 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   modeBtnActive: { backgroundColor: "#27272A" },
+  modeBtnBugHuntActive: {
+    backgroundColor: "rgba(239, 68, 68, 0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.45)",
+  },
   modeBtnText: { color: "#71717A", fontSize: 12, fontWeight: "700" },
   modeBtnTextActive: { color: "#FAFAFA" },
+  modeBtnBugHuntTextActive: { color: "#F87171", fontWeight: "800" },
   statusPill: {
     backgroundColor: "#121215",
     paddingHorizontal: 10,
