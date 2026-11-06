@@ -6,7 +6,14 @@ import {
   Text,
   View,
 } from "react-native";
-import { MonoFont, StudioColors, TrackThemes } from "../constants/theme";
+import {
+  HardShadow,
+  HardShadowSm,
+  MonoFont,
+  SerifFont,
+  StudioColors,
+  TrackThemes,
+} from "../constants/theme";
 
 export interface Lesson {
   id: string;
@@ -46,22 +53,22 @@ function getDifficultyColor(difficulty?: string) {
   const norm = (difficulty || "").toLowerCase();
   if (norm === "easy" || norm === "beginner") {
     return {
-      text: StudioColors.emeraldLight,
-      bg: StudioColors.emeraldSoft,
-      border: StudioColors.emeraldBorder,
+      text: "#111111",
+      bg: "#6EE7B7",
+      border: "#111111",
     };
   }
   if (norm === "hard" || norm === "advanced") {
     return {
-      text: "#F87171",
-      bg: StudioColors.roseSoft,
-      border: StudioColors.roseBorder,
+      text: "#111111",
+      bg: "#FF90E8",
+      border: "#111111",
     };
   }
   return {
-    text: StudioColors.amber,
-    bg: StudioColors.amberSoft,
-    border: StudioColors.amberBorder,
+    text: "#111111",
+    bg: "#FFDE59",
+    border: "#111111",
   };
 }
 
@@ -76,8 +83,8 @@ function TreeConnector({
   accent: string;
   isCompleted: boolean;
 }) {
-  const lineColor = isCompleted ? accent : StudioColors.borderStrong;
-  const dotBg = isCompleted ? accent : StudioColors.surfaceElevated;
+  const lineColor = "#111111";
+  const dotBg = isCompleted ? "#B8FF3B" : "#FFFFFF";
 
   if (fromCount === 1 && toCount === 1) {
     return (
@@ -252,24 +259,26 @@ export default function RoadmapTree({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Top Hero & Track Selector Section */}
+      {/* Top Neo-Brutalist Track Header & Selector */}
       <View style={styles.headerSection}>
-        <View style={styles.eyebrowPill}>
-          <View
-            style={[
-              styles.eyebrowDot,
-              { backgroundColor: currentTrackMeta.accent },
-            ]}
-          />
-          <Text style={[styles.eyebrow, { color: currentTrackMeta.accent }]}>
-            CURRICULUM ROADMAP
-          </Text>
+        <View style={styles.editorialTopRow}>
+          <View style={styles.editorialLeft}>
+            <View
+              style={[
+                styles.eyebrowSticker,
+                { backgroundColor: currentTrackMeta.stickerBg },
+              ]}
+            >
+              <Text style={styles.eyebrow}>
+                TRACK {currentTrackMeta.tag} · {currentTrackMeta.icon} INTERACTIVE PATH
+              </Text>
+            </View>
+            <Text style={styles.mainHeading}>{currentTrackMeta.label}</Text>
+            <Text style={styles.subHeading}>{currentTrackMeta.subtitle}</Text>
+          </View>
         </View>
 
-        <Text style={styles.mainHeading}>Select a path to master</Text>
-        <Text style={styles.subHeading}>{currentTrackMeta.subtitle}</Text>
-
-        {/* Sleek Segmented Track Selector */}
+        {/* Tactile Color-Blocked Track Selector */}
         <View style={styles.trackTabsBar}>
           {TRACK_KEYS.map((trackKey) => {
             const meta = TrackThemes[trackKey];
@@ -282,48 +291,37 @@ export default function RoadmapTree({
                 key={trackKey}
                 style={[
                   styles.trackTabPill,
-                  isSelected && {
-                    backgroundColor: StudioColors.surfaceElevated,
-                    borderColor: meta.accent,
-                  },
+                  isSelected && [
+                    styles.trackTabPillActive,
+                    {
+                      backgroundColor: meta.stickerBg,
+                    },
+                  ],
                 ]}
                 onPress={() => onSelectTrack(trackKey)}
               >
-                <Text style={styles.trackTabIcon}>{meta.icon}</Text>
-                <Text
-                  style={[
-                    styles.trackTag,
-                    {
-                      color: isSelected ? meta.accent : StudioColors.textDim,
-                    },
-                  ]}
-                >
-                  {meta.tag}
-                </Text>
-                <Text
-                  style={[
-                    styles.trackTabTitle,
-                    isSelected && { color: StudioColors.textPrimary },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {meta.shortLabel}
-                </Text>
                 <View
                   style={[
-                    styles.trackCountBadge,
+                    styles.trackCodeBadge,
                     isSelected && {
-                      backgroundColor: meta.accentSoft,
-                      borderColor: meta.accentBorder,
+                      backgroundColor: "#111111",
                     },
                   ]}
                 >
                   <Text
                     style={[
-                      styles.trackCountText,
-                      isSelected && { color: meta.accent },
+                      styles.trackCodeText,
+                      isSelected && { color: meta.stickerBg },
                     ]}
                   >
+                    {meta.tag}
+                  </Text>
+                </View>
+                <Text style={styles.trackTabTitle} numberOfLines={1}>
+                  {meta.label}
+                </Text>
+                <View style={styles.trackCountBadge}>
+                  <Text style={styles.trackCountText}>
                     {tDone}/{tLessons.length}
                   </Text>
                 </View>
@@ -338,27 +336,21 @@ export default function RoadmapTree({
             <View style={styles.progressLabelRow}>
               <View style={styles.progressTitleGroup}>
                 <Text style={styles.progressLabel}>
-                  {currentTrackMeta.label.toUpperCase()} PROGRESS
+                  {currentTrackMeta.label.toUpperCase()} MASTERY
                 </Text>
                 <Text style={styles.progressSubtext}>
-                  {completedCount} of {trackLessons.length} modules completed
+                  {completedCount} of {trackLessons.length} modules solved
                 </Text>
               </View>
               <View
                 style={[
                   styles.percentBadge,
                   {
-                    backgroundColor: currentTrackMeta.accentSoft,
-                    borderColor: currentTrackMeta.accentBorder,
+                    backgroundColor: currentTrackMeta.stickerBg,
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.progressPercentText,
-                    { color: currentTrackMeta.accent },
-                  ]}
-                >
+                <Text style={styles.progressPercentText}>
                   {progressPercent}%
                 </Text>
               </View>
@@ -369,8 +361,8 @@ export default function RoadmapTree({
                 style={[
                   styles.progressBarFill,
                   {
-                    width: `${progressPercent}%`,
-                    backgroundColor: currentTrackMeta.accent,
+                    width: `${Math.max(progressPercent, 4)}%`,
+                    backgroundColor: StudioColors.lime,
                   },
                 ]}
               />
@@ -381,18 +373,17 @@ export default function RoadmapTree({
             <View style={styles.upNextBanner}>
               <View style={styles.upNextLeft}>
                 <View style={styles.upNextMetaRow}>
-                  <Text
-                    style={[
-                      styles.upNextTag,
-                      { color: currentTrackMeta.accent },
-                    ]}
-                  >
-                    {completedCount === trackLessons.length &&
-                    trackLessons.length > 0
-                      ? "★ TRACK COMPLETED · REVIEW"
-                      : "▶ UP NEXT FOR YOU"}
-                  </Text>
-                  <Text style={styles.upNextXpPill}>+50 XP</Text>
+                  <View style={styles.upNextSticker}>
+                    <Text style={styles.upNextTag}>
+                      {completedCount === trackLessons.length &&
+                      trackLessons.length > 0
+                        ? "TRACK COMPLETE · REVIEW"
+                        : "UP NEXT MISSION"}
+                    </Text>
+                  </View>
+                  <View style={styles.upNextXpPill}>
+                    <Text style={styles.upNextXpPillText}>+50 XP</Text>
+                  </View>
                 </View>
                 <Text style={styles.upNextTitle} numberOfLines={1}>
                   {nextUpLesson.title}
@@ -403,16 +394,13 @@ export default function RoadmapTree({
               </View>
 
               <Pressable
-                style={[
-                  styles.upNextButton,
-                  { backgroundColor: currentTrackMeta.accent },
-                ]}
+                style={styles.upNextButton}
                 onPress={() => onSelectLesson(nextUpLesson)}
               >
                 <Text style={styles.upNextButtonText}>
                   {completedLessons[nextUpLesson.id]
-                    ? "Practice ➔"
-                    : "Start ➔"}
+                    ? "REVIEW MODULE →"
+                    : "START MISSION →"}
                 </Text>
               </Pressable>
             </View>
@@ -431,7 +419,7 @@ export default function RoadmapTree({
           return (
             <View key={rowNum} style={styles.rowWrapper}>
               <View style={styles.tierLabelWrapper}>
-                <Text style={styles.tierLabelText}>TIER 0{idx + 1}</Text>
+                <Text style={styles.tierLabelText}>STAGE 0{idx + 1}</Text>
               </View>
 
               <View style={styles.nodesRow}>
@@ -448,14 +436,25 @@ export default function RoadmapTree({
                       style={[
                         styles.nodeCard,
                         isDone && styles.nodeCardDone,
-                        isNextUp && {
-                          borderColor: currentTrackMeta.accent,
-                          backgroundColor: StudioColors.surfaceElevated,
-                        },
+                        isNextUp && styles.nodeCardNextUp,
                         isLocked && styles.nodeCardLocked,
                       ]}
                       onPress={() => onSelectLesson(node)}
                     >
+                      {/* Top Color-Blocked Ribbon */}
+                      <View
+                        style={[
+                          styles.nodeTopRibbon,
+                          {
+                            backgroundColor: isDone
+                              ? StudioColors.mint
+                              : isNextUp
+                                ? StudioColors.lime
+                                : currentTrackMeta.stickerBg,
+                          },
+                        ]}
+                      />
+
                       {/* Top Status & Category Row */}
                       <View style={styles.nodeCardHeader}>
                         <View style={styles.nodeBadgeGroup}>
@@ -464,56 +463,31 @@ export default function RoadmapTree({
                               styles.statusBadge,
                               isDone && styles.statusBadgeDone,
                               isNextUp && {
-                                borderColor: currentTrackMeta.accent,
-                                backgroundColor: currentTrackMeta.accentSoft,
+                                backgroundColor: StudioColors.lime,
                               },
-                              !isDone &&
-                                !isNextUp &&
-                                !isLocked && {
-                                  borderColor: currentTrackMeta.accentBorder,
-                                  backgroundColor: StudioColors.surface,
-                                },
                             ]}
                           >
                             {isLocked ? (
-                              <Text style={styles.lockIcon}>🔒</Text>
+                              <Text style={styles.lockIcon}>PRO</Text>
                             ) : isDone ? (
                               <Text style={styles.statusIconDone}>✓</Text>
                             ) : (
-                              <View
-                                style={[
-                                  styles.innerDot,
-                                  {
-                                    backgroundColor: currentTrackMeta.accent,
-                                  },
-                                ]}
-                              />
+                              <Text style={styles.statusNumberText}>
+                                {String(node.lesson_order).padStart(2, "0")}
+                              </Text>
                             )}
                           </View>
 
-                          <Text
-                            style={[
-                              styles.nodeCategory,
-                              !isLocked && {
-                                color: isDone
-                                  ? StudioColors.emeraldLight
-                                  : currentTrackMeta.accent,
-                              },
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {node.category || `Module ${node.lesson_order}`}
+                          <Text style={styles.nodeCategory} numberOfLines={1}>
+                            {node.category || `MODULE ${node.lesson_order}`}
                           </Text>
                         </View>
 
                         {isNextUp ? (
-                          <View
-                            style={[
-                              styles.nextUpNodePill,
-                              { backgroundColor: currentTrackMeta.accent },
-                            ]}
-                          >
-                            <Text style={styles.nextUpNodePillText}>NEXT</Text>
+                          <View style={styles.nextUpNodePill}>
+                            <Text style={styles.nextUpNodePillText}>
+                              PLAY ★
+                            </Text>
                           </View>
                         ) : isLocked ? (
                           <View style={styles.proNodePill}>
@@ -524,19 +498,11 @@ export default function RoadmapTree({
                             style={[
                               styles.arrowBadge,
                               isDone && {
-                                borderColor: StudioColors.emeraldBorder,
-                                backgroundColor: StudioColors.emeraldSoft,
+                                backgroundColor: StudioColors.mint,
                               },
                             ]}
                           >
-                            <Text
-                              style={[
-                                styles.arrowIcon,
-                                isDone && { color: StudioColors.emeraldLight },
-                              ]}
-                            >
-                              ↗
-                            </Text>
+                            <Text style={styles.arrowIcon}>→</Text>
                           </View>
                         )}
                       </View>
@@ -583,9 +549,16 @@ export default function RoadmapTree({
                           </View>
                         ) : null}
 
-                        <Text style={styles.xpMiniLabel}>
-                          {isDone ? "✓ +50 XP" : "+50 XP"}
-                        </Text>
+                        <View
+                          style={[
+                            styles.xpMiniBadge,
+                            isDone && { backgroundColor: StudioColors.mint },
+                          ]}
+                        >
+                          <Text style={styles.xpMiniLabel}>
+                            {isDone ? "✓ 50 XP" : "+50 XP"}
+                          </Text>
+                        </View>
                       </View>
                     </Pressable>
                   );
@@ -614,115 +587,117 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.bg,
   },
   content: {
-    paddingVertical: 36,
+    paddingVertical: 32,
     paddingHorizontal: 24,
     alignItems: "center",
     paddingBottom: 72,
   },
   headerSection: {
     width: "100%",
-    maxWidth: 620,
-    alignItems: "center",
-    marginBottom: 32,
+    maxWidth: 680,
+    marginBottom: 28,
   },
-  eyebrowPill: {
-    flexDirection: "row",
-    alignItems: "center",
+  editorialTopRow: {
+    marginBottom: 18,
+  },
+  editorialLeft: {
+    alignItems: "flex-start",
     gap: 8,
-    backgroundColor: StudioColors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: StudioColors.border,
-    marginBottom: 12,
   },
-  eyebrowDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  eyebrowSticker: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: "#111111",
+    ...HardShadowSm,
   },
   eyebrow: {
+    color: "#111111",
     fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.8,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+    fontFamily: MonoFont,
   },
   mainHeading: {
     color: StudioColors.textPrimary,
-    fontSize: 28,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-    marginBottom: 6,
-    textAlign: "center",
+    fontSize: 34,
+    fontWeight: "900",
+    letterSpacing: -0.8,
   },
   subHeading: {
     color: StudioColors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: "center",
-    maxWidth: 480,
-    marginBottom: 22,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: "500",
+    maxWidth: 560,
   },
   trackTabsBar: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "center",
-    backgroundColor: StudioColors.surface,
-    padding: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: StudioColors.border,
-    gap: 8,
-    marginBottom: 18,
+    gap: 12,
+    marginBottom: 20,
   },
   trackTabPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: "transparent",
+    paddingVertical: 11,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+    borderColor: "#111111",
+    ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
-  trackTabIcon: {
-    fontSize: 14,
+  trackTabPillActive: {
+    ...HardShadow,
   },
-  trackTag: {
+  trackCodeBadge: {
+    backgroundColor: "#F4F0E6",
+    borderWidth: 1.5,
+    borderColor: "#111111",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  trackCodeText: {
+    color: "#111111",
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: "900",
     fontFamily: MonoFont,
   },
   trackTabTitle: {
-    color: StudioColors.textSecondary,
+    color: "#111111",
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "800",
   },
   trackCountBadge: {
-    backgroundColor: StudioColors.bg,
-    borderWidth: 1,
-    borderColor: StudioColors.border,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#111111",
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 4,
   },
   trackCountText: {
-    color: StudioColors.textMuted,
+    color: "#111111",
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: "900",
     fontFamily: MonoFont,
   },
   overviewCard: {
     width: "100%",
-    backgroundColor: StudioColors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: StudioColors.border,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#111111",
     overflow: "hidden",
+    ...HardShadow,
   },
   progressSection: {
-    padding: 16,
+    padding: 18,
   },
   progressLabelRow: {
     flexDirection: "row",
@@ -734,52 +709,59 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   progressLabel: {
-    color: StudioColors.textPrimary,
+    color: "#111111",
     fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.2,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 1,
   },
   progressSubtext: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textSecondary,
     fontSize: 12,
+    fontWeight: "600",
   },
   percentBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#111111",
   },
   progressPercentText: {
+    color: "#111111",
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
     fontFamily: MonoFont,
   },
   progressBarBg: {
-    height: 6,
-    backgroundColor: StudioColors.bg,
-    borderRadius: 3,
+    height: 12,
+    backgroundColor: "#F4F0E6",
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#111111",
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    borderRadius: 3,
+    borderRightWidth: 1.5,
+    borderRightColor: "#111111",
   },
   upNextBanner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 14,
-    backgroundColor: StudioColors.surfaceElevated,
-    borderTopWidth: 1,
-    borderTopColor: StudioColors.border,
+    backgroundColor: "#F4F0E6",
+    borderTopWidth: 2,
+    borderTopColor: "#111111",
     gap: 14,
     flexWrap: "wrap",
   },
   upNextLeft: {
     flex: 1,
     minWidth: 200,
-    gap: 3,
+    gap: 4,
   },
   upNextMetaRow: {
     flexDirection: "row",
@@ -787,41 +769,60 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 2,
   },
-  upNextTag: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.1,
-  },
-  upNextXpPill: {
-    backgroundColor: StudioColors.emeraldSoft,
-    color: StudioColors.emeraldLight,
-    fontSize: 10,
-    fontWeight: "800",
-    paddingHorizontal: 6,
+  upNextSticker: {
+    backgroundColor: "#111111",
+    paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
+  upNextTag: {
+    color: StudioColors.lime,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.9,
+  },
+  upNextXpPill: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 1.5,
+    borderColor: "#111111",
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  upNextXpPillText: {
+    color: "#111111",
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
   upNextTitle: {
-    color: StudioColors.textPrimary,
-    fontSize: 15,
-    fontWeight: "800",
+    color: "#111111",
+    fontSize: 16,
+    fontWeight: "900",
   },
   upNextDesc: {
     color: StudioColors.textSecondary,
     fontSize: 12,
+    fontWeight: "500",
   },
   upNextButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
+    backgroundColor: StudioColors.lime,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#111111",
     alignItems: "center",
     justifyContent: "center",
+    ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   upNextButtonText: {
-    color: StudioColors.bg,
-    fontSize: 13,
+    color: "#111111",
+    fontSize: 12,
     fontWeight: "900",
+    fontFamily: MonoFont,
   },
   treeCanvas: {
     alignItems: "center",
@@ -833,12 +834,16 @@ const styles = StyleSheet.create({
   },
   tierLabelWrapper: {
     marginBottom: 8,
+    backgroundColor: "#111111",
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   tierLabelText: {
-    color: StudioColors.textDim,
+    color: "#FFFFFF",
     fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 1.6,
+    fontWeight: "900",
+    letterSpacing: 1.4,
     fontFamily: MonoFont,
   },
   nodesRow: {
@@ -849,27 +854,43 @@ const styles = StyleSheet.create({
   },
   nodeCard: {
     width: CARD_WIDTH,
-    backgroundColor: StudioColors.surface,
-    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
     padding: 16,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    paddingTop: 18,
+    borderWidth: 2,
+    borderColor: "#111111",
     gap: 10,
+    position: "relative",
+    overflow: "hidden",
+    ...HardShadow,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
+  nodeTopRibbon: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 6,
+    borderBottomWidth: 1.5,
+    borderBottomColor: "#111111",
+  },
   nodeCardDone: {
-    borderColor: StudioColors.emeraldBorder,
-    backgroundColor: "rgba(16, 185, 129, 0.05)",
+    backgroundColor: "#F9FFF9",
+  },
+  nodeCardNextUp: {
+    backgroundColor: "#FFFFFF",
   },
   nodeCardLocked: {
-    opacity: 0.62,
-    borderColor: StudioColors.borderSubtle,
+    opacity: 0.72,
+    backgroundColor: "#EAE3D2",
   },
   nodeCardHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
+    marginTop: 2,
   },
   nodeBadgeGroup: {
     flexDirection: "row",
@@ -878,128 +899,148 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statusBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: StudioColors.surfaceElevated,
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: "#F4F0E6",
     borderWidth: 1.5,
-    borderColor: StudioColors.borderStrong,
+    borderColor: "#111111",
     justifyContent: "center",
     alignItems: "center",
   },
   statusBadgeDone: {
-    backgroundColor: StudioColors.emerald,
-    borderColor: StudioColors.emerald,
+    backgroundColor: StudioColors.mint,
   },
-  innerDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+  statusNumberText: {
+    color: "#111111",
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   lockIcon: {
-    fontSize: 11,
+    color: "#111111",
+    fontSize: 8,
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   statusIconDone: {
-    color: StudioColors.bg,
+    color: "#111111",
     fontSize: 13,
     fontWeight: "900",
   },
   nodeCategory: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textSecondary,
     fontSize: 10,
     fontWeight: "800",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
+    fontFamily: MonoFont,
     flex: 1,
   },
   nextUpNodePill: {
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
+    backgroundColor: StudioColors.lime,
+    borderWidth: 1.5,
+    borderColor: "#111111",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   nextUpNodePillText: {
-    color: StudioColors.bg,
+    color: "#111111",
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    fontFamily: MonoFont,
+  },
+  proNodePill: {
+    backgroundColor: StudioColors.pink,
+    borderWidth: 1.5,
+    borderColor: "#111111",
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  proNodePillText: {
+    color: "#111111",
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 0.6,
-  },
-  proNodePill: {
-    backgroundColor: StudioColors.indigoSoft,
-    borderWidth: 1,
-    borderColor: StudioColors.indigoBorder,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  proNodePillText: {
-    color: StudioColors.indigoLight,
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 0.6,
+    fontFamily: MonoFont,
   },
   arrowBadge: {
     width: 26,
     height: 26,
-    borderRadius: 8,
-    backgroundColor: StudioColors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: StudioColors.border,
+    borderRadius: 6,
+    backgroundColor: "#F4F0E6",
+    borderWidth: 1.5,
+    borderColor: "#111111",
     justifyContent: "center",
     alignItems: "center",
   },
   arrowIcon: {
-    color: StudioColors.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
+    color: "#111111",
+    fontSize: 13,
+    fontWeight: "900",
   },
   nodeTitle: {
-    color: StudioColors.textPrimary,
-    fontSize: 15,
-    fontWeight: "800",
-    lineHeight: 20,
+    color: "#111111",
+    fontSize: 17,
+    fontWeight: "900",
+    lineHeight: 22,
+    letterSpacing: -0.3,
   },
   nodeDesc: {
-    color: StudioColors.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
+    color: StudioColors.textSecondary,
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: "500",
   },
   nodeFooter: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 2,
+    marginTop: 4,
     flexWrap: "wrap",
   },
   metaPill: {
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 5,
-    borderWidth: 1,
+    borderRadius: 4,
+    borderWidth: 1.5,
   },
   metaPillText: {
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "capitalize",
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    textTransform: "uppercase",
   },
   complexityMiniPill: {
-    backgroundColor: StudioColors.surfaceElevated,
-    borderColor: StudioColors.border,
-    borderWidth: 1,
+    backgroundColor: "#F4F0E6",
+    borderColor: "#111111",
+    borderWidth: 1.5,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 5,
+    borderRadius: 4,
   },
   complexityMiniText: {
-    color: StudioColors.textSecondary,
-    fontSize: 10,
+    color: "#111111",
+    fontSize: 9,
     fontFamily: MonoFont,
-    fontWeight: "600",
+    fontWeight: "800",
+  },
+  xpMiniBadge: {
+    marginLeft: "auto",
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 1.5,
+    borderColor: "#111111",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   xpMiniLabel: {
-    marginLeft: "auto",
-    color: StudioColors.textDim,
-    fontSize: 10,
-    fontWeight: "800",
+    color: "#111111",
+    fontSize: 9,
+    fontWeight: "900",
     fontFamily: MonoFont,
   },
   connectorContainer: {
@@ -1007,15 +1048,15 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   vLine: {
-    width: 2,
+    width: 2.5,
   },
   hLine: {
-    height: 2,
+    height: 2.5,
   },
   junctionDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     borderWidth: 2,
   },
   legsRow: {

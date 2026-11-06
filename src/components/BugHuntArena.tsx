@@ -8,7 +8,14 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { MonoFont, StudioColors, TrackThemes } from "../constants/theme";
+import {
+  HardShadow,
+  HardShadowSm,
+  MonoFont,
+  SerifFont,
+  StudioColors,
+  TrackThemes,
+} from "../constants/theme";
 
 export interface BugIncident {
   id: string;
@@ -393,16 +400,16 @@ export default function BugHuntArena({
       >
         <View style={styles.lobbyHeader}>
           <View style={styles.lobbyPill}>
-            <Text style={styles.lobbyPillText}>🐛 ARCADE MODE</Text>
+            <Text style={styles.lobbyPillText}>PRACTICE ARENA // TIME-ATTACK</Text>
           </View>
-          <Text style={styles.lobbyTitle}>Pick a Bug to Squash</Text>
+          <Text style={styles.lobbyTitle}>Production Bug Hunt</Text>
           <Text style={styles.lobbySubtitle}>
-            Choose a mission below. Your countdown timer only starts once you
-            enter a mission!
+            Select an incident below. The countdown clock only starts once you
+            enter a mission.
           </Text>
           <View style={styles.lobbyProgressPill}>
             <Text style={styles.lobbyProgressText}>
-              🏆 {solvedCount} of {BUG_INCIDENTS.length} Missions Completed
+              {solvedCount} / {BUG_INCIDENTS.length} INCIDENTS PATCHED
             </Text>
           </View>
         </View>
@@ -421,8 +428,18 @@ export default function BugHuntArena({
                 ]}
                 onPress={() => startMission(idx)}
               >
+                <View
+                  style={[
+                    styles.missionTopRibbon,
+                    {
+                      backgroundColor: isSolved
+                        ? StudioColors.mint
+                        : tMeta.stickerBg || StudioColors.yellow,
+                    },
+                  ]}
+                />
                 <View style={styles.missionCardTop}>
-                  <Text style={[styles.missionNumber, { color: tMeta.accent }]}>
+                  <Text style={styles.missionNumber}>
                     {inc.codeId}
                   </Text>
                   <View
@@ -435,17 +452,8 @@ export default function BugHuntArena({
                           : styles.diffHard,
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.diffBadgeText,
-                        inc.difficulty === "Easy"
-                          ? { color: StudioColors.emerald }
-                          : inc.difficulty === "Medium"
-                            ? { color: StudioColors.amber }
-                            : { color: StudioColors.rose },
-                      ]}
-                    >
-                      {inc.difficulty}
+                    <Text style={styles.diffBadgeText}>
+                      {inc.difficulty.toUpperCase()}
                     </Text>
                   </View>
                 </View>
@@ -470,13 +478,8 @@ export default function BugHuntArena({
                     isSolved && styles.playBtnSolved,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.playBtnText,
-                      isSolved && { color: StudioColors.emerald },
-                    ]}
-                  >
-                    {isSolved ? "✓ Completed · Play Again" : "▶ Start Mission"}
+                  <Text style={styles.playBtnText}>
+                    {isSolved ? "✓ PATCHED · REPLAY" : "START MISSION →"}
                   </Text>
                 </View>
               </Pressable>
@@ -561,13 +564,13 @@ export default function BugHuntArena({
           <Text style={styles.hudTitle}>{currentIncident.title}</Text>
         </View>
 
-        <View style={[styles.hudTimerBox, { borderColor: `${timerColor}66` }]}>
+        <View style={[styles.hudTimerBox, { borderColor: `${timerColor}88` }]}>
           <Text style={[styles.hudTimerText, { color: timerColor }]}>
             {patchStatus === "resolved"
               ? `✓ ${formattedTime}`
               : secondsLeft === 0
-                ? "⏰ 0:00"
-                : `⏱ ${formattedTime}`}
+                ? "0:00"
+                : formattedTime}
           </Text>
         </View>
       </View>
@@ -588,10 +591,10 @@ export default function BugHuntArena({
       {/* Brief Goal + Optional Hint */}
       <View style={styles.goalCard}>
         <View style={styles.goalLeft}>
-          <Text style={styles.goalLabel}>🐛 THE BUG</Text>
+          <Text style={styles.goalLabel}>SPECIFICATION // DEFECT</Text>
           <Text style={styles.goalText}>{currentIncident.symptom}</Text>
           <Text style={styles.goalExpected}>
-            Goal: {currentIncident.expectedSummary}
+            Expected: {currentIncident.expectedSummary}
           </Text>
         </View>
 
@@ -600,7 +603,7 @@ export default function BugHuntArena({
           onPress={() => setShowHint((prev) => !prev)}
         >
           <Text style={styles.hintPillText}>
-            {showHint ? "Hide Hint" : "💡 Need a Hint?"}
+            {showHint ? "Hide Clue" : "+ Reveal Clue"}
           </Text>
         </Pressable>
       </View>
@@ -608,7 +611,7 @@ export default function BugHuntArena({
       {showHint && (
         <View style={styles.hintBanner}>
           <Text style={styles.hintBannerText}>
-            💡 {currentIncident.rootCauseHint}
+            CLUE // {currentIncident.rootCauseHint}
           </Text>
         </View>
       )}
@@ -618,10 +621,10 @@ export default function BugHuntArena({
         <View style={styles.winBanner}>
           <View>
             <Text style={styles.winTitle}>
-              🎉 Bug Squashed! +{earnedXp} XP Earned
+              ✓ Defect Resolved (+{earnedXp} XP)
             </Text>
             <Text style={styles.winSub}>
-              All test cases passed with {formattedTime} remaining on the clock.
+              All assertions passed with {formattedTime} remaining on the clock.
             </Text>
           </View>
           <View style={styles.winActions}>
@@ -640,16 +643,16 @@ export default function BugHuntArena({
       {patchStatus === "timeout" && (
         <View style={styles.failBanner}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.failTitle}>⏰ Time&apos;s Up!</Text>
+            <Text style={styles.failTitle}>TIME EXPIRED</Text>
             <Text style={styles.failSub}>
-              You can still submit your fix or restart the clock for full XP.
+              You can still verify your patch or reset the clock for full XP.
             </Text>
           </View>
           <Pressable
             style={styles.retryBtn}
             onPress={() => startMission(activeMissionIdx)}
           >
-            <Text style={styles.retryBtnText}>↺ Restart Timer</Text>
+            <Text style={styles.retryBtnText}>↺ Reset Clock</Text>
           </Pressable>
         </View>
       )}
@@ -657,7 +660,7 @@ export default function BugHuntArena({
       {patchStatus === "failed" && (errorMessage || failedCase) && (
         <View style={styles.failBanner}>
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={styles.failTitle}>❌ Not quite fixed yet</Text>
+            <Text style={styles.failTitle}>ASSERTION FAILED</Text>
             {errorMessage ? (
               <Text style={styles.failCode}>{errorMessage}</Text>
             ) : failedCase ? (
@@ -752,8 +755,8 @@ export default function BugHuntArena({
       >
         <Text style={styles.deployBtnText}>
           {isDeploying
-            ? "Checking Fix..."
-            : `🔧 Submit Fix (+${currentIncident.baseXp} XP)`}
+            ? "Verifying Patch..."
+            : `Verify & Deploy Patch (+${currentIncident.baseXp} XP) →`}
         </Text>
         <View style={styles.deployShortcutBadge}>
           <Text style={styles.deployShortcutText}>⌘↵</Text>
@@ -779,68 +782,87 @@ const styles = StyleSheet.create({
   },
   lobbyHeader: {
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   lobbyPill: {
-    backgroundColor: StudioColors.amberSoft,
-    borderWidth: 1,
-    borderColor: StudioColors.amberBorder,
+    backgroundColor: StudioColors.coral,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
+    paddingVertical: 5,
+    borderRadius: 7,
+    ...HardShadowSm,
   },
   lobbyPillText: {
-    color: StudioColors.amber,
+    color: StudioColors.textPrimary,
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1,
+    fontFamily: MonoFont,
   },
   lobbyTitle: {
     color: StudioColors.textPrimary,
-    fontSize: 28,
+    fontSize: 34,
     fontWeight: "900",
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
     textAlign: "center",
   },
   lobbySubtitle: {
     color: StudioColors.textSecondary,
     fontSize: 14,
+    fontWeight: "600",
     textAlign: "center",
     maxWidth: 500,
     lineHeight: 20,
   },
   lobbyProgressPill: {
     marginTop: 4,
-    backgroundColor: StudioColors.surface,
-    borderWidth: 1,
-    borderColor: StudioColors.borderStrong,
+    backgroundColor: StudioColors.mint,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: 8,
+    ...HardShadowSm,
   },
   lobbyProgressText: {
-    color: StudioColors.emerald,
-    fontSize: 12,
-    fontWeight: "800",
+    color: StudioColors.textPrimary,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.8,
   },
   missionGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
+    gap: 18,
     justifyContent: "center",
   },
   missionCard: {
     backgroundColor: StudioColors.surface,
-    borderRadius: 16,
-    borderWidth: 1.5,
+    borderRadius: 12,
+    borderWidth: 2,
     borderColor: StudioColors.border,
     padding: 20,
+    paddingTop: 26,
     width: 300,
     gap: 10,
+    position: "relative",
+    overflow: "hidden",
+    ...HardShadow,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   missionCardSolved: {
-    borderColor: StudioColors.emeraldBorder,
+    borderColor: StudioColors.border,
+  },
+  missionTopRibbon: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 8,
+    borderBottomWidth: 1.5,
+    borderBottomColor: StudioColors.border,
   },
   missionCardTop: {
     flexDirection: "row",
@@ -848,6 +870,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   missionNumber: {
+    color: StudioColors.textPrimary,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -855,34 +878,36 @@ const styles = StyleSheet.create({
   },
   diffBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
   },
   diffEasy: {
-    backgroundColor: StudioColors.emeraldSoft,
-    borderColor: StudioColors.emeraldBorder,
+    backgroundColor: StudioColors.mint,
   },
   diffMedium: {
-    backgroundColor: StudioColors.amberSoft,
-    borderColor: StudioColors.amberBorder,
+    backgroundColor: StudioColors.yellow,
   },
   diffHard: {
-    backgroundColor: StudioColors.roseSoft,
-    borderColor: StudioColors.roseBorder,
+    backgroundColor: StudioColors.coral,
   },
   diffBadgeText: {
+    color: StudioColors.textPrimary,
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   missionTitle: {
     color: StudioColors.textPrimary,
-    fontSize: 17,
-    fontWeight: "800",
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: -0.3,
   },
   missionDesc: {
     color: StudioColors.textSecondary,
     fontSize: 13,
+    fontWeight: "600",
     lineHeight: 19,
     minHeight: 38,
   },
@@ -892,34 +917,36 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   missionMetaItem: {
-    color: StudioColors.textMuted,
-    fontSize: 12,
-    fontWeight: "700",
+    color: StudioColors.textPrimary,
+    fontSize: 11,
+    fontWeight: "900",
     fontFamily: MonoFont,
   },
   playBtn: {
-    marginTop: 4,
-    backgroundColor: StudioColors.amber,
-    paddingVertical: 10,
-    borderRadius: 10,
+    marginTop: 6,
+    backgroundColor: StudioColors.lime,
+    paddingVertical: 11,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     alignItems: "center",
+    ...HardShadowSm,
   },
   playBtnSolved: {
-    backgroundColor: StudioColors.emeraldSoft,
-    borderWidth: 1,
-    borderColor: StudioColors.emeraldBorder,
+    backgroundColor: StudioColors.mint,
   },
   playBtnText: {
-    color: StudioColors.bg,
-    fontSize: 13,
+    color: StudioColors.textPrimary,
+    fontSize: 12,
     fontWeight: "900",
+    fontFamily: MonoFont,
   },
 
   // ACTIVE GAME STYLES
   gameContent: {
     padding: 24,
     paddingBottom: 60,
-    maxWidth: 820,
+    maxWidth: 840,
     width: "100%",
     alignSelf: "center",
     gap: 14,
@@ -933,23 +960,25 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     backgroundColor: StudioColors.surface,
-    borderWidth: 1,
-    borderColor: StudioColors.borderStrong,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 8,
+    ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   backBtnText: {
-    color: StudioColors.textSecondary,
+    color: StudioColors.textPrimary,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   hudCenter: {
     alignItems: "center",
   },
   hudCode: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textSecondary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -957,15 +986,18 @@ const styles = StyleSheet.create({
   },
   hudTitle: {
     color: StudioColors.textPrimary,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "900",
+    letterSpacing: -0.3,
   },
   hudTimerBox: {
     backgroundColor: StudioColors.surface,
-    borderWidth: 1.5,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 10,
+    borderRadius: 8,
+    ...HardShadowSm,
   },
   hudTimerText: {
     fontSize: 18,
@@ -973,19 +1005,20 @@ const styles = StyleSheet.create({
     fontFamily: MonoFont,
   },
   timerStripTrack: {
-    height: 6,
-    backgroundColor: StudioColors.surfaceElevated,
-    borderRadius: 3,
+    height: 10,
+    backgroundColor: StudioColors.surface,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
     overflow: "hidden",
   },
   timerStripFill: {
     height: "100%",
-    borderRadius: 3,
   },
   goalCard: {
     backgroundColor: StudioColors.surface,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: StudioColors.border,
     padding: 16,
     flexDirection: "row",
@@ -993,6 +1026,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexWrap: "wrap",
     gap: 12,
+    ...HardShadow,
   },
   goalLeft: {
     flex: 1,
@@ -1000,60 +1034,67 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   goalLabel: {
-    color: StudioColors.amber,
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1,
+    fontFamily: MonoFont,
   },
   goalText: {
     color: StudioColors.textPrimary,
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "800",
     lineHeight: 20,
   },
   goalExpected: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textSecondary,
     fontSize: 12,
+    fontWeight: "700",
     fontFamily: MonoFont,
     marginTop: 2,
   },
   hintPillBtn: {
-    backgroundColor: StudioColors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: StudioColors.borderStrong,
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
+    ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   hintPillText: {
-    color: StudioColors.amber,
+    color: StudioColors.textPrimary,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   hintBanner: {
-    backgroundColor: StudioColors.amberSoft,
+    backgroundColor: StudioColors.yellow,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: StudioColors.amberBorder,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     padding: 12,
+    ...HardShadowSm,
   },
   hintBannerText: {
     color: StudioColors.textPrimary,
     fontSize: 13,
+    fontWeight: "800",
     lineHeight: 19,
   },
   winBanner: {
-    backgroundColor: StudioColors.emeraldSoft,
+    backgroundColor: StudioColors.mint,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: StudioColors.emerald,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     padding: 16,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
     gap: 12,
+    ...HardShadow,
   },
   winTitle: {
     color: StudioColors.textPrimary,
@@ -1061,8 +1102,9 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
   winSub: {
-    color: StudioColors.textSecondary,
+    color: StudioColors.textPrimary,
     fontSize: 12,
+    fontWeight: "700",
     marginTop: 2,
   },
   winActions: {
@@ -1070,112 +1112,124 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   nextBtn: {
-    backgroundColor: StudioColors.emerald,
+    backgroundColor: StudioColors.lime,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 9,
+    borderRadius: 8,
+    ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   nextBtnText: {
-    color: StudioColors.bg,
+    color: StudioColors.textPrimary,
     fontSize: 13,
     fontWeight: "900",
+    fontFamily: MonoFont,
   },
   failBanner: {
-    backgroundColor: StudioColors.roseSoft,
+    backgroundColor: StudioColors.coral,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: StudioColors.roseBorder,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     padding: 14,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
     gap: 12,
+    ...HardShadowSm,
   },
   failTitle: {
-    color: StudioColors.rose,
+    color: StudioColors.textPrimary,
     fontSize: 14,
     fontWeight: "900",
+    fontFamily: MonoFont,
   },
   failSub: {
-    color: StudioColors.textSecondary,
+    color: StudioColors.textPrimary,
     fontSize: 12,
+    fontWeight: "700",
     marginTop: 2,
   },
   failCode: {
     color: StudioColors.textPrimary,
     fontSize: 12,
+    fontWeight: "800",
     fontFamily: MonoFont,
   },
   retryBtn: {
     backgroundColor: StudioColors.surface,
-    borderWidth: 1,
-    borderColor: StudioColors.roseBorder,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
+    ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   retryBtnText: {
     color: StudioColors.textPrimary,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   ideFrame: {
-    backgroundColor: "#0C0C0E",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#27272A",
+    backgroundColor: StudioColors.codeBg,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     overflow: "hidden",
+    ...HardShadow,
   },
   ideHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#121215",
+    backgroundColor: StudioColors.codeSurface,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#27272A",
+    borderBottomWidth: 1.5,
+    borderBottomColor: StudioColors.codeBorder,
   },
   ideFilename: {
-    color: StudioColors.textSecondary,
+    color: StudioColors.codeText,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
     fontFamily: MonoFont,
   },
   resetCodeBtn: {
-    backgroundColor: "#18181B",
+    backgroundColor: StudioColors.codeBg,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#27272A",
+    borderWidth: 1.5,
+    borderColor: StudioColors.codeBorder,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   resetCodeBtnText: {
-    color: StudioColors.textSecondary,
+    color: StudioColors.codeMuted,
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: "800",
+    fontFamily: MonoFont,
   },
   editorScroll: {
     maxHeight: 300,
   },
   editorBody: {
     flexDirection: "row",
-    backgroundColor: "#0C0C0E",
+    backgroundColor: StudioColors.codeBg,
   },
   lineNumbers: {
     width: 44,
     paddingVertical: 16,
-    backgroundColor: "#101014",
+    backgroundColor: StudioColors.codeSurface,
     borderRightWidth: 1,
-    borderRightColor: "#1F1F23",
+    borderRightColor: StudioColors.codeBorder,
     alignItems: "center",
   },
   lineNumberText: {
-    color: "#52525B",
+    color: StudioColors.codeMuted,
     fontSize: 13,
     lineHeight: 21,
     fontFamily: MonoFont,
@@ -1196,7 +1250,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 21,
     fontFamily: MonoFont,
-    color: "#E4E4E7",
+    color: StudioColors.codeText,
   },
   codeEditor: {
     flex: 1,
@@ -1210,38 +1264,42 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         outlineStyle: "none",
-        caretColor: "#F59E0B",
+        caretColor: StudioColors.lime,
         resize: "none",
       } as any,
     }),
   },
   deployBtn: {
-    backgroundColor: StudioColors.amber,
+    backgroundColor: StudioColors.lime,
     paddingVertical: 15,
     paddingHorizontal: 18,
-    borderRadius: 12,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
+    ...HardShadow,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   deployBtnDisabled: {
     opacity: 0.5,
   },
   deployBtnText: {
-    color: "#09090B",
-    fontSize: 15,
+    color: StudioColors.textPrimary,
+    fontSize: 14,
     fontWeight: "900",
+    fontFamily: MonoFont,
   },
   deployShortcutBadge: {
-    backgroundColor: "rgba(9, 9, 11, 0.18)",
+    backgroundColor: StudioColors.border,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 5,
   },
   deployShortcutText: {
-    color: "#09090B",
+    color: StudioColors.lime,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,

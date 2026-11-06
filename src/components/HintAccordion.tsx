@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { MonoFont, StudioColors } from "../constants/theme";
+import { HardShadowSm, MonoFont, StudioColors } from "../constants/theme";
 
 interface HintAccordionProps {
   hints: string[];
@@ -38,13 +38,12 @@ export default function HintAccordion({ hints }: HintAccordionProps) {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.iconBadge}>
-            <Text style={styles.iconText}>💡</Text>
+            <Text style={styles.iconText}>?</Text>
           </View>
-          <View>
-            <Text style={styles.title}>PROGRESSIVE HINTS</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>PROGRESSIVE CLUES</Text>
             <Text style={styles.subtitle}>
-              Need a nudge? Reveal step-by-step clues without spoiling the full
-              answer.
+              Reveal step-by-step guidance without spoiling the solution.
             </Text>
           </View>
         </View>
@@ -88,7 +87,7 @@ export default function HintAccordion({ hints }: HintAccordionProps) {
             onPress={() => setUnlockedCount((prev) => prev + 1)}
           >
             <Text style={styles.unlockBtnText}>
-              🔓 Reveal {unlockedCount === 0 ? "First Hint" : `Hint #${unlockedCount + 1}`}
+              + Reveal {unlockedCount === 0 ? "First Clue" : `Clue 0${unlockedCount + 1}`}
             </Text>
           </Pressable>
         ) : (
@@ -107,12 +106,13 @@ export default function HintAccordion({ hints }: HintAccordionProps) {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: StudioColors.surface,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 12,
+    borderWidth: 2,
     borderColor: StudioColors.border,
     padding: 16,
     marginTop: 4,
     marginBottom: 24,
+    ...HardShadowSm,
   },
   header: {
     flexDirection: "row",
@@ -127,28 +127,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
-    backgroundColor: StudioColors.amberSoft,
-    borderWidth: 1,
-    borderColor: StudioColors.amberBorder,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
   },
   iconText: {
-    fontSize: 16,
+    color: StudioColors.textPrimary,
+    fontSize: 15,
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   title: {
-    color: StudioColors.amber,
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.2,
+    color: StudioColors.textPrimary,
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1,
+    fontFamily: MonoFont,
     marginBottom: 2,
   },
   subtitle: {
     color: StudioColors.textSecondary,
     fontSize: 12,
+    fontWeight: "600",
     lineHeight: 16,
   },
   progressGroup: {
@@ -159,7 +164,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: StudioColors.border,
   },
   dotsRow: {
@@ -167,18 +172,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   hintDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: StudioColors.borderStrong,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: StudioColors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
   },
   hintDotUnlocked: {
-    backgroundColor: StudioColors.amber,
+    backgroundColor: StudioColors.lime,
   },
   countText: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textPrimary,
     fontSize: 11,
-    fontWeight: "800",
+    fontWeight: "900",
     fontFamily: MonoFont,
   },
   hintList: {
@@ -188,42 +195,48 @@ const styles = StyleSheet.create({
   hintCard: {
     backgroundColor: StudioColors.bg,
     padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: 8,
+    borderWidth: 1.5,
     borderColor: StudioColors.border,
-    borderLeftWidth: 3,
-    borderLeftColor: StudioColors.amber,
   },
   hintCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   hintNumber: {
-    color: StudioColors.amber,
+    backgroundColor: StudioColors.yellow,
+    color: StudioColors.textPrimary,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
     fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
+    fontWeight: "900",
+    letterSpacing: 0.8,
     fontFamily: MonoFont,
   },
   hintUnlockedTag: {
-    color: StudioColors.textDim,
+    color: StudioColors.textMuted,
     fontSize: 9,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: 0.8,
+    fontFamily: MonoFont,
   },
   hintText: {
     color: StudioColors.textPrimary,
     fontSize: 13,
+    fontWeight: "600",
     lineHeight: 20,
   },
   inlineCode: {
-    backgroundColor: StudioColors.surfaceElevated,
-    color: StudioColors.amber,
+    backgroundColor: StudioColors.surface,
+    color: StudioColors.textPrimary,
     fontFamily: MonoFont,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
@@ -232,37 +245,40 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   unlockBtn: {
-    backgroundColor: StudioColors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: StudioColors.amberBorder,
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 10,
+    borderRadius: 8,
     alignItems: "center",
+    ...HardShadowSm,
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   unlockBtnText: {
-    color: StudioColors.amber,
+    color: StudioColors.textPrimary,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   resetHintsBtn: {
-    backgroundColor: StudioColors.surfaceElevated,
-    borderWidth: 1,
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
     borderColor: StudioColors.border,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 10,
+    borderRadius: 8,
     alignItems: "center",
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   resetHintsText: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textPrimary,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
+    fontFamily: MonoFont,
   },
 });

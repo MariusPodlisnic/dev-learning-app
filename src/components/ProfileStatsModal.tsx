@@ -1,5 +1,5 @@
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { MonoFont, StudioColors, TrackThemes } from "../constants/theme";
+import { HardShadow, HardShadowSm, MonoFont, StudioColors, TrackThemes } from "../constants/theme";
 import { Lesson } from "./RoadmapTree";
 
 interface ProfileStatsModalProps {
@@ -26,20 +26,20 @@ export function getDeveloperRank(xp: number) {
   );
 
   let title = "Python Initiate";
-  let badge = "🏆";
-  let accent = "#38BDF8";
+  let badge = "I";
+  let accent = "#7CA5B8";
   if (level === 2) {
     title = "Logic Builder";
-    badge = "⚡";
-    accent = "#F59E0B";
+    badge = "II";
+    accent = "#E07A5F";
   } else if (level === 3) {
     title = "Algorithm Engineer";
-    badge = "🧠";
-    accent = "#A855F7";
+    badge = "III";
+    accent = "#F2CC8F";
   } else if (level >= 4) {
     title = "Systems Architect";
-    badge = "🛰️";
-    accent = "#10B981";
+    badge = "IV";
+    accent = "#81B29A";
   }
 
   return {
@@ -74,30 +74,30 @@ export default function ProfileStatsModal({
   const achievements = [
     {
       id: "first_solve",
-      icon: "🚀",
+      icon: "01",
       title: "First Execution",
       desc: "Solve your first coding assignment",
       unlocked: totalCompleted >= 1,
     },
     {
       id: "streak_active",
-      icon: "🔥",
+      icon: "02",
       title: "Momentum Builder",
       desc: "Maintain an active daily streak",
       unlocked: streakCount >= 1,
     },
     {
       id: "xp_milestone",
-      icon: "⚡",
+      icon: "03",
       title: "200 XP Club",
       desc: "Earn 200+ total experience points",
       unlocked: xpPoints >= 200,
     },
     {
       id: "python_master",
-      icon: "🐍",
+      icon: "04",
       title: "Core Graduate",
-      desc: "Complete all Foundation Core modules",
+      desc: "Complete all Python Foundations modules",
       unlocked: pyLessons.length > 0 && pyDone === pyLessons.length,
     },
   ];
@@ -123,9 +123,7 @@ export default function ProfileStatsModal({
                 <Text
                   style={[
                     styles.tierBadgeText,
-                    isPremium
-                      ? { color: StudioColors.indigoLight }
-                      : { color: StudioColors.textMuted },
+                    { color: StudioColors.textPrimary },
                   ]}
                 >
                   {isPremium ? "PRO" : "FREE"}
@@ -169,20 +167,16 @@ export default function ProfileStatsModal({
 
         {/* Key Metrics Grid */}
         <View style={styles.statsGrid}>
-          <View style={styles.statBox}>
+          <View style={[styles.statBox, { backgroundColor: StudioColors.yellow }]}>
             <Text style={styles.statValue}>🔥 {streakCount}</Text>
             <Text style={styles.statLabel}>DAY STREAK</Text>
           </View>
-          <View style={styles.statBox}>
-            <Text style={[styles.statValue, { color: StudioColors.amber }]}>
-              ⚡ {xpPoints}
-            </Text>
+          <View style={[styles.statBox, { backgroundColor: StudioColors.pink }]}>
+            <Text style={styles.statValue}>⚡ {xpPoints}</Text>
             <Text style={styles.statLabel}>TOTAL XP</Text>
           </View>
-          <View style={styles.statBox}>
-            <Text
-              style={[styles.statValue, { color: StudioColors.emeraldLight }]}
-            >
+          <View style={[styles.statBox, { backgroundColor: StudioColors.mint }]}>
+            <Text style={styles.statValue}>
               ✓ {totalCompleted}/{totalLessons}
             </Text>
             <Text style={styles.statLabel}>SOLVED</Text>
@@ -251,8 +245,8 @@ export default function ProfileStatsModal({
                   style={[
                     styles.achievementStatus,
                     ach.unlocked
-                      ? { color: StudioColors.emeraldLight }
-                      : { color: StudioColors.textDim },
+                      ? { color: StudioColors.emerald }
+                      : { color: StudioColors.textMuted },
                   ]}
                 >
                   {ach.unlocked ? "✓ UNLOCKED" : "LOCKED"}
@@ -286,29 +280,32 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     padding: 24,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: StudioColors.borderStrong,
-    width: 440,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    width: 450,
     maxWidth: "94%",
     maxHeight: "88%",
     overflow: "hidden",
     position: "relative",
+    ...HardShadow,
   },
   topAccentBar: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 4,
-    backgroundColor: StudioColors.amber,
+    height: 8,
+    backgroundColor: StudioColors.violet,
+    borderBottomWidth: 2,
+    borderBottomColor: StudioColors.border,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 18,
-    paddingTop: 4,
+    paddingTop: 8,
   },
   headerLeft: {
     flexDirection: "row",
@@ -319,15 +316,16 @@ const styles = StyleSheet.create({
   levelBadgeCircle: {
     width: 46,
     height: 46,
-    borderRadius: 14,
-    backgroundColor: StudioColors.amberSoft,
-    borderWidth: 1.5,
-    borderColor: StudioColors.amber,
+    borderRadius: 10,
+    backgroundColor: StudioColors.violet,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
+    ...HardShadowSm,
   },
   levelNumberText: {
-    color: StudioColors.amber,
+    color: StudioColors.textPrimary,
     fontSize: 16,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -340,48 +338,50 @@ const styles = StyleSheet.create({
   rankTitle: {
     color: StudioColors.textPrimary,
     fontSize: 18,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: -0.3,
   },
   tierBadge: {
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 5,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   tierBadgePro: {
-    backgroundColor: StudioColors.indigoSoft,
-    borderColor: StudioColors.indigoBorder,
+    backgroundColor: StudioColors.pink,
+    borderColor: StudioColors.border,
   },
   tierBadgeFree: {
-    backgroundColor: StudioColors.surfaceElevated,
+    backgroundColor: StudioColors.yellow,
     borderColor: StudioColors.border,
   },
   tierBadgeText: {
     fontSize: 9,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: 0.8,
+    fontFamily: MonoFont,
   },
   emailText: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textSecondary,
     fontSize: 12,
+    fontWeight: "600",
     marginTop: 2,
   },
   closeIconBtn: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderRadius: 8,
-    backgroundColor: StudioColors.surfaceElevated,
-    borderWidth: 1,
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
     borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   closeIconText: {
-    color: StudioColors.textSecondary,
+    color: StudioColors.textPrimary,
     fontSize: 13,
-    fontWeight: "800",
+    fontWeight: "900",
   },
   scrollBody: {
     flexGrow: 0,
@@ -389,8 +389,8 @@ const styles = StyleSheet.create({
   levelProgressBox: {
     backgroundColor: StudioColors.bg,
     padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 10,
+    borderWidth: 2,
     borderColor: StudioColors.border,
     marginBottom: 14,
   },
@@ -401,27 +401,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   levelProgressLabel: {
-    color: StudioColors.amber,
+    color: StudioColors.textPrimary,
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: 1.1,
+    fontFamily: MonoFont,
   },
   levelProgressCount: {
     color: StudioColors.textSecondary,
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: "800",
     fontFamily: MonoFont,
   },
   levelBarTrack: {
-    height: 6,
-    backgroundColor: StudioColors.surfaceElevated,
-    borderRadius: 3,
+    height: 10,
+    backgroundColor: StudioColors.surface,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
     overflow: "hidden",
   },
   levelBarFill: {
     height: "100%",
-    backgroundColor: StudioColors.amber,
-    borderRadius: 3,
+    backgroundColor: StudioColors.lime,
   },
   statsGrid: {
     flexDirection: "row",
@@ -430,14 +432,15 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: StudioColors.surfaceElevated,
+    backgroundColor: StudioColors.bg,
     paddingVertical: 12,
     paddingHorizontal: 10,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 10,
+    borderWidth: 1.5,
     borderColor: StudioColors.border,
     alignItems: "center",
     gap: 4,
+    ...HardShadowSm,
   },
   statValue: {
     color: StudioColors.textPrimary,
@@ -446,16 +449,18 @@ const styles = StyleSheet.create({
     fontFamily: MonoFont,
   },
   statLabel: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textPrimary,
     fontSize: 9,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: 1,
+    fontFamily: MonoFont,
   },
   sectionHeading: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textPrimary,
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: 1.3,
+    fontFamily: MonoFont,
     marginBottom: 8,
   },
   tracksList: {
@@ -466,7 +471,7 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.bg,
     padding: 12,
     borderRadius: 10,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: StudioColors.border,
     gap: 8,
     ...Platform.select({ web: { cursor: "pointer" } }),
@@ -478,23 +483,24 @@ const styles = StyleSheet.create({
   },
   trackRowTitle: {
     color: StudioColors.textPrimary,
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "800",
   },
   trackRowCount: {
     fontSize: 11,
-    fontWeight: "800",
+    fontWeight: "900",
     fontFamily: MonoFont,
   },
   trackRowBarBg: {
-    height: 5,
-    backgroundColor: StudioColors.surfaceElevated,
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: StudioColors.surface,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
     overflow: "hidden",
   },
   trackRowBarFill: {
     height: "100%",
-    borderRadius: 3,
   },
   achievementsGrid: {
     flexDirection: "row",
@@ -506,18 +512,18 @@ const styles = StyleSheet.create({
     width: "48%",
     flexGrow: 1,
     padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 10,
+    borderWidth: 1.5,
     gap: 4,
   },
   achievementCardUnlocked: {
-    backgroundColor: "rgba(16, 185, 129, 0.06)",
-    borderColor: StudioColors.emeraldBorder,
+    backgroundColor: StudioColors.mint,
+    borderColor: StudioColors.border,
   },
   achievementCardLocked: {
     backgroundColor: StudioColors.bg,
-    borderColor: StudioColors.borderSubtle,
-    opacity: 0.65,
+    borderColor: StudioColors.border,
+    opacity: 0.7,
   },
   achievementTop: {
     flexDirection: "row",
@@ -526,37 +532,43 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   achievementIcon: {
-    fontSize: 18,
+    fontSize: 14,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    color: StudioColors.textPrimary,
   },
   achievementStatus: {
     fontSize: 8,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: 0.8,
     fontFamily: MonoFont,
   },
   achievementTitle: {
     color: StudioColors.textPrimary,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
   },
   achievementDesc: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textSecondary,
     fontSize: 11,
+    fontWeight: "600",
     lineHeight: 15,
   },
   syncCtaBtn: {
     marginTop: 10,
-    backgroundColor: StudioColors.amberSoft,
-    borderWidth: 1,
-    borderColor: StudioColors.amberBorder,
-    paddingVertical: 11,
+    backgroundColor: StudioColors.lime,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    paddingVertical: 12,
     borderRadius: 10,
     alignItems: "center",
+    ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   syncCtaText: {
-    color: StudioColors.amber,
+    color: StudioColors.textPrimary,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
 });

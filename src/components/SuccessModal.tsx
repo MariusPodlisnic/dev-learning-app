@@ -1,5 +1,11 @@
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { MonoFont, StudioColors } from "../constants/theme";
+import {
+  HardShadow,
+  HardShadowSm,
+  MonoFont,
+  SerifFont,
+  StudioColors,
+} from "../constants/theme";
 
 interface SuccessModalProps {
   xpEarned: number;
@@ -21,16 +27,17 @@ export default function SuccessModal({
       <View style={styles.topGlowBar} />
 
       <View style={styles.iconCircle}>
-        <Text style={styles.emoji}>🎉</Text>
+        <Text style={styles.emoji}>✓</Text>
       </View>
 
       <View style={styles.statusPill}>
-        <Text style={styles.statusPillText}>✓ ALL CHECKS PASSED</Text>
+        <Text style={styles.statusPillText}>ALL ASSERTIONS PASSED</Text>
       </View>
 
-      <Text style={styles.title}>Challenge Solved!</Text>
+      <Text style={styles.title}>Chapter Mastered</Text>
       <Text style={styles.subtitle}>
-        You mastered <Text style={styles.highlight}>{lessonTitle}</Text>
+        You verified all requirements for{" "}
+        <Text style={styles.highlight}>{lessonTitle}</Text>
       </Text>
 
       <View style={styles.rewardBox}>
@@ -41,7 +48,7 @@ export default function SuccessModal({
         <View style={styles.rewardDivider} />
         <View style={styles.rewardCol}>
           <Text style={styles.rewardLabel}>STATUS</Text>
-          <Text style={styles.rewardStatusText}>Mastered</Text>
+          <Text style={styles.rewardStatusText}>VERIFIED</Text>
         </View>
       </View>
 
@@ -49,21 +56,21 @@ export default function SuccessModal({
         <Pressable
           style={({ pressed }) => [
             styles.nextBtn,
-            pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
+            pressed && { opacity: 0.9, transform: [{ translateY: 1 }] },
           ]}
           onPress={onNextLesson}
         >
-          <Text style={styles.nextBtnText}>Continue to Next Module ➔</Text>
+          <Text style={styles.nextBtnText}>CONTINUE TO NEXT CHAPTER →</Text>
         </Pressable>
       ) : (
         <Pressable
           style={({ pressed }) => [
             styles.nextBtn,
-            pressed && { opacity: 0.88, transform: [{ scale: 0.99 }] },
+            pressed && { opacity: 0.9, transform: [{ translateY: 1 }] },
           ]}
           onPress={onClose}
         >
-          <Text style={styles.nextBtnText}>Return to Skill Tree ➔</Text>
+          <Text style={styles.nextBtnText}>RETURN TO CURRICULUM →</Text>
         </Pressable>
       )}
 
@@ -81,79 +88,89 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     padding: 28,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: StudioColors.emeraldBorder,
-    width: 360,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    width: 390,
     maxWidth: "92%",
     alignItems: "center",
     overflow: "hidden",
     position: "relative",
+    ...HardShadow,
   },
   topGlowBar: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 4,
-    backgroundColor: StudioColors.emerald,
+    height: 8,
+    backgroundColor: StudioColors.lime,
+    borderBottomWidth: 2,
+    borderBottomColor: StudioColors.border,
   },
   iconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: StudioColors.emeraldSoft,
-    borderWidth: 1,
-    borderColor: StudioColors.emeraldBorder,
+    width: 58,
+    height: 58,
+    borderRadius: 12,
+    backgroundColor: StudioColors.lime,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 6,
     marginBottom: 14,
+    ...HardShadowSm,
   },
   emoji: {
-    fontSize: 32,
+    color: StudioColors.textPrimary,
+    fontSize: 26,
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   statusPill: {
-    backgroundColor: StudioColors.emeraldSoft,
+    backgroundColor: StudioColors.mint,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: StudioColors.emeraldBorder,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
     marginBottom: 10,
   },
   statusPillText: {
-    color: StudioColors.emeraldLight,
+    color: StudioColors.textPrimary,
     fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.2,
+    fontWeight: "900",
+    letterSpacing: 1.1,
+    fontFamily: MonoFont,
   },
   title: {
     color: StudioColors.textPrimary,
-    fontSize: 24,
-    fontWeight: "800",
+    fontSize: 28,
+    fontWeight: "900",
     textAlign: "center",
-    letterSpacing: -0.4,
+    letterSpacing: -0.6,
     marginBottom: 6,
   },
   subtitle: {
     color: StudioColors.textSecondary,
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: "600",
     textAlign: "center",
-    lineHeight: 19,
+    lineHeight: 20,
     marginBottom: 22,
   },
   highlight: {
     color: StudioColors.textPrimary,
-    fontWeight: "700",
+    fontWeight: "900",
   },
   rewardBox: {
     flexDirection: "row",
     width: "100%",
-    backgroundColor: StudioColors.surfaceElevated,
+    backgroundColor: StudioColors.bg,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 10,
+    borderWidth: 2,
     borderColor: StudioColors.border,
     alignItems: "center",
     justifyContent: "space-around",
@@ -164,41 +181,48 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   rewardDivider: {
-    width: 1,
+    width: 2,
     height: 30,
     backgroundColor: StudioColors.border,
   },
   rewardLabel: {
     color: StudioColors.textMuted,
     fontSize: 9,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: 1.1,
+    fontFamily: MonoFont,
   },
   rewardText: {
-    color: StudioColors.amber,
-    fontSize: 18,
+    color: StudioColors.textPrimary,
+    fontSize: 19,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
   rewardStatusText: {
-    color: StudioColors.emeraldLight,
+    color: StudioColors.emerald,
     fontSize: 15,
-    fontWeight: "800",
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   nextBtn: {
-    backgroundColor: StudioColors.emerald,
+    backgroundColor: StudioColors.lime,
     width: "100%",
-    paddingVertical: 13,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     alignItems: "center",
+    ...HardShadowSm,
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   nextBtnText: {
-    color: StudioColors.bg,
+    color: StudioColors.textPrimary,
     fontWeight: "900",
-    fontSize: 14,
+    fontSize: 13,
+    letterSpacing: 0.6,
+    fontFamily: MonoFont,
   },
   closeBtn: {
     marginTop: 14,
@@ -209,8 +233,8 @@ const styles = StyleSheet.create({
     }),
   },
   closeBtnText: {
-    color: StudioColors.textMuted,
-    fontSize: 13,
-    fontWeight: "600",
+    color: StudioColors.textSecondary,
+    fontSize: 12,
+    fontWeight: "800",
   },
 });

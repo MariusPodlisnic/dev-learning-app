@@ -6,7 +6,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { MonoFont, StudioColors } from "../constants/theme";
+import {
+  HardShadow,
+  HardShadowSm,
+  MonoFont,
+  SerifFont,
+  StudioColors,
+} from "../constants/theme";
 
 interface PaywallModalProps {
   onClose: () => void;
@@ -16,19 +22,19 @@ interface PaywallModalProps {
 
 const PRO_FEATURES = [
   {
-    icon: "⚡",
-    title: "45+ Algorithm & Data Structure Challenges",
-    desc: "Step-by-step memory visualizations and Big-O complexity checks",
+    icon: "01",
+    title: "Algorithm & Data Structure Curriculum",
+    desc: "Step-by-step memory visualizations and Big-O complexity verification",
   },
   {
-    icon: "🛰️",
+    icon: "02",
     title: "System Design & Scalability Sandboxes",
-    desc: "Load balancers, caching layers, sharding & high-availability labs",
+    desc: "Load balancers, caching layers, consistent hashing & high-availability labs",
   },
   {
-    icon: "🔓",
-    title: "Unlimited Hints & Solution Walkthroughs",
-    desc: "Never get stuck with progressive hints and line-by-line breakdowns",
+    icon: "03",
+    title: "Progressive Hints & Solution Walkthroughs",
+    desc: "Unblock yourself with contextual hints and line-by-line engineering breakdowns",
   },
 ];
 
@@ -42,13 +48,13 @@ export default function PaywallModal({
       <View style={styles.topAccentBar} />
 
       <View style={styles.badge}>
-        <Text style={styles.badgeText}>⭐ DEVLEARN PRO</Text>
+        <Text style={styles.badgeText}>EDITION // DEVLEARN PRO</Text>
       </View>
 
-      <Text style={styles.title}>Unlock Full Engineering Mastery</Text>
+      <Text style={styles.title}>Full Engineering Edition</Text>
       <Text style={styles.subtitle}>
-        Accelerate your interview prep and production engineering skills with
-        unrestricted access to all tracks.
+        Accelerate your interview preparation and production engineering skills
+        with unrestricted access to every volume.
       </Text>
 
       <View style={styles.featuresList}>
@@ -67,7 +73,7 @@ export default function PaywallModal({
 
       <View style={styles.priceBox}>
         <View>
-          <Text style={styles.planLabel}>PRO MONTHLY PASS</Text>
+          <Text style={styles.planLabel}>PRO MONTHLY EDITION</Text>
           <Text style={styles.cancelAnytime}>Cancel anytime · Instant access</Text>
         </View>
         <View style={styles.priceRight}>
@@ -79,7 +85,7 @@ export default function PaywallModal({
       <Pressable
         style={({ pressed }) => [
           styles.upgradeBtn,
-          pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+          pressed && { opacity: 0.9, transform: [{ translateY: 1 }] },
         ]}
         onPress={onUpgrade}
         disabled={loading}
@@ -87,7 +93,7 @@ export default function PaywallModal({
         {loading ? (
           <ActivityIndicator color={StudioColors.bg} />
         ) : (
-          <Text style={styles.upgradeBtnText}>Unlock All Tracks Now ➔</Text>
+          <Text style={styles.upgradeBtnText}>UNLOCK ALL TRACKS NOW →</Text>
         )}
       </Pressable>
 
@@ -95,7 +101,7 @@ export default function PaywallModal({
         style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
         onPress={onClose}
       >
-        <Text style={styles.closeBtnText}>Continue with Free Modules</Text>
+        <Text style={styles.closeBtnText}>Continue with Free Chapters</Text>
       </Pressable>
     </View>
   );
@@ -105,80 +111,89 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     padding: 28,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: StudioColors.amberBorder,
-    width: 400,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    width: 430,
     maxWidth: "92%",
     alignItems: "center",
     overflow: "hidden",
     position: "relative",
+    ...HardShadow,
   },
   topAccentBar: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 4,
-    backgroundColor: StudioColors.amber,
+    height: 8,
+    backgroundColor: StudioColors.yellow,
+    borderBottomWidth: 2,
+    borderBottomColor: StudioColors.border,
   },
   badge: {
-    backgroundColor: StudioColors.amberSoft,
-    borderWidth: 1,
-    borderColor: StudioColors.amberBorder,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-    marginBottom: 14,
+    backgroundColor: StudioColors.pink,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 6,
+    marginBottom: 12,
   },
   badgeText: {
-    color: StudioColors.amber,
+    color: StudioColors.textPrimary,
     fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.4,
+    fontWeight: "900",
+    letterSpacing: 1.1,
+    fontFamily: MonoFont,
   },
   title: {
     color: StudioColors.textPrimary,
-    fontSize: 22,
-    fontWeight: "800",
+    fontSize: 28,
+    fontWeight: "900",
     textAlign: "center",
-    letterSpacing: -0.4,
+    letterSpacing: -0.6,
     marginBottom: 8,
   },
   subtitle: {
     color: StudioColors.textSecondary,
     fontSize: 13,
+    fontWeight: "600",
     textAlign: "center",
     lineHeight: 19,
-    marginBottom: 22,
+    marginBottom: 20,
   },
   featuresList: {
     alignSelf: "stretch",
     marginBottom: 20,
-    gap: 12,
+    gap: 10,
   },
   featureRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    backgroundColor: StudioColors.surfaceElevated,
+    backgroundColor: StudioColors.bg,
     padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 10,
+    borderWidth: 1.5,
     borderColor: StudioColors.border,
   },
   featureIconBox: {
     width: 32,
     height: 32,
-    borderRadius: 8,
-    backgroundColor: StudioColors.surface,
-    borderWidth: 1,
-    borderColor: StudioColors.borderStrong,
+    borderRadius: 7,
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
   },
   featureIcon: {
-    fontSize: 15,
+    color: StudioColors.textPrimary,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   featureTextGroup: {
     flex: 1,
@@ -187,11 +202,12 @@ const styles = StyleSheet.create({
   featureTitle: {
     color: StudioColors.textPrimary,
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "800",
   },
   featureDesc: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textSecondary,
     fontSize: 11,
+    fontWeight: "600",
     lineHeight: 16,
   },
   priceBox: {
@@ -202,20 +218,22 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.bg,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 10,
+    borderWidth: 2,
     borderColor: StudioColors.border,
     marginBottom: 18,
   },
   planLabel: {
-    color: StudioColors.amber,
+    color: StudioColors.textPrimary,
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: 1,
+    fontFamily: MonoFont,
   },
   cancelAnytime: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textSecondary,
     fontSize: 11,
+    fontWeight: "600",
     marginTop: 2,
   },
   priceRight: {
@@ -229,25 +247,30 @@ const styles = StyleSheet.create({
     fontFamily: MonoFont,
   },
   period: {
-    color: StudioColors.textMuted,
+    color: StudioColors.textSecondary,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
     marginLeft: 2,
   },
   upgradeBtn: {
-    backgroundColor: StudioColors.amber,
+    backgroundColor: StudioColors.lime,
     width: "100%",
-    paddingVertical: 13,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
     alignItems: "center",
+    ...HardShadowSm,
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
   },
   upgradeBtnText: {
-    color: StudioColors.bg,
+    color: StudioColors.textPrimary,
     fontWeight: "900",
-    fontSize: 14,
+    fontSize: 13,
+    letterSpacing: 0.8,
+    fontFamily: MonoFont,
   },
   closeBtn: {
     marginTop: 14,
@@ -257,8 +280,8 @@ const styles = StyleSheet.create({
     }),
   },
   closeBtnText: {
-    color: StudioColors.textMuted,
-    fontSize: 13,
-    fontWeight: "600",
+    color: StudioColors.textSecondary,
+    fontSize: 12,
+    fontWeight: "800",
   },
 });
