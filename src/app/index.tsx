@@ -63,6 +63,126 @@ interface Lesson {
   hints?: string[];
 }
 
+const PYTHON_KEYWORDS = new Set([
+  "def",
+  "return",
+  "if",
+  "elif",
+  "else",
+  "for",
+  "while",
+  "in",
+  "not",
+  "and",
+  "or",
+  "True",
+  "False",
+  "None",
+  "import",
+  "from",
+  "class",
+  "pass",
+  "break",
+  "continue",
+  "lambda",
+  "with",
+  "as",
+  "try",
+  "except",
+  "finally",
+  "yield",
+  "async",
+  "await",
+]);
+
+const PYTHON_BUILTINS = new Set([
+  "print",
+  "len",
+  "range",
+  "enumerate",
+  "int",
+  "str",
+  "list",
+  "dict",
+  "set",
+  "tuple",
+  "max",
+  "min",
+  "sum",
+  "sorted",
+  "abs",
+  "round",
+  "zip",
+  "map",
+  "filter",
+  "append",
+  "get",
+  "items",
+  "keys",
+  "values",
+  "pop",
+  "add",
+]);
+
+const PYTHON_TOKEN_REGEX =
+  /(#[^\n]*|f?"[^"\n]*"|f?'[^'\n]*'|\b(?:def|return|if|elif|else|for|while|in|not|and|or|True|False|None|import|from|class|pass|break|continue|lambda|with|as|try|except|finally|yield|async|await)\b|\b(?:print|len|range|enumerate|int|str|list|dict|set|tuple|max|min|sum|sorted|abs|round|zip|map|filter|append|get|items|keys|values|pop|add)\b|\b\d+(?:\.\d+)?\b|[=+\-*/%<>!:]+|[()[\]{},.])/g;
+
+function renderHighlightedPython(source: string) {
+  if (!source) return null;
+  const tokens = source.split(PYTHON_TOKEN_REGEX);
+  return tokens.map((tok, i) => {
+    if (!tok) return null;
+    if (tok.startsWith("#")) {
+      return (
+        <Text key={i} style={styles.synComment}>
+          {tok}
+        </Text>
+      );
+    }
+    if (
+      tok.startsWith('"') ||
+      tok.startsWith("'") ||
+      tok.startsWith('f"') ||
+      tok.startsWith("f'")
+    ) {
+      return (
+        <Text key={i} style={styles.synString}>
+          {tok}
+        </Text>
+      );
+    }
+    if (PYTHON_KEYWORDS.has(tok)) {
+      return (
+        <Text key={i} style={styles.synKeyword}>
+          {tok}
+        </Text>
+      );
+    }
+    if (PYTHON_BUILTINS.has(tok)) {
+      return (
+        <Text key={i} style={styles.synBuiltin}>
+          {tok}
+        </Text>
+      );
+    }
+    if (/^\d/.test(tok)) {
+      return (
+        <Text key={i} style={styles.synNumber}>
+          {tok}
+        </Text>
+      );
+    }
+    if (/^[=+\-*/%<>!:()[\]{},.]+$/.test(tok)) {
+      return (
+        <Text key={i} style={styles.synPunct}>
+          {tok}
+        </Text>
+      );
+    }
+    return <Text key={i}>{tok}</Text>;
+  });
+}
+
 function renderInlineSegments(text: string) {
   const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
@@ -196,6 +316,7 @@ export default function HomeScreen() {
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [upgrading, setUpgrading] = useState<boolean>(false);
+  const [copiedCode, setCopiedCode] = useState<boolean>(false);
 
   const pyodideRef = useRef<any>(null);
   const selectionRef = useRef<{ start: number; end: number }>({
@@ -379,6 +500,22 @@ export default function HomeScreen() {
       selectionRef.current = { start: nextPos, end: nextPos };
       return nextCode;
     });
+  }
+
+  async function handleCopyCode() {
+    try {
+      if (
+        Platform.OS === "web" &&
+        typeof navigator !== "undefined" &&
+        navigator.clipboard
+      ) {
+        await navigator.clipboard.writeText(code);
+      }
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 1800);
+    } catch (_err) {
+      setCopiedCode(false);
+    }
   }
 
   function handleNextLesson() {
@@ -1142,19 +1279,37 @@ export default function HomeScreen() {
                         <Text style={styles.ideTitleText}>assignment.py</Text>
                         <Text style={styles.ideMetaPill}>Python 3.11</Text>
                       </View>
-                      <Pressable
-                        style={styles.resetBtn}
-                        onPress={() =>
-                          setCode(
-                            (selectedLesson.initial_code || "").replace(
-                              /\\n/g,
-                              "\n",
-                            ),
-                          )
-                        }
-                      >
-                        <Text style={styles.resetBtnText}>↺ Reset Code</Text>
-                      </Pressable>
+                      <View style={styles.ideHeaderActions}>
+                        <Pressable
+                          style={[
+                            styles.copyCodeBtn,
+                            copiedCode && styles.copyCodeBtnSuccess,
+                          ]}
+                          onPress={handleCopyCode}
+                        >
+                          <Text
+                            style={[
+                              styles.copyCodeBtnText,
+                              copiedCode && { color: "#34D399" },
+                            ]}
+                          >
+                            {copiedCode ? "✓ Copied" : "📋 Copy"}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.resetBtn}
+                          onPress={() =>
+                            setCode(
+                              (selectedLesson.initial_code || "").replace(
+                                /\\n/g,
+                                "\n",
+                              ),
+                            )
+                          }
+                        >
+                          <Text style={styles.resetBtnText}>↺ Reset</Text>
+                        </Pressable>
+                      </View>
                     </View>
 
                     <View style={styles.symbolBar}>
@@ -1194,31 +1349,67 @@ export default function HomeScreen() {
                           </Text>
                         ))}
                       </View>
-                      <TextInput
+                      <View
                         style={[
-                          styles.codeEditor,
+                          styles.editorCodeWrapper,
                           { minHeight: lineCount * 21 + 32 },
                         ]}
-                        value={code}
-                        onChangeText={setCode}
-                        onSelectionChange={(e) => {
-                          selectionRef.current = e.nativeEvent.selection;
-                        }}
-                        multiline
-                        scrollEnabled={false}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        spellCheck={false}
-                      />
+                      >
+                        <View
+                          pointerEvents="none"
+                          style={[
+                            styles.syntaxHighlightLayer,
+                            { minHeight: lineCount * 21 + 32 },
+                          ]}
+                        >
+                          <Text style={styles.syntaxHighlightText}>
+                            {renderHighlightedPython(code)}
+                            {code.endsWith("\n") ? " " : ""}
+                          </Text>
+                        </View>
+                        <TextInput
+                          style={[
+                            styles.codeEditor,
+                            { minHeight: lineCount * 21 + 32 },
+                          ]}
+                          value={code}
+                          onChangeText={setCode}
+                          onSelectionChange={(e) => {
+                            selectionRef.current = e.nativeEvent.selection;
+                          }}
+                          onKeyPress={(e: any) => {
+                            const nativeEv = e?.nativeEvent;
+                            if (
+                              nativeEv &&
+                              nativeEv.key === "Enter" &&
+                              (nativeEv.metaKey || nativeEv.ctrlKey)
+                            ) {
+                              e.preventDefault?.();
+                              if (nativeEv.shiftKey) {
+                                runPythonCode();
+                              } else {
+                                runPlaygroundOnly();
+                              }
+                            }
+                          }}
+                          multiline
+                          scrollEnabled={false}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          spellCheck={false}
+                        />
+                      </View>
                     </ScrollView>
 
                     <View style={styles.ideFooter}>
                       <Text style={styles.ideFooterText}>
-                        UTF-8 · { (code || "").split("\n").length } lines ·{" "}
+                        UTF-8 · {(code || "").split("\n").length} lines ·{" "}
                         {(code || "").length} chars
                       </Text>
                       <Text style={styles.ideFooterText}>
-                        {pyodideReady ? "● Engine Ready" : "○ Loading Engine"}
+                        {pyodideReady
+                          ? "● Python 3.11 Ready · ⌘↵ Run"
+                          : "○ Loading Engine"}
                       </Text>
                     </View>
                   </View>
@@ -1233,6 +1424,9 @@ export default function HomeScreen() {
                       disabled={isExecuting}
                     >
                       <Text style={styles.secondaryRunBtnText}>▶ Test Run</Text>
+                      <View style={styles.shortcutBadgeDark}>
+                        <Text style={styles.shortcutBadgeDarkText}>⌘↵</Text>
+                      </View>
                     </Pressable>
 
                     <Pressable
@@ -1248,6 +1442,11 @@ export default function HomeScreen() {
                           ? "Grading Assignment..."
                           : "✓ Submit Assignment (+50 XP)"}
                       </Text>
+                      {!isExecuting && (
+                        <View style={styles.shortcutBadgeLight}>
+                          <Text style={styles.shortcutBadgeLightText}>⇧⌘↵</Text>
+                        </View>
+                      )}
                     </Pressable>
                   </View>
 
@@ -2102,6 +2301,29 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
+  ideHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  copyCodeBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: "#121215",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#27272A",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  copyCodeBtnSuccess: {
+    borderColor: "rgba(16, 185, 129, 0.45)",
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+  },
+  copyCodeBtnText: {
+    color: "#A1A1AA",
+    fontSize: 11,
+    fontWeight: "700",
+  },
   resetBtn: {
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -2166,9 +2388,54 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
+  editorCodeWrapper: {
+    flex: 1,
+    position: "relative",
+  },
+  syntaxHighlightLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 16,
+  },
+  syntaxHighlightText: {
+    color: "#FAFAFA",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+    fontSize: 14,
+    lineHeight: 21,
+    ...Platform.select({
+      web: {
+        whiteSpace: "pre-wrap" as any,
+        wordBreak: "break-word" as any,
+      },
+    }),
+  },
+  synComment: {
+    color: "#64748B",
+    fontStyle: "italic",
+  },
+  synString: {
+    color: "#34D399",
+  },
+  synKeyword: {
+    color: "#C084FC",
+    fontWeight: "700",
+  },
+  synBuiltin: {
+    color: "#38BDF8",
+  },
+  synNumber: {
+    color: "#F59E0B",
+  },
+  synPunct: {
+    color: "#94A3B8",
+  },
   codeEditor: {
     flex: 1,
-    color: "#FAFAFA",
+    color: Platform.OS === "web" ? "transparent" : "#FAFAFA",
+    backgroundColor: "transparent",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     fontSize: 14,
     lineHeight: 21,
@@ -2176,6 +2443,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     ...Platform.select({
       web: {
+        caretColor: "#F59E0B" as any,
         outlineStyle: "none" as any,
         resize: "none" as any,
         overflow: "hidden" as any,
@@ -2204,8 +2472,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   secondaryRunBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     backgroundColor: "#18181B",
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 9,
     borderWidth: 1,
@@ -2213,16 +2484,43 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   secondaryRunBtnText: { color: "#E4E4E7", fontWeight: "700", fontSize: 13 },
+  shortcutBadgeDark: {
+    backgroundColor: "#27272A",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  shortcutBadgeDarkText: {
+    color: "#A1A1AA",
+    fontSize: 10,
+    fontWeight: "700",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+  },
   runButton: {
     flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
     backgroundColor: "#F59E0B",
     paddingVertical: 12,
     borderRadius: 9,
-    alignItems: "center",
     ...Platform.select({ web: { cursor: "pointer" } }),
   },
   disabledButton: { opacity: 0.6 },
   runButtonText: { color: "#09090B", fontWeight: "900", fontSize: 13 },
+  shortcutBadgeLight: {
+    backgroundColor: "rgba(9, 9, 11, 0.16)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  shortcutBadgeLightText: {
+    color: "#09090B",
+    fontSize: 10,
+    fontWeight: "800",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+  },
   bottomPanel: {
     marginTop: 12,
     backgroundColor: "#121215",
