@@ -1,337 +1,65 @@
 import { Session } from "@supabase/supabase-js";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Platform,
   Pressable,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
 import { supabase } from "../../lib/supabase";
+import AppHeader from "../components/AppHeader";
 import Auth from "../components/Auth";
 import BugHuntArena from "../components/BugHuntArena";
-import HintAccordion from "../components/HintAccordion";
+import { renderHighlightedPython } from "../components/FormattedText";
+import LessonProblemPanel from "../components/LessonProblemPanel";
 import PaywallModal from "../components/PaywallModal";
 import ProfileStatsModal, {
   getDeveloperRank,
 } from "../components/ProfileStatsModal";
 import RoadmapTree from "../components/RoadmapTree";
+import StudioCodeEditor from "../components/StudioCodeEditor";
+import StudioSidebar from "../components/StudioSidebar";
 import SuccessModal from "../components/SuccessModal";
-import VisualLessonPanel from "../components/VisualLessonPanel";
 import {
   getLessonEnrichment,
   mergeCurriculumLessons,
 } from "../constants/curriculum";
 import {
   applyColorTheme,
-  HardShadow,
-  HardShadowHero,
   HardShadowSm,
   MonoFont,
   StudioColors,
   ThemeMode,
   TrackThemes,
 } from "../constants/theme";
-
-interface Example {
-  input: string;
-  output: string;
-  explanation?: string;
-}
-
-interface Complexities {
-  time?: string;
-  space?: string;
-}
-
-interface TestCaseResult {
-  id: number;
-  input: string;
-  expected: string;
-  actual: string;
-  passed: boolean;
-}
-
-interface Lesson {
-  id: string;
-  title: string;
-  track: string;
-  category?: string;
-  difficulty?: string;
-  tree_row?: number;
-  description: string;
-  content: string;
-  assignment?: string;
-  initial_code: string;
-  expected_output: string;
-  hidden_tests?: string;
-  examples?: Example[];
-  constraints?: string[];
-  complexities?: Complexities;
-  is_free: boolean;
-  lesson_order: number;
-  visual_type?: string;
-  visual_data?: any;
-  hints?: string[];
-}
-
-const PYTHON_KEYWORDS = new Set([
-  "def",
-  "return",
-  "if",
-  "elif",
-  "else",
-  "for",
-  "while",
-  "in",
-  "not",
-  "and",
-  "or",
-  "True",
-  "False",
-  "None",
-  "import",
-  "from",
-  "class",
-  "pass",
-  "break",
-  "continue",
-  "lambda",
-  "with",
-  "as",
-  "try",
-  "except",
-  "finally",
-  "yield",
-  "async",
-  "await",
-]);
-
-const PYTHON_BUILTINS = new Set([
-  "print",
-  "len",
-  "range",
-  "enumerate",
-  "int",
-  "str",
-  "list",
-  "dict",
-  "set",
-  "tuple",
-  "max",
-  "min",
-  "sum",
-  "sorted",
-  "abs",
-  "round",
-  "zip",
-  "map",
-  "filter",
-  "append",
-  "get",
-  "items",
-  "keys",
-  "values",
-  "pop",
-  "add",
-]);
-
-const PYTHON_TOKEN_REGEX =
-  /(#[^\n]*|f?"[^"\n]*"|f?'[^'\n]*'|\b(?:def|return|if|elif|else|for|while|in|not|and|or|True|False|None|import|from|class|pass|break|continue|lambda|with|as|try|except|finally|yield|async|await)\b|\b(?:print|len|range|enumerate|int|str|list|dict|set|tuple|max|min|sum|sorted|abs|round|zip|map|filter|append|get|items|keys|values|pop|add)\b|\b\d+(?:\.\d+)?\b|[=+\-*/%<>!:]+|[()[\]{},.])/g;
-
-function renderHighlightedPython(source: string) {
-  if (!source) return null;
-  const tokens = source.split(PYTHON_TOKEN_REGEX);
-  return tokens.map((tok, i) => {
-    if (!tok) return null;
-    if (tok.startsWith("#")) {
-      return (
-        <Text key={i} style={styles.synComment}>
-          {tok}
-        </Text>
-      );
-    }
-    if (
-      tok.startsWith('"') ||
-      tok.startsWith("'") ||
-      tok.startsWith('f"') ||
-      tok.startsWith("f'")
-    ) {
-      return (
-        <Text key={i} style={styles.synString}>
-          {tok}
-        </Text>
-      );
-    }
-    if (PYTHON_KEYWORDS.has(tok)) {
-      return (
-        <Text key={i} style={styles.synKeyword}>
-          {tok}
-        </Text>
-      );
-    }
-    if (PYTHON_BUILTINS.has(tok)) {
-      return (
-        <Text key={i} style={styles.synBuiltin}>
-          {tok}
-        </Text>
-      );
-    }
-    if (/^\d/.test(tok)) {
-      return (
-        <Text key={i} style={styles.synNumber}>
-          {tok}
-        </Text>
-      );
-    }
-    if (/^[=+\-*/%<>!:()[\]{},.]+$/.test(tok)) {
-      return (
-        <Text key={i} style={styles.synPunct}>
-          {tok}
-        </Text>
-      );
-    }
-    return <Text key={i}>{tok}</Text>;
-  });
-}
-
-function renderInlineSegments(text: string) {
-  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("`") && part.endsWith("`")) {
-      return (
-        <Text key={i} style={styles.inlineCode}>
-          {part.slice(1, -1)}
-        </Text>
-      );
-    }
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return (
-        <Text key={i} style={styles.boldInline}>
-          {part.slice(2, -2)}
-        </Text>
-      );
-    }
-    return <Text key={i}>{part}</Text>;
-  });
-}
-
-function FormattedText({ text, style }: { text?: string; style?: any }) {
-  if (!text) return null;
-  const normalized = text.replace(/\\n/g, "\n");
-  const blocks = normalized.split(/(```[\s\S]*?```)/g);
-
-  return (
-    <View style={{ gap: 12, flex: 1, minWidth: 0, flexShrink: 1 }}>
-      {blocks.map((block, bIdx) => {
-        const trimmedBlock = block.trim();
-        if (!trimmedBlock) return null;
-
-        if (trimmedBlock.startsWith("```") && trimmedBlock.endsWith("```")) {
-          const rawCode = trimmedBlock
-            .slice(3, -3)
-            .replace(/^[a-zA-Z]+\n/, "")
-            .trim();
-          return (
-            <View key={bIdx} style={styles.codeBlockContainer}>
-              <View style={styles.codeBlockHeader}>
-                <Text style={styles.codeBlockLang}>PYTHON</Text>
-              </View>
-              <Text style={styles.codeBlockText}>{rawCode}</Text>
-            </View>
-          );
-        }
-
-        const paragraphs = trimmedBlock.split("\n\n");
-        return (
-          <View key={bIdx} style={{ gap: 10, minWidth: 0, flexShrink: 1 }}>
-            {paragraphs.map((para, pIdx) => {
-              const lines = para.split("\n");
-              const isBulletList =
-                lines.length > 1 &&
-                lines.every(
-                  (l) =>
-                    l.trim().startsWith("- ") || l.trim().startsWith("• "),
-                );
-
-              if (isBulletList) {
-                return (
-                  <View key={pIdx} style={{ gap: 6, minWidth: 0 }}>
-                    {lines.map((line, lIdx) => {
-                      const cleanLine = line
-                        .trim()
-                        .replace(/^[-•]\s+/, "");
-                      return (
-                        <View key={lIdx} style={styles.bulletRow}>
-                          <Text style={styles.bulletDot}>•</Text>
-                          <Text
-                            style={[
-                              style,
-                              { flex: 1, minWidth: 0, flexShrink: 1 },
-                            ]}
-                          >
-                            {renderInlineSegments(cleanLine)}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                );
-              }
-
-              return (
-                <Text
-                  key={pIdx}
-                  style={[style, { flexShrink: 1, minWidth: 0 }]}
-                >
-                  {renderInlineSegments(para)}
-                </Text>
-              );
-            })}
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-const STORAGE_DRAFTS_KEY = "devlearn_code_drafts_v1";
-const STORAGE_STATE_KEY = "devlearn_state_v1";
-
-function readLocalJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined" || !window.localStorage) return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch (_e) {
-    return fallback;
-  }
-}
-
-function writeLocalJson(key: string, value: unknown) {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch (_e) {}
-}
+import {
+  ExplainStyle,
+  Lesson,
+  readLocalJson,
+  STORAGE_DRAFTS_KEY,
+  STORAGE_STATE_KEY,
+  TestCaseResult,
+  ViewMode,
+  writeLocalJson,
+} from "../types/lesson";
+import {
+  executeBugPatchVerification,
+  executeLessonVerification,
+  executePlaygroundPython,
+  loadPyodideScript,
+} from "../utils/pyodideRunner";
 
 export default function HomeScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [viewMode, setViewMode] = useState<"roadmap" | "studio" | "bughunt">(
-    "roadmap",
-  );
+  const [viewMode, setViewMode] = useState<ViewMode>("roadmap");
   const [activeTrack, setActiveTrack] = useState<string>("python_basics");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
   const [activeTab, setActiveTab] = useState<"problem" | "visual">("problem");
-  const [explainStyle, setExplainStyle] = useState<
-    "analogy" | "guide" | "cheatsheet"
-  >("analogy");
+  const [explainStyle, setExplainStyle] = useState<ExplainStyle>("analogy");
   const [quizSelection, setQuizSelection] = useState<number | null>(null);
   const [solvedQuizzes, setSolvedQuizzes] = useState<Record<string, boolean>>(
     {},
@@ -375,16 +103,11 @@ export default function HomeScreen() {
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [upgrading, setUpgrading] = useState<boolean>(false);
-  const [copiedCode, setCopiedCode] = useState<boolean>(false);
   const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(false);
 
   const pyodideRef = useRef<any>(null);
   const codeDraftsRef = useRef<Record<string, string>>({});
   const hydratedRef = useRef<boolean>(false);
-  const selectionRef = useRef<{ start: number; end: number }>({
-    start: 0,
-    end: 0,
-  });
 
   function updateCodeWithDraft(nextCode: string, lessonObj?: Lesson | null) {
     setCode(nextCode);
@@ -444,7 +167,10 @@ export default function HomeScreen() {
     setActiveTrack(safeInitialTrack);
     hydratedRef.current = true;
 
-    fetchLessons(safeInitialTrack, savedState.lastLessonId as string | undefined);
+    fetchLessons(
+      safeInitialTrack,
+      savedState.lastLessonId as string | undefined,
+    );
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
@@ -467,7 +193,9 @@ export default function HomeScreen() {
       },
     );
 
-    if (Platform.OS === "web") loadPyodideEngine();
+    if (Platform.OS === "web") {
+      loadPyodideScript(pyodideRef, () => setPyodideReady(true));
+    }
     return () => authListener.subscription.unsubscribe();
   }, []);
 
@@ -583,27 +311,6 @@ export default function HomeScreen() {
     }
   }
 
-  async function loadPyodideEngine() {
-    if (typeof window === "undefined") return;
-    if ("loadPyodide" in window && pyodideRef.current) return;
-    try {
-      if (!document.getElementById("pyodide-script")) {
-        const script = document.createElement("script");
-        script.id = "pyodide-script";
-        script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js";
-        script.onload = async () => {
-          if ((window as any).loadPyodide) {
-            pyodideRef.current = await (window as any).loadPyodide();
-            setPyodideReady(true);
-          }
-        };
-        document.head.appendChild(script);
-      }
-    } catch (err) {
-      console.error("Failed to load Pyodide engine:", err);
-    }
-  }
-
   async function handleUpgradeToPro() {
     if (!session) {
       setShowPaywallModal(false);
@@ -675,38 +382,6 @@ export default function HomeScreen() {
     setViewMode("studio");
   }
 
-  function insertSymbol(symbol: string) {
-    const start = Math.min(
-      Math.max(0, selectionRef.current.start),
-      code.length,
-    );
-    const end = Math.min(Math.max(start, selectionRef.current.end), code.length);
-    const nextCode = code.slice(0, start) + symbol + code.slice(end);
-    const cursorOffset =
-      symbol === "print()" || symbol === '""' || symbol === 'f""' || symbol === "[]"
-        ? symbol.length - 1
-        : symbol.length;
-    const nextPos = start + cursorOffset;
-    selectionRef.current = { start: nextPos, end: nextPos };
-    updateCodeWithDraft(nextCode);
-  }
-
-  async function handleCopyCode() {
-    try {
-      if (
-        Platform.OS === "web" &&
-        typeof navigator !== "undefined" &&
-        navigator.clipboard
-      ) {
-        await navigator.clipboard.writeText(code);
-      }
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 1800);
-    } catch (_err) {
-      setCopiedCode(false);
-    }
-  }
-
   function handleNextLesson() {
     setShowSuccessModal(false);
     if (!selectedLesson) return;
@@ -725,27 +400,12 @@ export default function HomeScreen() {
     setIsExecuting(true);
     setBottomTab("console");
     setOutput("Running code...");
-
     try {
-      if (Platform.OS === "web" && pyodideRef.current) {
-        let stdoutBuffer = "";
-        pyodideRef.current.setStdout({
-          batched: (str: string) => {
-            stdoutBuffer += str + "\n";
-          },
-        });
-        const result = await pyodideRef.current.runPythonAsync(code);
-        const rawOutput =
-          stdoutBuffer.trim() ||
-          (result !== undefined
-            ? String(result).trim()
-            : "Code ran with no output. Use print() to see values!");
-        setOutput(rawOutput);
-      }
-    } catch (err: any) {
-      setOutput(
-        `[SYNTAX // TRACE] Check your Python syntax:\n${err.message || String(err)}`,
+      const consoleOut = await executePlaygroundPython(
+        pyodideRef.current,
+        code,
       );
+      setOutput(consoleOut);
     } finally {
       setIsExecuting(false);
     }
@@ -757,176 +417,61 @@ export default function HomeScreen() {
     setTestResults(null);
 
     try {
-      if (Platform.OS === "web" && pyodideRef.current) {
-        let stdoutBuffer = "";
-        pyodideRef.current.setStdout({
-          batched: (str: string) => {
-            stdoutBuffer += str + "\n";
-          },
-        });
+      const outcome = await executeLessonVerification(
+        pyodideRef.current,
+        code,
+        selectedLesson,
+      );
 
-        const executionCode = selectedLesson?.hidden_tests
-          ? `${code}\n${selectedLesson.hidden_tests}`
-          : code;
-        const result = await pyodideRef.current.runPythonAsync(executionCode);
-        const rawOutput = stdoutBuffer.trim();
+      setTestResults(outcome.testResults);
+      if (outcome.testResults) {
+        setSelectedTestIndex(0);
+      }
+      setBottomTab(outcome.targetTab);
+      setOutput(outcome.consoleOutput);
 
-        let parsedResult = null;
-        try {
-          parsedResult = JSON.parse(String(result));
-        } catch (e) {}
+      if (outcome.allPassed && selectedLesson) {
+        setShowSuccessModal(true);
+        const isAlreadyCompleted = completedLessons[selectedLesson.id];
+        const newXp = isAlreadyCompleted ? xpPoints : xpPoints + 50;
+        const newStreak = isAlreadyCompleted
+          ? streakCount
+          : streakCount === 0
+            ? 1
+            : streakCount;
 
-        if (parsedResult && parsedResult.is_test_suite) {
-          if (parsedResult.error) {
-            setOutput(
-              `[RUNTIME // ERROR]\n${parsedResult.error}\n\nConsole:\n${rawOutput}`,
-            );
-            setBottomTab("console");
-          } else {
-            const expectedStdout = selectedLesson?.expected_output
-              ?.replace(/\\n/g, "\n")
-              .trim();
-            const resultsList: TestCaseResult[] = [...parsedResult.results];
-            let allPassed = parsedResult.all_passed;
+        if (!isAlreadyCompleted) {
+          setXpPoints(newXp);
+          setStreakCount(newStreak);
+        }
+        setCompletedLessons((prev) => ({
+          ...prev,
+          [selectedLesson.id]: true,
+        }));
 
-            if (expectedStdout && selectedLesson?.track === "python_basics") {
-              const stdoutMatch = rawOutput === expectedStdout;
-              resultsList.push({
-                id: resultsList.length + 1,
-                input: "Check printed console output",
-                expected: expectedStdout,
-                actual: rawOutput || "(Nothing printed)",
-                passed: stdoutMatch,
-              });
-              if (!stdoutMatch) allPassed = false;
-            }
-
-            setTestResults(resultsList);
-            setSelectedTestIndex(0);
-            setBottomTab("tests");
-            setOutput(rawOutput || "Code executed. See Assertions tab.");
-
-            if (allPassed) {
-              setShowSuccessModal(true);
-              if (selectedLesson) {
-                const isAlreadyCompleted = completedLessons[selectedLesson.id];
-                const newXp = isAlreadyCompleted ? xpPoints : xpPoints + 50;
-                const newStreak =
-                  isAlreadyCompleted
-                    ? streakCount
-                    : streakCount === 0
-                      ? 1
-                      : streakCount;
-
-                if (!isAlreadyCompleted) {
-                  setXpPoints(newXp);
-                  setStreakCount(newStreak);
-                }
-                setCompletedLessons((prev) => ({
-                  ...prev,
-                  [selectedLesson.id]: true,
-                }));
-
-                if (session) {
-                  if (!selectedLesson.id.startsWith("exp-")) {
-                    await supabase.from("user_progress").upsert({
-                      user_id: session.user.id,
-                      lesson_id: selectedLesson.id,
-                      completed: true,
-                      updated_at: new Date().toISOString(),
-                    });
-                  }
-
-                  if (!isAlreadyCompleted) {
-                    await supabase.from("profiles").upsert({
-                      id: session.user.id,
-                      email: session.user.email,
-                      xp_points: newXp,
-                      streak_count: newStreak,
-                      last_completed_at: new Date().toISOString(),
-                    });
-                  }
-                }
-              }
-            }
+        if (session) {
+          if (!selectedLesson.id.startsWith("exp-")) {
+            await supabase.from("user_progress").upsert({
+              user_id: session.user.id,
+              lesson_id: selectedLesson.id,
+              completed: true,
+              updated_at: new Date().toISOString(),
+            });
           }
-        } else {
-          let finalLogs =
-            rawOutput ||
-            (result !== undefined ? String(result).trim() : "No output");
-          if (selectedLesson?.expected_output) {
-            const expected = selectedLesson.expected_output
-              .replace(/\\n/g, "\n")
-              .trim();
-            if (rawOutput === expected) {
-              finalLogs += "\n\n✓ Verification Passed (+50 XP)";
-              setShowSuccessModal(true);
-              if (selectedLesson) {
-                const isAlreadyCompleted = completedLessons[selectedLesson.id];
-                if (!isAlreadyCompleted) {
-                  setXpPoints((prev) => prev + 50);
-                  setStreakCount((prev) => (prev === 0 ? 1 : prev));
-                }
-                setCompletedLessons((prev) => ({
-                  ...prev,
-                  [selectedLesson.id]: true,
-                }));
-              }
-            } else {
-              finalLogs += `\n\n✕ Output mismatch. Expected output:\n${expected}`;
-            }
+
+          if (!isAlreadyCompleted) {
+            await supabase.from("profiles").upsert({
+              id: session.user.id,
+              email: session.user.email,
+              xp_points: newXp,
+              streak_count: newStreak,
+              last_completed_at: new Date().toISOString(),
+            });
           }
-          setOutput(finalLogs);
-          setBottomTab("console");
         }
       }
-    } catch (err: any) {
-      setOutput(`[RUNTIME // TRACE]\n${err.message || String(err)}`);
-      setBottomTab("console");
     } finally {
       setIsExecuting(false);
-    }
-  }
-
-  async function handleExecuteBugPatch(
-    userCode: string,
-    testHarness: string,
-  ): Promise<{
-    allPassed: boolean;
-    results: TestCaseResult[];
-    stdout: string;
-    error?: string;
-  }> {
-    try {
-      if (Platform.OS === "web" && pyodideRef.current) {
-        let stdoutBuffer = "";
-        pyodideRef.current.setStdout({
-          batched: (str: string) => {
-            stdoutBuffer += str + "\n";
-          },
-        });
-        const fullScript = `${userCode}\n${testHarness}`;
-        const rawRes = await pyodideRef.current.runPythonAsync(fullScript);
-        const parsed = JSON.parse(String(rawRes));
-        return {
-          allPassed: Boolean(parsed.all_passed),
-          results: parsed.results || [],
-          stdout: stdoutBuffer.trim(),
-        };
-      }
-      return {
-        allPassed: false,
-        results: [],
-        stdout: "",
-        error: "Python engine is still initializing.",
-      };
-    } catch (err: any) {
-      return {
-        allPassed: false,
-        results: [],
-        stdout: "",
-        error: err.message || String(err),
-      };
     }
   }
 
@@ -953,8 +498,9 @@ export default function HomeScreen() {
     }
   }
 
-  const currentTrackTheme =
-    TrackThemes[activeTrack] || TrackThemes.python_basics;
+  // Ensure styles re-compute on theme change
+  void themeMode;
+  const styles = getStyles();
   const devRank = getDeveloperRank(xpPoints);
   const lessonEnrichment = selectedLesson
     ? getLessonEnrichment(selectedLesson)
@@ -971,6 +517,7 @@ export default function HomeScreen() {
       setXpPoints((prev) => prev + 10);
     }
   }
+
   const currentLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = currentLessons.filter(
     (l) => completedLessons[l.id],
@@ -992,374 +539,26 @@ export default function HomeScreen() {
     }
   }
 
-  const lineCount = Math.max((code || "").split("\n").length, 8);
-
-  function renderCurriculumList() {
-    return (
-      <>
-        <Pressable
-          style={styles.backToMapBtn}
-          onPress={() => {
-            setMobileDrawerOpen(false);
-            setViewMode("roadmap");
-          }}
-        >
-          <Text style={styles.backToMapText}>← BACK TO SKILL MAP</Text>
-        </Pressable>
-
-        <Text style={styles.sectionTitle}>SWITCH TRACK</Text>
-        {(["python_basics", "algorithms", "system_design"] as const).map(
-          (tKey) => {
-            const meta = TrackThemes[tKey];
-            const isSelected = activeTrack === tKey;
-            const isTrackLocked = meta.isPro && !isPremium;
-            return (
-              <Pressable
-                key={tKey}
-                style={[
-                  styles.trackTab,
-                  isSelected && [
-                    styles.activeTrackTab,
-                    { backgroundColor: meta.stickerBg },
-                  ],
-                ]}
-                onPress={() => handleSwitchTrack(tKey)}
-              >
-                <View style={styles.trackTabInnerRow}>
-                  <Text
-                    style={[
-                      styles.trackTabText,
-                      isSelected && { color: StudioColors.ink, fontWeight: "900" },
-                    ]}
-                  >
-                    [{isTrackLocked ? "🔒" : meta.icon}] {meta.label}
-                  </Text>
-                  {isTrackLocked && (
-                    <View style={styles.sidebarProPill}>
-                      <Text style={styles.sidebarProText}>PRO</Text>
-                    </View>
-                  )}
-                </View>
-              </Pressable>
-            );
-          },
-        )}
-
-        <View style={styles.progressCard}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressTitle}>
-              {completedCount} of {currentLessons.length} Solved
-            </Text>
-            <Text style={styles.progressPercent}>{progressPercent}%</Text>
-          </View>
-          <View style={styles.progressBarTrack}>
-            <View
-              style={[
-                styles.progressBarFill,
-                {
-                  width: `${Math.max(progressPercent, 4)}%`,
-                  backgroundColor: StudioColors.mint,
-                },
-              ]}
-            />
-          </View>
-        </View>
-
-        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>MODULES</Text>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {loading ? (
-            <ActivityIndicator
-              color={StudioColors.textPrimary}
-              style={{ marginTop: 12 }}
-            />
-          ) : (
-            currentLessons.map((lesson, idx) => {
-              const isCompleted = completedLessons[lesson.id];
-              const isLocked = !lesson.is_free && !isPremium;
-              const isActive = selectedLesson?.id === lesson.id;
-              return (
-                <Pressable
-                  key={lesson.id}
-                  style={[
-                    styles.lessonCard,
-                    isActive && [
-                      styles.activeLessonCard,
-                      { backgroundColor: currentTrackTheme.stickerBg },
-                    ],
-                  ]}
-                  onPress={() => handleSelectLesson(lesson)}
-                >
-                  <View style={styles.lessonCardLeft}>
-                    <View
-                      style={[
-                        styles.stepCircle,
-                        isCompleted && styles.stepCircleCompleted,
-                        isActive && {
-                          backgroundColor: "#111111",
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.stepCircleText,
-                          isActive && { color: "#FFFFFF" },
-                        ]}
-                      >
-                        {isLocked
-                          ? "L"
-                          : isCompleted
-                            ? "✓"
-                            : String(idx + 1).padStart(2, "0")}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.lessonTitle,
-                        isActive && styles.activeLessonTitle,
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {lesson.title}
-                    </Text>
-                    {isLocked && (
-                      <View style={styles.sidebarProPill}>
-                        <Text style={styles.sidebarProText}>PRO</Text>
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })
-          )}
-        </ScrollView>
-      </>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
-      <View style={[styles.header, isCompactHeader && styles.headerCompact]}>
-        <View style={styles.headerLeft}>
-          <Pressable
-            style={styles.brandGroup}
-            onPress={() => setViewMode("roadmap")}
-          >
-            <View style={styles.brandIconBox}>
-              <Text style={styles.brandIconText}>DEVLEARN</Text>
-            </View>
-          </Pressable>
-
-          {/* Primary Navigation Mode Switcher */}
-          <View style={styles.modeSwitcher}>
-            <Pressable
-              style={[
-                styles.modeBtn,
-                viewMode === "roadmap" && styles.modeBtnActive,
-              ]}
-              onPress={() => setViewMode("roadmap")}
-            >
-              <Text
-                style={[
-                  styles.modeBtnText,
-                  viewMode === "roadmap" && styles.modeBtnTextActive,
-                ]}
-              >
-                SKILL MAP
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.modeBtn,
-                viewMode === "studio" && styles.modeBtnActive,
-              ]}
-              onPress={() => setViewMode("studio")}
-            >
-              <Text
-                style={[
-                  styles.modeBtnText,
-                  viewMode === "studio" && styles.modeBtnTextActive,
-                ]}
-              >
-                CODE STUDIO
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.modeBtn,
-                viewMode === "bughunt" && styles.modeBtnBugHuntActive,
-              ]}
-              onPress={() => setViewMode("bughunt")}
-            >
-              <Text
-                style={[
-                  styles.modeBtnText,
-                  viewMode === "bughunt" && styles.modeBtnBugHuntTextActive,
-                ]}
-              >
-                BUG HUNT
-              </Text>
-            </Pressable>
-          </View>
-
-          {!isCompactHeader && (
-            <View style={styles.statusPill}>
-              <View
-                style={[
-                  styles.pulseDot,
-                  pyodideReady
-                    ? { backgroundColor: "#10B981" }
-                    : { backgroundColor: "#F59E0B" },
-                ]}
-              />
-              <Text style={styles.statusText}>
-                {pyodideReady ? "PY 3.11 READY" : "LOADING PY..."}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.headerRight}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.themeToggleBtn,
-              pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-            ]}
-            onPress={() =>
-              setThemeMode((prev) => (prev === "light" ? "dark" : "light"))
-            }
-          >
-            <Text style={styles.themeToggleBtnText}>
-              {themeMode === "light" ? "☾ DARK" : "☀ LIGHT"}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.gamificationHeader,
-              pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-            ]}
-            onPress={() => setShowProfileModal(true)}
-          >
-            {/* 1. Profile & Developer Rank Button */}
-            <View style={styles.rankPill}>
-              <View style={styles.rankLevelBadge}>
-                <Text style={styles.rankLevelBadgeText}>
-                  LVL 0{devRank.level}
-                </Text>
-              </View>
-              <View style={styles.headerBtnTextStack}>
-                {!isCompactHeader && (
-                  <Text style={styles.headerBtnMicroLabel}>
-                    MY PROFILE & STATS ↗
-                  </Text>
-                )}
-                <Text style={styles.rankPillText}>
-                  {isCompactHeader
-                    ? "PROFILE ↗"
-                    : devRank.title.toUpperCase()}
-                </Text>
-              </View>
-            </View>
-
-            {/* 2. Daily Streak Telemetry Button */}
-            <View style={styles.statPill}>
-              <View style={styles.headerBtnTextStack}>
-                {!isCompactHeader && (
-                  <Text style={styles.headerBtnMicroLabel}>DAILY STREAK</Text>
-                )}
-                <Text style={styles.statText}>
-                  🔥 {streakCount}{" "}
-                  {isCompactHeader
-                    ? "D"
-                    : streakCount === 1
-                      ? "DAY"
-                      : "DAYS"}
-                </Text>
-              </View>
-            </View>
-
-            {isPremium && (
-              <View style={styles.proBadge}>
-                <Text style={styles.proBadgeText}>★ PRO MEMBER</Text>
-              </View>
-            )}
-          </Pressable>
-
-          {!isCompactHeader && <View style={styles.headerActionDivider} />}
-
-          {/* 4. Unlock Pro Primary CTA Button */}
-          {!isPremium && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.upgradeHeaderBtn,
-                pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
-              ]}
-              onPress={() => setShowPaywallModal(true)}
-            >
-              <View style={styles.headerBtnTextStack}>
-                {!isCompactHeader && (
-                  <Text style={styles.headerBtnMicroLabel}>
-                    UNLOCK ALL 3 TRACKS
-                  </Text>
-                )}
-                <Text style={styles.upgradeHeaderBtnText}>
-                  {isCompactHeader ? "GET PRO" : "UPGRADE TO PRO"}
-                </Text>
-              </View>
-              <View style={styles.headerCtaKeycap}>
-                <Text style={styles.headerCtaKeycapPinkText}>★ PRO →</Text>
-              </View>
-            </Pressable>
-          )}
-
-          {/* 5. Cloud Sync / Save Progress Primary CTA Button */}
-          {session ? (
-            <View style={styles.userSection}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.authBtn,
-                  pressed && {
-                    transform: [{ translateX: 1 }, { translateY: 1 }],
-                  },
-                ]}
-                onPress={() => supabase.auth.signOut()}
-              >
-                <View style={styles.headerBtnTextStack}>
-                  {!isCompactHeader && (
-                    <Text style={styles.headerBtnMicroLabelMuted}>
-                      CLOUD SYNCED ✓
-                    </Text>
-                  )}
-                  <Text style={styles.authBtnText}>SIGN OUT</Text>
-                </View>
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable
-              style={({ pressed }) => [
-                styles.authBtn,
-                styles.loginBtn,
-                pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
-              ]}
-              onPress={() => setShowAuthModal(true)}
-            >
-              <View style={styles.headerBtnTextStack}>
-                {!isCompactHeader && (
-                  <Text style={styles.headerBtnMicroLabel}>
-                    FREE CLOUD BACKUP
-                  </Text>
-                )}
-                <Text style={styles.loginBtnText}>
-                  {isCompactHeader ? "SAVE PROGRESS" : "SAVE MY PROGRESS"}
-                </Text>
-              </View>
-              <View style={styles.headerCtaKeycap}>
-                <Text style={styles.headerCtaKeycapLimeText}>SIGN IN →</Text>
-              </View>
-            </Pressable>
-          )}
-        </View>
-      </View>
+      <AppHeader
+        viewMode={viewMode}
+        onChangeViewMode={setViewMode}
+        isCompactHeader={isCompactHeader}
+        pyodideReady={pyodideReady}
+        themeMode={themeMode}
+        onToggleTheme={() =>
+          setThemeMode((prev) => (prev === "light" ? "dark" : "light"))
+        }
+        devRank={devRank}
+        streakCount={streakCount}
+        isPremium={isPremium}
+        session={session}
+        onOpenProfile={() => setShowProfileModal(true)}
+        onOpenPaywall={() => setShowPaywallModal(true)}
+        onOpenAuth={() => setShowAuthModal(true)}
+        onSignOut={() => supabase.auth.signOut()}
+      />
 
       {viewMode === "roadmap" ? (
         <RoadmapTree
@@ -1375,37 +574,36 @@ export default function HomeScreen() {
           pyodideReady={pyodideReady}
           isPremium={isPremium}
           onRequirePro={() => setShowPaywallModal(true)}
-          onExecutePatch={handleExecuteBugPatch}
+          onExecutePatch={(userCode, testHarness) =>
+            executeBugPatchVerification(
+              pyodideRef.current,
+              userCode,
+              testHarness,
+            )
+          }
           onAwardBugHuntXp={handleAwardBugHuntXp}
           solvedIncidents={solvedIncidents}
           renderHighlightedPython={renderHighlightedPython}
         />
       ) : (
         <View style={styles.content}>
-          {!isCompactStudio && !sidebarCollapsed && (
-            <View style={styles.sidebar}>{renderCurriculumList()}</View>
-          )}
-
-          {isCompactStudio && mobileDrawerOpen && (
-            <View style={styles.drawerOverlay}>
-              <View style={styles.mobileDrawer}>
-                <View style={styles.drawerHeader}>
-                  <Text style={styles.drawerTitle}>Curriculum Modules</Text>
-                  <Pressable
-                    style={styles.drawerCloseBtn}
-                    onPress={() => setMobileDrawerOpen(false)}
-                  >
-                    <Text style={styles.drawerCloseText}>✕</Text>
-                  </Pressable>
-                </View>
-                {renderCurriculumList()}
-              </View>
-              <Pressable
-                style={styles.drawerBackdrop}
-                onPress={() => setMobileDrawerOpen(false)}
-              />
-            </View>
-          )}
+          <StudioSidebar
+            isCompactStudio={isCompactStudio}
+            sidebarCollapsed={sidebarCollapsed}
+            mobileDrawerOpen={mobileDrawerOpen}
+            onCloseMobileDrawer={() => setMobileDrawerOpen(false)}
+            onBackToMap={() => setViewMode("roadmap")}
+            activeTrack={activeTrack}
+            isPremium={isPremium}
+            onSwitchTrack={handleSwitchTrack}
+            completedCount={completedCount}
+            currentLessons={currentLessons}
+            progressPercent={progressPercent}
+            loading={loading}
+            completedLessons={completedLessons}
+            selectedLesson={selectedLesson}
+            onSelectLesson={handleSelectLesson}
+          />
 
           <View style={styles.workspaceContainer}>
             {/* Studio Subheader Bar */}
@@ -1417,7 +615,8 @@ export default function HomeScreen() {
                     onPress={() => setMobileDrawerOpen(true)}
                   >
                     <Text style={styles.sidebarToggleText}>
-                      ☰ MODULES ({currentLessonIndex + 1}/{currentLessons.length})
+                      ☰ MODULES ({currentLessonIndex + 1}/
+                      {currentLessons.length})
                     </Text>
                   </Pressable>
                 ) : (
@@ -1504,843 +703,47 @@ export default function HomeScreen() {
             {selectedLesson ? (
               <View style={styles.workspaceGrid}>
                 {(!isCompactStudio || mobileStudioPane === "learn") && (
-                  <ScrollView
-                    style={styles.explanationPanel}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    <View style={styles.lessonBadgeRow}>
-                      <Text
-                        style={[
-                          styles.lessonStepPill,
-                          {
-                            backgroundColor: currentTrackTheme.stickerBg,
-                          },
-                        ]}
-                      >
-                        {selectedLesson.category ||
-                          `MODULE ${String(selectedLesson.lesson_order).padStart(2, "0")}`}
-                      </Text>
-                      {completedLessons[selectedLesson.id] && (
-                        <Text style={styles.completedLessonPill}>
-                          SOLVED ✓
-                        </Text>
-                      )}
-                      {selectedLesson.complexities?.time && (
-                        <Text style={styles.complexityBadge}>
-                          TIME: {selectedLesson.complexities.time}
-                        </Text>
-                      )}
-                      {selectedLesson.complexities?.space && (
-                        <Text style={styles.complexityBadge}>
-                          SPACE: {selectedLesson.complexities.space}
-                        </Text>
-                      )}
-                    </View>
-
-                  <Text style={styles.title}>{selectedLesson.title}</Text>
-                  <Text style={styles.subtitleDesc}>
-                    {selectedLesson.description}
-                  </Text>
-
-                  <View style={styles.tabBar}>
-                    <Pressable
-                      style={[
-                        styles.tabItem,
-                        activeTab === "problem" && styles.activeTabItem,
-                      ]}
-                      onPress={() => setActiveTab("problem")}
-                    >
-                      <Text
-                        style={[
-                          styles.tabText,
-                          activeTab === "problem" && styles.activeTabText,
-                        ]}
-                      >
-                        CONCEPT & MISSION
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      style={[
-                        styles.tabItem,
-                        activeTab === "visual" && styles.activeTabItem,
-                      ]}
-                      onPress={() => setActiveTab("visual")}
-                    >
-                      <Text
-                        style={[
-                          styles.tabText,
-                          activeTab === "visual" && styles.activeTabText,
-                        ]}
-                      >
-                        MEMORY SIMULATOR
-                      </Text>
-                    </Pressable>
-                  </View>
-
-                  {activeTab === "problem" ? (
-                    <View style={styles.problemCard}>
-                      {/* 3-Style Explanation Card */}
-                      <View style={styles.conceptBox}>
-                        <View style={styles.conceptTopRow}>
-                          <View style={styles.sectionStickerBadge}>
-                            <Text style={styles.sectionHeaderLabel}>
-                              LEARN THE CONCEPT
-                            </Text>
-                          </View>
-                          <View style={styles.explainStyleSwitcher}>
-                            {[
-                              { id: "analogy", label: "SIMPLE ANALOGY" },
-                              { id: "guide", label: "FULL GUIDE" },
-                              { id: "cheatsheet", label: "CHEAT SHEET" },
-                            ].map((mode) => {
-                              const isActiveStyle = explainStyle === mode.id;
-                              return (
-                                <Pressable
-                                  key={mode.id}
-                                  style={[
-                                    styles.explainStyleBtn,
-                                    isActiveStyle &&
-                                      styles.explainStyleBtnActive,
-                                  ]}
-                                  onPress={() =>
-                                    setExplainStyle(
-                                      mode.id as
-                                        | "analogy"
-                                        | "guide"
-                                        | "cheatsheet",
-                                    )
-                                  }
-                                >
-                                  <Text
-                                    style={[
-                                      styles.explainStyleBtnText,
-                                      isActiveStyle &&
-                                        styles.explainStyleBtnTextActive,
-                                    ]}
-                                  >
-                                    {mode.label}
-                                  </Text>
-                                </Pressable>
-                              );
-                            })}
-                          </View>
-                        </View>
-
-                        {explainStyle === "analogy" && lessonEnrichment ? (
-                          <View style={styles.analogyContainer}>
-                            <View style={styles.realWorldBanner}>
-                              <Text style={styles.realWorldLabel}>
-                                WHY THIS MATTERS IN REAL APPS
-                              </Text>
-                              <Text style={styles.realWorldText}>
-                                {lessonEnrichment.realWorldUse}
-                              </Text>
-                            </View>
-
-                            <Text style={styles.analogyHeading}>
-                              {lessonEnrichment.analogyTitle}
-                            </Text>
-                            <FormattedText
-                              text={lessonEnrichment.analogyText}
-                              style={styles.problemText}
-                            />
-                          </View>
-                        ) : explainStyle === "cheatsheet" &&
-                          lessonEnrichment ? (
-                          <View style={styles.cheatSheetContainer}>
-                            <Text style={styles.cheatSheetIntro}>
-                              Copy or reference this pattern while solving the
-                              mission on the right:
-                            </Text>
-                            <View style={styles.codeBlockContainer}>
-                              <View style={styles.codeBlockHeader}>
-                                <Text style={styles.codeBlockLang}>
-                                  PYTHON SYNTAX PATTERN
-                                </Text>
-                              </View>
-                              <Text style={styles.codeBlockText}>
-                                {lessonEnrichment.cheatSheet}
-                              </Text>
-                            </View>
-                          </View>
-                        ) : (
-                          <FormattedText
-                            text={selectedLesson.content}
-                            style={styles.problemText}
-                          />
-                        )}
-                      </View>
-
-                      {/* Interactive 1-Question Warm-Up Quiz */}
-                      {lessonEnrichment && (
-                        <View style={styles.quizCard}>
-                          <View style={styles.quizHeaderRow}>
-                            <View style={styles.quizSticker}>
-                              <Text style={styles.quizBadgeText}>
-                                QUICK WARM-UP CHECK
-                              </Text>
-                            </View>
-                            <View
-                              style={[
-                                styles.quizXpPill,
-                                solvedQuizzes[selectedLesson.id] &&
-                                  styles.quizXpPillDone,
-                              ]}
-                            >
-                              <Text style={styles.quizXpPillText}>
-                                {solvedQuizzes[selectedLesson.id]
-                                  ? "✓ +10 XP EARNED"
-                                  : "+10 XP"}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text style={styles.quizQuestion}>
-                            {lessonEnrichment.quiz.question}
-                          </Text>
-
-                          <View style={styles.quizOptionsList}>
-                            {lessonEnrichment.quiz.options.map((opt, idx) => {
-                              const isPicked = quizSelection === idx;
-                              const isCorrect =
-                                idx === lessonEnrichment.quiz.correctIndex;
-                              const showSuccess = isPicked && isCorrect;
-                              const showWrong = isPicked && !isCorrect;
-
-                              return (
-                                <Pressable
-                                  key={idx}
-                                  style={[
-                                    styles.quizOptionBtn,
-                                    showSuccess && styles.quizOptionCorrect,
-                                    showWrong && styles.quizOptionWrong,
-                                  ]}
-                                  onPress={() => handleSelectQuizOption(idx)}
-                                >
-                                  <Text
-                                    style={[
-                                      styles.quizOptionText,
-                                      (showSuccess || showWrong) && {
-                                        color: "#111111",
-                                        fontWeight: "800",
-                                      },
-                                    ]}
-                                  >
-                                    {showSuccess
-                                      ? "[✓] "
-                                      : showWrong
-                                        ? "[✕] "
-                                        : `[${String.fromCharCode(65 + idx)}] `}
-                                    {opt}
-                                  </Text>
-                                </Pressable>
-                              );
-                            })}
-                          </View>
-
-                          {quizSelection !== null && (
-                            <View
-                              style={[
-                                styles.quizFeedbackBox,
-                                quizSelection ===
-                                  lessonEnrichment.quiz.correctIndex
-                                  ? styles.quizFeedbackSuccess
-                                  : styles.quizFeedbackRetry,
-                              ]}
-                            >
-                              <Text style={styles.quizFeedbackText}>
-                                {quizSelection ===
-                                lessonEnrichment.quiz.correctIndex
-                                  ? `✓ Spot on! ${lessonEnrichment.quiz.explanation}`
-                                  : "→ Not quite — tap another option to test your intuition!"}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      )}
-
-                      {/* Common Pitfall Warning Card */}
-                      {lessonEnrichment?.commonPitfall && (
-                        <View style={styles.pitfallCard}>
-                          <View style={styles.pitfallHeaderRow}>
-                            <View style={styles.pitfallSticker}>
-                              <Text style={styles.pitfallStickerText}>
-                                ⚠️ COMMON PITFALL TO AVOID
-                              </Text>
-                            </View>
-                          </View>
-                          <Text style={styles.pitfallTitle}>
-                            {lessonEnrichment.commonPitfall.title}
-                          </Text>
-                          <View style={styles.pitfallCompareRow}>
-                            <View style={styles.pitfallWrongBox}>
-                              <Text style={styles.pitfallWrongLabel}>
-                                ✕ COMMON MISTAKE
-                              </Text>
-                              <Text style={styles.pitfallCodeText}>
-                                {lessonEnrichment.commonPitfall.wrongCode}
-                              </Text>
-                            </View>
-                            <View style={styles.pitfallRightBox}>
-                              <Text style={styles.pitfallRightLabel}>
-                                ✓ CORRECT PATTERN
-                              </Text>
-                              <Text style={styles.pitfallCodeText}>
-                                {lessonEnrichment.commonPitfall.rightCode}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text style={styles.pitfallExplanation}>
-                            {lessonEnrichment.commonPitfall.explanation}
-                          </Text>
-                        </View>
-                      )}
-
-                      <View style={styles.assignmentBox}>
-                        <View style={styles.assignmentHeaderRow}>
-                          <View style={styles.missionSticker}>
-                            <Text style={styles.assignmentHeaderLabel}>
-                              YOUR CODING MISSION
-                            </Text>
-                          </View>
-                          <View style={styles.missionRightActions}>
-                            {lessonEnrichment?.guidedCode && (
-                              <Pressable
-                                style={({ pressed }) => [
-                                  styles.guidedTemplateBtn,
-                                  pressed && {
-                                    transform: [
-                                      { translateX: 1 },
-                                      { translateY: 1 },
-                                    ],
-                                  },
-                                ]}
-                                onPress={() => {
-                                  if (lessonEnrichment.guidedCode) {
-                                    updateCodeWithDraft(
-                                      lessonEnrichment.guidedCode,
-                                      selectedLesson,
-                                    );
-                                    if (isCompactStudio) {
-                                      setMobileStudioPane("code");
-                                    }
-                                  }
-                                }}
-                              >
-                                <Text style={styles.guidedTemplateBtnText}>
-                                  🧩 LOAD GUIDED STEPS
-                                </Text>
-                              </Pressable>
-                            )}
-                            <View style={styles.xpRewardPill}>
-                              <Text style={styles.xpRewardPillText}>
-                                +50 XP
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-
-                        {selectedLesson.assignment && (
-                          <FormattedText
-                            text={selectedLesson.assignment}
-                            style={styles.assignmentDescription}
-                          />
-                        )}
-
-                        {selectedLesson.constraints &&
-                          selectedLesson.constraints.length > 0 && (
-                            <View style={styles.checklistContainer}>
-                              {selectedLesson.constraints.map((c, i) => {
-                                const isStepPassed = testResults?.[i]?.passed;
-                                return (
-                                  <View key={i} style={styles.missionRow}>
-                                    <View
-                                      style={[
-                                        styles.missionBulletBox,
-                                        isStepPassed && {
-                                          backgroundColor: StudioColors.lime,
-                                        },
-                                      ]}
-                                    >
-                                      <Text style={styles.missionBullet}>
-                                        {isStepPassed ? "✓" : i + 1}
-                                      </Text>
-                                    </View>
-                                    <FormattedText
-                                      text={c}
-                                      style={styles.missionText}
-                                    />
-                                  </View>
-                                );
-                              })}
-                            </View>
-                          )}
-                      </View>
-
-                      {selectedLesson.examples?.map((ex, i) => (
-                        <View key={i} style={styles.exampleBlock}>
-                          <Text style={styles.exampleTitle}>
-                            EXAMPLE 0{i + 1}
-                          </Text>
-                          <View style={styles.exampleBox}>
-                            <Text style={styles.exampleCode}>
-                              <Text style={styles.bold}>Input: </Text>
-                              {ex.input}
-                            </Text>
-                            <Text style={styles.exampleCode}>
-                              <Text style={styles.bold}>Output: </Text>
-                              {ex.output}
-                            </Text>
-                            {ex.explanation && (
-                              <Text style={styles.exampleCode}>
-                                <Text style={styles.bold}>Why: </Text>
-                                {ex.explanation}
-                              </Text>
-                            )}
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  ) : (
-                    <VisualLessonPanel
-                      type={selectedLesson.visual_type || "memory"}
-                      data={selectedLesson.visual_data}
-                    />
-                  )}
-                  <HintAccordion hints={selectedLesson.hints || []} />
-                  </ScrollView>
+                  <LessonProblemPanel
+                    selectedLesson={selectedLesson}
+                    activeTrack={activeTrack}
+                    completedLessons={completedLessons}
+                    activeTab={activeTab}
+                    onChangeActiveTab={setActiveTab}
+                    explainStyle={explainStyle}
+                    onChangeExplainStyle={setExplainStyle}
+                    lessonEnrichment={lessonEnrichment}
+                    solvedQuizzes={solvedQuizzes}
+                    quizSelection={quizSelection}
+                    onSelectQuizOption={handleSelectQuizOption}
+                    onLoadGuidedSteps={(guidedCode) => {
+                      updateCodeWithDraft(guidedCode, selectedLesson);
+                      if (isCompactStudio) {
+                        setMobileStudioPane("code");
+                      }
+                    }}
+                    testResults={testResults}
+                  />
                 )}
 
                 {(!isCompactStudio || mobileStudioPane === "code") && (
-                  <View style={styles.editorPanel}>
-                  <View style={styles.ideFrame}>
-                    <View style={styles.ideHeader}>
-                      <View style={styles.windowControls}>
-                        <View
-                          style={[
-                            styles.controlDot,
-                            { backgroundColor: StudioColors.coral },
-                          ]}
-                        />
-                        <View
-                          style={[
-                            styles.controlDot,
-                            { backgroundColor: StudioColors.yellow },
-                          ]}
-                        />
-                        <View
-                          style={[
-                            styles.controlDot,
-                            { backgroundColor: StudioColors.lime },
-                          ]}
-                        />
-                      </View>
-                      <View style={styles.ideTitleGroup}>
-                        <Text style={styles.ideTitleText}>solution.py</Text>
-                        <Text style={styles.ideMetaPill}>PY 3.11</Text>
-                        {hasSavedDraft && (
-                          <View style={styles.savedDraftPill}>
-                            <Text style={styles.savedDraftPillText}>
-                              SAVED DRAFT
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      <View style={styles.ideHeaderActions}>
-                        {lessonEnrichment?.guidedCode && (
-                          <Pressable
-                            style={styles.ideGuidedBtn}
-                            onPress={() => {
-                              if (lessonEnrichment.guidedCode) {
-                                updateCodeWithDraft(
-                                  lessonEnrichment.guidedCode,
-                                  selectedLesson,
-                                );
-                              }
-                            }}
-                          >
-                            <Text style={styles.ideGuidedBtnText}>
-                              🧩 GUIDED TEMPLATE
-                            </Text>
-                          </Pressable>
-                        )}
-                        <Pressable
-                          style={[
-                            styles.copyCodeBtn,
-                            copiedCode && styles.copyCodeBtnSuccess,
-                          ]}
-                          onPress={handleCopyCode}
-                        >
-                          <Text
-                            style={[
-                              styles.copyCodeBtnText,
-                              copiedCode && { color: StudioColors.lime },
-                            ]}
-                          >
-                            {copiedCode ? "✓ COPIED" : "COPY"}
-                          </Text>
-                        </Pressable>
-                        <Pressable
-                          style={styles.resetBtn}
-                          onPress={() =>
-                            updateCodeWithDraft(
-                              (selectedLesson.initial_code || "").replace(
-                                /\\n/g,
-                                "\n",
-                              ),
-                              selectedLesson,
-                            )
-                          }
-                        >
-                          <Text style={styles.resetBtnText}>RESET</Text>
-                        </Pressable>
-                      </View>
-                    </View>
-
-                    <View style={styles.symbolBar}>
-                      <Text style={styles.quickInsertLabel}>INSERT</Text>
-                      {[
-                        { label: "⇥ Tab", val: "    " },
-                        { label: "print()", val: "print()" },
-                        { label: '""', val: '""' },
-                        { label: 'f""', val: 'f""' },
-                        { label: "[]", val: "[]" },
-                        { label: ":", val: ":" },
-                        { label: "=", val: " = " },
-                        { label: "return", val: "return " },
-                      ].map((item) => (
-                        <Pressable
-                          key={item.label}
-                          style={styles.symbolChip}
-                          onPress={() => insertSymbol(item.val)}
-                        >
-                          <Text style={styles.symbolText}>{item.label}</Text>
-                        </Pressable>
-                      ))}
-                    </View>
-
-                    <ScrollView
-                      style={styles.editorScroll}
-                      contentContainerStyle={[
-                        styles.editorBody,
-                        { minHeight: lineCount * 21 + 32 },
-                      ]}
-                      showsVerticalScrollIndicator={true}
-                    >
-                      <View style={styles.lineNumbers}>
-                        {Array.from({ length: lineCount }).map((_, i) => (
-                          <Text key={i} style={styles.lineNumberText}>
-                            {i + 1}
-                          </Text>
-                        ))}
-                      </View>
-                      <View
-                        style={[
-                          styles.editorCodeWrapper,
-                          { minHeight: lineCount * 21 + 32 },
-                        ]}
-                      >
-                        <View
-                          pointerEvents="none"
-                          style={[
-                            styles.syntaxHighlightLayer,
-                            { minHeight: lineCount * 21 + 32 },
-                          ]}
-                        >
-                          <Text style={styles.syntaxHighlightText}>
-                            {renderHighlightedPython(code)}
-                            {code.endsWith("\n") ? " " : ""}
-                          </Text>
-                        </View>
-                        <TextInput
-                          style={[
-                            styles.codeEditor,
-                            { minHeight: lineCount * 21 + 32 },
-                          ]}
-                          value={code}
-                          onChangeText={(nextText) =>
-                            updateCodeWithDraft(nextText)
-                          }
-                          onSelectionChange={(e) => {
-                            selectionRef.current = e.nativeEvent.selection;
-                          }}
-                          onKeyPress={(e: any) => {
-                            const nativeEv = e?.nativeEvent;
-                            if (
-                              nativeEv &&
-                              nativeEv.key === "Enter" &&
-                              (nativeEv.metaKey || nativeEv.ctrlKey)
-                            ) {
-                              e.preventDefault?.();
-                              if (nativeEv.shiftKey) {
-                                runPythonCode();
-                              } else {
-                                runPlaygroundOnly();
-                              }
-                            }
-                          }}
-                          multiline
-                          scrollEnabled={false}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          spellCheck={false}
-                        />
-                      </View>
-                    </ScrollView>
-
-                    <View style={styles.ideFooter}>
-                      <Text style={styles.ideFooterText}>
-                        UTF-8 · {(code || "").split("\n").length} LINES ·{" "}
-                        {(code || "").length} CHARS
-                      </Text>
-                      <Text
-                        style={[
-                          styles.ideFooterText,
-                          pyodideReady && { color: StudioColors.lime },
-                        ]}
-                      >
-                        {pyodideReady
-                          ? "● READY · ⌘↵ RUN"
-                          : "○ INITIALIZING"}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.actionRow}>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.secondaryRunBtn,
-                        isExecuting && styles.disabledButton,
-                        pressed && {
-                          transform: [{ translateX: 1 }, { translateY: 1 }],
-                        },
-                      ]}
-                      onPress={runPlaygroundOnly}
-                      disabled={isExecuting}
-                    >
-                      <Text style={styles.secondaryRunBtnText}>▶ TEST RUN</Text>
-                      <View style={styles.shortcutBadgeDark}>
-                        <Text style={styles.shortcutBadgeDarkText}>⌘↵</Text>
-                      </View>
-                    </Pressable>
-
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.runButton,
-                        isExecuting && styles.disabledButton,
-                        pressed && {
-                          transform: [{ translateX: 2 }, { translateY: 2 }],
-                        },
-                      ]}
-                      onPress={runPythonCode}
-                      disabled={isExecuting}
-                    >
-                      <Text style={styles.runButtonText}>
-                        {isExecuting
-                          ? "CHECKING CODE..."
-                          : "SUBMIT CODE (+50 XP)"}
-                      </Text>
-                      {!isExecuting && (
-                        <View style={styles.shortcutBadgeLight}>
-                          <Text style={styles.shortcutBadgeLightText}>
-                            → ⇧⌘↵
-                          </Text>
-                        </View>
-                      )}
-                    </Pressable>
-                  </View>
-
-                  <View style={styles.bottomPanel}>
-                    <View style={styles.bottomTabBar}>
-                      <View style={styles.bottomTabsLeft}>
-                        <Pressable
-                          style={[
-                            styles.bottomTab,
-                            bottomTab === "console" && styles.activeBottomTab,
-                          ]}
-                          onPress={() => setBottomTab("console")}
-                        >
-                          <Text
-                            style={[
-                              styles.bottomTabText,
-                              bottomTab === "console" &&
-                                styles.activeBottomTabText,
-                            ]}
-                          >
-                            CONSOLE OUTPUT
-                          </Text>
-                        </Pressable>
-                        <Pressable
-                          style={[
-                            styles.bottomTab,
-                            bottomTab === "tests" && styles.activeBottomTab,
-                          ]}
-                          onPress={() => setBottomTab("tests")}
-                        >
-                          <Text
-                            style={[
-                              styles.bottomTabText,
-                              bottomTab === "tests" &&
-                                styles.activeBottomTabText,
-                            ]}
-                          >
-                            MISSION CHECKS{" "}
-                            {testResults
-                              ? `[${testResults.filter((t) => t.passed).length}/${testResults.length}]`
-                              : ""}
-                          </Text>
-                        </Pressable>
-                      </View>
-
-                      {bottomTab === "console" && output ? (
-                        <Pressable
-                          style={styles.clearConsoleBtn}
-                          onPress={() => setOutput("")}
-                        >
-                          <Text style={styles.clearConsoleText}>CLEAR</Text>
-                        </Pressable>
-                      ) : null}
-                    </View>
-
-                    <ScrollView style={styles.bottomContent}>
-                      {bottomTab === "console" ? (
-                        output ? (
-                          <Text style={styles.terminalText}>{output}</Text>
-                        ) : (
-                          <View style={styles.emptyConsoleBox}>
-                            <Text style={styles.emptyConsoleTitle}>
-                              &gt;&gt;&gt; READY TO RUN
-                            </Text>
-                            <Text style={styles.emptyConsoleHint}>
-                              Click &quot;▶ TEST RUN&quot; to see your print() output, or
-                              &quot;SUBMIT CODE (+50 XP)&quot; to grade your solution.
-                            </Text>
-                          </View>
-                        )
-                      ) : testResults ? (
-                        <View>
-                          <View
-                            style={[
-                              styles.testSummaryBanner,
-                              testResults.every((t) => t.passed)
-                                ? styles.testSummarySuccess
-                                : styles.testSummaryWarn,
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.testSummaryText,
-                                testResults.every((t) => t.passed)
-                                  ? { color: StudioColors.lime }
-                                  : { color: StudioColors.yellow },
-                              ]}
-                            >
-                              {testResults.every((t) => t.passed)
-                                ? `✓ ALL ${testResults.length} MISSION CHECKS PASSED!`
-                                : `→ ${testResults.filter((t) => t.passed).length} OF ${testResults.length} CHECKS PASSED — INSPECT BELOW`}
-                            </Text>
-                          </View>
-
-                          <View style={styles.testCasePills}>
-                            {testResults.map((tr, idx) => (
-                              <Pressable
-                                key={idx}
-                                style={[
-                                  styles.testPill,
-                                  selectedTestIndex === idx &&
-                                    styles.activeTestPill,
-                                ]}
-                                onPress={() => setSelectedTestIndex(idx)}
-                              >
-                                <Text
-                                  style={{
-                                    fontSize: 11,
-                                    fontFamily: MonoFont,
-                                    fontWeight: "900",
-                                    color: tr.passed
-                                      ? StudioColors.lime
-                                      : StudioColors.coral,
-                                  }}
-                                >
-                                  {tr.passed ? "✓" : "✕"}
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.testPillText,
-                                    selectedTestIndex === idx &&
-                                      styles.activeTestPillText,
-                                  ]}
-                                >
-                                  CHECK 0{tr.id}
-                                </Text>
-                              </Pressable>
-                            ))}
-                          </View>
-
-                          {testResults[selectedTestIndex] && (
-                            <View style={styles.testDetails}>
-                              <Text style={styles.testHeader}>
-                                REQUIREMENT CHECKED
-                              </Text>
-                              <View style={styles.testDataBox}>
-                                <Text style={styles.testDataText}>
-                                  {testResults[selectedTestIndex].input}
-                                </Text>
-                              </View>
-
-                              <View style={styles.comparisonRow}>
-                                <View style={{ flex: 1 }}>
-                                  <Text style={styles.testHeader}>
-                                    EXPECTED OUTPUT
-                                  </Text>
-                                  <View style={styles.testDataBox}>
-                                    <Text style={styles.testDataText}>
-                                      {testResults[selectedTestIndex].expected}
-                                    </Text>
-                                  </View>
-                                </View>
-
-                                <View style={{ flex: 1 }}>
-                                  <Text style={styles.testHeader}>
-                                    YOUR OUTPUT
-                                  </Text>
-                                  <View
-                                    style={[
-                                      styles.testDataBox,
-                                      testResults[selectedTestIndex].passed
-                                        ? styles.testDataSuccess
-                                        : styles.testDataFail,
-                                    ]}
-                                  >
-                                    <Text
-                                      style={[
-                                        styles.testDataText,
-                                        testResults[selectedTestIndex].passed
-                                          ? { color: StudioColors.lime }
-                                          : { color: StudioColors.coral },
-                                      ]}
-                                    >
-                                      {testResults[selectedTestIndex].actual}
-                                    </Text>
-                                  </View>
-                                </View>
-                              </View>
-                            </View>
-                          )}
-                        </View>
-                      ) : (
-                        <View style={styles.emptyConsoleBox}>
-                          <Text style={styles.emptyConsoleTitle}>
-                            NO MISSION CHECKS RUN YET
-                          </Text>
-                          <Text style={styles.emptyConsoleHint}>
-                            Click &quot;SUBMIT CODE (+50 XP)&quot; above to
-                            validate your code against every mission check.
-                          </Text>
-                        </View>
-                      )}
-                    </ScrollView>
-                  </View>
-                  </View>
+                  <StudioCodeEditor
+                    selectedLesson={selectedLesson}
+                    code={code}
+                    onChangeCode={updateCodeWithDraft}
+                    hasSavedDraft={hasSavedDraft}
+                    guidedCode={lessonEnrichment?.guidedCode}
+                    pyodideReady={pyodideReady}
+                    isExecuting={isExecuting}
+                    onRunPlaygroundOnly={runPlaygroundOnly}
+                    onRunPythonCode={runPythonCode}
+                    bottomTab={bottomTab}
+                    onChangeBottomTab={setBottomTab}
+                    output={output}
+                    onClearOutput={() => setOutput("")}
+                    testResults={testResults}
+                    selectedTestIndex={selectedTestIndex}
+                    onSelectTestIndex={setSelectedTestIndex}
+                  />
                 )}
               </View>
             ) : null}
@@ -2405,1760 +808,130 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: StudioColors.bg,
-    position: "relative",
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: StudioColors.border,
-    backgroundColor: StudioColors.surface,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    zIndex: 100,
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  headerCompact: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    zIndex: 101,
-  },
-  brandGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  brandIconBox: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: StudioColors.ink,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    justifyContent: "center",
-    alignItems: "center",
-    ...HardShadowSm,
-  },
-  brandIconText: {
-    color: StudioColors.lime,
-    fontSize: 12,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 1,
-  },
-  modeSwitcher: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  modeBtn: {
-    paddingHorizontal: 13,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: StudioColors.surface,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  modeBtnActive: {
-    backgroundColor: StudioColors.yellow,
-    borderColor: StudioColors.ink,
-  },
-  modeBtnBugHuntActive: {
-    backgroundColor: StudioColors.coral,
-    borderColor: StudioColors.ink,
-  },
-  modeBtnText: {
-    color: StudioColors.textPrimary,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.6,
-  },
-  modeBtnTextActive: { color: StudioColors.ink },
-  modeBtnBugHuntTextActive: {
-    color: StudioColors.ink,
-    fontWeight: "900",
-  },
-  statusPill: {
-    backgroundColor: StudioColors.bg,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  pulseDot: { width: 7, height: 7, borderRadius: 4 },
-  statusText: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.5,
-  },
-  themeToggleBtn: {
-    backgroundColor: StudioColors.surfaceElevated,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  themeToggleBtnText: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.5,
-  },
-  gamificationHeader: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: 8,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  headerBtnTextStack: {
-    flexDirection: "column",
-    justifyContent: "center",
-    gap: 1,
-  },
-  headerBtnMicroLabel: {
-    color: "rgba(17, 17, 17, 0.72)",
-    fontSize: 8.5,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.6,
-  },
-  headerBtnMicroLabelMuted: {
-    color: StudioColors.textMuted,
-    fontSize: 8.5,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.6,
-  },
-  rankPill: {
-    backgroundColor: StudioColors.violet,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: StudioColors.ink,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    ...HardShadowSm,
-  },
-  rankLevelBadge: {
-    backgroundColor: StudioColors.ink,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 5,
-  },
-  rankLevelBadgeText: {
-    color: StudioColors.violet,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.5,
-  },
-  rankPillText: {
-    color: StudioColors.ink,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.4,
-  },
-  statPill: {
-    backgroundColor: StudioColors.yellow,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: StudioColors.ink,
-    justifyContent: "center",
-    ...HardShadowSm,
-  },
-  statText: {
-    color: StudioColors.ink,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.4,
-  },
-  xpStickerPill: {
-    backgroundColor: StudioColors.mint,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: StudioColors.ink,
-    justifyContent: "center",
-    ...HardShadowSm,
-  },
-  xpStickerText: {
-    color: StudioColors.ink,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.4,
-  },
-  proBadge: {
-    backgroundColor: StudioColors.ink,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 7,
-    borderWidth: 1.5,
-    borderColor: StudioColors.lime,
-    justifyContent: "center",
-  },
-  proBadgeText: {
-    color: StudioColors.lime,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.5,
-  },
-  headerActionDivider: {
-    width: 2,
-    height: 28,
-    backgroundColor: StudioColors.border,
-    marginHorizontal: 2,
-    borderRadius: 1,
-  },
-  upgradeHeaderBtn: {
-    backgroundColor: StudioColors.pink,
-    paddingLeft: 12,
-    paddingRight: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: StudioColors.ink,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    ...HardShadow,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  upgradeHeaderBtnText: {
-    color: StudioColors.ink,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.5,
-  },
-  headerCtaKeycap: {
-    backgroundColor: StudioColors.ink,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 5,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerCtaKeycapPinkText: {
-    color: StudioColors.pink,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.5,
-  },
-  headerCtaKeycapLimeText: {
-    color: StudioColors.lime,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.5,
-  },
-  userSection: { flexDirection: "row", alignItems: "center", gap: 12 },
-  authBtn: {
-    backgroundColor: StudioColors.surfaceElevated,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  loginBtn: {
-    backgroundColor: StudioColors.lime,
-    paddingLeft: 12,
-    paddingRight: 8,
-    borderWidth: 2,
-    borderColor: StudioColors.ink,
-    ...HardShadow,
-  },
-  authBtnText: {
-    color: StudioColors.textPrimary,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.4,
-  },
-  loginBtnText: {
-    color: StudioColors.ink,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.5,
-  },
-  content: { flex: 1, flexDirection: "row", zIndex: 1, position: "relative" },
-  sidebar: {
-    width: 268,
-    borderRightWidth: 2,
-    borderRightColor: StudioColors.border,
-    backgroundColor: StudioColors.surface,
-    padding: 16,
-  },
-  drawerOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 250,
-    flexDirection: "row",
-  },
-  mobileDrawer: {
-    width: 280,
-    maxWidth: "84%",
-    backgroundColor: StudioColors.surface,
-    borderRightWidth: 2,
-    borderRightColor: StudioColors.border,
-    padding: 16,
-    zIndex: 252,
-  },
-  drawerBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(17, 17, 17, 0.55)",
-    zIndex: 251,
-  },
-  drawerHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: StudioColors.border,
-  },
-  drawerTitle: {
-    color: StudioColors.textPrimary,
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  drawerCloseBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    backgroundColor: StudioColors.bg,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  drawerCloseText: {
-    color: StudioColors.textPrimary,
-    fontSize: 12,
-    fontWeight: "900",
-  },
-  backToMapBtn: {
-    backgroundColor: StudioColors.bg,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    marginBottom: 18,
-    alignItems: "center",
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer" } }),
-  },
-  backToMapText: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.7,
-  },
-  sectionTitle: {
-    color: StudioColors.textMuted,
-    fontSize: 10,
-    fontWeight: "900",
-    marginBottom: 8,
-    letterSpacing: 1.2,
-    fontFamily: MonoFont,
-  },
-  trackTab: {
-    padding: 10,
-    borderRadius: 6,
-    backgroundColor: StudioColors.bg,
-    marginBottom: 6,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    ...Platform.select({ web: { cursor: "pointer" } }),
-  },
-  trackTabInnerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-  },
-  activeTrackTab: {
-    borderColor: StudioColors.ink,
-    ...HardShadowSm,
-  },
-  trackTabText: {
-    color: StudioColors.textPrimary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  progressCard: {
-    backgroundColor: StudioColors.bg,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    marginTop: 10,
-    ...HardShadowSm,
-  },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  progressTitle: {
-    color: StudioColors.textPrimary,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  progressPercent: {
-    color: StudioColors.textPrimary,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  progressBarTrack: {
-    height: 8,
-    backgroundColor: StudioColors.surface,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: StudioColors.mint,
-    borderRightWidth: 1.5,
-    borderRightColor: StudioColors.ink,
-  },
-  lessonCard: {
-    paddingVertical: 9,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    backgroundColor: StudioColors.surface,
-    marginBottom: 5,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "transparent",
-    ...Platform.select({ web: { cursor: "pointer" } }),
-  },
-  activeLessonCard: {
-    borderColor: StudioColors.ink,
-    ...HardShadowSm,
-  },
-  lessonCardLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  stepCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 5,
-    backgroundColor: StudioColors.bg,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  stepCircleCompleted: {
-    backgroundColor: StudioColors.mint,
-    borderColor: StudioColors.ink,
-  },
-  stepCircleText: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  lessonTitle: {
-    color: StudioColors.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-    flex: 1,
-  },
-  activeLessonTitle: { color: StudioColors.ink, fontWeight: "900" },
-  sidebarProPill: {
-    backgroundColor: StudioColors.pink,
-    borderWidth: 1,
-    borderColor: StudioColors.ink,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 3,
-  },
-  sidebarProText: {
-    color: StudioColors.ink,
-    fontSize: 8,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  workspaceContainer: {
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 14,
-    paddingBottom: 18,
-    backgroundColor: StudioColors.bg,
-    overflow: "hidden",
-  },
-  studioTopBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: StudioColors.border,
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  studioTopBarLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  sidebarToggleBtn: {
-    backgroundColor: StudioColors.surface,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  sidebarToggleText: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.6,
-  },
-  mobilePaneSwitcher: {
-    flexDirection: "row",
-    backgroundColor: StudioColors.surface,
-    padding: 3,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-  },
-  mobilePaneBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 4,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  mobilePaneBtnActive: {
-    backgroundColor: StudioColors.yellow,
-  },
-  mobilePaneText: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  mobilePaneTextActive: {
-    color: StudioColors.ink,
-  },
-  lessonNavBtns: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  lessonNavBtn: {
-    backgroundColor: StudioColors.surface,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  disabledNavBtn: {
-    opacity: 0.4,
-  },
-  lessonNavBtnText: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  lessonNavCounter: {
-    color: StudioColors.textPrimary,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  workspaceGrid: { flex: 1, flexDirection: "row", gap: 22, overflow: "hidden" },
-  explanationPanel: { flex: 1, paddingRight: 8 },
-  editorPanel: { flex: 1.15, overflow: "hidden" },
-  lessonBadgeRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 8,
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  lessonStepPill: {
-    backgroundColor: StudioColors.yellow,
-    color: StudioColors.ink,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-  },
-  completedLessonPill: {
-    backgroundColor: StudioColors.mint,
-    color: StudioColors.ink,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-    letterSpacing: 0.6,
-  },
-  complexityBadge: {
-    backgroundColor: StudioColors.surface,
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-  },
-  title: {
-    color: StudioColors.textPrimary,
-    fontSize: 28,
-    fontWeight: "900",
-    letterSpacing: -0.6,
-    marginBottom: 4,
-  },
-  subtitleDesc: {
-    color: StudioColors.textSecondary,
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 14,
-    lineHeight: 21,
-  },
-  tabBar: {
-    flexDirection: "row",
-    backgroundColor: StudioColors.surface,
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    ...HardShadowSm,
-  },
-  tabItem: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: "center",
-    borderRadius: 5,
-    ...Platform.select({ web: { cursor: "pointer" } }),
-  },
-  activeTabItem: {
-    backgroundColor: StudioColors.yellow,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-  },
-  tabText: {
-    color: StudioColors.textMuted,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.6,
-  },
-  activeTabText: { color: StudioColors.ink },
-  problemCard: { paddingBottom: 20 },
-  sectionStickerBadge: {
-    backgroundColor: StudioColors.ink,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  sectionHeaderLabel: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 1,
-  },
-  conceptBox: {
-    backgroundColor: StudioColors.surface,
-    padding: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    marginBottom: 16,
-    ...HardShadow,
-  },
-  conceptTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 14,
-    paddingBottom: 12,
-    borderBottomWidth: 1.5,
-    borderBottomColor: StudioColors.border,
-  },
-  explainStyleSwitcher: {
-    flexDirection: "row",
-    backgroundColor: StudioColors.bg,
-    padding: 3,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    gap: 3,
-  },
-  explainStyleBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 4,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  explainStyleBtnActive: {
-    backgroundColor: StudioColors.yellow,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-  },
-  explainStyleBtnText: {
-    color: StudioColors.textSecondary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.4,
-  },
-  explainStyleBtnTextActive: {
-    color: StudioColors.ink,
-  },
-  analogyContainer: {
-    gap: 12,
-  },
-  realWorldBanner: {
-    backgroundColor: StudioColors.bg,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    borderLeftWidth: 5,
-    borderLeftColor: StudioColors.border,
-    padding: 13,
-    gap: 4,
-  },
-  realWorldLabel: {
-    color: StudioColors.textPrimary,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 1,
-  },
-  realWorldText: {
-    color: StudioColors.textPrimary,
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 20,
-  },
-  analogyHeading: {
-    color: StudioColors.textPrimary,
-    fontSize: 18,
-    fontWeight: "900",
-    marginTop: 4,
-  },
-  cheatSheetContainer: {
-    gap: 8,
-  },
-  cheatSheetIntro: {
-    color: StudioColors.textSecondary,
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 19,
-  },
-  quizCard: {
-    backgroundColor: StudioColors.surface,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    padding: 18,
-    marginBottom: 16,
-    gap: 10,
-    ...HardShadow,
-  },
-  quizHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  quizSticker: {
-    backgroundColor: StudioColors.yellow,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  quizBadgeText: {
-    color: StudioColors.ink,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.8,
-  },
-  quizXpPill: {
-    backgroundColor: StudioColors.bg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-  },
-  quizXpPillDone: {
-    backgroundColor: StudioColors.mint,
-    borderColor: StudioColors.ink,
-  },
-  quizXpPillText: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  quizQuestion: {
-    color: StudioColors.textPrimary,
-    fontSize: 15,
-    fontWeight: "800",
-    lineHeight: 21,
-  },
-  quizOptionsList: {
-    gap: 8,
-  },
-  quizOptionBtn: {
-    backgroundColor: StudioColors.bg,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  quizOptionCorrect: {
-    borderColor: StudioColors.ink,
-    backgroundColor: StudioColors.lime,
-  },
-  quizOptionWrong: {
-    borderColor: StudioColors.ink,
-    backgroundColor: "#FECDD3",
-  },
-  quizOptionText: {
-    color: StudioColors.textPrimary,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  quizFeedbackBox: {
-    padding: 10,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-  },
-  quizFeedbackSuccess: {
-    backgroundColor: "#D1FAE5",
-  },
-  quizFeedbackRetry: {
-    backgroundColor: "#FEF3C7",
-  },
-  quizFeedbackText: {
-    color: StudioColors.ink,
-    fontSize: 12,
-    fontWeight: "700",
-    lineHeight: 18,
-  },
-  problemText: {
-    color: StudioColors.textSecondary,
-    fontSize: 14,
-    fontWeight: "500",
-    lineHeight: 24,
-    flexShrink: 1,
-    ...Platform.select({
-      web: {
-        wordBreak: "break-word" as any,
-        overflowWrap: "anywhere" as any,
-      },
-    }),
-  },
-  boldInline: { color: StudioColors.textPrimary, fontWeight: "900" },
-  bulletRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    paddingLeft: 4,
-    width: "100%",
-    minWidth: 0,
-  },
-  bulletDot: {
-    color: StudioColors.textPrimary,
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: "900",
-  },
-  codeBlockContainer: {
-    backgroundColor: StudioColors.codeBg,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    overflow: "hidden",
-  },
-  codeBlockHeader: {
-    backgroundColor: StudioColors.codeSurface,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: StudioColors.codeBorder,
-  },
-  codeBlockLang: {
-    color: StudioColors.lime,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 1,
-  },
-  codeBlockText: {
-    color: StudioColors.codeText,
-    fontFamily: MonoFont,
-    fontSize: 13,
-    lineHeight: 20,
-    padding: 12,
-    ...Platform.select({
-      web: {
-        whiteSpace: "pre-wrap" as any,
-        wordBreak: "break-word" as any,
-        overflowWrap: "anywhere" as any,
-      },
-    }),
-  },
-  inlineCode: {
-    backgroundColor: StudioColors.surfaceElevated,
-    color: StudioColors.textPrimary,
-    fontFamily: MonoFont,
-    fontSize: 12.5,
-    fontWeight: "800",
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-    ...Platform.select({
-      web: {
-        whiteSpace: "pre-wrap" as any,
-        wordBreak: "break-word" as any,
-        overflowWrap: "anywhere" as any,
-      },
-    }),
-  },
-  pitfallCard: {
-    backgroundColor: StudioColors.surface,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 16,
-    gap: 10,
-    overflow: "hidden",
-    ...HardShadowSm,
-  },
-  pitfallHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  pitfallSticker: {
-    backgroundColor: StudioColors.coral,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  pitfallStickerText: {
-    color: StudioColors.ink,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.7,
-  },
-  pitfallTitle: {
-    color: StudioColors.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-    lineHeight: 20,
-  },
-  pitfallCompareRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  pitfallWrongBox: {
-    flex: 1,
-    minWidth: 180,
-    backgroundColor: "#1C1417",
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: StudioColors.coral,
-    padding: 10,
-    gap: 4,
-    overflow: "hidden",
-  },
-  pitfallRightBox: {
-    flex: 1,
-    minWidth: 180,
-    backgroundColor: "#121C16",
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: StudioColors.lime,
-    padding: 10,
-    gap: 4,
-    overflow: "hidden",
-  },
-  pitfallWrongLabel: {
-    color: StudioColors.coral,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.6,
-  },
-  pitfallRightLabel: {
-    color: StudioColors.lime,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.6,
-  },
-  pitfallCodeText: {
-    color: "#F4F0E6",
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: MonoFont,
-    ...Platform.select({
-      web: {
-        whiteSpace: "pre-wrap" as any,
-        wordBreak: "break-word" as any,
-        overflowWrap: "anywhere" as any,
-      },
-    }),
-  },
-  pitfallExplanation: {
-    color: StudioColors.textSecondary,
-    fontSize: 12.5,
-    fontWeight: "600",
-    lineHeight: 19,
-  },
-  assignmentBox: {
-    backgroundColor: StudioColors.surface,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    padding: 18,
-    borderRadius: 10,
-    marginBottom: 16,
-    overflow: "hidden",
-    ...HardShadow,
-  },
-  assignmentHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 12,
-  },
-  missionRightActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  guidedTemplateBtn: {
-    backgroundColor: StudioColors.violet,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 5,
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  guidedTemplateBtnText: {
-    color: StudioColors.ink,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.4,
-  },
-  missionSticker: {
-    backgroundColor: StudioColors.mint,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  assignmentHeaderLabel: {
-    color: StudioColors.ink,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.8,
-  },
-  xpRewardPill: {
-    backgroundColor: StudioColors.yellow,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  xpRewardPillText: {
-    color: StudioColors.ink,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  assignmentDescription: {
-    color: StudioColors.textPrimary,
-    fontSize: 14,
-    fontWeight: "600",
-    lineHeight: 22,
-    marginBottom: 12,
-    flexShrink: 1,
-    ...Platform.select({
-      web: {
-        wordBreak: "break-word" as any,
-        overflowWrap: "anywhere" as any,
-      },
-    }),
-  },
-  checklistContainer: {
-    backgroundColor: StudioColors.bg,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    gap: 10,
-    overflow: "hidden",
-    width: "100%",
-  },
-  missionRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    width: "100%",
-    minWidth: 0,
-  },
-  missionBulletBox: {
-    width: 22,
-    height: 22,
-    marginTop: 1,
-    flexShrink: 0,
-    borderRadius: 4,
-    backgroundColor: StudioColors.surface,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  missionBullet: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  missionText: {
-    color: StudioColors.textPrimary,
-    fontSize: 13,
-    lineHeight: 20,
-    fontWeight: "600",
-    flexShrink: 1,
-    ...Platform.select({
-      web: {
-        wordBreak: "break-word" as any,
-        overflowWrap: "anywhere" as any,
-      },
-    }),
-  },
-  exampleBlock: { marginBottom: 16 },
-  exampleTitle: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    marginBottom: 6,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  exampleBox: {
-    backgroundColor: StudioColors.codeBg,
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    overflow: "hidden",
-    ...HardShadowSm,
-  },
-  exampleCode: {
-    color: StudioColors.codeText,
-    fontSize: 13,
-    fontFamily: MonoFont,
-    marginBottom: 4,
-    lineHeight: 20,
-    ...Platform.select({
-      web: {
-        whiteSpace: "pre-wrap" as any,
-        wordBreak: "break-word" as any,
-        overflowWrap: "anywhere" as any,
-      },
-    }),
-  },
-  bold: { color: StudioColors.lime, fontWeight: "800" },
-  ideFrame: {
-    flex: 1.45,
-    minHeight: 240,
-    backgroundColor: StudioColors.codeBg,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    overflow: "hidden",
-    ...HardShadow,
-  },
-  ideHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: StudioColors.codeSurface,
-    borderBottomWidth: 1.5,
-    borderBottomColor: StudioColors.codeBorder,
-  },
-  windowControls: { flexDirection: "row", gap: 6 },
-  controlDot: { width: 10, height: 10, borderRadius: 5 },
-  ideTitleGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  ideTitleText: {
-    color: StudioColors.codeText,
-    fontSize: 12,
-    fontWeight: "800",
-    fontFamily: MonoFont,
-  },
-  ideMetaPill: {
-    backgroundColor: "#2E2E2A",
-    color: StudioColors.lime,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  savedDraftPill: {
-    backgroundColor: "rgba(184, 255, 59, 0.14)",
-    borderWidth: 1,
-    borderColor: StudioColors.lime,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  savedDraftPillText: {
-    color: StudioColors.lime,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  ideHeaderActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  ideGuidedBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: StudioColors.violet,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  ideGuidedBtnText: {
-    color: StudioColors.ink,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  copyCodeBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: StudioColors.codeBg,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: StudioColors.codeBorder,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  copyCodeBtnSuccess: {
-    borderColor: StudioColors.lime,
-  },
-  copyCodeBtnText: {
-    color: StudioColors.codeText,
-    fontSize: 10,
-    fontWeight: "800",
-    fontFamily: MonoFont,
-  },
-  resetBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: "#2E2E2A",
-    borderRadius: 5,
-    ...Platform.select({ web: { cursor: "pointer" } }),
-  },
-  resetBtnText: {
-    color: StudioColors.codeText,
-    fontSize: 10,
-    fontWeight: "800",
-    fontFamily: MonoFont,
-  },
-  symbolBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "#191917",
-    borderBottomWidth: 1,
-    borderBottomColor: StudioColors.codeBorder,
-    flexWrap: "wrap",
-  },
-  quickInsertLabel: {
-    color: StudioColors.codeMuted,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 1,
-    marginRight: 4,
-  },
-  symbolChip: {
-    backgroundColor: "#262623",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "#3A3A35",
-    ...Platform.select({ web: { cursor: "pointer" } }),
-  },
-  symbolText: {
-    color: StudioColors.yellow,
-    fontSize: 12,
-    fontFamily: MonoFont,
-    fontWeight: "800",
-  },
-  editorScroll: {
-    flex: 1,
-    backgroundColor: StudioColors.codeBg,
-  },
-  editorBody: {
-    flexDirection: "row",
-    minHeight: 220,
-  },
-  lineNumbers: {
-    backgroundColor: StudioColors.codeBg,
-    paddingVertical: 16,
-    paddingHorizontal: 10,
-    borderRightWidth: 1,
-    borderRightColor: StudioColors.codeBorder,
-    alignItems: "flex-end",
-    ...Platform.select({ web: { userSelect: "none" as any } }),
-  },
-  lineNumberText: {
-    color: StudioColors.codeMuted,
-    fontSize: 13,
-    lineHeight: 21,
-    fontFamily: MonoFont,
-  },
-  editorCodeWrapper: {
-    flex: 1,
-    position: "relative",
-  },
-  syntaxHighlightLayer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: 16,
-  },
-  syntaxHighlightText: {
-    color: StudioColors.codeText,
-    fontFamily: MonoFont,
-    fontSize: 14,
-    lineHeight: 21,
-    ...Platform.select({
-      web: {
-        whiteSpace: "pre-wrap" as any,
-        wordBreak: "break-word" as any,
-      },
-    }),
-  },
-  synComment: {
-    color: "#7A776E",
-    fontStyle: "italic",
-  },
-  synString: {
-    color: StudioColors.lime,
-  },
-  synKeyword: {
-    color: StudioColors.pink,
-    fontWeight: "700",
-  },
-  synBuiltin: {
-    color: "#38BDF8",
-  },
-  synNumber: {
-    color: StudioColors.yellow,
-  },
-  synPunct: {
-    color: "#C7C2B6",
-  },
-  codeEditor: {
-    flex: 1,
-    color: Platform.OS === "web" ? "transparent" : StudioColors.codeText,
-    backgroundColor: "transparent",
-    fontFamily: MonoFont,
-    fontSize: 14,
-    lineHeight: 21,
-    padding: 16,
-    textAlignVertical: "top",
-    ...Platform.select({
-      web: {
-        caretColor: StudioColors.lime as any,
-        outlineStyle: "none" as any,
-        resize: "none" as any,
-        overflow: "hidden" as any,
-      },
-    }),
-  },
-  ideFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    backgroundColor: StudioColors.codeSurface,
-    borderTopWidth: 1,
-    borderTopColor: StudioColors.codeBorder,
-  },
-  ideFooterText: {
-    color: StudioColors.codeMuted,
-    fontSize: 10,
-    fontWeight: "800",
-    fontFamily: MonoFont,
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 12,
-  },
-  secondaryRunBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: StudioColors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  secondaryRunBtnText: {
-    color: StudioColors.textPrimary,
-    fontWeight: "900",
-    fontSize: 11,
-    fontFamily: MonoFont,
-    letterSpacing: 0.6,
-  },
-  shortcutBadgeDark: {
-    backgroundColor: StudioColors.bg,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: StudioColors.border,
-  },
-  shortcutBadgeDarkText: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  runButton: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: StudioColors.lime,
-    paddingVertical: 13,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-    borderWidth: 2.5,
-    borderColor: StudioColors.ink,
-    ...HardShadowHero,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  disabledButton: { opacity: 0.6 },
-  runButtonText: {
-    color: StudioColors.ink,
-    fontWeight: "900",
-    fontSize: 13,
-    fontFamily: MonoFont,
-    letterSpacing: 0.7,
-  },
-  shortcutBadgeLight: {
-    backgroundColor: StudioColors.ink,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 5,
-  },
-  shortcutBadgeLightText: {
-    color: StudioColors.lime,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  bottomPanel: {
-    marginTop: 12,
-    backgroundColor: StudioColors.codeBg,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    flex: 1,
-    overflow: "hidden",
-    ...HardShadow,
-  },
-  bottomTabBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: StudioColors.codeSurface,
-    borderBottomWidth: 1.5,
-    borderBottomColor: StudioColors.codeBorder,
-    paddingRight: 12,
-  },
-  bottomTabsLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  bottomTab: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    ...Platform.select({ web: { cursor: "pointer" } }),
-  },
-  activeBottomTab: {
-    borderBottomWidth: 3,
-    borderBottomColor: StudioColors.lime,
-  },
-  bottomTabText: {
-    color: StudioColors.codeMuted,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.7,
-  },
-  activeBottomTabText: { color: StudioColors.codeText },
-  clearConsoleBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    backgroundColor: "#2E2E2A",
-    ...Platform.select({ web: { cursor: "pointer" } }),
-  },
-  clearConsoleText: {
-    color: StudioColors.codeText,
-    fontSize: 9,
-    fontWeight: "800",
-    fontFamily: MonoFont,
-  },
-  bottomContent: { padding: 14, flex: 1 },
-  emptyConsoleBox: {
-    paddingVertical: 12,
-    gap: 4,
-  },
-  emptyConsoleTitle: {
-    color: StudioColors.lime,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.7,
-  },
-  emptyConsoleHint: {
-    color: StudioColors.codeMuted,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  testSummaryBanner: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    marginBottom: 12,
-  },
-  testSummarySuccess: {
-    backgroundColor: "rgba(184, 255, 59, 0.12)",
-    borderColor: StudioColors.lime,
-  },
-  testSummaryWarn: {
-    backgroundColor: "rgba(255, 222, 89, 0.14)",
-    borderColor: StudioColors.yellow,
-  },
-  testSummaryText: {
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.5,
-  },
-  terminalText: {
-    fontFamily: MonoFont,
-    color: StudioColors.lime,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  testCasePills: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
-    flexWrap: "wrap",
-  },
-  testPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: StudioColors.codeSurface,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: StudioColors.codeBorder,
-    ...Platform.select({ web: { cursor: "pointer" } }),
-  },
-  activeTestPill: {
-    backgroundColor: "#2E2E2A",
-    borderColor: StudioColors.lime,
-  },
-  testPillText: {
-    color: StudioColors.codeMuted,
-    fontSize: 10,
-    fontWeight: "800",
-    fontFamily: MonoFont,
-  },
-  activeTestPillText: { color: StudioColors.codeText },
-  testDetails: { gap: 6 },
-  comparisonRow: { flexDirection: "row", gap: 12, marginTop: 4 },
-  testHeader: {
-    color: StudioColors.codeMuted,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.7,
-    marginBottom: 4,
-  },
-  testDataBox: {
-    backgroundColor: StudioColors.codeSurface,
-    padding: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: StudioColors.codeBorder,
-  },
-  testDataSuccess: {
-    backgroundColor: "rgba(184, 255, 59, 0.12)",
-    borderColor: StudioColors.lime,
-  },
-  testDataFail: {
-    backgroundColor: "rgba(255, 107, 107, 0.14)",
-    borderColor: StudioColors.coral,
-  },
-  testDataText: {
-    color: StudioColors.codeText,
-    fontFamily: MonoFont,
-    fontSize: 12,
-  },
-  modalOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(17, 17, 17, 0.7)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 999,
-  },
-  modalContent: { alignItems: "center" },
-  closeModalBtn: {
-    marginTop: 12,
-    padding: 8,
-    ...Platform.select({ web: { cursor: "pointer" } }),
-  },
-  closeModalText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
-});
+const getStyles = () =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: StudioColors.bg },
+    content: { flex: 1, flexDirection: "row", zIndex: 1, position: "relative" },
+    workspaceContainer: {
+      flex: 1,
+      paddingHorizontal: 22,
+      paddingTop: 14,
+      paddingBottom: 18,
+      backgroundColor: StudioColors.bg,
+      overflow: "hidden",
+    },
+    studioTopBar: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 14,
+      paddingBottom: 10,
+      borderBottomWidth: 2,
+      borderBottomColor: StudioColors.border,
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    studioTopBarLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+    },
+    sidebarToggleBtn: {
+      backgroundColor: StudioColors.surface,
+      paddingHorizontal: 11,
+      paddingVertical: 6,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    sidebarToggleText: {
+      color: StudioColors.textPrimary,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.6,
+    },
+    mobilePaneSwitcher: {
+      flexDirection: "row",
+      backgroundColor: StudioColors.surface,
+      padding: 3,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+    },
+    mobilePaneBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 4,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    mobilePaneBtnActive: {
+      backgroundColor: StudioColors.yellow,
+    },
+    mobilePaneText: {
+      color: StudioColors.textPrimary,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    mobilePaneTextActive: {
+      color: StudioColors.ink,
+    },
+    lessonNavBtns: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    lessonNavBtn: {
+      backgroundColor: StudioColors.surface,
+      paddingHorizontal: 11,
+      paddingVertical: 5,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    disabledNavBtn: {
+      opacity: 0.4,
+    },
+    lessonNavBtnText: {
+      color: StudioColors.textPrimary,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    lessonNavCounter: {
+      color: StudioColors.textPrimary,
+      fontSize: 11,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    workspaceGrid: {
+      flex: 1,
+      flexDirection: "row",
+      gap: 22,
+      overflow: "hidden",
+    },
+    modalOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(17, 17, 17, 0.7)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    },
+    modalContent: { alignItems: "center" },
+    closeModalBtn: {
+      marginTop: 12,
+      padding: 8,
+      ...Platform.select({ web: { cursor: "pointer" } }),
+    },
+    closeModalText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  });
