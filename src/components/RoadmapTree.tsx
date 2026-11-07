@@ -1,9 +1,11 @@
+import React, { useState } from "react";
 import {
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import {
@@ -18,6 +20,7 @@ import {
   isLessonLockedForUser,
   isProTrackPreviewLesson,
 } from "../types/lesson";
+import DailyWarmupCard from "./DailyWarmupCard";
 
 export interface Lesson {
   id: string;
@@ -45,7 +48,123 @@ interface RoadmapTreeProps {
   activeTrack: string;
   onSelectTrack: (track: string) => void;
   onSelectLesson: (lesson: Lesson) => void;
+  dailyCompletedDate?: string | null;
+  onClaimDailyWarmup?: (dateKey: string, bonusXp: number) => void;
 }
+
+interface ChapterTierMeta {
+  id: number;
+  roman: string;
+  title: string;
+  subtitle: string;
+  minOrder: number;
+  maxOrder: number;
+}
+
+const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
+  python_basics: [
+    {
+      id: 1,
+      roman: "I",
+      title: "Core Python Foundations",
+      subtitle: "Variables, conditionals, loops, and list collections",
+      minOrder: 1,
+      maxOrder: 4,
+    },
+    {
+      id: 2,
+      roman: "II",
+      title: "Functions & Key-Value Data",
+      subtitle: "Reusable functions, string methods, dictionaries, and slicing",
+      minOrder: 5,
+      maxOrder: 8,
+    },
+    {
+      id: 3,
+      roman: "III",
+      title: "Safe & Object-Oriented Code",
+      subtitle: "Sets, list comprehensions, error handling, and classes",
+      minOrder: 9,
+      maxOrder: 12,
+    },
+    {
+      id: 4,
+      roman: "IV",
+      title: "Python One-Line Power Tools",
+      subtitle: "Sorting, lambdas, URL checks, and parallel zipping",
+      minOrder: 13,
+      maxOrder: 16,
+    },
+  ],
+  algorithms: [
+    {
+      id: 1,
+      roman: "I",
+      title: "Hashing & Pointer Speedups",
+      subtitle: "Hash maps, two pointers, sliding windows, and binary search",
+      minOrder: 1,
+      maxOrder: 4,
+    },
+    {
+      id: 2,
+      roman: "II",
+      title: "Stacks, Linked Lists & Trees",
+      subtitle: "LIFO validation, pointer reversal, recursion, and DFS",
+      minOrder: 5,
+      maxOrder: 8,
+    },
+    {
+      id: 3,
+      roman: "III",
+      title: "Heaps, DP & Graph Traversal",
+      subtitle: "Priority queues, memoization, BFS, and interval merging",
+      minOrder: 9,
+      maxOrder: 12,
+    },
+    {
+      id: 4,
+      roman: "IV",
+      title: "High-Frequency Interview Patterns",
+      subtitle: "Anagram checks, duplicate detection, math formulas, and voting",
+      minOrder: 13,
+      maxOrder: 16,
+    },
+  ],
+  system_design: [
+    {
+      id: 1,
+      roman: "I",
+      title: "Traffic & Caching Layers",
+      subtitle: "Load balancing, LRU eviction, rate limiting, and sharding",
+      minOrder: 1,
+      maxOrder: 4,
+    },
+    {
+      id: 2,
+      roman: "II",
+      title: "Messaging & Distributed Consensus",
+      subtitle: "Consistent hashing, pub/sub queues, circuit breakers, and quorum",
+      minOrder: 5,
+      maxOrder: 8,
+    },
+    {
+      id: 3,
+      roman: "III",
+      title: "High-Scale Storage & Telemetry",
+      subtitle: "Base62 encoding, Bloom filters, leader election, and P95 metrics",
+      minOrder: 9,
+      maxOrder: 12,
+    },
+    {
+      id: 4,
+      roman: "IV",
+      title: "Production Reliability Patterns",
+      subtitle: "Exponential backoff, idempotency, cache TTL, and read replicas",
+      minOrder: 13,
+      maxOrder: 16,
+    },
+  ],
+};
 
 const TRACK_KEYS = ["python_basics", "algorithms", "system_design"] as const;
 
@@ -225,17 +344,34 @@ export default function RoadmapTree({
   activeTrack,
   onSelectTrack,
   onSelectLesson,
+  dailyCompletedDate = null,
+  onClaimDailyWarmup,
 }: RoadmapTreeProps) {
+  const [statusFilter, setStatusFilter] = useState<"all" | "unsolved" | "solved">("all");
+  const [chapterFilter, setChapterFilter] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
   const trackLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = trackLessons.filter(
     (l) => completedLessons[l.id],
   ).length;
+  const unsolvedCount = trackLessons.length - completedCount;
   const progressPercent = trackLessons.length
     ? Math.round((completedCount / trackLessons.length) * 100)
     : 0;
 
   const currentTrackMeta =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
+  const trackChapters =
+    TRACK_CHAPTERS[activeTrack] || TRACK_CHAPTERS.python_basics;
+
+  function getChapterForLesson(lessonOrder: number): ChapterTierMeta {
+    return (
+      trackChapters.find(
+        (ch) => lessonOrder >= ch.minOrder && lessonOrder <= ch.maxOrder,
+      ) || trackChapters[trackChapters.length - 1]
+    );
+  }
 
   // Determine the "Next Up" recommended lesson in the current track
   const nextUpLesson =
@@ -245,8 +381,30 @@ export default function RoadmapTree({
     trackLessons.find((l) => !completedLessons[l.id]) ||
     trackLessons[0];
 
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredTrackLessons = trackLessons.filter((lesson) => {
+    const isDone = Boolean(completedLessons[lesson.id]);
+    if (statusFilter === "unsolved" && isDone) return false;
+    if (statusFilter === "solved" && !isDone) return false;
+    if (chapterFilter !== null) {
+      const ch = getChapterForLesson(lesson.lesson_order);
+      if (ch.id !== chapterFilter) return false;
+    }
+    if (normalizedQuery) {
+      const matchTitle = lesson.title.toLowerCase().includes(normalizedQuery);
+      const matchCat = (lesson.category || "")
+        .toLowerCase()
+        .includes(normalizedQuery);
+      const matchDesc = (lesson.description || "")
+        .toLowerCase()
+        .includes(normalizedQuery);
+      if (!matchTitle && !matchCat && !matchDesc) return false;
+    }
+    return true;
+  });
+
   const rowsMap: Record<number, Lesson[]> = {};
-  trackLessons.forEach((lesson) => {
+  filteredTrackLessons.forEach((lesson) => {
     const r = lesson.tree_row || lesson.lesson_order || 1;
     if (!rowsMap[r]) rowsMap[r] = [];
     rowsMap[r].push(lesson);
@@ -541,21 +699,217 @@ export default function RoadmapTree({
             </View>
           )}
         </View>
+
+        {/* Daily 60-Second Warm-Up Challenge Card */}
+        {onClaimDailyWarmup && (
+          <DailyWarmupCard
+            lessons={lessons}
+            isPremium={isPremium}
+            dailyCompletedDate={dailyCompletedDate}
+            onClaimDailyWarmup={onClaimDailyWarmup}
+            onSelectLesson={onSelectLesson}
+          />
+        )}
+
+        {/* Filter & Search Control Bar */}
+        <View style={styles.filterToolbarCard}>
+          <View style={styles.filterPillsRow}>
+            {(
+              [
+                { id: "all", label: `ALL (${trackLessons.length})` },
+                { id: "unsolved", label: `UNSOLVED (${unsolvedCount})` },
+                { id: "solved", label: `SOLVED ✓ (${completedCount})` },
+              ] as const
+            ).map((f) => {
+              const isSelected = statusFilter === f.id;
+              return (
+                <Pressable
+                  key={f.id}
+                  style={[
+                    styles.filterPill,
+                    isSelected && [
+                      styles.filterPillActive,
+                      { backgroundColor: currentTrackMeta.stickerBg },
+                    ],
+                  ]}
+                  onPress={() => setStatusFilter(f.id)}
+                >
+                  <Text
+                    style={[
+                      styles.filterPillText,
+                      isSelected && styles.filterPillTextActive,
+                    ]}
+                  >
+                    {f.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+
+            <View style={styles.filterDivider} />
+
+            {trackChapters.map((ch) => {
+              const isSelected = chapterFilter === ch.id;
+              return (
+                <Pressable
+                  key={ch.id}
+                  style={[
+                    styles.filterPill,
+                    isSelected && [
+                      styles.filterPillActive,
+                      { backgroundColor: StudioColors.yellow },
+                    ],
+                  ]}
+                  onPress={() =>
+                    setChapterFilter((prev) => (prev === ch.id ? null : ch.id))
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.filterPillText,
+                      isSelected && styles.filterPillTextActive,
+                    ]}
+                  >
+                    CH. {ch.roman}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.searchBoxRow}>
+            <Text style={styles.searchIconText}>⌕</Text>
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search modules by topic, keyword, or concept..."
+              placeholderTextColor={StudioColors.textMuted}
+              style={styles.searchInput}
+            />
+            {(searchQuery.length > 0 ||
+              statusFilter !== "all" ||
+              chapterFilter !== null) && (
+              <Pressable
+                style={styles.clearFiltersBtn}
+                onPress={() => {
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                  setChapterFilter(null);
+                }}
+              >
+                <Text style={styles.clearFiltersText}>RESET ✕</Text>
+              </Pressable>
+            )}
+          </View>
+        </View>
       </View>
 
       {/* Skill Tree Canvas */}
       <View style={styles.treeCanvas}>
-        {sortedRows.map((rowNum, idx) => {
-          const rowNodes = rowsMap[rowNum];
-          const isLastRow = idx === sortedRows.length - 1;
-          const nextRowNodes = !isLastRow ? rowsMap[sortedRows[idx + 1]] : [];
-          const rowCleared = rowNodes.some((n) => completedLessons[n.id]);
+        {sortedRows.length === 0 ? (
+          <View style={styles.emptyFilterCard}>
+            <Text style={styles.emptyFilterTitle}>
+              No modules match your current filter
+            </Text>
+            <Text style={styles.emptyFilterSubtext}>
+              Try clearing your search query or switching back to ALL modules.
+            </Text>
+            <Pressable
+              style={styles.resetFilterCtaBtn}
+              onPress={() => {
+                setSearchQuery("");
+                setStatusFilter("all");
+                setChapterFilter(null);
+              }}
+            >
+              <Text style={styles.resetFilterCtaText}>SHOW ALL MODULES →</Text>
+            </Pressable>
+          </View>
+        ) : (
+          sortedRows.map((rowNum, idx) => {
+            const rowNodes = rowsMap[rowNum];
+            const isLastRow = idx === sortedRows.length - 1;
+            const nextRowNodes = !isLastRow ? rowsMap[sortedRows[idx + 1]] : [];
+            const rowCleared = rowNodes.some((n) => completedLessons[n.id]);
 
-          return (
-            <View key={rowNum} style={styles.rowWrapper}>
-              <View style={styles.tierLabelWrapper}>
-                <Text style={styles.tierLabelText}>STAGE 0{idx + 1}</Text>
-              </View>
+            const firstNodeInRow = rowNodes[0];
+            const currentChapter = getChapterForLesson(
+              firstNodeInRow.lesson_order,
+            );
+            const prevChapter =
+              idx > 0
+                ? getChapterForLesson(
+                    rowsMap[sortedRows[idx - 1]][0].lesson_order,
+                  )
+                : null;
+            const isFirstRowOfChapter =
+              !prevChapter || prevChapter.id !== currentChapter.id;
+
+            const chapterLessons = trackLessons.filter(
+              (l) =>
+                l.lesson_order >= currentChapter.minOrder &&
+                l.lesson_order <= currentChapter.maxOrder,
+            );
+            const chapterDoneCount = chapterLessons.filter(
+              (l) => completedLessons[l.id],
+            ).length;
+            const isChapterCleared =
+              chapterLessons.length > 0 &&
+              chapterDoneCount === chapterLessons.length;
+
+            return (
+              <View key={rowNum} style={styles.rowWrapper}>
+                {isFirstRowOfChapter && (
+                  <View style={styles.chapterBannerCard}>
+                    <View
+                      style={[
+                        styles.chapterTopAccent,
+                        {
+                          backgroundColor: isChapterCleared
+                            ? StudioColors.mint
+                            : currentTrackMeta.stickerBg,
+                        },
+                      ]}
+                    />
+                    <View style={styles.chapterBannerRow}>
+                      <View style={styles.chapterBannerLeft}>
+                        <View style={styles.chapterRomanPill}>
+                          <Text style={styles.chapterRomanText}>
+                            CHAPTER {currentChapter.roman} · MODULES{" "}
+                            {String(currentChapter.minOrder).padStart(2, "0")}–
+                            {String(currentChapter.maxOrder).padStart(2, "0")}
+                          </Text>
+                        </View>
+                        <Text style={styles.chapterBannerTitle}>
+                          {currentChapter.title}
+                        </Text>
+                        <Text style={styles.chapterBannerSubtitle}>
+                          {currentChapter.subtitle}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.chapterProgressBadge,
+                          isChapterCleared && {
+                            backgroundColor: StudioColors.mint,
+                          },
+                        ]}
+                      >
+                        <Text style={styles.chapterProgressBadgeText}>
+                          {isChapterCleared
+                            ? "★ CHAPTER CLEARED ✓"
+                            : `${chapterDoneCount} / ${chapterLessons.length} SOLVED`}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.tierLabelWrapper}>
+                  <Text style={styles.tierLabelText}>
+                    STAGE {String(idx + 1).padStart(2, "0")}
+                  </Text>
+                </View>
 
               <View style={styles.nodesRow}>
                 {rowNodes.map((node) => {
@@ -718,7 +1072,8 @@ export default function RoadmapTree({
               )}
             </View>
           );
-        })}
+          })
+        )}
       </View>
     </ScrollView>
   );
@@ -1488,5 +1843,205 @@ const styles = StyleSheet.create({
   },
   legCol: {
     alignItems: "center",
+  },
+  filterToolbarCard: {
+    marginTop: 14,
+    backgroundColor: StudioColors.surface,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    padding: 12,
+    gap: 10,
+    ...HardShadowSm,
+  },
+  filterPillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6,
+  },
+  filterPill: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  filterPillActive: {
+    borderColor: StudioColors.ink,
+  },
+  filterPillText: {
+    color: StudioColors.textSecondary,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  filterPillTextActive: {
+    color: StudioColors.ink,
+  },
+  filterDivider: {
+    width: 1.5,
+    height: 18,
+    backgroundColor: StudioColors.borderSubtle,
+    marginHorizontal: 2,
+  },
+  searchBoxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 8,
+  },
+  searchIconText: {
+    color: StudioColors.textSecondary,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  searchInput: {
+    flex: 1,
+    color: StudioColors.textPrimary,
+    fontSize: 12,
+    fontWeight: "600",
+    paddingVertical: 2,
+    ...Platform.select({
+      web: { outlineStyle: "none" as any },
+    }),
+  },
+  clearFiltersBtn: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    ...Platform.select({ web: { cursor: "pointer" } }),
+  },
+  clearFiltersText: {
+    color: StudioColors.textPrimary,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  chapterBannerCard: {
+    width: "100%",
+    maxWidth: 590,
+    backgroundColor: StudioColors.surface,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    padding: 16,
+    paddingTop: 20,
+    marginTop: 14,
+    marginBottom: 14,
+    position: "relative",
+    overflow: "hidden",
+    ...HardShadow,
+  },
+  chapterTopAccent: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 7,
+    borderBottomWidth: 1.5,
+    borderBottomColor: StudioColors.ink,
+  },
+  chapterBannerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  chapterBannerLeft: {
+    flex: 1,
+    minWidth: 220,
+    gap: 3,
+  },
+  chapterRomanPill: {
+    alignSelf: "flex-start",
+    backgroundColor: StudioColors.ink,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 2,
+  },
+  chapterRomanText: {
+    color: "#FFFFFF",
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.8,
+  },
+  chapterBannerTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+  },
+  chapterBannerSubtitle: {
+    color: StudioColors.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  chapterProgressBadge: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  chapterProgressBadgeText: {
+    color: StudioColors.ink,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  emptyFilterCard: {
+    backgroundColor: StudioColors.surface,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    padding: 28,
+    alignItems: "center",
+    gap: 8,
+    maxWidth: 460,
+    ...HardShadowSm,
+  },
+  emptyFilterTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  emptyFilterSubtext: {
+    color: StudioColors.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  resetFilterCtaBtn: {
+    marginTop: 6,
+    backgroundColor: StudioColors.lime,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+    ...Platform.select({ web: { cursor: "pointer" } }),
+  },
+  resetFilterCtaText: {
+    color: StudioColors.ink,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
 });

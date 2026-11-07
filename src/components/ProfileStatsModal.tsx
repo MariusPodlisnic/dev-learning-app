@@ -16,39 +16,104 @@ interface ProfileStatsModalProps {
 
 const TRACK_KEYS = ["python_basics", "algorithms", "system_design"] as const;
 
-export function getDeveloperRank(xp: number) {
-  const level = Math.floor(xp / 150) + 1;
-  const xpIntoLevel = xp % 150;
-  const xpForNext = 150;
+export interface DeveloperRankInfo {
+  level: number;
+  title: string;
+  tagline: string;
+  nextTitle: string;
+  badge: string;
+  accent: string;
+  xpIntoLevel: number;
+  xpForNext: number;
+  xpRemaining: number;
+  progressPercent: number;
+}
+
+const FUNNY_RANKS: {
+  title: string;
+  tagline: string;
+  badge: string;
+  accent: string;
+}[] = [
+  {
+    title: "Copy-Paste Apprentice",
+    tagline: "Professional StackOverflow archaeologist & Ctrl+C specialist",
+    badge: "I",
+    accent: "#7CA5B8",
+  },
+  {
+    title: "Indentation Wrangler",
+    tagline: "Finally stopped mixing tabs and spaces (mostly)",
+    badge: "II",
+    accent: "#FFDE59",
+  },
+  {
+    title: "Print-Statement Detective",
+    tagline: "Debugging the universe one print('HERE 3') at a time",
+    badge: "III",
+    accent: "#FF90E8",
+  },
+  {
+    title: "Infinite Loop Survivor",
+    tagline: "Battle-tested veteran who knows where Ctrl+C lives",
+    badge: "IV",
+    accent: "#6EE7B7",
+  },
+  {
+    title: "Bug Whisperer",
+    tagline: "It is not a bug — it is an undocumented surprise feature",
+    badge: "V",
+    accent: "#C4B5FD",
+  },
+  {
+    title: "O(1) Sorcerer",
+    tagline: "Severely allergic to nested loops and slow lookups",
+    badge: "VI",
+    accent: "#A3E635",
+  },
+  {
+    title: "Production Cowboy",
+    tagline: "Ships clean code on Fridays without breaking a sweat",
+    badge: "VII",
+    accent: "#FB923C",
+  },
+  {
+    title: "10x Keyboard Overlord",
+    tagline: "Speaks fluent bytecode and dreams in hash maps",
+    badge: "VIII",
+    accent: "#38BDF8",
+  },
+];
+
+export function getDeveloperRank(xp: number): DeveloperRankInfo {
+  const xpPerLevel = 100;
+  const level = Math.floor(xp / xpPerLevel) + 1;
+  const xpIntoLevel = xp % xpPerLevel;
+  const xpForNext = xpPerLevel;
+  const xpRemaining = xpForNext - xpIntoLevel;
   const progressPercent = Math.min(
     100,
     Math.round((xpIntoLevel / xpForNext) * 100),
   );
 
-  let title = "Python Initiate";
-  let badge = "I";
-  let accent = "#7CA5B8";
-  if (level === 2) {
-    title = "Logic Builder";
-    badge = "II";
-    accent = "#E07A5F";
-  } else if (level === 3) {
-    title = "Algorithm Engineer";
-    badge = "III";
-    accent = "#F2CC8F";
-  } else if (level >= 4) {
-    title = "Systems Architect";
-    badge = "IV";
-    accent = "#81B29A";
-  }
+  const currentIdx = Math.min(level - 1, FUNNY_RANKS.length - 1);
+  const nextIdx = Math.min(level, FUNNY_RANKS.length - 1);
+  const currentMeta = FUNNY_RANKS[currentIdx];
+  const nextMeta = FUNNY_RANKS[nextIdx];
 
   return {
     level,
-    title,
-    badge,
-    accent,
+    title: currentMeta.title,
+    tagline: currentMeta.tagline,
+    nextTitle:
+      level >= FUNNY_RANKS.length
+        ? "Supreme Architect of the Multiverse"
+        : nextMeta.title,
+    badge: currentMeta.badge,
+    accent: currentMeta.accent,
     xpIntoLevel,
     xpForNext,
+    xpRemaining,
     progressPercent,
   };
 }
@@ -130,6 +195,9 @@ export default function ProfileStatsModal({
                 </Text>
               </View>
             </View>
+            <Text style={styles.rankTagline} numberOfLines={2}>
+              "{rank.tagline}"
+            </Text>
             <Text style={styles.emailText} numberOfLines={1}>
               {userEmail ? userEmail : "Guest Profile · Not synced to cloud"}
             </Text>
@@ -149,20 +217,24 @@ export default function ProfileStatsModal({
         <View style={styles.levelProgressBox}>
           <View style={styles.levelProgressHeader}>
             <Text style={styles.levelProgressLabel}>
-              LEVEL {rank.level} PROGRESS
+              LEVEL {rank.level} · {rank.title.toUpperCase()}
             </Text>
             <Text style={styles.levelProgressCount}>
-              {rank.xpIntoLevel} / {rank.xpForNext} XP to Level {rank.level + 1}
+              {rank.xpIntoLevel} / {rank.xpForNext} XP
             </Text>
           </View>
           <View style={styles.levelBarTrack}>
             <View
               style={[
                 styles.levelBarFill,
-                { width: `${rank.progressPercent}%` },
+                { width: `${Math.max(rank.progressPercent, 5)}%` },
               ]}
             />
           </View>
+          <Text style={styles.nextRankHintText}>
+            ⚡ {rank.xpRemaining} XP until Level {rank.level + 1}:{" "}
+            <Text style={styles.nextRankHighlight}>{rank.nextTitle}</Text>
+          </Text>
         </View>
 
         {/* Key Metrics Grid */}
@@ -346,6 +418,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
     letterSpacing: -0.3,
+  },
+  rankTagline: {
+    color: StudioColors.textSecondary,
+    fontSize: 11,
+    fontWeight: "700",
+    fontStyle: "italic",
+    marginTop: 2,
+  },
+  nextRankHintText: {
+    color: StudioColors.textSecondary,
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 8,
+  },
+  nextRankHighlight: {
+    color: StudioColors.textPrimary,
+    fontWeight: "900",
   },
   tierBadge: {
     paddingHorizontal: 7,

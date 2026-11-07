@@ -95,6 +95,9 @@ export default function HomeScreen() {
 
   const [xpPoints, setXpPoints] = useState<number>(0);
   const [streakCount, setStreakCount] = useState<number>(0);
+  const [dailyCompletedDate, setDailyCompletedDate] = useState<string | null>(
+    null,
+  );
 
   const [session, setSession] = useState<Session | null>(null);
   const [isPremium, setIsPremium] = useState<boolean>(false);
@@ -138,6 +141,7 @@ export default function HomeScreen() {
       solvedIncidents?: Record<string, boolean>;
       xpPoints?: number;
       streakCount?: number;
+      dailyCompletedDate?: string | null;
       activeTrack?: string;
       lastLessonId?: string;
       themeMode?: ThemeMode;
@@ -154,6 +158,9 @@ export default function HomeScreen() {
     }
     if (typeof savedState.streakCount === "number") {
       setStreakCount(savedState.streakCount);
+    }
+    if (savedState.dailyCompletedDate) {
+      setDailyCompletedDate(savedState.dailyCompletedDate);
     }
     const initialTheme: ThemeMode =
       savedState.themeMode === "dark" ? "dark" : "light";
@@ -210,6 +217,7 @@ export default function HomeScreen() {
       solvedIncidents,
       xpPoints,
       streakCount,
+      dailyCompletedDate,
       activeTrack,
       lastLessonId: selectedLesson?.id,
       themeMode,
@@ -219,6 +227,7 @@ export default function HomeScreen() {
     solvedIncidents,
     xpPoints,
     streakCount,
+    dailyCompletedDate,
     activeTrack,
     selectedLesson?.id,
     themeMode,
@@ -489,6 +498,27 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleClaimDailyWarmup(dateKey: string, bonusXp: number) {
+    if (dailyCompletedDate === dateKey) return;
+    const newXp = xpPoints + bonusXp;
+    const newStreak = streakCount + 1;
+    setDailyCompletedDate(dateKey);
+    setXpPoints(newXp);
+    setStreakCount(newStreak);
+
+    if (session) {
+      try {
+        await supabase.from("profiles").upsert({
+          id: session.user.id,
+          email: session.user.email,
+          xp_points: newXp,
+          streak_count: newStreak,
+          last_completed_at: new Date().toISOString(),
+        });
+      } catch (_e) {}
+    }
+  }
+
   // Ensure styles re-compute on theme change
   void themeMode;
   const styles = getStyles();
@@ -559,6 +589,8 @@ export default function HomeScreen() {
           activeTrack={activeTrack}
           onSelectTrack={handleSwitchTrack}
           onSelectLesson={handleSelectLesson}
+          dailyCompletedDate={dailyCompletedDate}
+          onClaimDailyWarmup={handleClaimDailyWarmup}
         />
       ) : viewMode === "bughunt" ? (
         <BugHuntArena
@@ -772,7 +804,16 @@ export default function HomeScreen() {
         <View style={styles.modalOverlay}>
           <SuccessModal
             xpEarned={50}
+            totalXp={xpPoints}
             lessonTitle={selectedLesson?.title || ""}
+            keyTakeaway={
+              lessonEnrichment?.realWorldUse || selectedLesson?.description
+            }
+            nextLessonTitle={
+              hasNextLesson
+                ? currentLessons[currentLessonIndex + 1]?.title
+                : undefined
+            }
             hasNextLesson={Boolean(hasNextLesson)}
             onNextLesson={handleNextLesson}
             onClose={() => setShowSuccessModal(false)}

@@ -1,3 +1,4 @@
+import React from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   HardShadow,
@@ -6,10 +7,14 @@ import {
   MonoFont,
   StudioColors,
 } from "../constants/theme";
+import { getDeveloperRank } from "./ProfileStatsModal";
 
 interface SuccessModalProps {
   xpEarned: number;
+  totalXp?: number;
   lessonTitle: string;
+  keyTakeaway?: string;
+  nextLessonTitle?: string;
   hasNextLesson: boolean;
   onNextLesson: () => void;
   onClose: () => void;
@@ -17,39 +22,112 @@ interface SuccessModalProps {
 
 export default function SuccessModal({
   xpEarned,
+  totalXp = 50,
   lessonTitle,
+  keyTakeaway,
+  nextLessonTitle,
   hasNextLesson,
   onNextLesson,
   onClose,
 }: SuccessModalProps) {
+  const currentRank = getDeveloperRank(totalXp);
+  const previousRank = getDeveloperRank(Math.max(0, totalXp - xpEarned));
+  const didLevelUp = currentRank.level > previousRank.level;
+
   return (
     <View style={styles.card}>
       <View style={styles.topGlowBar} />
 
-      <View style={styles.iconCircle}>
-        <Text style={styles.emoji}>✓</Text>
+      <View style={styles.topHeaderRow}>
+        <View style={styles.iconCircle}>
+          <Text style={styles.emoji}>✓</Text>
+        </View>
+        <View style={styles.headerTextGroup}>
+          <View style={styles.statusPill}>
+            <Text style={styles.statusPillText}>
+              ALL ASSERTIONS PASSED · +{xpEarned} XP
+            </Text>
+          </View>
+          <Text style={styles.title}>Module Mastered!</Text>
+          <Text style={styles.subtitle} numberOfLines={2}>
+            Verified all checks for{" "}
+            <Text style={styles.highlight}>{lessonTitle}</Text>
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.statusPill}>
-        <Text style={styles.statusPillText}>ALL ASSERTIONS PASSED</Text>
-      </View>
-
-      <Text style={styles.title}>Chapter Mastered</Text>
-      <Text style={styles.subtitle}>
-        You verified all requirements for{" "}
-        <Text style={styles.highlight}>{lessonTitle}</Text>
-      </Text>
-
-      <View style={styles.rewardBox}>
-        <View style={styles.rewardCol}>
-          <Text style={styles.rewardLabel}>EXPERIENCE EARNED</Text>
-          <Text style={styles.rewardText}>+{xpEarned} XP</Text>
+      {/* Key Engineering Takeaway */}
+      {keyTakeaway ? (
+        <View style={styles.takeawayCard}>
+          <View style={styles.takeawayBadgeRow}>
+            <View style={styles.takeawaySticker}>
+              <Text style={styles.takeawayStickerText}>
+                💡 KEY ENGINEERING TAKEAWAY
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.takeawayText} numberOfLines={3}>
+            {keyTakeaway}
+          </Text>
         </View>
-        <View style={styles.rewardDivider} />
-        <View style={styles.rewardCol}>
-          <Text style={styles.rewardLabel}>STATUS</Text>
-          <Text style={styles.rewardStatusText}>VERIFIED</Text>
+      ) : null}
+
+      {/* Creative & Funny Developer Rank Progression Card */}
+      <View
+        style={[
+          styles.rankCard,
+          didLevelUp && {
+            backgroundColor: "#FEF9C3",
+            borderColor: StudioColors.ink,
+          },
+        ]}
+      >
+        <View style={styles.rankTopRow}>
+          <View style={styles.rankBadgeGroup}>
+            <View
+              style={[
+                styles.rankLevelPill,
+                { backgroundColor: currentRank.accent },
+              ]}
+            >
+              <Text style={styles.rankLevelPillText}>
+                LEVEL {currentRank.level}
+              </Text>
+            </View>
+            {didLevelUp ? (
+              <View style={styles.rankUpCelebrationPill}>
+                <Text style={styles.rankUpCelebrationText}>
+                  🎉 PROMOTED!
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          <Text style={styles.rankXpFraction}>
+            {currentRank.xpIntoLevel} / {currentRank.xpForNext} XP
+          </Text>
         </View>
+
+        <Text style={styles.rankTitleText}>{currentRank.title}</Text>
+        <Text style={styles.rankTaglineText}>"{currentRank.tagline}"</Text>
+
+        <View style={styles.rankBarTrack}>
+          <View
+            style={[
+              styles.rankBarFill,
+              {
+                width: `${Math.max(currentRank.progressPercent, 8)}%`,
+                backgroundColor: StudioColors.mint,
+              },
+            ]}
+          />
+        </View>
+
+        <Text style={styles.nextRankFooterText}>
+          ⚡ {currentRank.xpRemaining} XP until{" "}
+          <Text style={styles.nextRankBold}>
+            L{currentRank.level + 1}: {currentRank.nextTitle}
+          </Text>
+        </Text>
       </View>
 
       {hasNextLesson ? (
@@ -60,7 +138,12 @@ export default function SuccessModal({
           ]}
           onPress={onNextLesson}
         >
-          <Text style={styles.nextBtnText}>CONTINUE TO NEXT CHAPTER →</Text>
+          <Text style={styles.nextBtnLabel}>UP NEXT MISSION</Text>
+          <Text style={styles.nextBtnText} numberOfLines={1}>
+            {nextLessonTitle
+              ? `${nextLessonTitle} →`
+              : "CONTINUE TO NEXT MODULE →"}
+          </Text>
         </Pressable>
       ) : (
         <Pressable
@@ -70,7 +153,7 @@ export default function SuccessModal({
           ]}
           onPress={onClose}
         >
-          <Text style={styles.nextBtnText}>RETURN TO CURRICULUM →</Text>
+          <Text style={styles.nextBtnText}>RETURN TO SKILL MAP →</Text>
         </Pressable>
       )}
 
@@ -78,7 +161,7 @@ export default function SuccessModal({
         style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
         onPress={onClose}
       >
-        <Text style={styles.closeBtnText}>Stay & Review Code</Text>
+        <Text style={styles.closeBtnText}>Stay & Inspect Code</Text>
       </Pressable>
     </View>
   );
@@ -87,13 +170,13 @@ export default function SuccessModal({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
-    padding: 28,
+    padding: 24,
     borderRadius: 14,
     borderWidth: 2,
     borderColor: StudioColors.border,
-    width: 390,
-    maxWidth: "92%",
-    alignItems: "center",
+    width: 440,
+    maxWidth: "93%",
+    alignItems: "stretch",
     overflow: "hidden",
     position: "relative",
     ...HardShadow,
@@ -108,126 +191,226 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: StudioColors.border,
   },
+  topHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginTop: 6,
+    marginBottom: 16,
+  },
   iconCircle: {
-    width: 58,
-    height: 58,
+    width: 52,
+    height: 52,
     borderRadius: 12,
     backgroundColor: StudioColors.lime,
     borderWidth: 2,
     borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 6,
-    marginBottom: 14,
     ...HardShadowSm,
   },
   emoji: {
+    fontSize: 24,
     color: StudioColors.ink,
-    fontSize: 26,
     fontWeight: "900",
-    fontFamily: MonoFont,
+  },
+  headerTextGroup: {
+    flex: 1,
+    alignItems: "flex-start",
+    gap: 3,
   },
   statusPill: {
     backgroundColor: StudioColors.mint,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
     borderWidth: 1.5,
     borderColor: StudioColors.ink,
-    marginBottom: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 5,
   },
   statusPillText: {
     color: StudioColors.ink,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "900",
-    letterSpacing: 1.1,
+    letterSpacing: 0.8,
     fontFamily: MonoFont,
   },
   title: {
     color: StudioColors.textPrimary,
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: "900",
-    textAlign: "center",
-    letterSpacing: -0.6,
-    marginBottom: 6,
+    letterSpacing: -0.4,
   },
   subtitle: {
     color: StudioColors.textSecondary,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
-    textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 22,
+    lineHeight: 17,
   },
   highlight: {
     color: StudioColors.textPrimary,
-    fontWeight: "900",
+    fontWeight: "800",
   },
-  rewardBox: {
-    flexDirection: "row",
-    width: "100%",
+  takeawayCard: {
     backgroundColor: StudioColors.bg,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderLeftWidth: 4,
+    borderLeftColor: StudioColors.ink,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 14,
+    gap: 6,
+  },
+  takeawayBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  takeawaySticker: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 1,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  takeawayStickerText: {
+    color: StudioColors.ink,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  takeawayText: {
+    color: StudioColors.textPrimary,
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 18,
+  },
+  rankCard: {
+    backgroundColor: StudioColors.bg,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: StudioColors.border,
+    padding: 14,
+    marginBottom: 18,
+    gap: 5,
+    ...HardShadowSm,
+  },
+  rankTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "space-around",
-    marginBottom: 22,
+    marginBottom: 2,
   },
-  rewardCol: {
+  rankBadgeGroup: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
-  rewardDivider: {
-    width: 2,
-    height: 30,
-    backgroundColor: StudioColors.border,
+  rankLevelPill: {
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  rewardLabel: {
-    color: StudioColors.textMuted,
+  rankLevelPillText: {
+    color: StudioColors.ink,
     fontSize: 9,
     fontWeight: "900",
-    letterSpacing: 1.1,
+    fontFamily: MonoFont,
+    letterSpacing: 0.7,
+  },
+  rankUpCelebrationPill: {
+    backgroundColor: StudioColors.pink,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  rankUpCelebrationText: {
+    color: StudioColors.ink,
+    fontSize: 9,
+    fontWeight: "900",
     fontFamily: MonoFont,
   },
-  rewardText: {
+  rankXpFraction: {
     color: StudioColors.textPrimary,
-    fontSize: 19,
+    fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },
-  rewardStatusText: {
-    color: StudioColors.emerald,
-    fontSize: 15,
+  rankTitleText: {
+    color: StudioColors.textPrimary,
+    fontSize: 16,
     fontWeight: "900",
-    fontFamily: MonoFont,
+    letterSpacing: -0.2,
+  },
+  rankTaglineText: {
+    color: StudioColors.textSecondary,
+    fontSize: 11,
+    fontWeight: "700",
+    fontStyle: "italic",
+    marginBottom: 4,
+  },
+  rankBarTrack: {
+    height: 10,
+    backgroundColor: StudioColors.surface,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    overflow: "hidden",
+  },
+  rankBarFill: {
+    height: "100%",
+    borderRightWidth: 1.5,
+    borderRightColor: StudioColors.ink,
+  },
+  nextRankFooterText: {
+    color: StudioColors.textSecondary,
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 3,
+  },
+  nextRankBold: {
+    color: StudioColors.textPrimary,
+    fontWeight: "900",
   },
   nextBtn: {
     backgroundColor: StudioColors.lime,
     width: "100%",
-    paddingVertical: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 10,
-    borderWidth: 2.5,
+    borderWidth: 2,
     borderColor: StudioColors.ink,
     alignItems: "center",
+    gap: 2,
     ...HardShadowHero,
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
   },
+  nextBtnLabel: {
+    color: StudioColors.ink,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 1,
+    opacity: 0.75,
+  },
   nextBtnText: {
     color: StudioColors.ink,
     fontWeight: "900",
     fontSize: 13,
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
     fontFamily: MonoFont,
   },
   closeBtn: {
-    marginTop: 14,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    marginTop: 12,
+    padding: 6,
+    alignSelf: "center",
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
