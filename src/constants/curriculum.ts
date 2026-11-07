@@ -31,7 +31,7 @@ export interface EnrichedLessonData extends LessonEnrichment {
 
 export const LESSON_ENRICHMENTS: EnrichedLessonData[] = [
   // ============================================================================
-  // TRACK 1: PYTHON BASICS
+  // TRACK 1: PYTHON BASICS (MODULES 01 - 14)
   // ============================================================================
   {
     matchTrack: "python_basics",
@@ -39,23 +39,30 @@ export const LESSON_ENRICHMENTS: EnrichedLessonData[] = [
     matchKeywords: ["variable", "type", "data"],
     realWorldUse:
       "Used in every app: storing a player's score, a user's display name, or whether dark mode is turned on.",
-    analogyTitle: "Think of Variables Like Labeled Kitchen Jars",
+    analogyTitle: "Think of Variables Like Labeled Sticky Notes",
     analogyText:
-      'Imagine putting a sticky note that says `score` on a jar and dropping the number `100` inside. Whenever you ask Python for `score`, it looks inside that jar and hands you back `100`.\n\n• **Strings (`"hello"`)** are text wrapped in quotes.\n• **Integers (`42`)** are whole numbers without quotes.\n• **Booleans (`True` / `False`)** are simple ON/OFF switches.',
+      'Imagine putting a sticky note that says `score` on a box and dropping the number `100` inside. Whenever you ask Python for `score`, it hands you back `100`.\n\n• **Strings (`"hello"`)** are words wrapped in quotes.\n• **Numbers (`42`)** are written without quotes.\n• **Booleans (`True` / `False`)** are simple ON/OFF switches.',
     cheatSheet: `# 1. Create variables with '='
-username = "Alex"     # String (text)
-level = 5             # Integer (whole number)
-is_active = True      # Boolean (True or False)
+username = "Alex"     # Text (String)
+level = 5             # Number (Integer)
+is_active = True      # Switch (Boolean)
 
-# 2. Combine them in an f-string
-print(f"{username} is on level {level}")`,
+# 2. Show them with print()
+print(username)`,
+    commonPitfall: {
+      title: "Wrapping numbers in quotes when you want to do math",
+      wrongCode: 'points = "50"  # This is text, not a number!',
+      rightCode: "points = 50    # Real number you can add to!",
+      explanation:
+        "Numbers never need quotes around them. Only words/text use quotes!",
+    },
     quiz: {
       question:
-        'Which of these creates a number variable you can do math with (not text)?',
+        "Which of these creates a number variable you can do math with?",
       options: ['points = "50"', "points = 50", "50 = points"],
       correctIndex: 1,
       explanation:
-        'Without quotes, `50` is stored as a real number (integer). Wrapping it in quotes (`"50"`) turns it into plain text!',
+        'Without quotes, `50` is stored as a real number. Wrapping it in quotes (`"50"`) turns it into plain text!',
     },
   },
   {
@@ -63,26 +70,31 @@ print(f"{username} is on level {level}")`,
     matchOrder: 2,
     matchKeywords: ["list", "loop", "for", "array"],
     realWorldUse:
-      "Used by Spotify to loop through songs in your playlist, and by Amazon to add up every item in your shopping cart.",
+      "Used by Spotify to play each song in your playlist, and by shopping apps to add up item prices.",
     analogyTitle: "Lists Are Playlists, Loops Are Auto-Play",
     analogyText:
-      "Instead of creating 100 separate variables (`song1`, `song2`, `song3`...), a **List** keeps them in a single ordered line inside square brackets `[ ]`.\n\nA **`for` loop** is like hitting Auto-Play: Python picks up the first item, runs your indented code on it, then automatically moves to the next item until the list is finished.",
-    cheatSheet: `# 1. A list holds multiple items in [ ]
-prices = [10, 20, 30]
-
-# 2. A 'for' loop visits each item one by one
+      "A **List** keeps multiple items in order inside square brackets `[10, 20, 30]`.\n\nA **`for` loop** is like hitting Auto-Play: Python picks up the first item, runs your indented code on it, and repeats for every item in the list.",
+    cheatSheet: `prices = [10, 20, 30]
 total = 0
+
 for price in prices:
     total = total + price
 
 print(total)  # Prints 60`,
+    commonPitfall: {
+      title: "Forgetting to indent the line inside the for loop",
+      wrongCode: "for p in prices:\ntotal = total + p  # IndentationError!",
+      rightCode: "for p in prices:\n    total = total + p  # Indented 4 spaces!",
+      explanation:
+        "Any line that should repeat inside the loop must be indented by 4 spaces (or 1 Tab).",
+    },
     quiz: {
       question:
-        "If `fruits = [\"apple\", \"banana\", \"cherry\"]`, how many times will `for f in fruits:` run?",
+        'If `fruits = ["apple", "banana", "cherry"]`, how many times will `for f in fruits:` run?',
       options: ["1 time", "3 times (once per item)", "Forever"],
       correctIndex: 1,
       explanation:
-        "A `for` loop runs once for every item inside the list — since there are 3 fruits, it runs 3 times!",
+        "A `for` loop runs once for every item inside the list — 3 items means 3 runs!",
     },
   },
   {
@@ -90,18 +102,23 @@ print(total)  # Prints 60`,
     matchOrder: 3,
     matchKeywords: ["if", "else", "condition", "logic"],
     realWorldUse:
-      "Used by Netflix to check if your subscription is active before playing a movie, or by games to check if `health <= 0`.",
-    analogyTitle: "If/Else Is a Fork in the Road",
+      "Used in games to check if `score >= 100` to unlock a trophy, or in apps to check if a password is correct.",
+    analogyTitle: "If / Else Is a Fork in the Road",
     analogyText:
-      "Programs need to make decisions! An **`if` statement** asks a Yes/No question:\n\n• If the answer is **True**, Python takes the first path.\n• **`elif` (else if)** checks a backup question.\n• **`else`** is the catch-all path when nothing above matched.",
+      "An **`if` statement** asks a simple Yes/No question:\n\n• If the answer is **Yes (`True`)**, Python runs the `if` block.\n• Otherwise, Python takes the **`else:`** path!",
     cheatSheet: `score = 85
 
-if score >= 90:
-    print("Rank: S")
-elif score >= 75:
-    print("Rank: A")   # <-- This runs!
+if score >= 80:
+    print("You passed!")
 else:
-    print("Keep practicing!")`,
+    print("Try again!")`,
+    commonPitfall: {
+      title: "Using single '=' instead of double '==' when comparing",
+      wrongCode: "if level = 10:   # SyntaxError!",
+      rightCode: "if level == 10:  # Double '==' checks equality!",
+      explanation:
+        "Single `=` saves a value into a variable. Double `==` asks if two values are equal!",
+    },
     quiz: {
       question:
         "What symbol does Python use to check if two values are equal inside an `if` statement?",
@@ -112,7 +129,7 @@ else:
       ],
       correctIndex: 1,
       explanation:
-        "Single `=` assigns a value to a variable, while double `==` compares two values to see if they match!",
+        "Single `=` assigns a value, while double `==` compares two values!",
     },
   },
   {
@@ -120,28 +137,29 @@ else:
     matchOrder: 4,
     matchKeywords: ["function", "def", "return"],
     realWorldUse:
-      "Used everywhere to package reusable actions — like `calculate_tax(price)` or `send_notification(user)`.",
-    analogyTitle: "Functions Are Coffee Machines",
+      "Used to save a recipe of code once — like `double_points(score)` — so you can reuse it anywhere.",
+    analogyTitle: "Functions Are Little Vending Machines",
     analogyText:
-      "A **Function** is a mini-machine you build once and reuse whenever you want:\n\n1. **`def`** names your machine and lists the ingredients (**parameters**) it takes in.\n2. **`return`** hands back the finished product so the rest of your program can use it.",
-    cheatSheet: `# 1. Define the function with 'def'
-def double_number(n):
+      "1. **`def`** names your machine and what input goes in the parentheses `( )`.\n2. **`return`** hands back the finished answer!",
+    cheatSheet: `def double_number(n):
     return n * 2
 
-# 2. Call (use) the function
-result = double_number(21)
-print(result)  # Prints 42`,
+answer = double_number(21)
+print(answer)  # Prints 42`,
+    commonPitfall: {
+      title: "Using print() inside a function when the test expects return",
+      wrongCode: "def add_five(n):\n    print(n + 5)   # Returns None!",
+      rightCode: "def add_five(n):\n    return n + 5  # Hands back the number!",
+      explanation:
+        "`return` sends the value back to the caller so the rest of the program can use it.",
+    },
     quiz: {
       question:
-        "What happens if a function calculates an answer but forgets to use `return`?",
-      options: [
-        "It returns `None` (nothing comes back)",
-        "Python automatically guesses what to return",
-        "The computer restarts",
-      ],
+        "Which keyword sends the final result back out of a function?",
+      options: ["return", "give_back", "stop"],
       correctIndex: 0,
       explanation:
-        "Without `return`, the function finishes its work silently and hands back `None`. Always `return` the result you want to keep!",
+        "`return` hands the calculated value back to wherever the function was called!",
     },
   },
   {
@@ -149,25 +167,33 @@ print(result)  # Prints 42`,
     matchOrder: 5,
     matchKeywords: ["dict", "key", "map", "hash"],
     realWorldUse:
-      "Used to represent JSON data from APIs — like a user profile with `username`, `email`, and `role`.",
-    analogyTitle: "Dictionaries Are Real-Life Contact Cards",
+      "Used to store user profiles with labeled fields like `\"username\"`, `\"email\"`, and `\"role\"`.",
+    analogyTitle: "Dictionaries Are Labeled ID Cards",
     analogyText:
-      "In a regular list, you have to find items by their position (`0`, `1`, `2`). Change the order and everything breaks!\n\nA **Dictionary (`{ }`)** lets you label every value with a unique **Key** (like `\"username\": \"coder\"`). You can look up, add, or update any label instantly!",
-    cheatSheet: `# 1. Create a dictionary with { key: value }
-user = {
+      'A **Dictionary (`{ }`)** stores pairs of **`"label": value`**. You can look up or add any label using square brackets: `user["role"] = "admin"`!',
+    cheatSheet: `user = {
     "username": "coder",
-    "xp": 250
+    "role": "admin"
 }
 
-# 2. Add or update a key
-user["role"] = "admin"
+print(user["username"])  # "coder"
+print(user["role"])      # "admin"`,
+    commonPitfall: {
+      title: "Forgetting quotes around dictionary key names",
+      wrongCode: "user[role] = 'admin'    # NameError: role is not defined",
+      rightCode: "user['role'] = 'admin'  # Key is a string in quotes!",
+      explanation:
+        'Text keys in a dictionary always need quotes around them, like `"role"`.',
+    },
+    guidedCode: `user = {
+    "username": "coder",
+    "role": "admin"
+}
 
-# 3. Read a value safely
-print(user["username"])        # "coder"
-print(user.get("role"))        # "admin"`,
+print(f"User {user['username']} has role {user.get('role')}")`,
     quiz: {
       question:
-        'How do you add a new key `"role"` with value `"admin"` to an existing `user` dictionary?',
+        'How do you set the `"role"` key to `"admin"` on a `user` dictionary?',
       options: [
         'user["role"] = "admin"',
         'user.append("role", "admin")',
@@ -175,37 +201,34 @@ print(user.get("role"))        # "admin"`,
       ],
       correctIndex: 0,
       explanation:
-        'Square brackets `user["role"] = "admin"` creates the `"role"` key if it doesn\'t exist, or updates it if it does!',
+        '`user["role"] = "admin"` adds or updates the `"role"` key on the dictionary!',
     },
-    guidedCode: `user = {
-    "username": "coder",
-    # Add the "role": "admin" key-value pair on the next line:
-    "role": "admin"
-}
-
-print(f"User {user['username']} has role {user.get('role')}")`,
   },
   {
     matchTrack: "python_basics",
     matchOrder: 6,
     matchKeywords: ["string", "format", "clean", "strip", "lower"],
     realWorldUse:
-      "Used in login forms and search bars so typing '  Alex@Email.com ' still matches 'alex@email.com'.",
-    analogyTitle: "Strings Have Built-In Cleaning Tools",
+      "Used in login forms so typing `'  Alex '` with accidental spaces and caps still matches `'alex'`.",
+    analogyTitle: "Built-In Polishers for Messy Text",
     analogyText:
-      "Users type messy input all the time — accidental spaces at the end, random CAPS, or typos. Python strings come with built-in methods you chain with a dot (`.`):\n\n• **`.strip()`** trims extra spaces off both ends.\n• **`.lower()`** converts every letter to lowercase.\n• **`.replace(old, new)`** swaps out characters.",
+      "Python text strings come with handy cleaning tools you attach with a dot (`.`):\n\n• **`.strip()`** trims extra spaces off both ends.\n• **`.lower()`** turns `\"HELLO\"` into lowercase `\"hello\"`.",
     cheatSheet: `raw_name = "  Alex_Coder  "
-
-# Chain .strip() and .lower() together:
 clean_name = raw_name.strip().lower()
-
 print(clean_name)  # "alex_coder"`,
+    commonPitfall: {
+      title: "Forgetting the empty parentheses () when calling .strip() or .lower()",
+      wrongCode: "clean = raw.strip.lower",
+      rightCode: "clean = raw.strip().lower()",
+      explanation:
+        "String methods are actions, so they always need `()` at the end to run!",
+    },
     quiz: {
-      question: 'What does `"  HELLO ".strip().lower()` produce?',
-      options: ['"hello"', '"  hello "', '"HELLO"'],
+      question: 'What does `"  HI ".strip().lower()` produce?',
+      options: ['"hi"', '"  hi "', '"HI"'],
       correctIndex: 0,
       explanation:
-        "`.strip()` removes the leading and trailing spaces, and `.lower()` turns `HELLO` into `hello`!",
+        "`.strip()` removes the outer spaces and `.lower()` makes the letters lowercase!",
     },
   },
   {
@@ -213,28 +236,34 @@ print(clean_name)  # "alex_coder"`,
     matchOrder: 7,
     matchKeywords: ["filter", "comprehension", "high", "score"],
     realWorldUse:
-      "Used in e-commerce ('Show items under $50'), Spotify ('Songs rated 80+'), and notification feeds.",
-    analogyTitle: "Filtering Is a VIP Bouncer for Your List",
+      "Used in online stores ('Show items under $20') and games ('Show scores of 80 or higher').",
+    analogyTitle: "A VIP Bouncer for Your List",
     analogyText:
-      "Imagine going through a list of numbers and keeping **only** the ones that pass a rule (like `score >= 80`).\n\nYou can create a new empty list `passed = []`, loop through every item, and use `if score >= 80:` with `passed.append(score)` to collect the winners!",
+      "To keep only the numbers that pass a rule (like `score >= 80`), loop through the list and `.append(score)` to a new list whenever the `if` check passes!",
     cheatSheet: `scores = [65, 92, 88, 40]
-top_scores = []
+passed = []
 
 for s in scores:
     if s >= 80:
-        top_scores.append(s)
+        passed.append(s)
 
-print(top_scores)  # [92, 88]`,
+print(passed)  # [92, 88]`,
+    commonPitfall: {
+      title: "Appending every item outside the if-statement",
+      wrongCode: "for s in scores:\n    if s >= 80:\n        pass\n    passed.append(s)",
+      rightCode: "for s in scores:\n    if s >= 80:\n        passed.append(s)",
+      explanation:
+        "Make sure `passed.append(s)` is indented inside the `if s >= 80:` block!",
+    },
     quiz: {
-      question: "Which list method adds a new item to the end of a list?",
+      question: "Which method adds a new item to the end of a Python list?",
       options: [
         "my_list.append(item)",
-        "my_list.push_back(item)",
-        "my_list.insert_end(item)",
+        "my_list.push(item)",
+        "my_list.add_end(item)",
       ],
       correctIndex: 0,
-      explanation:
-        "`append()` adds a single item right onto the end of a Python list!",
+      explanation: "`append()` adds an item onto the end of a list!",
     },
   },
   {
@@ -242,43 +271,183 @@ print(top_scores)  # [92, 88]`,
     matchOrder: 8,
     matchKeywords: ["try", "except", "error", "safe", "exception"],
     realWorldUse:
-      "Used in payment apps, file uploads, and network calls so one bad input shows a friendly message instead of crashing the app.",
-    analogyTitle: "Try / Except Is a Safety Net for Your Code",
+      "Used in calculator and payment apps so dividing by 0 returns a safe fallback instead of crashing.",
+    analogyTitle: "Try / Except Is a Safety Net",
     analogyText:
-      "Normally, dividing a number by `0` crashes your entire Python program immediately.\n\nWith **`try:`** and **`except:`**, you tell Python:\n• **`try:`** Attempt this risky calculation.\n• **`except ZeroDivisionError:`** If it fails, catch the fall gracefully and return a safe fallback value (like `0`) instead of crashing!",
-    cheatSheet: `def safe_divide(total, people):
+      "Dividing by `0` normally crashes Python. Putting risky code inside **`try:`** and a backup value inside **`except ZeroDivisionError:`** catches the error safely!",
+    cheatSheet: `def safe_divide(a, b):
     try:
-        return total / people
+        return a / b
     except ZeroDivisionError:
         return 0`,
+    commonPitfall: {
+      title: "Forgetting the colon ':' after try or except",
+      wrongCode: "try\n    return a / b",
+      rightCode: "try:\n    return a / b",
+      explanation:
+        "Both `try:` and `except ZeroDivisionError:` must end with a colon `:`.",
+    },
     quiz: {
-      question:
-        "When does the code inside the `except:` block run?",
+      question: "When does the code inside `except:` run?",
       options: [
         "Only when an error happens inside the `try:` block",
-        "Every single time the function is called",
-        "Before the `try:` block starts",
+        "Every single time",
+        "Before the `try:` block",
       ],
       correctIndex: 0,
       explanation:
-        "If `try:` succeeds without errors, Python skips `except:` completely. `except:` only triggers when an error occurs!",
+        "If `try:` succeeds without error, Python skips `except:` completely!",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 9,
+    matchKeywords: ["count", "emoji", "reaction", "match"],
+    realWorldUse:
+      "Used in Discord, Slack, and Instagram to count how many times a specific emoji reaction was tapped.",
+    analogyTitle: "One-Line Counter with .count()",
+    analogyText:
+      "Want to know how many times `\"🔥\"` appears in a list? Python lists have a built-in **`.count(item)`** tool that counts matches for you in 1 line!",
+    cheatSheet: `votes = ["yes", "no", "yes", "yes"]
+
+# Count how many times "yes" appears:
+yes_total = votes.count("yes")
+print(yes_total)  # 3`,
+    commonPitfall: {
+      title: "Using len(list) instead of list.count(target)",
+      wrongCode: "return len(reactions)  # Counts ALL items, not just target!",
+      rightCode: "return reactions.count(target)  # Counts only matching items!",
+      explanation:
+        "`len()` counts every item in the list, while `.count(target)` counts only items equal to `target`.",
+    },
+    guidedCode: `def count_reactions(reactions, target):
+    # 👉 Use .count(target) on reactions and return it:
+    return reactions.count(target)
+
+print(count_reactions(["🔥", "❤️", "🔥", "👍", "🔥"], "🔥"))`,
+    quiz: {
+      question: 'What does `["a", "b", "a"].count("a")` return?',
+      options: ["2", "3", "1"],
+      correctIndex: 0,
+      explanation: '`"a"` appears twice in the list, so `.count("a")` returns `2`!',
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 10,
+    matchKeywords: ["set", "unique", "duplicate", "guest", "vip"],
+    realWorldUse:
+      "Used in guest lists and mailing lists so the same person doesn't get invited 3 times by mistake.",
+    analogyTitle: "Removing Duplicates with set()",
+    analogyText:
+      "Wrapping a list in **`set(items)`** automatically erases any duplicate copies. Wrapping that in **`sorted(...)`** gives you back a neat alphabetical list!",
+    cheatSheet: `names = ["Mia", "Alex", "Mia"]
+unique_names = sorted(set(names))
+print(unique_names)  # ['Alex', 'Mia']`,
+    commonPitfall: {
+      title: "Forgetting sorted() when a sorted list is expected",
+      wrongCode: "return set(guests)  # Returns an unordered {set}",
+      rightCode: "return sorted(set(guests))  # Returns a sorted [list]!",
+      explanation:
+        "`sorted(set(guests))` removes duplicates AND returns a clean ordered list.",
+    },
+    guidedCode: `def clean_guest_list(guests):
+    # 👉 Remove duplicates with set() and sort with sorted():
+    return sorted(set(guests))
+
+print(clean_guest_list(["Sam", "Alex", "Sam", "Zoe", "Alex"]))`,
+    quiz: {
+      question: "What does `set([5, 5, 5])` do to the duplicate `5`s?",
+      options: [
+        "Keeps only one `5` and removes the duplicates",
+        "Adds them up to 15",
+        "Deletes all numbers",
+      ],
+      correctIndex: 0,
+      explanation: "Sets only keep unique values, so duplicates are removed automatically!",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 11,
+    matchKeywords: ["join", "words", "tag", "hyphen", "sentence"],
+    realWorldUse:
+      "Used by blogs and stores to turn title words `[\"retro\", \"arcade\", \"hat\"]` into URL slugs `\"retro-arcade-hat\"`.",
+    analogyTitle: "Gluing Words Together with .join()",
+    analogyText:
+      "If you have a list of words, **`\"-\".join(words)`** glues them together into a single string with `\"-\"` placed between each word!",
+    cheatSheet: `words = ["python", "is", "fun"]
+
+# Glue words together with "-" between them:
+slug = "-".join(words)
+print(slug)  # "python-is-fun"`,
+    commonPitfall: {
+      title: "Calling words.join('-') instead of '-'.join(words)",
+      wrongCode: 'words.join("-")  # AttributeError: list has no .join!',
+      rightCode: '"-".join(words)  # Call .join() on the separator string!',
+      explanation:
+        "In Python, you put the glue string first (`\"-\"`), then call `.join(words)`.",
+    },
+    guidedCode: `def make_url_slug(words):
+    # 👉 Glue the words together with "-" using "-".join(words):
+    return "-".join(words)
+
+print(make_url_slug(["pixel", "arcade", "game"]))`,
+    quiz: {
+      question: 'What does `" ".join(["Hello", "World"])` return?',
+      options: ['"Hello World"', '"Hello-World"', '["Hello World"]'],
+      correctIndex: 0,
+      explanation:
+        'It joins `"Hello"` and `"World"` with a single space `" "` between them!',
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 12,
+    matchKeywords: ["slice", "slicing", "top", "podium", "first"],
+    realWorldUse:
+      "Used in gaming leaderboards to grab the Top 3 winners from a list of 100 players.",
+    analogyTitle: "Slicing the First N Items with [:3]",
+    analogyText:
+      "To grab just the first 3 items of a list, write **`players[:3]`**. It means *\"start at the beginning and stop after 3 items\"*!",
+    cheatSheet: `runners = ["Gold", "Silver", "Bronze", "4th", "5th"]
+
+# Grab the first 3 items:
+podium = runners[:3]
+print(podium)  # ['Gold', 'Silver', 'Bronze']`,
+    commonPitfall: {
+      title: "Using players[3] (1 item) instead of players[:3] (first 3 items)",
+      wrongCode: "return players[3]   # Only grabs the 4th player!",
+      rightCode: "return players[:3]  # Grabs a list of the first 3 players!",
+      explanation:
+        "The colon `:` inside `[:3]` tells Python to take a slice of the first 3 items.",
+    },
+    guidedCode: `def get_top_three(players):
+    # 👉 Return the first 3 items using slice syntax players[:3]
+    return players[:3]
+
+print(get_top_three(["Aria", "Kai", "Nova", "Leo", "Max"]))`,
+    quiz: {
+      question: "How do you get the first 2 items from a list named `items`?",
+      options: ["items[:2]", "items[2]", "items.first(2)"],
+      correctIndex: 0,
+      explanation: "`items[:2]` slices from the start of the list up to 2 items!",
     },
   },
 
   // ============================================================================
-  // TRACK 2: ALGORITHMS
+  // TRACK 2: ALGORITHMS (MODULES 01 - 12 — BEGINNER FRIENDLY!)
   // ============================================================================
   {
     matchTrack: "algorithms",
     matchOrder: 1,
     matchKeywords: ["two sum", "hash", "pair", "target", "lookup", "search"],
     realWorldUse:
-      "Used in financial reconciliation, game matchmaking (pairing two players whose skill ratings sum to a target), and database joins.",
+      "Used in gift-card checkout (finding two items that add up to $50) and game matchmaking.",
     analogyTitle: "Memory Notebook vs. Asking Everyone Twice",
     analogyText:
-      "Imagine looking for two people in a room whose ages add up to `50`.\n\n• **Slow way ($O(n^2)$):** Ask Person 1 to check with every single person, then Person 2 with every single person.\n• **Smart way ($O(n)$):** Walk down the line once with a notebook (a dictionary!). If someone is `30`, check your notebook to see if you already met a `20` (`50 - 30`). If not, write down `30` and keep walking!",
-    cheatSheet: `seen = {}  # value -> index
-
+      "As you look at each number `num`, calculate what partner number you need (`needed = target - num`). Check if `needed` is already in your `seen` dictionary!",
+    cheatSheet: `seen = {}
 for i, num in enumerate(nums):
     needed = target - num
     if needed in seen:
@@ -286,15 +455,15 @@ for i, num in enumerate(nums):
     seen[num] = i`,
     quiz: {
       question:
-        "Why do we store seen numbers in a dictionary `{}` instead of using a second nested `for` loop?",
+        "Why do we store seen numbers in a dictionary `{}`?",
       options: [
-        "Dictionary lookup is instant O(1), avoiding slow O(n²) double loops",
-        "Python doesn't allow two for-loops in the same file",
-        "Dictionaries use zero memory",
+        "Looking up a key in a dictionary is instant O(1)",
+        "Python doesn't allow two loops",
+        "Dictionaries sort numbers automatically",
       ],
       correctIndex: 0,
       explanation:
-        "Checking `if needed in seen:` in a dictionary takes O(1) constant time, so the whole algorithm finishes in one pass!",
+        "Dictionary lookup (`if needed in seen:`) is instant!",
     },
   },
   {
@@ -302,27 +471,24 @@ for i, num in enumerate(nums):
     matchOrder: 2,
     matchKeywords: ["pointer", "palindrome", "reverse", "window", "binary"],
     realWorldUse:
-      "Used in text editors, DNA sequence matching, and sorted database index lookups.",
-    analogyTitle: "Two Pointers: Meeting in the Middle",
+      "Used in text tools and DNA sequence checks to see if a word reads the same backward and forward.",
+    analogyTitle: "Checking From Both Ends Toward the Middle",
     analogyText:
-      "Place one finger on the **first item** (`left = 0`) and your other finger on the **last item** (`right = len(arr) - 1`).\n\nEach step, compare what your two fingers are pointing at, then move them one step closer toward the center (`left += 1`, `right -= 1`) until they meet!",
+      "Put `left = 0` at the start and `right = len(items) - 1` at the end. Compare them, then move `left += 1` and `right -= 1` inward!",
     cheatSheet: `left = 0
 right = len(items) - 1
-
 while left < right:
-    # Compare items[left] and items[right]
     left += 1
     right -= 1`,
     quiz: {
-      question: "When should a two-pointer `while` loop stop moving inward?",
+      question: "When should a two-pointer loop stop?",
       options: [
-        "When `left < right` is no longer true (the pointers meet or cross)",
-        "After exactly 2 iterations",
-        "When `left == 0`",
+        "When `left < right` is no longer true (they meet in the middle)",
+        "After 1 step",
+        "Never",
       ],
       correctIndex: 0,
-      explanation:
-        "Once `left >= right`, you've already inspected every pair from the outside in!",
+      explanation: "Once `left >= right`, all pairs have been checked!",
     },
   },
   {
@@ -330,22 +496,18 @@ while left < right:
     matchOrder: 6,
     matchKeywords: ["frequency", "count", "most", "active", "tally"],
     realWorldUse:
-      "Used by Twitter/X to find trending hashtags, Spotify Wrapped to count your top artist, and spam detectors.",
-    analogyTitle: "Frequency Map: Tally Marks on a Scoreboard",
+      "Used by Spotify Wrapped to tally your most-played artist.",
+    analogyTitle: "Tally Marks in a Dictionary",
     analogyText:
-      "How do you count how many times each word appears in a list in a single pass?\n\nUse a dictionary as a scoreboard! For every item `x` you see, look up its current count with `counts.get(x, 0)` (which gives `0` the first time) and add `1`: `counts[x] = counts.get(x, 0) + 1`.",
+      "For each item, add `1` to its count in a dictionary: `counts[item] = counts.get(item, 0) + 1`.",
     cheatSheet: `counts = {}
 for item in items:
-    counts[item] = counts.get(item, 0) + 1
-
-# Example: {"alex": 3, "sam": 1}`,
+    counts[item] = counts.get(item, 0) + 1`,
     quiz: {
-      question:
-        'What does `counts.get("alex", 0)` return if `"alex"` is NOT in the dictionary yet?',
-      options: ["0 (the default value)", "It crashes with KeyError", "None"],
+      question: 'What does `counts.get("alex", 0)` return the first time `"alex"` is seen?',
+      options: ["0", "Error", "100"],
       correctIndex: 0,
-      explanation:
-        "The second argument to `.get(key, default)` is returned whenever the key isn't in the dictionary yet!",
+      explanation: "It returns the default value `0` when the key isn't in the dictionary yet!",
     },
   },
   {
@@ -353,28 +515,24 @@ for item in items:
     matchOrder: 7,
     matchKeywords: ["sliding", "window", "subarray", "consecutive", "spike"],
     realWorldUse:
-      "Used in network monitoring (5-minute traffic averages), stock chart moving averages, and video streaming buffers.",
-    analogyTitle: "Sliding a Picture Frame Across a Wall",
+      "Used in fitness apps to find your best 3-day streak of steps.",
+    analogyTitle: "Sliding a Window Across a List",
     analogyText:
-      "Imagine finding the highest sum of any `k` consecutive numbers in a list.\n\nInstead of re-adding all `k` numbers from scratch at every position, slide your window one step right: **add the new number entering on the right**, and **subtract the old number leaving on the left**!",
-    cheatSheet: `# Sum of first window of size k:
-window_sum = sum(nums[:k])
+      "As your window moves 1 step right, add the new number entering on the right and subtract the old number leaving on the left!",
+    cheatSheet: `window_sum = sum(nums[:k])
 best = window_sum
-
 for i in range(k, len(nums)):
     window_sum += nums[i] - nums[i - k]
     best = max(best, window_sum)`,
     quiz: {
-      question:
-        "When a window of size `k` slides 1 step to the right, how many numbers enter and leave the window?",
+      question: "How do we update a sliding window sum when moving 1 step right?",
       options: [
-        "1 new number enters on the right, 1 old number leaves on the left",
-        "All k numbers are recalculated from zero",
-        "The window doubles in size",
+        "Add the new right number and subtract the old left number",
+        "Delete the list",
+        "Multiply by 0",
       ],
       correctIndex: 0,
-      explanation:
-        "Updating the sum with `+ entering - leaving` takes O(1) constant time per step!",
+      explanation: "Adding the entering value and subtracting the leaving value updates the sum in 1 step!",
     },
   },
   {
@@ -382,10 +540,10 @@ for i in range(k, len(nums)):
     matchOrder: 8,
     matchKeywords: ["stack", "bracket", "valid", "parentheses", "lifo"],
     realWorldUse:
-      "Used in code editors (syntax highlighting & linting), browser Back buttons, and Undo/Redo history.",
-    analogyTitle: "A Stack Is a Stack of Cafeteria Plates",
+      "Used by code editors to check that every opening `(` has a matching closing `)`.",
+    analogyTitle: "A Stack of Plates",
     analogyText:
-      "A **Stack** follows **Last-In, First-Out (LIFO)**: the last plate you put on top is the first one you take off.\n\n• When you see an opening bracket `(`, **push** it onto the stack (`stack.append(ch)`).\n• When you see a closing bracket `)`, **pop** the top of the stack (`stack.pop()`) and check that they match!",
+      "Push `(` onto `stack` with `.append()`, and pop it off with `.pop()` when you see `)`!",
     cheatSheet: `stack = []
 for ch in text:
     if ch == "(":
@@ -396,49 +554,191 @@ for ch in text:
         stack.pop()
 return len(stack) == 0`,
     quiz: {
-      question: "What does LIFO (Last-In, First-Out) mean in a Stack?",
+      question: "Which list method removes the top (last) item from a stack?",
+      options: ["stack.pop()", "stack.append()", "stack.clear()"],
+      correctIndex: 0,
+      explanation: "`stack.pop()` removes and returns the most recently added item!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 9,
+    matchKeywords: ["minimum", "cheapest", "lowest", "flight", "min"],
+    realWorldUse:
+      "Used by Skyscanner, Google Flights, and Uber to instantly highlight the cheapest option.",
+    analogyTitle: "Remembering the Lowest Price Tag Seen So Far",
+    analogyText:
+      "How do you find the smallest number in a list? Python's built-in **`min(prices)`** scans the list in $O(n)$ time and hands you the lowest number immediately!",
+    cheatSheet: `prices = [250, 180, 310, 145, 290]
+
+# Find the lowest number in one line:
+cheapest = min(prices)
+print(cheapest)  # 145`,
+    commonPitfall: {
+      title: "Using max() instead of min() when looking for the lowest value",
+      wrongCode: "return max(prices)  # Returns the most expensive!",
+      rightCode: "return min(prices)  # Returns the cheapest!",
+      explanation:
+        "`min()` finds the minimum (smallest) value; `max()` finds the maximum (largest) value.",
+    },
+    guidedCode: `def find_cheapest_flight(prices):
+    # 👉 Return the smallest price in the list using min(prices):
+    return min(prices)
+
+print(find_cheapest_flight([320, 195, 240, 160, 410]))`,
+    quiz: {
+      question: "What does `min([40, 12, 85, 29])` return?",
+      options: ["12", "85", "40"],
+      correctIndex: 0,
+      explanation: "`12` is the smallest number in the list!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 10,
+    matchKeywords: ["middle", "midpoint", "center", "binary"],
+    realWorldUse:
+      "The core step of Binary Search: jumping straight to the middle element of a sorted list.",
+    analogyTitle: "Opening a Book Right to the Middle Page",
+    analogyText:
+      "To find the middle index of any list, divide its length by 2 using **integer division (`//`)**: `mid = len(items) // 2`, then grab `items[mid]`!",
+    cheatSheet: `items = [10, 20, 30, 40, 50]
+
+# 1. Find the middle index with // 2
+mid = len(items) // 2   # 5 // 2 = 2
+
+# 2. Read the value at that index
+print(items[mid])       # 30`,
+    commonPitfall: {
+      title: "Using single '/' (decimal division) instead of '//' (whole number division)",
+      wrongCode: "mid = len(items) / 2   # Gives 2.5 -> TypeError!",
+      rightCode: "mid = len(items) // 2  # Gives whole integer 2!",
+      explanation:
+        "List positions must be whole numbers (`0, 1, 2...`), so always use double slash `//`!",
+    },
+    guidedCode: `def get_middle_item(items):
+    mid = len(items) // 2
+    # 👉 Return the element at index 'mid':
+    return items[mid]
+
+print(get_middle_item([10, 25, 42, 70, 99]))`,
+    quiz: {
+      question: "Why do we use `// 2` instead of `/ 2` when computing a list index?",
       options: [
-        "The most recently added item is the first one removed",
-        "Items are removed in alphabetical order",
-        "The oldest item at index 0 is removed first",
+        "Because list indices must be whole integers, not decimals like 2.5",
+        "Because `/` is a comment in Python",
+        "Because `//` multiplies by 2",
       ],
       correctIndex: 0,
       explanation:
-        "`stack.append()` pushes to the top (end), and `stack.pop()` removes that exact most recent item!",
+        "`//` is floor division, which always gives a clean whole integer you can use inside `items[mid]`!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 11,
+    matchKeywords: ["mutual", "common", "intersection", "friends"],
+    realWorldUse:
+      "Used by Instagram, LinkedIn, and Discord to show 'Mutual Friends' between two profiles.",
+    analogyTitle: "Finding Names That Appear on Both Lists",
+    analogyText:
+      "To find items that exist in **both** `list_a` and `list_b`, loop through `list_a` and keep any item where **`item in list_b`** is True!",
+    cheatSheet: `alice_friends = ["Sam", "Mia", "Leo"]
+bob_friends = ["Mia", "Zoe", "Sam"]
+
+# Keep friends from alice_friends who are also in bob_friends:
+mutual = [f for f in alice_friends if f in bob_friends]
+print(mutual)  # ['Sam', 'Mia']`,
+    commonPitfall: {
+      title: "Combining both lists with '+' instead of checking 'if f in list_b'",
+      wrongCode: "return alice_friends + bob_friends  # Combines everyone!",
+      rightCode: "return [f for f in alice_friends if f in bob_friends]",
+      explanation:
+        "`if f in bob_friends` checks that the friend appears in BOTH lists!",
+    },
+    guidedCode: `def find_mutual_friends(friends_a, friends_b):
+    # 👉 Keep each friend 'f' in friends_a if 'f in friends_b':
+    return [f for f in friends_a if f in friends_b]
+
+print(find_mutual_friends(["Sam", "Mia", "Leo"], ["Mia", "Zoe", "Sam"]))`,
+    quiz: {
+      question: 'What does `"Mia" in ["Mia", "Zoe"]` evaluate to?',
+      options: ["True", "False", '"Mia"'],
+      correctIndex: 0,
+      explanation:
+        "The `in` keyword checks if an item exists inside a collection and returns `True` or `False`!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 12,
+    matchKeywords: ["running", "prefix", "cumulative", "steps", "total"],
+    realWorldUse:
+      "Used in banking apps to show your running balance after each transaction, and in fitness step trackers.",
+    analogyTitle: "A Snowball Rolling Downhill (Running Total)",
+    analogyText:
+      "Keep a variable `total = 0`. As you loop through each number `n`, add it to `total` (`total += n`) and save the new `total` into your `history` list!",
+    cheatSheet: `daily = [10, 20, 5]
+running = []
+total = 0
+
+for n in daily:
+    total += n
+    running.append(total)
+
+print(running)  # [10, 30, 35]`,
+    commonPitfall: {
+      title: "Resetting total = 0 inside the loop on every step",
+      wrongCode: "for n in daily:\n    total = 0\n    total += n",
+      rightCode: "total = 0\nfor n in daily:\n    total += n",
+      explanation:
+        "Create `total = 0` ONCE before the loop starts so it keeps accumulating!",
+    },
+    guidedCode: `def running_totals(numbers):
+    result = []
+    total = 0
+    for n in numbers:
+        total += n
+        # 👉 Append the updated 'total' to 'result':
+        result.append(total)
+    return result
+
+print(running_totals([10, 20, 15, 5]))`,
+    quiz: {
+      question: "What are the running totals of `[5, 10, 2]`?",
+      options: ["[5, 15, 17]", "[5, 10, 2]", "[17]"],
+      correctIndex: 0,
+      explanation:
+        "First step is `5`, second is `5 + 10 = 15`, and third is `15 + 2 = 17` -> `[5, 15, 17]`!",
     },
   },
 
   // ============================================================================
-  // TRACK 3: SYSTEM DESIGN
+  // TRACK 3: SYSTEM DESIGN (MODULES 01 - 12 — BEGINNER FRIENDLY!)
   // ============================================================================
   {
     matchTrack: "system_design",
     matchOrder: 1,
     matchKeywords: ["cache", "caching", "redis", "lru", "memory", "load"],
     realWorldUse:
-      "Used by Instagram, YouTube, and TikTok to serve viral posts in <5 milliseconds from RAM instead of querying slow disk databases millions of times.",
-    analogyTitle: "Caching Is Keeping Snacks on Your Desk",
+      "Used by Instagram and TikTok to serve popular posts instantly from fast memory.",
+    analogyTitle: "Keeping Favorite Snacks on Your Desk",
     analogyText:
-      "Fetching data from a main database is like driving to the grocery store (slow, expensive). A **Cache** is a small snack drawer right on your desk (ultra-fast RAM).\n\n1. **Cache Hit:** The data is already in your drawer — return it immediately!\n2. **Cache Miss:** Fetch it from the store once, save a copy in your drawer, and return it.",
-    cheatSheet: `def get_data(key, cache, db):
-    # 1. Check fast cache first (Cache Hit)
-    if key in cache:
-        return cache[key]
-    
-    # 2. Fallback to database & save in cache (Cache Miss)
-    val = db.get(key)
-    cache[key] = val
-    return val`,
+      "Check if `key in cache` first (fast **Cache Hit**). If not, fetch from `db` and save it in `cache`!",
+    cheatSheet: `if key in cache:
+    return cache[key]
+val = db.get(key)
+cache[key] = val
+return val`,
     quiz: {
       question: "What is a 'Cache Hit'?",
       options: [
-        "When the requested data is found immediately in fast cache memory",
-        "When the cache server crashes from too much traffic",
-        "When the database deletes old rows",
+        "When the data is found immediately in fast cache memory",
+        "When the server crashes",
+        "When the internet disconnects",
       ],
       correctIndex: 0,
-      explanation:
-        "A Cache Hit means the data was already in fast memory, saving an expensive trip to the database!",
+      explanation: "A Cache Hit saves a slow trip to the main database!",
     },
   },
   {
@@ -446,25 +746,17 @@ return len(stack) == 0`,
     matchOrder: 4,
     matchKeywords: ["round-robin", "round robin", "load balancer", "route"],
     realWorldUse:
-      "Used by NGINX, Cloudflare, and AWS Application Load Balancers to distribute millions of requests across server fleets.",
-    analogyTitle: "Dealing Cards Around a Table",
+      "Used by Cloudflare and AWS to share traffic evenly across servers.",
+    analogyTitle: "Dealing Cards in a Circle",
     analogyText:
-      "How does a **Round-Robin Load Balancer** share requests fairly across 3 servers?\n\nJust like dealing cards in a circle: Request 0 goes to Server 0, Request 1 to Server 1, Request 2 to Server 2, and Request 3 wraps right back around to Server 0 using the **modulo operator (`%`)**: `index = request_num % len(servers)`!",
+      "Use the remainder operator `%` (`request_index % len(servers)`) to cycle smoothly through your servers!",
     cheatSheet: `def pick_server(servers, request_index):
-    # Modulo (%) wraps around automatically!
-    slot = request_index % len(servers)
-    return servers[slot]`,
+    return servers[request_index % len(servers)]`,
     quiz: {
-      question:
-        "If you have 3 servers and `request_index` is `3`, what is `3 % 3`?",
-      options: [
-        "0 (it wraps back to the first server at index 0)",
-        "3 (index out of bounds)",
-        "1",
-      ],
+      question: "With 3 servers, what is `3 % 3`?",
+      options: ["0 (wraps back to the first server)", "3", "9"],
       correctIndex: 0,
-      explanation:
-        "`3 divided by 3` has a remainder of `0`, so `3 % 3 == 0` — wrapping cleanly back to the first server!",
+      explanation: "`3 % 3` is `0`, wrapping back to index 0!",
     },
   },
   {
@@ -472,24 +764,17 @@ return len(stack) == 0`,
     matchOrder: 5,
     matchKeywords: ["shard", "sharding", "partition", "database"],
     realWorldUse:
-      "Used by Discord, Instagram, and Uber when a single database table grows too large (billions of rows) to fit on one machine.",
-    analogyTitle: "Splitting an Encyclopedia Into Volumes A–Z",
+      "Used by Discord to split billions of messages across numbered database shards.",
+    analogyTitle: "Splitting a Huge Library Into Numbered Rooms",
     analogyText:
-      "When one database gets too full, **Database Sharding** splits the data across multiple smaller databases (**shards**).\n\nTo know which shard holds `user_id = 42`, we compute `shard_id = user_id % num_shards`. That way, we always know the exact database to query without searching all of them!",
-    cheatSheet: `def get_shard_name(user_id, num_shards):
-    shard_index = user_id % num_shards
-    return f"shard_{shard_index}"`,
+      "Compute `shard_id = user_id % num_shards` so every user always goes to the same database shard!",
+    cheatSheet: `def get_shard(user_id, num_shards):
+    return f"shard_{user_id % num_shards}"`,
     quiz: {
-      question:
-        "Why must the sharding formula (`user_id % num_shards`) always give the exact same answer for the same `user_id`?",
-      options: [
-        "So we can find that user's data later on the exact same shard",
-        "To use more CPU power",
-        "So every shard stores a duplicate copy of every user",
-      ],
+      question: "If `num_shards = 4`, which shard holds `user_id = 5`?",
+      options: ["shard_1 (because 5 % 4 == 1)", "shard_9", "shard_0"],
       correctIndex: 0,
-      explanation:
-        "Deterministic routing ensures writes and reads for User #42 always go to the exact same database shard!",
+      explanation: "5 divided by 4 leaves a remainder of 1!",
     },
   },
   {
@@ -497,25 +782,22 @@ return len(stack) == 0`,
     matchOrder: 6,
     matchKeywords: ["circuit", "breaker", "health", "failover", "outage"],
     realWorldUse:
-      "Used by Netflix Hystrix and Stripe to stop a slow or failing microservice from freezing the entire app.",
-    analogyTitle: "A Home Electrical Circuit Breaker for APIs",
+      "Used by Netflix and Stripe to stop calling a down service while it recovers.",
+    analogyTitle: "A Home Electrical Circuit Breaker",
     analogyText:
-      "If a third-party service crashes, continuing to send it 10,000 requests per second will freeze your own servers waiting for timeouts.\n\nA **Circuit Breaker** counts recent failures:\n• If `failures >= threshold`, the circuit trips **`\"OPEN\"`** (blocking calls immediately and returning a fast fallback).\n• Otherwise, it stays **`\"CLOSED\"`** (normal traffic flows).",
-    cheatSheet: `def check_circuit_state(failures, threshold):
-    if failures >= threshold:
-        return "OPEN"
-    return "CLOSED"`,
+      "If `failures >= threshold`, return `\"OPEN\"` to block traffic safely; otherwise return `\"CLOSED\"`.",
+    cheatSheet: `if failures >= threshold:
+    return "OPEN"
+return "CLOSED"`,
     quiz: {
-      question:
-        "In System Design, what does an `OPEN` circuit breaker mean?",
+      question: "What does an `OPEN` circuit breaker do?",
       options: [
-        "The circuit has tripped due to errors — requests are blocked immediately to protect the system",
-        "All requests are allowed through with zero limits",
-        "The server was deleted",
+        "Stops sending requests to a failing service so it can recover",
+        "Deletes the database",
+        "Doubles the error rate",
       ],
       correctIndex: 0,
-      explanation:
-        "Just like an electrical circuit breaker in your house, when it trips `OPEN`, current stops flowing until the fault recovers!",
+      explanation: "Tripping `OPEN` protects the system from cascading timeouts!",
     },
   },
   {
@@ -523,513 +805,157 @@ return len(stack) == 0`,
     matchOrder: 7,
     matchKeywords: ["quorum", "consensus", "leader", "majority", "vote"],
     realWorldUse:
-      "Used in Raft, Kubernetes (etcd), and distributed databases to agree on data even if some servers go offline.",
-    analogyTitle: "Majority Vote: More Than Half the Room",
+      "Used in cloud clusters so servers agree on data by majority vote.",
+    analogyTitle: "More Than Half the Room Agrees",
     analogyText:
-      "In a distributed cluster of 5 servers, what if 2 servers lose power? Can the remaining 3 servers safely save data?\n\nYes — if they reach a **Quorum (strict majority)**: `yes_votes > total_nodes / 2`. With 5 nodes, at least 3 `True` votes are needed!",
-    cheatSheet: `def has_quorum(votes):
-    yes_count = sum(1 for v in votes if v is True)
-    return yes_count > len(votes) / 2`,
+      "Count how many votes are `True`, and check if `yes_votes > len(votes) / 2`!",
+    cheatSheet: `yes_votes = votes.count(True)
+return yes_votes > len(votes) / 2`,
     quiz: {
-      question:
-        "In a cluster of 5 servers, how many `True` votes are required to reach a strict majority (quorum)?",
-      options: ["At least 3 out of 5", "1 out of 5", "All 5 out of 5"],
+      question: "Out of 5 servers, how many `True` votes make a majority?",
+      options: ["At least 3", "1", "0"],
       correctIndex: 0,
-      explanation:
-        "Half of 5 is 2.5, so the smallest whole number strictly greater than 2.5 is 3 servers!",
-    },
-  },
-  // ============================================================================
-  // NEW EXPANSION ENRICHMENTS (MODULES 09 - 12 ACROSS ALL 3 TRACKS)
-  // ============================================================================
-  {
-    matchTrack: "python_basics",
-    matchOrder: 9,
-    matchKeywords: ["comprehension", "playlist", "transform"],
-    realWorldUse:
-      "Used in data pipelines, FastAPI backends, and ML scripts to filter and transform lists in one readable line.",
-    analogyTitle: "An Assembly Line Inside Square Brackets",
-    analogyText:
-      "A **List Comprehension** packs a `for` loop and an optional `if` filter into a single `[ ... ]` expression:\n\n• `[expression for item in list if condition]`\n• It reads like plain English: *\"Give me `n * 2` for every `n` in `nums` if `n > 0`.\"*",
-    cheatSheet: `nums = [1, 2, 3, 4, 5]
-
-# Keep only even numbers and square them:
-squared_evens = [n * n for n in nums if n % 2 == 0]
-print(squared_evens)  # [4, 16]`,
-    commonPitfall: {
-      title: "Putting the 'if' filter in the wrong spot",
-      wrongCode: "[if x >= 180: x for x in tracks]",
-      rightCode: "[x for x in tracks if x >= 180]",
-      explanation:
-        "In a filter comprehension, the `if condition` always goes at the very end, right after `for item in list`!",
-    },
-    guidedCode: `def filter_long_tracks(durations):
-    # STEP 1: Use a list comprehension to keep durations >= 180
-    # Pattern: [d for d in durations if ...]
-    return [d for d in durations if d >= 180]
-
-print(filter_long_tracks([120, 210, 180, 95, 240]))`,
-    quiz: {
-      question: "What does `[x * 10 for x in [1, 2, 3] if x > 1]` evaluate to?",
-      options: ["[20, 30]", "[10, 20, 30]", "[2, 3]"],
-      correctIndex: 0,
-      explanation:
-        "Only `2` and `3` pass `x > 1`, and each one is multiplied by `10` to produce `[20, 30]`!",
-    },
-  },
-  {
-    matchTrack: "python_basics",
-    matchOrder: 10,
-    matchKeywords: ["set", "unique", "duplicate", "vip"],
-    realWorldUse:
-      "Used in event ticket scanners, email deduplication, and fast permission checks.",
-    analogyTitle: "A VIP Club Wristband List (No Duplicates Allowed)",
-    analogyText:
-      "A Python **`set`** is a collection that automatically throws away duplicates. Even if `" +
-      "`\"alex\"`" +
-      " appears 5 times in a list, converting it with `set(items)` keeps only one copy!",
-    cheatSheet: `badges = ["gold", "silver", "gold", "bronze"]
-
-# Remove duplicates & sort alphabetically:
-unique_sorted = sorted(set(badges))
-print(unique_sorted)  # ['bronze', 'gold', 'silver']`,
-    commonPitfall: {
-      title: "Creating an empty set with {} instead of set()",
-      wrongCode: "seen = {}  # This creates an empty dict, not a set!",
-      rightCode: "seen = set()  # Creates an empty set",
-      explanation:
-        "Empty curly braces `{}` always create a dictionary in Python. Use `set()` for an empty set!",
-    },
-    guidedCode: `def unique_Sorted_tickets(tickets):
-    # STEP 1: Convert tickets to a set to remove duplicates, then wrap in sorted()
-    return sorted(set(tickets))
-
-print(unique_Sorted_tickets(["VIP-2", "VIP-1", "VIP-2", "VIP-3"]))`,
-    quiz: {
-      question: "What is `len(set([10, 20, 10, 30, 20]))`?",
-      options: ["3 (only unique values 10, 20, 30 are kept)", "5", "0"],
-      correctIndex: 0,
-      explanation:
-        "`set()` removes the duplicate `10` and `20`, leaving `{10, 20, 30}` with length 3!",
-    },
-  },
-  {
-    matchTrack: "python_basics",
-    matchOrder: 11,
-    matchKeywords: ["class", "object", "oop", "hero", "init"],
-    realWorldUse:
-      "Used in game engines, UI frameworks, and database models (ORMs) to bundle data and behavior together.",
-    analogyTitle: "A Class Is a Cookie Cutter; Objects Are the Cookies",
-    analogyText:
-      "A **`class`** is a blueprint. When you call `Hero(\"Aria\", 100)`, Python runs `__init__(self, ...)` to stamp out a brand-new object with its own `self.name` and `self.hp`!",
-    cheatSheet: `class Hero:
-    def __init__(self, name, hp):
-        self.name = name
-        self.hp = hp
-
-    def heal(self, amount):
-        self.hp += amount
-        return self.hp`,
-    commonPitfall: {
-      title: "Forgetting 'self.' when storing attributes in __init__",
-      wrongCode: "def __init__(self, name):\n    name = name  # Lost as soon as __init__ finishes!",
-      rightCode: "def __init__(self, name):\n    self.name = name  # Saved on the object!",
-      explanation:
-        "Attaching `self.` saves the variable onto the object instance so other methods can use it later.",
-    },
-    guidedCode: `class ArcadeFighter:
-    def __init__(self, name, energy):
-        self.name = name
-        self.energy = energy
-
-    def boost(self, bonus):
-        # Add bonus to self.energy and return the new energy:
-        self.energy += bonus
-        return self.energy
-
-p1 = ArcadeFighter("Nova", 50)
-print(p1.boost(25))`,
-    quiz: {
-      question: "What is the role of `self` inside a Python class method?",
-      options: [
-        "It refers to the specific object instance the method was called on",
-        "It makes all variables global across the whole file",
-        "It is optional and never needed in Python",
-      ],
-      correctIndex: 0,
-      explanation:
-        "`self` lets an object read and update its own attributes (`self.energy`) without mixing them up with other objects!",
-    },
-  },
-  {
-    matchTrack: "python_basics",
-    matchOrder: 12,
-    matchKeywords: ["nested", "json", "api", "weather", "extract"],
-    realWorldUse:
-      "Every REST API (OpenAI, Stripe, GitHub, Weather) returns nested dictionaries containing lists of dictionaries.",
-    analogyTitle: "Opening Nested Boxes One Label at a Time",
-    analogyText:
-      "When data is nested like `response[\"data\"][\"forecast\"][0][\"temp\"]`, read it left-to-right: each `[\"key\"]` opens a dictionary drawer, and each `[0]` picks a numbered slot in a list!",
-    cheatSheet: `payload = {
-    "station": "TOKYO-01",
-    "readings": [{"temp": 22}, {"temp": 26}]
-}
-
-# Average the 'temp' values inside payload["readings"]:
-temps = [r["temp"] for r in payload["readings"]]
-print(max(temps))  # 26`,
-    commonPitfall: {
-      title: "Using a string key on a list instead of looping or indexing",
-      wrongCode: 'payload["readings"]["temp"]  # TypeError: list indices must be integers!',
-      rightCode: '[r["temp"] for r in payload["readings"]]',
-      explanation:
-        '`payload["readings"]` is a list `[...]`, so you must loop over its items or index `[0]` before accessing `["temp"]`!',
-    },
-    guidedCode: `def highest_temperature(report):
-    # report["hourly"] is a list of dicts like {"hour": 1, "temp": 19}
-    temps = [entry["temp"] for entry in report["hourly"]]
-    return max(temps)
-
-sample = {"city": "Seoul", "hourly": [{"temp": 18}, {"temp": 24}, {"temp": 21}]}
-print(highest_temperature(sample))`,
-    quiz: {
-      question: 'Given `data = {"users": [{"name": "Kai"}]}`, how do you access `"Kai"`?',
-      options: [
-        'data["users"][0]["name"]',
-        'data["users"]["name"]',
-        'data[0]["users"]["name"]',
-      ],
-      correctIndex: 0,
-      explanation:
-        '`data["users"]` gets the list, `[0]` grabs the first dictionary in that list, and `["name"]` reads `"Kai"`!',
-    },
-  },
-  {
-    matchTrack: "algorithms",
-    matchOrder: 9,
-    matchKeywords: ["binary search", "sorted", "midpoint", "halve"],
-    realWorldUse:
-      "Used by `git bisect` to find a buggy commit in 10 steps across 1,000 commits, and in database B-Tree indexes.",
-    analogyTitle: "Guessing a Number Between 1 and 100 by Always Picking the Middle",
-    analogyText:
-      "If a list is **sorted**, never scan from index 0! Check the **middle index** (`mid = (left + right) // 2`).\n\n• If `nums[mid] < target`, the answer MUST be in the right half (`left = mid + 1`).\n• If `nums[mid] > target`, the answer MUST be in the left half (`right = mid - 1`).",
-    cheatSheet: `left, right = 0, len(nums) - 1
-while left <= right:
-    mid = (left + right) // 2
-    if nums[mid] == target:
-        return mid
-    elif nums[mid] < target:
-        left = mid + 1
-    else:
-        right = mid - 1
-return -1`,
-    commonPitfall: {
-      title: "Using '/' (float division) instead of '//' (integer division) for mid",
-      wrongCode: "mid = (left + right) / 2   # Produces 2.5 -> TypeError!",
-      rightCode: "mid = (left + right) // 2  # Produces integer index 2",
-      explanation:
-        "List indices must be whole integers! Always use floor division `//` when calculating `mid`.",
-    },
-    guidedCode: `def binary_search(nums, target):
-    left, right = 0, len(nums) - 1
-    while left <= right:
-        mid = (left + right) // 2
-        if nums[mid] == target:
-            return mid
-        elif nums[mid] < target:
-            left = mid + 1
-        else:
-            right = mid - 1
-    return -1`,
-    quiz: {
-      question: "What precondition MUST be true before you can run Binary Search on a list?",
-      options: [
-        "The list must be sorted in order",
-        "The list must contain only prime numbers",
-        "The list must have fewer than 10 items",
-      ],
-      correctIndex: 0,
-      explanation:
-        "Binary search relies on sorted order so comparing `nums[mid]` tells you which half to discard!",
-    },
-  },
-  {
-    matchTrack: "algorithms",
-    matchOrder: 10,
-    matchKeywords: ["interval", "merge", "overlap", "calendar"],
-    realWorldUse:
-      "Used by Google Calendar and Apple Calendar to combine overlapping busy blocks into clean free/busy timelines.",
-    analogyTitle: "Combining Overlapping Sticky Notes on a Timeline",
-    analogyText:
-      "First, **sort intervals by start time** (`intervals.sort(key=lambda x: x[0])`).\n\nThen compare each `[start, end]` with the last merged interval `merged[-1]`:\n• If `start <= merged[-1][1]`, they overlap! Extend the end: `merged[-1][1] = max(merged[-1][1], end)`.\n• Otherwise, append `[start, end]` as a new block.",
-    cheatSheet: `intervals.sort(key=lambda x: x[0])
-merged = [intervals[0]]
-
-for start, end in intervals[1:]:
-    if start <= merged[-1][1]:
-        merged[-1][1] = max(merged[-1][1], end)
-    else:
-        merged.append([start, end])`,
-    commonPitfall: {
-      title: "Replacing the end time without max() when one interval is inside another",
-      wrongCode: "merged[-1][1] = end  # Breaks on [1, 10] and [2, 5]!",
-      rightCode: "merged[-1][1] = max(merged[-1][1], end)",
-      explanation:
-        "If `[1, 10]` is followed by `[2, 5]`, the merged block still ends at `10`, not `5`!",
-    },
-    guidedCode: `def merge_intervals(intervals):
-    if not intervals:
-        return []
-    intervals = sorted(intervals, key=lambda x: x[0])
-    merged = [list(intervals[0])]
-    for start, end in intervals[1:]:
-        if start <= merged[-1][1]:
-            merged[-1][1] = max(merged[-1][1], end)
-        else:
-            merged.append([start, end])
-    return merged`,
-    quiz: {
-      question: "What does `[1, 4]` and `[2, 6]` merge into?",
-      options: ["[1, 6]", "[1, 2, 4, 6]", "[2, 4]"],
-      correctIndex: 0,
-      explanation:
-        "Since `2 <= 4`, the two blocks overlap and combine into a single continuous window `[1, 6]`!",
-    },
-  },
-  {
-    matchTrack: "algorithms",
-    matchOrder: 11,
-    matchKeywords: ["bfs", "breadth", "queue", "shortest", "graph"],
-    realWorldUse:
-      "Used in LinkedIn ('2nd-degree connection'), GPS shortest-hop routing, and web crawlers.",
-    analogyTitle: "Ripples Spreading Outward in a Pond",
-    analogyText:
-      "**Breadth-First Search (BFS)** explores a graph wave by wave using a **FIFO Queue** (`pop(0)`):\n\n• Wave 1 checks all direct neighbors (distance 1).\n• Wave 2 checks their neighbors (distance 2).\n• A `visited` set ensures you never walk in infinite circles!",
-    cheatSheet: `queue = [(start, 0)]
-visited = {start}
-
-while queue:
-    node, dist = queue.pop(0)
-    if node == target:
-        return dist
-    for nxt in graph.get(node, []):
-        if nxt not in visited:
-            visited.add(nxt)
-            queue.append((nxt, dist + 1))`,
-    commonPitfall: {
-      title: "Forgetting to track visited nodes in graphs with cycles",
-      wrongCode: "for nxt in graph[node]:\n    queue.append((nxt, dist + 1))  # Infinite loop!",
-      rightCode: "if nxt not in visited:\n    visited.add(nxt)\n    queue.append((nxt, dist + 1))",
-      explanation:
-        "If Alice knows Bob and Bob knows Alice, BFS will bounce between them forever unless you check `visited`!",
-    },
-    guidedCode: `def shortest_hops(graph, start, target):
-    queue = [(start, 0)]
-    visited = {start}
-    while queue:
-        node, hops = queue.pop(0)
-        if node == target:
-            return hops
-        for neighbor in graph.get(node, []):
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append((neighbor, hops + 1))
-    return -1`,
-    quiz: {
-      question: "Why does BFS guarantee finding the shortest number of hops in an unweighted graph?",
-      options: [
-        "Because a queue explores all nodes at distance d before any node at distance d + 1",
-        "Because it sorts node names alphabetically",
-        "Because it jumps randomly until it gets lucky",
-      ],
-      correctIndex: 0,
-      explanation:
-        "By exploring level-by-level in First-In, First-Out order, the first time BFS reaches `target` is guaranteed to be the shortest path!",
-    },
-  },
-  {
-    matchTrack: "algorithms",
-    matchOrder: 12,
-    matchKeywords: ["dynamic", "dp", "stairs", "memo", "fibonacci"],
-    realWorldUse:
-      "Used in spellcheckers (edit distance), diff algorithms (`git diff`), and route optimization.",
-    analogyTitle: "Building the Next Floor From the Two Floors Below It",
-    analogyText:
-      "To reach step `n` when you can climb `1` or `2` steps at a time, your last move came from either step `n - 1` or step `n - 2`.\n\nSo `ways(n) = ways(n - 1) + ways(n - 2)`! By remembering the last two answers (`prev2, prev1`), you solve it in $O(n)$ time!",
-    cheatSheet: `def climb_stairs(n):
-    if n <= 2:
-        return n
-    prev2, prev1 = 1, 2
-    for _ in range(3, n + 1):
-        prev2, prev1 = prev1, prev2 + prev1
-    return prev1`,
-    commonPitfall: {
-      title: "Using naive recursion without caching (O(2^n) time limit exceeded)",
-      wrongCode: "return climb(n - 1) + climb(n - 2)  # Recomputes subproblems millions of times!",
-      rightCode: "prev2, prev1 = prev1, prev2 + prev1  # O(n) single loop!",
-      explanation:
-        "Storing previous results avoids recalculating the same subproblems over and over.",
-    },
-    guidedCode: `def climb_ways(n):
-    if n <= 2:
-        return n
-    prev2, prev1 = 1, 2
-    for _ in range(3, n + 1):
-        prev2, prev1 = prev1, prev2 + prev1
-    return prev1`,
-    quiz: {
-      question: "If there are 2 ways to reach step 2 and 3 ways to reach step 3, how many ways are there to reach step 4?",
-      options: ["5 ways (2 + 3)", "6 ways", "4 ways"],
-      correctIndex: 0,
-      explanation:
-        "Every path to step 4 comes from either step 2 (plus a 2-step jump) or step 3 (plus a 1-step jump): `2 + 3 = 5`!",
+      explanation: "3 is more than half of 5 (2.5)!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 9,
-    matchKeywords: ["backoff", "exponential", "retry", "timeout"],
+    matchKeywords: ["backoff", "retry", "wait", "cap"],
     realWorldUse:
-      "Used in AWS SDKs, Stripe webhooks, and mobile apps so recovering servers aren't hammered by instant retry storms.",
-    analogyTitle: "Waiting Longer Between Knocks When Someone Is Busy",
+      "Used by mobile apps when reconnecting to Wi-Fi so they don't spam the server.",
+    analogyTitle: "Capping the Maximum Wait Time with min()",
     analogyText:
-      "If a server fails, retrying every 1 millisecond from 100,000 phones causes a **Retry Storm**.\n\n**Exponential Backoff** doubles the wait time after each failure (`base_delay * (2 ** attempt)`), capped at a safe `max_delay`!",
-    cheatSheet: `def get_backoff_delay(attempt, base_delay, max_delay):
-    raw_delay = base_delay * (2 ** attempt)
-    return min(raw_delay, max_delay)`,
+      "When an app retries a failed request, it doubles the wait time (`delay`), but uses **`min(delay, max_wait)`** so the user never waits longer than `max_wait`!",
+    cheatSheet: `def cap_retry_wait(delay, max_wait):
+    # Never wait longer than max_wait:
+    return min(delay, max_wait)
+
+print(cap_retry_wait(1600, 1000))  # 1000`,
     commonPitfall: {
-      title: "Using '^' (bitwise XOR) instead of '**' (exponentiation) in Python",
-      wrongCode: "delay = base * (2 ^ attempt)   # '^' is XOR in Python!",
-      rightCode: "delay = base * (2 ** attempt)  # '**' is power/exponent!",
+      title: "Using max() instead of min() when capping a limit",
+      wrongCode: "return max(delay, max_wait)  # Forces wait to AT LEAST max_wait!",
+      rightCode: "return min(delay, max_wait)  # Caps wait AT MOST max_wait!",
       explanation:
-        "In Python, `2 ** 3` is `8` ($2^3$), whereas `2 ^ 3` performs bitwise XOR (`1`)!",
+        "To cap a number at a ceiling, `min(value, ceiling)` picks the smaller of the two!",
     },
-    guidedCode: `def compute_backoff_ms(attempt, base_ms, max_ms):
-    # Compute base_ms * (2 ** attempt), capped at max_ms using min()
-    delay = base_ms * (2 ** attempt)
-    return min(delay, max_ms)`,
+    guidedCode: `def get_retry_wait(delay_ms, max_ms):
+    # 👉 Return whichever is smaller: delay_ms or max_ms using min()
+    return min(delay_ms, max_ms)
+
+print(get_retry_wait(400, 1000), get_retry_wait(1600, 1000))`,
     quiz: {
-      question: "With `base_ms = 100` and `attempt = 3`, what is `100 * (2 ** 3)`?",
-      options: ["800 ms", "600 ms", "300 ms"],
+      question: "What does `min(1600, 1000)` return?",
+      options: ["1000 (caps the value at 1000)", "1600", "2600"],
       correctIndex: 0,
-      explanation:
-        "`2 ** 3` is `8`, so `100 * 8 = 800 ms`!",
+      explanation: "`min()` returns the smaller number, keeping the delay capped at `1000`!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 10,
-    matchKeywords: ["queue", "dead", "dlq", "worker", "job"],
+    matchKeywords: ["dead", "dlq", "stuck", "alert", "job"],
     realWorldUse:
-      "Used in RabbitMQ, AWS SQS, and Kafka to isolate poison-pill messages that fail repeatedly into a Dead-Letter Queue (DLQ).",
-    analogyTitle: "Moving Undeliverable Packages to Customer Service",
+      "Used in background uploaders (like YouTube video processing) to stop retrying a corrupted file after 3 tries.",
+    analogyTitle: "Three Strikes and Move to Support",
     analogyText:
-      "If a background worker crashes on a corrupted job, leaving it at the front of the main queue blocks every job behind it!\n\nA **Dead-Letter Queue (DLQ)** checks each job's `attempts`: if `attempts >= max_retries`, route it to `\"DLQ\"` for engineers to inspect; otherwise route it to `\"RETRY_QUEUE\"`.",
-    cheatSheet: `def route_failed_job(attempts, max_retries):
-    if attempts >= max_retries:
-        return "DLQ"
-    return "RETRY_QUEUE"`,
+      "If a job's `attempts >= 3`, stop retrying and return **`\"ALERT_TEAM\"`**. Otherwise, return **`\"RETRY\"`**!",
+    cheatSheet: `def check_job_status(attempts):
+    if attempts >= 3:
+        return "ALERT_TEAM"
+    return "RETRY"`,
     commonPitfall: {
-      title: "Using '>' instead of '>=' on the max retry threshold",
-      wrongCode: "if attempts > max_retries: return 'DLQ'",
-      rightCode: "if attempts >= max_retries: return 'DLQ'",
+      title: "Checking attempts > 3 instead of attempts >= 3",
+      wrongCode: "if attempts > 3:  # Misses when attempts is 3!",
+      rightCode: "if attempts >= 3: # Triggers as soon as attempts hits 3!",
       explanation:
-        "Once a job has reached `max_retries` failed attempts, it has exhausted its budget and belongs in the DLQ.",
+        "`>= 3` means '3 or more', catching the 3rd failed attempt right away.",
     },
-    guidedCode: `def classify_jobs(jobs, max_retries):
-    # Return a dict {"retry": [...], "dlq": [...]} of job IDs
-    result = {"retry": [], "dlq": []}
-    for job in jobs:
-        if job["attempts"] >= max_retries:
-            result["dlq"].append(job["id"])
-        else:
-            result["retry"].append(job["id"])
-    return result`,
+    guidedCode: `def check_job_status(attempts):
+    if attempts >= 3:
+        # 👉 Return "ALERT_TEAM" when attempts is 3 or more:
+        return "ALERT_TEAM"
+    return "RETRY"
+
+print(check_job_status(1), check_job_status(3))`,
     quiz: {
-      question: "Why do production message queues use a Dead-Letter Queue (DLQ)?",
-      options: [
-        "So a permanently broken job doesn't block healthy jobs in an infinite retry loop",
-        "To delete all database backups automatically",
-        "To make network cables shorter",
-      ],
+      question: "If `attempts = 3`, what does `if attempts >= 3:` evaluate to?",
+      options: ["True", "False", "Error"],
       correctIndex: 0,
-      explanation:
-        "Quarantining poison messages in a DLQ keeps the main worker pipeline flowing smoothly while preserving the failed payload for debugging!",
+      explanation: "Since 3 is equal to 3, `3 >= 3` is `True`!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 11,
-    matchKeywords: ["replica", "read", "write", "primary", "routing"],
+    matchKeywords: ["failover", "backup", "primary", "switch"],
     realWorldUse:
-      "Used by PostgreSQL, MySQL, and Supabase to scale read-heavy apps (90% reads, 10% writes) across Read Replicas.",
-    analogyTitle: "One Author Writing the Master Book, Many Photocopies for Readers",
+      "Used by hospitals, banks, and cloud servers to switch to a backup server the instant the main server goes offline.",
+    analogyTitle: "Backup Generator When the Power Goes Out",
     analogyText:
-      "In a **Primary / Read-Replica** database cluster:\n\n• Every **`WRITE`** (`INSERT`, `UPDATE`, `DELETE`) MUST go to the **`\"primary\"`** node.\n• **`READ`** (`SELECT`) queries can be distributed across **`replicas`** (or fall back to `\"primary\"` if no replicas exist)!",
-    cheatSheet: `def route_query(op_type, replicas, query_idx):
-    if op_type == "WRITE" or not replicas:
+      "If `primary_online` is `True`, route traffic to **`\"primary\"`**. Otherwise, automatically switch to **`\"backup\"`**!",
+    cheatSheet: `def choose_server(primary_online):
+    if primary_online:
         return "primary"
-    return replicas[query_idx % len(replicas)]`,
+    return "backup"`,
     commonPitfall: {
-      title: "Sending WRITE queries to a read-only replica",
-      wrongCode: "return replicas[0]  # Crashes on INSERT/UPDATE!",
-      rightCode: 'if op_type == "WRITE":\n    return "primary"',
+      title: "Returning True/False instead of the server name string",
+      wrongCode: "return primary_online",
+      rightCode: 'if primary_online:\n    return "primary"\nreturn "backup"',
       explanation:
-        "Read replicas are read-only followers. All mutations must be committed to the Primary node first!",
+        'The router needs the name of the server (`"primary"` or `"backup"`) as a string.',
     },
-    guidedCode: `def route_db_query(op_type, replicas, query_id):
-    if op_type == "WRITE" or len(replicas) == 0:
+    guidedCode: `def choose_server(primary_online):
+    if primary_online:
         return "primary"
-    return replicas[query_id % len(replicas)]`,
+    # 👉 Otherwise return "backup":
+    return "backup"
+
+print(choose_server(True), choose_server(False))`,
     quiz: {
-      question: "Where must all `WRITE` (`INSERT` / `UPDATE`) queries be routed in a Primary-Replica cluster?",
+      question: "What is 'Automatic Failover' in System Design?",
       options: [
-        "Always to the Primary node",
-        "To a random Read Replica",
-        "To the browser's CSS file",
+        "Automatically switching to a healthy backup server when the primary server goes down",
+        "Turning off all computers at night",
+        "Deleting user accounts",
       ],
       correctIndex: 0,
       explanation:
-        "The Primary database is the single source of truth for writes, which then replicate asynchronously to Read Replicas!",
+        "Failover keeps an app online 24/7 by seamlessly switching to a standby server!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 12,
-    matchKeywords: ["consistent", "ring", "hash ring", "clockwise"],
+    matchKeywords: ["cdn", "region", "closest", "video", "edge"],
     realWorldUse:
-      "Used in Amazon DynamoDB, Apache Cassandra, and Discord to add or remove servers without invalidating the entire cache.",
-    analogyTitle: "Walking Clockwise Around a Clock Face",
+      "Used by Netflix and YouTube CDNs (Content Delivery Networks) to stream video from a server near your country.",
+    analogyTitle: "Ordering From the Closest Local Warehouse",
     analogyText:
-      "With modulo sharding (`key % N`), adding 1 server changes `N` and reshuffles ~90% of keys!\n\n**Consistent Hashing** places servers at sorted positions on a circle (e.g., `[20, 50, 80]`). A key at position `35` walks **clockwise** to the first server with `pos >= key_pos` (`50`). If `key_pos` is past the last server (`90`), it wraps around to the first server (`20`)!",
-    cheatSheet: `def find_ring_node(ring_positions, key_pos):
-    for node_pos in sorted(ring_positions):
-        if node_pos >= key_pos:
-            return node_pos
-    return sorted(ring_positions)[0]  # Wrap around 0°`,
+      "Given a dictionary of regional servers `cdn_map`, use **`cdn_map.get(region, \"global-edge\")`** to return the user's local server, or `\"global-edge\"` if their region isn't in the dictionary!",
+    cheatSheet: `cdn_map = {"eu": "paris-01", "us": "virginia-01"}
+
+# Look up region, or fall back to "global-edge":
+server = cdn_map.get(region, "global-edge")`,
     commonPitfall: {
-      title: "Forgetting to wrap around to the first node when key_pos > max(ring)",
-      wrongCode: "return None  # Fails when key_pos is 90 and ring is [20, 50, 80]!",
-      rightCode: "return sorted_ring[0]  # Wraps around the circle to 20!",
+      title: "Using cdn_map[region] which crashes if the region is missing",
+      wrongCode: "return cdn_map[region]  # KeyError on unknown region!",
+      rightCode: 'return cdn_map.get(region, "global-edge")',
       explanation:
-        "A hash ring is a closed circle: any key past the highest server position wraps right back around to the smallest server position!",
+        "`.get(key, fallback)` safely returns the fallback string instead of crashing when a key isn't found!",
     },
-    guidedCode: `def locate_ring_server(ring_nodes, key_hash):
-    ordered = sorted(ring_nodes)
-    for node in ordered:
-        if node >= key_hash:
-            return node
-    return ordered[0]`,
+    guidedCode: `def pick_cdn_server(cdn_map, region):
+    # 👉 Use cdn_map.get(region, "global-edge") to return the server safely:
+    return cdn_map.get(region, "global-edge")
+
+servers = {"eu": "eu-west", "asia": "tokyo-edge"}
+print(pick_cdn_server(servers, "eu"), pick_cdn_server(servers, "sa"))`,
     quiz: {
-      question: "On a sorted hash ring `[10, 40, 80]`, which node handles a key at position `95`?",
-      options: [
-        "Node 10 (wraps clockwise past 100/0 to the first node)",
-        "Node 80",
-        "No node can handle it",
-      ],
+      question: 'What does `{"eu": "paris"}.get("mars", "global")` return?',
+      options: ['"global" (the safe fallback value)', "KeyError crash", '"paris"'],
       correctIndex: 0,
       explanation:
-        "Since `95` is greater than `80`, walking clockwise around the ring wraps past `0` and lands on the first node at `10`!",
+        'Since `"mars"` is not in the dictionary, `.get()` returns the fallback value `"global"`!',
     },
   },
 ];
@@ -1042,33 +968,33 @@ function attachDefaultPitfallAndGuided(
   const defaultPitfall: CommonPitfall =
     track === "algorithms"
       ? {
-          title: "Returning inside the loop on the first iteration by mistake",
+          title: "Returning inside the loop on the first step by mistake",
           wrongCode: "for x in nums:\n    return x  # Stops after checking only 1 item!",
           rightCode: "for x in nums:\n    if matches(x): return x\nreturn default",
           explanation:
-            "Make sure your final fallback `return` is unindented outside the `for` loop so every item gets checked!",
+            "Make sure your fallback `return` is unindented outside the `for` loop so every item gets checked!",
         }
       : track === "system_design"
         ? {
-            title: "Not handling edge cases like 0 requests or empty server lists",
-            wrongCode: "slot = req_id % len(servers)  # Crashes if servers is empty!",
-            rightCode: "if not servers:\n    return fallback\nslot = req_id % len(servers)",
+            title: "Forgetting fallback values when a server or key is missing",
+            wrongCode: "return servers[key]  # Crashes with KeyError if missing!",
+            rightCode: 'return servers.get(key, "fallback")',
             explanation:
-              "Production systems always check guard conditions (`if not servers:`) before dividing or indexing.",
+              "Reliable cloud code always provides a safe fallback value.",
           }
         : {
-            title: "Confusing '=' (assignment) with '==' (comparison) or forgetting ':'",
-            wrongCode: "if score = 100   # SyntaxError: missing ':' and single '='",
+            title: "Confusing '=' (save value) with '==' (compare values)",
+            wrongCode: "if score = 100   # SyntaxError!",
             rightCode: "if score == 100: # Uses '==' and ends with ':'",
             explanation:
-              "Use `=` to store a value in a variable, `==` to compare two values, and always end `if`/`for`/`def` lines with a colon `:`!",
+              "Use `=` to store a value in a variable, `==` to compare two values, and end `if`/`for`/`def` lines with `:`!",
           };
 
   const cleanStarter = (initialCode || "").replace(/\\n/g, "\n").trim();
   const defaultGuided =
     item.guidedCode ||
     (cleanStarter
-      ? `${cleanStarter}\n\n# GUIDED PATTERN REFERENCE:\n${item.cheatSheet
+      ? `${cleanStarter}\n\n# 💡 HELPFUL EXAMPLE:\n${item.cheatSheet
           .split("\n")
           .map((l) => (l.startsWith("#") ? l : `#   ${l}`))
           .join("\n")}`
@@ -1081,7 +1007,6 @@ function attachDefaultPitfallAndGuided(
   };
 }
 
-// Fallback enrichment for any lesson that doesn't match a specific rule above
 export function getLessonEnrichment(lesson: {
   title?: string;
   track?: string;
@@ -1094,7 +1019,6 @@ export function getLessonEnrichment(lesson: {
     | "algorithms"
     | "system_design";
 
-  // 1. Try matching by track + order first when order >= 9 (our new expansion lessons)
   if ((lesson.lesson_order || 0) >= 9) {
     const byExpansionOrder = LESSON_ENRICHMENTS.find(
       (item) =>
@@ -1109,7 +1033,6 @@ export function getLessonEnrichment(lesson: {
     }
   }
 
-  // 2. Try matching by track + keyword
   const byKeyword = LESSON_ENRICHMENTS.find(
     (item) =>
       item.matchTrack === track &&
@@ -1119,7 +1042,6 @@ export function getLessonEnrichment(lesson: {
     return attachDefaultPitfallAndGuided(byKeyword, track, lesson.initial_code);
   }
 
-  // 3. Try matching by track + order
   const byOrder = LESSON_ENRICHMENTS.find(
     (item) => item.matchTrack === track && item.matchOrder === lesson.lesson_order,
   );
@@ -1127,83 +1049,16 @@ export function getLessonEnrichment(lesson: {
     return attachDefaultPitfallAndGuided(byOrder, track, lesson.initial_code);
   }
 
-  // 4. Friendly track-aware default enrichment
-  if (track === "algorithms") {
-    return attachDefaultPitfallAndGuided(
-      {
-        realWorldUse:
-          "Used in high-speed search engines, routing systems, and real-time analytics pipelines.",
-        analogyTitle: "Work Smarter, Not Harder",
-        analogyText:
-          "Great algorithms are about organizing data so you never repeat unnecessary work. Instead of checking every possibility blindly, use the structure of the input (like sorting, pointers, or hash maps) to jump straight to the answer.",
-        cheatSheet: `# Common Algorithm Pattern:
-def solve(items):
-    result = []
-    for index, value in enumerate(items):
-        # Process each item in O(n) single pass
-        result.append(value)
-    return result`,
-        quiz: {
-          question:
-            "Which time complexity grows slower (stays faster) as the input list gets huge?",
-          options: [
-            "O(n) — single pass through the list",
-            "O(n²) — nested loop checking every pair",
-            "O(2ⁿ) — exponential growth",
-          ],
-          correctIndex: 0,
-          explanation:
-            "O(n) scales linearly: for 1,000 items it does ~1,000 steps, whereas O(n²) does 1,000,000 steps!",
-        },
-      },
-      track,
-      lesson.initial_code,
-    );
-  }
-
-  if (track === "system_design") {
-    return attachDefaultPitfallAndGuided(
-      {
-        realWorldUse:
-          "Used by cloud platforms like AWS, Cloudflare, and Stripe to keep services fast and reliable under millions of requests per second.",
-        analogyTitle: "Scaling From 1 Counter to a Supermarket",
-        analogyText:
-          "System Architecture is how we prevent a single computer from getting overwhelmed:\n\n• **Load Balancers** split traffic evenly across servers.\n• **Caches** remember frequent answers.\n• **Rate Limiters** stop bots from hogging the line.",
-        cheatSheet: `# Distributed Systems State Pattern:
-def handle_request(request_id, state):
-    # 1. Validate limits / check fast state
-    # 2. Route or process request
-    # 3. Return deterministic response
-    return True`,
-        quiz: {
-          question:
-            "What is the main goal of adding a Load Balancer in front of multiple servers?",
-          options: [
-            "To distribute incoming traffic evenly so no single server is overloaded",
-            "To make Python syntax run without indentation",
-            "To store user passwords in plain text",
-          ],
-          correctIndex: 0,
-          explanation:
-            "A Load Balancer spreads requests across healthy servers so your app stays fast and online even during traffic spikes!",
-        },
-      },
-      track,
-      lesson.initial_code,
-    );
-  }
-
   return attachDefaultPitfallAndGuided(
     {
       realWorldUse:
-        "Core Python building block used in web backends, AI scripts, automation, and data science.",
+        "Core Python building block used in web apps, games, automation, and AI.",
       analogyTitle: "Step-by-Step Recipe Instructions",
       analogyText:
-        "Python reads your code from top to bottom, just like following a recipe. Break the problem into 3 tiny steps:\n\n1. **Setup:** Create or read your variables.\n2. **Action:** Update, loop, or check conditions.\n3. **Output:** `print()` or `return` the final result.",
-      cheatSheet: `# Standard Python Recipe:
-# 1. Define or update variables
-# 2. Check logic or transform data
-# 3. print() or return the final value`,
+        "Python reads your code from top to bottom, just like following a simple recipe:\n\n1. **Read** the input values.\n2. **Update or check** them in 1–2 lines.\n3. **`return` or `print()`** the answer.",
+      cheatSheet: `# Simple Python Function Pattern:
+def solve(value):
+    return value`,
       quiz: {
         question:
           "How does Python know which lines belong inside a block (like `if`, `for`, or `def`)?",
@@ -1222,726 +1077,678 @@ def handle_request(request_id, state):
   );
 }
 
-
 // ============================================================================
-// 12 NEW INTERACTIVE EXPANSION LESSONS (MODULES 09 - 12 PER TRACK)
+// 12 BEGINNER-FRIENDLY INTERACTIVE LESSONS (MODULES 09 - 12 PER TRACK)
+// Every lesson requires only 1 simple line of Python code!
 // ============================================================================
 export const EXPANSION_LESSONS = [
   // --------------------------------------------------------------------------
-  // PYTHON BASICS (MODULES 09 - 12)
+  // PYTHON BASICS (MODULES 09 - 12 — FREE & SUPER BEGINNER-FRIENDLY)
   // --------------------------------------------------------------------------
   {
     id: "exp-py-09",
-    title: "List Comprehensions: Playlist Filter",
+    title: "Counting Items: Emoji Reaction Counter",
     track: "python_basics",
-    category: "PYTHONIC SYNTAX",
+    category: "LIST TOOLS",
     difficulty: "Easy",
     tree_row: 8,
     lesson_order: 9,
     is_free: true,
     description:
-      "Transform and filter a list of song durations in a single expressive Python line.",
+      "Use Python's built-in .count() method to count how many times a reaction appears in a list.",
     content:
-      "A **List Comprehension** lets you build a new list from an existing list in a single, super-readable line instead of writing a 4-line `for` loop with `.append()`.\n\n```python\n# Pattern: [expression for item in iterable if condition]\ndurations = [120, 210, 180, 95]\nlong_songs = [d for d in durations if d >= 180]\n# Result: [210, 180]\n```",
+      "Want to know how many times an item appears inside a list? You don't even need a loop! Every Python list has a built-in **`.count(item)`** tool:\n\n```python\nreactions = [\"🔥\", \"❤️\", \"🔥\", \"👍\", \"🔥\"]\nfire_count = reactions.count(\"🔥\")\nprint(fire_count)  # Prints 3\n```",
     assignment:
-      "Complete `filter_long_tracks(durations)` so it returns a new list containing only the song durations that are **180 seconds or longer** (`>= 180`), keeping their original order.",
+      "Complete `count_reactions(reactions, target)` so it returns how many times `target` appears inside the `reactions` list.",
     constraints: [
-      "Return a list of integers where each duration is >= 180",
-      "Use a list comprehension `[d for d in durations if d >= 180]`",
-      "Print the result of calling `filter_long_tracks([120, 210, 180, 95, 240])`",
+      "Use `reactions.count(target)` to count matching items",
+      "Return the count from the function",
+      "Keep the `print(...)` line at the bottom so it prints `3`",
     ],
     examples: [
       {
-        input: "durations = [120, 210, 180, 95, 240]",
-        output: "[210, 180, 240]",
-        explanation: "Only 210, 180, and 240 are at least 180 seconds long.",
+        input: 'reactions = ["🔥", "❤️", "🔥", "👍", "🔥"], target = "🔥"',
+        output: "3",
+        explanation: '"🔥" appears 3 times in the list.',
       },
     ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def filter_long_tracks(durations):
-    # Return a list of durations that are >= 180 using a list comprehension
-    return []
-
-print(filter_long_tracks([120, 210, 180, 95, 240]))`,
-    expected_output: "[210, 180, 240]",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = filter_long_tracks([120, 210, 180, 95, 240])
-    results.append({"id": 1, "input": "[120, 210, 180, 95, 240]", "expected": "[210, 180, 240]", "actual": str(r1), "passed": r1 == [210, 180, 240]})
-    r2 = filter_long_tracks([60, 100, 179])
-    results.append({"id": 2, "input": "[60, 100, 179]", "expected": "[]", "actual": str(r2), "passed": r2 == []})
-    r3 = filter_long_tracks([180, 300])
-    results.append({"id": 3, "input": "[180, 300]", "expected": "[180, 300]", "actual": str(r3), "passed": r3 == [180, 300]})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
-    visual_data: [
-      { label: "d = 120", value: "SKIP (<180)", address: "idx 0" },
-      { label: "d = 210", value: "KEEP (210)", address: "idx 1" },
-      { label: "d = 180", value: "KEEP (180)", address: "idx 2" },
-      { label: "d = 95", value: "SKIP (<180)", address: "idx 3" },
-      { label: "d = 240", value: "KEEP (240)", address: "idx 4" },
-    ],
-    hints: [
-      "Inside `filter_long_tracks(durations)`, write: `return [d for d in durations if d >= 180]`.",
-      "Make sure you keep the `print(filter_long_tracks([120, 210, 180, 95, 240]))` line at the bottom!",
-    ],
-  },
-  {
-    id: "exp-py-10",
-    title: "Sets & Deduplication: VIP Scanner",
-    track: "python_basics",
-    category: "DATA STRUCTURES",
-    difficulty: "Easy",
-    tree_row: 8,
-    lesson_order: 10,
-    is_free: true,
-    description:
-      "Use Python's `set()` to instantly strip duplicate ticket codes and sort the unique list.",
-    content:
-      "When scanning tickets at a live event, the same QR code might get scanned twice by accident. A Python **`set`** automatically removes every duplicate in $O(n)$ time!\n\n```python\nraw_codes = [\"VIP-2\", \"VIP-1\", \"VIP-2\"]\nunique_codes = sorted(set(raw_codes))\n# Result: ['VIP-1', 'VIP-2']\n```",
-    assignment:
-      "Complete `unique_sorted_tickets(tickets)` so it removes any duplicate ticket strings using `set()` and returns them in ascending alphabetical order using `sorted()`.",
-    constraints: [
-      "Remove all duplicate strings from `tickets`",
-      "Return the unique ticket codes as a sorted list",
-      "Print the result for `[\"VIP-2\", \"VIP-1\", \"VIP-2\", \"VIP-3\", \"VIP-1\"]`",
-    ],
-    examples: [
-      {
-        input: 'tickets = ["VIP-2", "VIP-1", "VIP-2", "VIP-3", "VIP-1"]',
-        output: "['VIP-1', 'VIP-2', 'VIP-3']",
-        explanation: "Duplicates are removed and the remaining 3 codes are sorted.",
-      },
-    ],
-    complexities: { time: "O(n log n)", space: "O(n)" },
-    initial_code: `def unique_sorted_tickets(tickets):
-    # Convert tickets to a set and return it as a sorted list
-    return []
-
-print(unique_sorted_tickets(["VIP-2", "VIP-1", "VIP-2", "VIP-3", "VIP-1"]))`,
-    expected_output: "['VIP-1', 'VIP-2', 'VIP-3']",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = unique_sorted_tickets(["VIP-2", "VIP-1", "VIP-2", "VIP-3", "VIP-1"])
-    results.append({"id": 1, "input": "['VIP-2', 'VIP-1', 'VIP-2', 'VIP-3', 'VIP-1']", "expected": "['VIP-1', 'VIP-2', 'VIP-3']", "actual": str(r1), "passed": r1 == ["VIP-1", "VIP-2", "VIP-3"]})
-    r2 = unique_sorted_tickets(["A", "A", "A"])
-    results.append({"id": 2, "input": "['A', 'A', 'A']", "expected": "['A']", "actual": str(r2), "passed": r2 == ["A"]})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "hashmap",
-    visual_data: [
-      { label: "VIP-1", value: "UNIQUE ✓", address: "hash 0x01" },
-      { label: "VIP-2", value: "UNIQUE ✓", address: "hash 0x02" },
-      { label: "VIP-3", value: "UNIQUE ✓", address: "hash 0x03" },
-    ],
-    hints: [
-      "`set(tickets)` removes all duplicates immediately.",
-      "Wrap it in `sorted(set(tickets))` to get a sorted Python list back!",
-    ],
-  },
-  {
-    id: "exp-py-11",
-    title: "Classes & Objects: Arcade Fighter",
-    track: "python_basics",
-    category: "OBJECT-ORIENTED PYTHON",
-    difficulty: "Medium",
-    tree_row: 9,
-    lesson_order: 11,
-    is_free: true,
-    description:
-      "Build a reusable `ArcadeFighter` class with `__init__` attributes and an energy boost method.",
-    content:
-      "**Classes** let you bundle data (**attributes** like `self.name` and `self.energy`) together with actions (**methods** like `boost()`) inside one clean blueprint.\n\n```python\nclass ArcadeFighter:\n    def __init__(self, name, energy):\n        self.name = name\n        self.energy = energy\n\n    def boost(self, bonus):\n        self.energy += bonus\n        return self.energy\n```",
-    assignment:
-      "Complete the `boost(self, bonus)` method inside `ArcadeFighter` so it adds `bonus` to `self.energy` and returns the updated `self.energy`.",
-    constraints: [
-      "Store `self.name` and `self.energy` in `__init__`",
-      "In `boost(self, bonus)`, add `bonus` to `self.energy` and return `self.energy`",
-      "Print the result of `p1.boost(25)` where `p1 = ArcadeFighter(\"Nova\", 50)`",
-    ],
-    examples: [
-      {
-        input: 'p1 = ArcadeFighter("Nova", 50); p1.boost(25)',
-        output: "75",
-        explanation: "50 initial energy + 25 bonus = 75.",
-      },
-    ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `class ArcadeFighter:
-    def __init__(self, name, energy):
-        self.name = name
-        self.energy = energy
-
-    def boost(self, bonus):
-        # Add bonus to self.energy and return the updated energy
-        return self.energy
-
-p1 = ArcadeFighter("Nova", 50)
-print(p1.boost(25))`,
-    expected_output: "75",
-    hidden_tests: `import json
-results = []
-try:
-    f1 = ArcadeFighter("Nova", 50)
-    res1 = f1.boost(25)
-    results.append({"id": 1, "input": "ArcadeFighter('Nova', 50).boost(25)", "expected": "75", "actual": str(res1), "passed": res1 == 75 and f1.energy == 75})
-    res2 = f1.boost(10)
-    results.append({"id": 2, "input": "Second boost(10) on same object", "expected": "85", "actual": str(res2), "passed": res2 == 85 and f1.energy == 85})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "memory",
-    visual_data: [
-      { label: "p1.name", value: '"Nova"', type: "str", address: "0x7F10" },
-      { label: "p1.energy (init)", value: "50", type: "int", address: "0x7F14" },
-      { label: "p1.energy (boost)", value: "75", type: "int", address: "0x7F18" },
-    ],
-    hints: [
-      "Inside `boost(self, bonus):`, update the attribute with `self.energy = self.energy + bonus` (or `self.energy += bonus`).",
-      "Then `return self.energy`.",
-    ],
-  },
-  {
-    id: "exp-py-12",
-    title: "Nested JSON Data: Weather Telemetry",
-    track: "python_basics",
-    category: "API DATA PARSING",
-    difficulty: "Medium",
-    tree_row: 10,
-    lesson_order: 12,
-    is_free: true,
-    description:
-      "Extract and aggregate readings from a nested dictionary-and-list API response.",
-    content:
-      "Real-world APIs (like weather stations, Stripe, or OpenAI) send back **nested JSON**: a dictionary containing a list of dictionaries.\n\n```python\nreport = {\n    \"city\": \"Seoul\",\n    \"hourly\": [{\"temp\": 18}, {\"temp\": 24}, {\"temp\": 21}]\n}\ntemps = [item[\"temp\"] for item in report[\"hourly\"]]\nmax_temp = max(temps)  # 24\n```",
-    assignment:
-      "Complete `highest_temperature(report)` so it inspects every dictionary inside `report[\"hourly\"]` and returns the highest `\"temp\"` value using `max()`.",
-    constraints: [
-      "Read the list of hourly readings from `report[\"hourly\"]`",
-      "Extract each reading's `\"temp\"` and return the maximum temperature",
-      "Print the result for the sample Seoul report (`24`)",
-    ],
-    examples: [
-      {
-        input: '{"city": "Seoul", "hourly": [{"temp": 18}, {"temp": 24}, {"temp": 21}]}',
-        output: "24",
-        explanation: "The temperatures are 18, 24, and 21; the maximum is 24.",
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def highest_temperature(report):
-    # Extract all "temp" values from report["hourly"] and return the max
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def count_reactions(reactions, target):
+    # 👉 Write 1 line: return reactions.count(target)
     return 0
 
-sample = {"city": "Seoul", "hourly": [{"temp": 18}, {"temp": 24}, {"temp": 21}]}
-print(highest_temperature(sample))`,
-    expected_output: "24",
-    hidden_tests: `import json
-results = []
-try:
-    s1 = {"city": "Seoul", "hourly": [{"temp": 18}, {"temp": 24}, {"temp": 21}]}
-    r1 = highest_temperature(s1)
-    results.append({"id": 1, "input": "Seoul hourly [18, 24, 21]", "expected": "24", "actual": str(r1), "passed": r1 == 24})
-    s2 = {"city": "Oslo", "hourly": [{"temp": -4}, {"temp": 2}, {"temp": -1}]}
-    r2 = highest_temperature(s2)
-    results.append({"id": 2, "input": "Oslo hourly [-4, 2, -1]", "expected": "2", "actual": str(r2), "passed": r2 == 2})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "memory",
-    visual_data: [
-      { label: 'report["city"]', value: '"Seoul"', type: "str", address: "0x8A00" },
-      { label: 'hourly[0]["temp"]', value: "18", type: "int", address: "0x8A10" },
-      { label: 'hourly[1]["temp"]', value: "24 (MAX)", type: "int", address: "0x8A20" },
-      { label: 'hourly[2]["temp"]', value: "21", type: "int", address: "0x8A30" },
-    ],
-    hints: [
-      "You can collect all temperatures with `temps = [entry[\"temp\"] for entry in report[\"hourly\"]]`.",
-      "Then return `max(temps)`!",
-    ],
-  },
-
-  // --------------------------------------------------------------------------
-  // ALGORITHMIC MASTERY (MODULES 09 - 12 — PRO TRACK)
-  // --------------------------------------------------------------------------
-  {
-    id: "exp-alg-09",
-    title: "Binary Search: Halving the Search Space",
-    track: "algorithms",
-    category: "DIVIDE & CONQUER",
-    difficulty: "Medium",
-    tree_row: 8,
-    lesson_order: 9,
-    is_free: false,
-    description:
-      "Locate a target value in a sorted array in O(log n) time by halving the search interval each step.",
-    content:
-      "Scanning a sorted list of 1,000,000 items one by one takes up to 1,000,000 checks. **Binary Search** checks the middle element (`mid = (left + right) // 2`) and eliminates half the remaining elements on every single step — finding any item in at most **20 checks**!\n\n```python\nleft, right = 0, len(nums) - 1\nwhile left <= right:\n    mid = (left + right) // 2\n    if nums[mid] == target:\n        return mid\n    elif nums[mid] < target:\n        left = mid + 1\n    else:\n        right = mid - 1\nreturn -1\n```",
-    assignment:
-      "Implement `binary_search(nums, target)` to return the index of `target` in the sorted list `nums`, or `-1` if it is not present.",
-    constraints: [
-      "Maintain `left` and `right` bounds and compute `mid = (left + right) // 2`",
-      "Return `mid` when `nums[mid] == target`",
-      "Return `-1` if the loop finishes without finding `target`",
-    ],
-    examples: [
-      {
-        input: "nums = [2, 5, 8, 12, 16, 23, 38], target = 16",
-        output: "4",
-        explanation: "16 is located at index 4.",
-      },
-    ],
-    complexities: { time: "O(log n)", space: "O(1)" },
-    initial_code: `def binary_search(nums, target):
-    left, right = 0, len(nums) - 1
-    # Narrow the [left, right] range by comparing nums[mid] with target
-    return -1
-
-print(binary_search([2, 5, 8, 12, 16, 23, 38], 16))`,
-    expected_output: "4",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = binary_search([2, 5, 8, 12, 16, 23, 38], 16)
-    results.append({"id": 1, "input": "nums=[2,5,8,12,16,23,38], target=16", "expected": "4", "actual": str(r1), "passed": r1 == 4})
-    r2 = binary_search([2, 5, 8, 12, 16, 23, 38], 5)
-    results.append({"id": 2, "input": "nums=[2,5,8,12,16,23,38], target=5", "expected": "1", "actual": str(r2), "passed": r2 == 1})
-    r3 = binary_search([2, 5, 8, 12, 16, 23, 38], 99)
-    results.append({"id": 3, "input": "nums=[2,5,8,12,16,23,38], target=99", "expected": "-1", "actual": str(r3), "passed": r3 == -1})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
-    visual_data: [
-      { label: "STEP 1: mid=3", value: "nums[3]=12 < 16", address: "left -> 4" },
-      { label: "STEP 2: mid=5", value: "nums[5]=23 > 16", address: "right -> 4" },
-      { label: "STEP 3: mid=4", value: "nums[4]=16 ✓", address: "FOUND idx 4" },
-    ],
-    hints: [
-      "Loop `while left <= right:` and calculate `mid = (left + right) // 2`.",
-      "If `nums[mid] < target`, move `left = mid + 1`; if `nums[mid] > target`, move `right = mid - 1`.",
-    ],
-  },
-  {
-    id: "exp-alg-10",
-    title: "Merge Overlapping Intervals",
-    track: "algorithms",
-    category: "SORTING & INTERVALS",
-    difficulty: "Medium",
-    tree_row: 8,
-    lesson_order: 10,
-    is_free: false,
-    description:
-      "Sort and coalesce overlapping calendar intervals into a clean non-overlapping timeline.",
-    content:
-      "When two calendar blocks overlap — like `[1, 4]` and `[2, 6]` — we can merge them into `[1, 6]`.\n\n1. Sort the intervals by start time: `intervals.sort(key=lambda x: x[0])`.\n2. Start with `merged = [list(intervals[0])]`.\n3. For each `[start, end]` in the rest, if `start <= merged[-1][1]`, update `merged[-1][1] = max(merged[-1][1], end)`. Otherwise, append `[start, end]`.",
-    assignment:
-      "Implement `merge_intervals(intervals)` to merge all overlapping `[start, end]` pairs and return the consolidated list.",
-    constraints: [
-      "Sort intervals by their start time first",
-      "Merge adjacent intervals whenever `start <= merged[-1][1]`",
-      "Use `max(merged[-1][1], end)` when extending an interval's end time",
-    ],
-    examples: [
-      {
-        input: "intervals = [[1, 3], [2, 6], [8, 10], [9, 12]]",
-        output: "[[1, 6], [8, 12]]",
-        explanation: "[1,3] & [2,6] merge into [1,6]; [8,10] & [9,12] merge into [8,12].",
-      },
-    ],
-    complexities: { time: "O(n log n)", space: "O(n)" },
-    initial_code: `def merge_intervals(intervals):
-    if not intervals:
-        return []
-    intervals = sorted(intervals, key=lambda x: x[0])
-    merged = [list(intervals[0])]
-    # Loop through intervals[1:] and merge overlapping ranges
-    return merged
-
-print(merge_intervals([[1, 3], [2, 6], [8, 10], [9, 12]]))`,
-    expected_output: "[[1, 6], [8, 12]]",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = merge_intervals([[1, 3], [2, 6], [8, 10], [9, 12]])
-    results.append({"id": 1, "input": "[[1,3],[2,6],[8,10],[9,12]]", "expected": "[[1, 6], [8, 12]]", "actual": str(r1), "passed": r1 == [[1, 6], [8, 12]]})
-    r2 = merge_intervals([[1, 10], [2, 5], [3, 7]])
-    results.append({"id": 2, "input": "[[1,10],[2,5],[3,7]]", "expected": "[[1, 10]]", "actual": str(r2), "passed": r2 == [[1, 10]]})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
-    visual_data: [
-      { label: "[1, 3] + [2, 6]", value: "OVERLAP -> [1, 6]", address: "2 <= 3" },
-      { label: "[8, 10] vs [1, 6]", value: "NEW -> [8, 10]", address: "8 > 6" },
-      { label: "[8, 10] + [9, 12]", value: "OVERLAP -> [8, 12]", address: "9 <= 10" },
-    ],
-    hints: [
-      "Loop with `for start, end in intervals[1:]:`.",
-      "If `start <= merged[-1][1]:`, update `merged[-1][1] = max(merged[-1][1], end)`; else `merged.append([start, end])`.",
-    ],
-  },
-  {
-    id: "exp-alg-11",
-    title: "Breadth-First Search: Shortest Hops",
-    track: "algorithms",
-    category: "GRAPH ALGORITHMS",
-    difficulty: "Hard",
-    tree_row: 9,
-    lesson_order: 11,
-    is_free: false,
-    description:
-      "Find the minimum number of network hops between two nodes using a BFS queue and visited set.",
-    content:
-      "**Breadth-First Search (BFS)** explores a graph in concentric waves using a **Queue**.\n\n```python\nqueue = [(start, 0)]\nvisited = {start}\nwhile queue:\n    node, hops = queue.pop(0)\n    if node == target:\n        return hops\n    for neighbor in graph.get(node, []):\n        if neighbor not in visited:\n            visited.add(neighbor)\n            queue.append((neighbor, hops + 1))\nreturn -1\n```",
-    assignment:
-      "Implement `shortest_hops(graph, start, target)` to return the minimum number of edges between `start` and `target`, or `-1` if unreachable.",
-    constraints: [
-      "Use a queue initialized with `[(start, 0)]` and a `visited = {start}` set",
-      "Pop the front item with `queue.pop(0)` and return `hops` when `node == target`",
-      "Return `-1` if the queue empties without reaching `target`",
-    ],
-    examples: [
-      {
-        input: 'graph = {"A": ["B", "C"], "B": ["D"], "C": ["D"], "D": ["E"]}, start="A", target="E"',
-        output: "3",
-        explanation: "A -> B -> D -> E takes 3 hops.",
-      },
-    ],
-    complexities: { time: "O(V + E)", space: "O(V)" },
-    initial_code: `def shortest_hops(graph, start, target):
-    queue = [(start, 0)]
-    visited = {start}
-    # Explore neighbors level by level using BFS
-    return -1
-
-net = {"A": ["B", "C"], "B": ["D"], "C": ["D"], "D": ["E"], "E": []}
-print(shortest_hops(net, "A", "E"))`,
+print(count_reactions(["🔥", "❤️", "🔥", "👍", "🔥"], "🔥"))`,
     expected_output: "3",
     hidden_tests: `import json
 results = []
 try:
-    net = {"A": ["B", "C"], "B": ["D"], "C": ["D"], "D": ["E"], "E": []}
-    r1 = shortest_hops(net, "A", "E")
-    results.append({"id": 1, "input": "A -> E in diamond graph", "expected": "3", "actual": str(r1), "passed": r1 == 3})
-    r2 = shortest_hops(net, "A", "A")
-    results.append({"id": 2, "input": "A -> A (0 hops)", "expected": "0", "actual": str(r2), "passed": r2 == 0})
-    r3 = shortest_hops(net, "E", "A")
-    results.append({"id": 3, "input": "E -> A (unreachable)", "expected": "-1", "actual": str(r3), "passed": r3 == -1})
+    r1 = count_reactions(["🔥", "❤️", "🔥", "👍", "🔥"], "🔥")
+    results.append({"id": 1, "input": "Count '🔥' in 5 reactions", "expected": "3", "actual": str(r1), "passed": r1 == 3})
+    r2 = count_reactions(["👍", "👍"], "❤️")
+    results.append({"id": 2, "input": "Count '❤️' when not present", "expected": "0", "actual": str(r2), "passed": r2 == 0})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "array",
     visual_data: [
-      { label: "WAVE 0", value: "Node A (0 hops)", address: "queue=[A]" },
-      { label: "WAVE 1", value: "Nodes B, C (1 hop)", address: "queue=[B,C]" },
-      { label: "WAVE 2", value: "Node D (2 hops)", address: "queue=[D]" },
-      { label: "WAVE 3", value: "Node E (3 hops ✓)", address: "TARGET FOUND" },
+      { label: 'idx 0: "🔥"', value: "MATCH #1 ✓", address: "count = 1" },
+      { label: 'idx 1: "❤️"', value: "skip", address: "count = 1" },
+      { label: 'idx 2: "🔥"', value: "MATCH #2 ✓", address: "count = 2" },
+      { label: 'idx 3: "👍"', value: "skip", address: "count = 2" },
+      { label: 'idx 4: "🔥"', value: "MATCH #3 ✓", address: "count = 3" },
     ],
     hints: [
-      "While `queue` is non-empty, unpack `node, hops = queue.pop(0)`.",
-      "If `node == target: return hops`. Otherwise loop `for nxt in graph.get(node, []):` and enqueue unvisited neighbors with `hops + 1`.",
+      "Replace `return 0` with `return reactions.count(target)`.",
+      "Click '🧩 LOAD GUIDED STEPS' if you want the exact line filled in!",
     ],
   },
   {
-    id: "exp-alg-12",
-    title: "Dynamic Programming: Staircase Combos",
-    track: "algorithms",
-    category: "DYNAMIC PROGRAMMING",
-    difficulty: "Hard",
-    tree_row: 10,
-    lesson_order: 12,
-    is_free: false,
+    id: "exp-py-10",
+    title: "Removing Duplicates: Clean Guest List",
+    track: "python_basics",
+    category: "SETS & SORTING",
+    difficulty: "Easy",
+    tree_row: 8,
+    lesson_order: 10,
+    is_free: true,
     description:
-      "Count distinct ways to climb n stairs (taking 1 or 2 steps at a time) in O(n) time using DP state transition.",
+      "Remove duplicate names from a party guest list in one line using set() and sorted().",
     content:
-      "To reach step `n`, your final step was either a **1-step hop from `n - 1`** or a **2-step jump from `n - 2`**.\n\nTherefore, `ways(n) = ways(n - 1) + ways(n - 2)`! Instead of slow $O(2^n)$ recursion, keep track of the last two values (`prev2, prev1 = 1, 2`) and roll forward in a single $O(n)$ loop.",
+      "Sometimes a guest accidentally signs up twice. In Python:\n\n1. **`set(guests)`** automatically removes all duplicates.\n2. **`sorted(...)`** puts the remaining names in A–Z alphabetical order!\n\n```python\nguests = [\"Sam\", \"Alex\", \"Sam\"]\nclean = sorted(set(guests))\n# Result: ['Alex', 'Sam']\n```",
     assignment:
-      "Implement `climb_ways(n)` to return the total number of distinct ways to reach the top of `n` stairs.",
+      "Complete `clean_guest_list(guests)` so it removes duplicate names and returns them as a sorted list.",
     constraints: [
-      "Return `n` directly when `n <= 2`",
-      "Roll `prev2, prev1 = prev1, prev2 + prev1` from `3` up to `n`",
-      "Return the result for `n = 6` (`13` ways)",
+      "Use `set(guests)` to remove duplicate names",
+      "Wrap it in `sorted(set(guests))` so the list is in alphabetical order",
     ],
     examples: [
       {
-        input: "n = 6",
-        output: "13",
-        explanation: "Steps 1..6 have 1, 2, 3, 5, 8, 13 distinct combinations.",
+        input: 'guests = ["Sam", "Alex", "Sam", "Zoe", "Alex"]',
+        output: "['Alex', 'Sam', 'Zoe']",
+        explanation: "Duplicate 'Sam' and 'Alex' are removed and sorted A-Z.",
       },
     ],
-    complexities: { time: "O(n)", space: "O(1)" },
-    initial_code: `def climb_ways(n):
-    if n <= 2:
-        return n
-    # Track prev2 = 1 and prev1 = 2, then iterate from 3 to n
-    return 0
+    complexities: { time: "O(n log n)", space: "O(n)" },
+    initial_code: `def clean_guest_list(guests):
+    # 👉 Write 1 line: return sorted(set(guests))
+    return []
 
-print(climb_ways(6))`,
-    expected_output: "13",
+print(clean_guest_list(["Sam", "Alex", "Sam", "Zoe", "Alex"]))`,
+    expected_output: "['Alex', 'Sam', 'Zoe']",
     hidden_tests: `import json
 results = []
 try:
-    r1 = climb_ways(6)
-    results.append({"id": 1, "input": "n = 6", "expected": "13", "actual": str(r1), "passed": r1 == 13})
-    r2 = climb_ways(2)
-    results.append({"id": 2, "input": "n = 2", "expected": "2", "actual": str(r2), "passed": r2 == 2})
-    r3 = climb_ways(10)
-    results.append({"id": 3, "input": "n = 10", "expected": "89", "actual": str(r3), "passed": r3 == 89})
+    r1 = clean_guest_list(["Sam", "Alex", "Sam", "Zoe", "Alex"])
+    results.append({"id": 1, "input": "['Sam', 'Alex', 'Sam', 'Zoe', 'Alex']", "expected": "['Alex', 'Sam', 'Zoe']", "actual": str(r1), "passed": r1 == ["Alex", "Sam", "Zoe"]})
+    r2 = clean_guest_list(["Mia", "Mia"])
+    results.append({"id": 2, "input": "['Mia', 'Mia']", "expected": "['Mia']", "actual": str(r2), "passed": r2 == ["Mia"]})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: '"Alex"', value: "KEPT ONCE ✓", address: "slot 1" },
+      { label: '"Sam"', value: "KEPT ONCE ✓", address: "slot 2" },
+      { label: '"Zoe"', value: "KEPT ONCE ✓", address: "slot 3" },
+    ],
+    hints: [
+      "Inside `clean_guest_list(guests)`, replace `return []` with `return sorted(set(guests))`.",
+    ],
+  },
+  {
+    id: "exp-py-11",
+    title: "Joining Words: URL Tag Builder",
+    track: "python_basics",
+    category: "STRING TOOLS",
+    difficulty: "Easy",
+    tree_row: 9,
+    lesson_order: 11,
+    is_free: true,
+    description:
+      'Glue a list of words together with hyphens using "-".join(words).',
+    content:
+      "How do websites turn a list of words like `[\"pixel\", \"arcade\", \"game\"]` into a clean URL link like `\"pixel-arcade-game\"`?\n\nUse Python's **`.join()`** tool on the separator string `\"-\"`:\n\n```python\nwords = [\"pixel\", \"arcade\", \"game\"]\nslug = \"-\".join(words)\nprint(slug)  # \"pixel-arcade-game\"\n```",
+    assignment:
+      'Complete `make_url_slug(words)` so it joins all the words in `words` together with a hyphen `"-"` between them.',
+    constraints: [
+      'Use `"-".join(words)` to glue the list of strings together',
+      "Return the combined string",
+    ],
+    examples: [
+      {
+        input: 'words = ["pixel", "arcade", "game"]',
+        output: "pixel-arcade-game",
+        explanation: 'Each word is joined with "-" in between.',
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def make_url_slug(words):
+    # 👉 Write 1 line: return "-".join(words)
+    return ""
+
+print(make_url_slug(["pixel", "arcade", "game"]))`,
+    expected_output: "pixel-arcade-game",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = make_url_slug(["pixel", "arcade", "game"])
+    results.append({"id": 1, "input": "['pixel', 'arcade', 'game']", "expected": "pixel-arcade-game", "actual": str(r1), "passed": r1 == "pixel-arcade-game"})
+    r2 = make_url_slug(["hello", "world"])
+    results.append({"id": 2, "input": "['hello', 'world']", "expected": "hello-world", "actual": str(r2), "passed": r2 == "hello-world"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "words[0]", value: '"pixel"', type: "str", address: "0x10" },
+      { label: "separator", value: '"-"', type: "str", address: "0x14" },
+      { label: "result", value: '"pixel-arcade-game"', type: "str", address: "0x18" },
+    ],
+    hints: [
+      'Replace `return ""` with `return "-".join(words)`.',
+    ],
+  },
+  {
+    id: "exp-py-12",
+    title: "List Slicing: Top 3 Leaderboard Podium",
+    track: "python_basics",
+    category: "LIST SLICING",
+    difficulty: "Easy",
+    tree_row: 10,
+    lesson_order: 12,
+    is_free: true,
+    description:
+      "Grab the first 3 winners from a leaderboard list using Python slice syntax players[:3].",
+    content:
+      "When you have a ranked list of players and only want to show the **Top 3** on the podium, use **List Slicing (`[:3]`)**:\n\n```python\nplayers = [\"Aria\", \"Kai\", \"Nova\", \"Leo\", \"Max\"]\ntop_three = players[:3]\nprint(top_three)  # ['Aria', 'Kai', 'Nova']\n```",
+    assignment:
+      "Complete `get_top_three(players)` so it returns a slice containing only the first 3 players in the list.",
+    constraints: [
+      "Use `players[:3]` to slice the first 3 items",
+      "Return the sliced list",
+    ],
+    examples: [
+      {
+        input: 'players = ["Aria", "Kai", "Nova", "Leo", "Max"]',
+        output: "['Aria', 'Kai', 'Nova']",
+        explanation: "players[:3] takes index 0, 1, and 2 (the first 3 players).",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def get_top_three(players):
+    # 👉 Write 1 line: return players[:3]
+    return []
+
+print(get_top_three(["Aria", "Kai", "Nova", "Leo", "Max"]))`,
+    expected_output: "['Aria', 'Kai', 'Nova']",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = get_top_three(["Aria", "Kai", "Nova", "Leo", "Max"])
+    results.append({"id": 1, "input": "5 players -> first 3", "expected": "['Aria', 'Kai', 'Nova']", "actual": str(r1), "passed": r1 == ["Aria", "Kai", "Nova"]})
+    r2 = get_top_three(["Gold", "Silver", "Bronze", "4th"])
+    results.append({"id": 2, "input": "4 players -> first 3", "expected": "['Gold', 'Silver', 'Bronze']", "actual": str(r2), "passed": r2 == ["Gold", "Silver", "Bronze"]})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "array",
     visual_data: [
-      { label: "dp[1], dp[2]", value: "1, 2 ways", address: "base cases" },
-      { label: "dp[3] = 1+2", value: "3 ways", address: "step 3" },
-      { label: "dp[4] = 2+3", value: "5 ways", address: "step 4" },
-      { label: "dp[5] = 3+5", value: "8 ways", address: "step 5" },
-      { label: "dp[6] = 5+8", value: "13 ways ✓", address: "step 6" },
+      { label: "idx 0: Aria", value: "INCLUDED (1st) 🥇", address: "[:3]" },
+      { label: "idx 1: Kai", value: "INCLUDED (2nd) 🥈", address: "[:3]" },
+      { label: "idx 2: Nova", value: "INCLUDED (3rd) 🥉", address: "[:3]" },
+      { label: "idx 3: Leo", value: "stopped at 3", address: "outside" },
     ],
     hints: [
-      "Initialize `prev2, prev1 = 1, 2`.",
-      "Loop `for _ in range(3, n + 1): prev2, prev1 = prev1, prev2 + prev1` and return `prev1`.",
+      "Replace `return []` with `return players[:3]`.",
     ],
   },
 
   // --------------------------------------------------------------------------
-  // SYSTEM ARCHITECTURE (MODULES 09 - 12 — PRO TRACK)
+  // ALGORITHMIC MASTERY (MODULES 09 - 12 — BEGINNER-FRIENDLY PRO TRACK)
   // --------------------------------------------------------------------------
   {
-    id: "exp-sys-09",
-    title: "Exponential Backoff: Retry Storm Shield",
-    track: "system_design",
-    category: "RESILIENCE PATTERNS",
-    difficulty: "Medium",
+    id: "exp-alg-09",
+    title: "Minimum Search: Cheapest Flight Finder",
+    track: "algorithms",
+    category: "LINEAR SCAN O(N)",
+    difficulty: "Easy",
     tree_row: 8,
     lesson_order: 9,
     is_free: false,
     description:
-      "Calculate exponential retry delays capped at a maximum ceiling to prevent cascading retry storms.",
+      "Find the lowest ticket price in a list of flight deals in a single O(n) pass using min().",
     content:
-      "When a microservice has a brief hiccup, clients must not retry immediately in a tight loop. **Exponential Backoff** doubles the wait duration after each failed attempt (`base_ms * (2 ** attempt)`), capped at `max_ms`:\n\n```python\ndef compute_backoff_ms(attempt, base_ms, max_ms):\n    delay = base_ms * (2 ** attempt)\n    return min(delay, max_ms)\n```",
+      "When comparing flight prices like `[320, 195, 240, 160, 410]`, how does a travel app find the cheapest deal?\n\nIt performs a single pass through the numbers to find the **minimum value** (`min(prices)`):\n\n```python\nprices = [320, 195, 240, 160, 410]\nlowest = min(prices)\nprint(lowest)  # 160\n```",
     assignment:
-      "Implement `compute_backoff_ms(attempt, base_ms, max_ms)` so it returns `base_ms * (2 ** attempt)` capped at `max_ms`.",
+      "Complete `find_cheapest_flight(prices)` so it returns the smallest number in `prices`.",
     constraints: [
-      "Compute exponential growth using `base_ms * (2 ** attempt)`",
-      "Cap the returned value so it never exceeds `max_ms`",
-      "Print the list of delays for attempts 0, 1, 2, 3, 4 with `base_ms=100, max_ms=1000`",
+      "Return the smallest number in `prices` using `min(prices)`",
+      "Keep the `print(...)` line so it outputs `160`",
     ],
     examples: [
       {
-        input: "attempts 0..4 with base_ms=100, max_ms=1000",
-        output: "[100, 200, 400, 800, 1000]",
-        explanation: "Attempt 4 is 1600ms, which gets capped at max_ms = 1000ms.",
+        input: "prices = [320, 195, 240, 160, 410]",
+        output: "160",
+        explanation: "160 is the lowest price in the list.",
       },
     ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def compute_backoff_ms(attempt, base_ms, max_ms):
-    # Return base_ms * (2 ** attempt), capped at max_ms
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def find_cheapest_flight(prices):
+    # 👉 Write 1 line: return min(prices)
     return 0
 
-print([compute_backoff_ms(a, 100, 1000) for a in range(5)])`,
-    expected_output: "[100, 200, 400, 800, 1000]",
+print(find_cheapest_flight([320, 195, 240, 160, 410]))`,
+    expected_output: "160",
     hidden_tests: `import json
 results = []
 try:
-    r1 = [compute_backoff_ms(a, 100, 1000) for a in range(5)]
-    results.append({"id": 1, "input": "attempts 0..4 (base=100, max=1000)", "expected": "[100, 200, 400, 800, 1000]", "actual": str(r1), "passed": r1 == [100, 200, 400, 800, 1000]})
-    r2 = compute_backoff_ms(0, 250, 5000)
-    results.append({"id": 2, "input": "attempt=0, base=250, max=5000", "expected": "250", "actual": str(r2), "passed": r2 == 250})
+    r1 = find_cheapest_flight([320, 195, 240, 160, 410])
+    results.append({"id": 1, "input": "[320, 195, 240, 160, 410]", "expected": "160", "actual": str(r1), "passed": r1 == 160})
+    r2 = find_cheapest_flight([99, 120, 85])
+    results.append({"id": 2, "input": "[99, 120, 85]", "expected": "85", "actual": str(r2), "passed": r2 == 85})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "array",
     visual_data: [
-      { label: "Attempt 0", value: "100 ms", address: "100 * 2^0" },
-      { label: "Attempt 1", value: "200 ms", address: "100 * 2^1" },
-      { label: "Attempt 2", value: "400 ms", address: "100 * 2^2" },
-      { label: "Attempt 3", value: "800 ms", address: "100 * 2^3" },
-      { label: "Attempt 4", value: "1000 ms (CAP)", address: "min(1600, 1000)" },
+      { label: "$320", value: "best = 320", address: "step 1" },
+      { label: "$195", value: "new best = 195", address: "step 2" },
+      { label: "$240", value: "keep 195", address: "step 3" },
+      { label: "$160", value: "MIN FOUND = 160 ✓", address: "step 4" },
     ],
     hints: [
-      "Use Python's exponent operator `**`: `raw = base_ms * (2 ** attempt)`.",
-      "Use `min(raw, max_ms)` so the wait time never exceeds `max_ms`.",
+      "Replace `return 0` with `return min(prices)`.",
     ],
   },
   {
-    id: "exp-sys-10",
-    title: "Message Queues & Dead-Letter Routing",
-    track: "system_design",
-    category: "ASYNC PIPELINES",
-    difficulty: "Medium",
+    id: "exp-alg-10",
+    title: "Binary Search Step 1: Finding the Middle",
+    track: "algorithms",
+    category: "DIVIDE & CONQUER",
+    difficulty: "Easy",
     tree_row: 8,
     lesson_order: 10,
     is_free: false,
     description:
-      "Separate retryable background jobs from poison-pill jobs that exceed max_retries into a Dead-Letter Queue (DLQ).",
+      "Jump straight to the middle element of a sorted list in O(1) time using integer division (// 2).",
     content:
-      "In async worker queues (like AWS SQS or RabbitMQ), a corrupted job that crashes every time must not block healthy jobs forever.\n\n• If `job[\"attempts\"] >= max_retries`, route its ID to `result[\"dlq\"]`.\n• Otherwise, route its ID to `result[\"retry\"]`.",
+      "The secret behind **Binary Search** is jumping straight to the **middle index** of a sorted list instead of starting at index 0.\n\nWe calculate `mid = len(items) // 2` (using `//` so we get a whole number index) and return `items[mid]`:\n\n```python\nitems = [10, 25, 42, 70, 99]\nmid = len(items) // 2   # 5 // 2 = 2\nprint(items[mid])       # 42\n```",
     assignment:
-      "Implement `classify_jobs(jobs, max_retries)` to partition job IDs into `{\"retry\": [...], \"dlq\": [...]}`.",
+      "We already calculated `mid = len(items) // 2` for you. Complete the function so it returns the element at index `mid` (`items[mid]`).",
     constraints: [
-      "Jobs with `attempts >= max_retries` go into `result[\"dlq\"]`",
-      "Jobs with `attempts < max_retries` go into `result[\"retry\"]`",
-      "Preserve the order of job IDs in each list",
+      "Use `items[mid]` to read the middle value",
+      "Return `items[mid]`",
     ],
     examples: [
       {
-        input: 'jobs = [{"id": "J1", "attempts": 1}, {"id": "J2", "attempts": 3}], max_retries = 3',
-        output: "{'retry': ['J1'], 'dlq': ['J2']}",
-        explanation: "J2 reached 3 attempts so it moves to the Dead-Letter Queue.",
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def classify_jobs(jobs, max_retries):
-    result = {"retry": [], "dlq": []}
-    # Route each job["id"] to "dlq" if job["attempts"] >= max_retries else "retry"
-    return result
-
-batch = [{"id": "J1", "attempts": 1}, {"id": "J2", "attempts": 3}, {"id": "J3", "attempts": 4}]
-print(classify_jobs(batch, 3))`,
-    expected_output: "{'retry': ['J1'], 'dlq': ['J2', 'J3']}",
-    hidden_tests: `import json
-results = []
-try:
-    b1 = [{"id": "J1", "attempts": 1}, {"id": "J2", "attempts": 3}, {"id": "J3", "attempts": 4}]
-    r1 = classify_jobs(b1, 3)
-    results.append({"id": 1, "input": "J1(1), J2(3), J3(4) with max_retries=3", "expected": "{'retry': ['J1'], 'dlq': ['J2', 'J3']}", "actual": str(r1), "passed": r1 == {"retry": ["J1"], "dlq": ["J2", "J3"]}})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "hashmap",
-    visual_data: [
-      { label: "Job J1 (1 try)", value: "-> RETRY_QUEUE", address: "1 < 3" },
-      { label: "Job J2 (3 tries)", value: "-> DLQ (QUARANTINE)", address: "3 >= 3" },
-      { label: "Job J3 (4 tries)", value: "-> DLQ (QUARANTINE)", address: "4 >= 3" },
-    ],
-    hints: [
-      "Loop `for job in jobs:` and check `if job[\"attempts\"] >= max_retries:`.",
-      "Append `job[\"id\"]` to `result[\"dlq\"]` or `result[\"retry\"]` accordingly.",
-    ],
-  },
-  {
-    id: "exp-sys-11",
-    title: "Read Replicas & Query Router",
-    track: "system_design",
-    category: "DATABASE SCALING",
-    difficulty: "Medium",
-    tree_row: 9,
-    lesson_order: 11,
-    is_free: false,
-    description:
-      "Route WRITE mutations to the primary database and distribute READ queries across read replicas.",
-    content:
-      "Most web applications execute **90% reads** and **10% writes**. To scale horizontally:\n\n• Every **`\"WRITE\"`** query MUST go to `\"primary\"`.\n• Every **`\"READ\"`** query is load-balanced across `replicas` using `replicas[query_id % len(replicas)]` (or `\"primary\"` if `replicas` is empty).",
-    assignment:
-      "Implement `route_db_query(op_type, replicas, query_id)` to return the target database node name.",
-    constraints: [
-      "Return `\"primary\"` whenever `op_type == \"WRITE\"` or `replicas` is empty",
-      "For `\"READ\"` queries, return `replicas[query_id % len(replicas)]`",
-    ],
-    examples: [
-      {
-        input: 'op_type="READ", replicas=["rep-1", "rep-2"], query_id=3',
-        output: "rep-2",
-        explanation: "3 % 2 == 1, which selects replicas[1] ('rep-2').",
+        input: "items = [10, 25, 42, 70, 99]",
+        output: "42",
+        explanation: "Length is 5, 5 // 2 is index 2, and items[2] is 42.",
       },
     ],
     complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def route_db_query(op_type, replicas, query_id):
-    # Route WRITEs to "primary", and READs across replicas using modulo
-    return "primary"
-
-reps = ["rep-1", "rep-2"]
-print(route_db_query("WRITE", reps, 0), route_db_query("READ", reps, 3))`,
-    expected_output: "primary rep-2",
-    hidden_tests: `import json
-results = []
-try:
-    reps = ["rep-1", "rep-2"]
-    r1 = route_db_query("WRITE", reps, 0)
-    results.append({"id": 1, "input": "WRITE with replicas=['rep-1','rep-2']", "expected": "primary", "actual": str(r1), "passed": r1 == "primary"})
-    r2 = route_db_query("READ", reps, 3)
-    results.append({"id": 2, "input": "READ query_id=3 with 2 replicas", "expected": "rep-2", "actual": str(r2), "passed": r2 == "rep-2"})
-    r3 = route_db_query("READ", [], 5)
-    results.append({"id": 3, "input": "READ with empty replicas=[]", "expected": "primary", "actual": str(r3), "passed": r3 == "primary"})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "hashmap",
-    visual_data: [
-      { label: "WRITE #0", value: "-> primary (MASTER)", address: "mutation" },
-      { label: "READ #2", value: "-> rep-1 (2 % 2 = 0)", address: "replica 0" },
-      { label: "READ #3", value: "-> rep-2 (3 % 2 = 1)", address: "replica 1" },
-    ],
-    hints: [
-      "First check `if op_type == \"WRITE\" or not replicas: return \"primary\"`.",
-      "Otherwise return `replicas[query_id % len(replicas)]`.",
-    ],
-  },
-  {
-    id: "exp-sys-12",
-    title: "Consistent Hashing Ring",
-    track: "system_design",
-    category: "DISTRIBUTED STORAGE",
-    difficulty: "Hard",
-    tree_row: 10,
-    lesson_order: 12,
-    is_free: false,
-    description:
-      "Route a hashed key clockwise on a 0..360° hash ring with wrap-around to the first node.",
-    content:
-      "**Consistent Hashing** places servers at points on a circle (e.g., `[20, 50, 80]`). To find which server owns a key at `key_hash`:\n\n1. Sort the ring positions (`ordered = sorted(ring_nodes)`).\n2. Return the first node where `node >= key_hash`.\n3. If `key_hash` is greater than all nodes, wrap around the circle and return `ordered[0]`!",
-    assignment:
-      "Implement `locate_ring_server(ring_nodes, key_hash)` to return the clockwise server position responsible for `key_hash`.",
-    constraints: [
-      "Sort `ring_nodes` in ascending order",
-      "Return the first node position `>= key_hash`",
-      "If no node is `>= key_hash`, wrap around and return the smallest node position",
-    ],
-    examples: [
-      {
-        input: "ring_nodes = [20, 50, 80], key_hash = 35 -> 50; key_hash = 90 -> 20",
-        output: "50 20",
-        explanation: "35 lands on 50; 90 wraps past 80 back to 20.",
-      },
-    ],
-    complexities: { time: "O(n log n)", space: "O(n)" },
-    initial_code: `def locate_ring_server(ring_nodes, key_hash):
-    ordered = sorted(ring_nodes)
-    # Find the first node >= key_hash, or wrap around to ordered[0]
+    initial_code: `def get_middle_item(items):
+    mid = len(items) // 2
+    # 👉 Write 1 line: return items[mid]
     return 0
 
-ring = [20, 50, 80]
-print(locate_ring_server(ring, 35), locate_ring_server(ring, 90))`,
-    expected_output: "50 20",
+print(get_middle_item([10, 25, 42, 70, 99]))`,
+    expected_output: "42",
     hidden_tests: `import json
 results = []
 try:
-    ring = [20, 50, 80]
-    r1 = locate_ring_server(ring, 35)
-    results.append({"id": 1, "input": "ring=[20,50,80], key_hash=35", "expected": "50", "actual": str(r1), "passed": r1 == 50})
-    r2 = locate_ring_server(ring, 90)
-    results.append({"id": 2, "input": "ring=[20,50,80], key_hash=90 (wrap)", "expected": "20", "actual": str(r2), "passed": r2 == 20})
-    r3 = locate_ring_server(ring, 50)
-    results.append({"id": 3, "input": "ring=[20,50,80], key_hash=50 (exact)", "expected": "50", "actual": str(r3), "passed": r3 == 50})
+    r1 = get_middle_item([10, 25, 42, 70, 99])
+    results.append({"id": 1, "input": "[10, 25, 42, 70, 99]", "expected": "42", "actual": str(r1), "passed": r1 == 42})
+    r2 = get_middle_item([5, 15, 25])
+    results.append({"id": 2, "input": "[5, 15, 25]", "expected": "15", "actual": str(r2), "passed": r2 == 15})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "array",
     visual_data: [
-      { label: "Key @ 15°", value: "-> Node 20°", address: "clockwise" },
-      { label: "Key @ 35°", value: "-> Node 50°", address: "clockwise" },
-      { label: "Key @ 90°", value: "-> Node 20° (WRAP)", address: "past 80° -> 0°" },
+      { label: "idx 0: 10", value: "left half", address: "0" },
+      { label: "idx 1: 25", value: "left half", address: "1" },
+      { label: "idx 2: 42", value: "MIDDLE (5 // 2 = 2) 🎯", address: "mid = 2" },
+      { label: "idx 3: 70", value: "right half", address: "3" },
+      { label: "idx 4: 99", value: "right half", address: "4" },
     ],
     hints: [
-      "Loop `for node in ordered:` and `if node >= key_hash: return node`.",
-      "After the loop finishes, `return ordered[0]` to handle wrap-around!",
+      "Replace `return 0` with `return items[mid]`.",
+    ],
+  },
+  {
+    id: "exp-alg-11",
+    title: "List Intersection: Mutual Friends Finder",
+    track: "algorithms",
+    category: "SEARCH & FILTER",
+    difficulty: "Easy",
+    tree_row: 9,
+    lesson_order: 11,
+    is_free: false,
+    description:
+      "Find mutual friends who appear in both Alice's friend list and Bob's friend list.",
+    content:
+      "How do social apps show **Mutual Friends** between two people? We check each friend `f` in `friends_a` and keep them if **`f in friends_b`** is True!\n\n```python\nmutual = [f for f in friends_a if f in friends_b]\n```",
+    assignment:
+      "Complete `find_mutual_friends(friends_a, friends_b)` so it returns a list of names that appear in both lists.",
+    constraints: [
+      "Keep each friend `f` from `friends_a` if `f in friends_b`",
+      "Return the list of mutual friends",
+    ],
+    examples: [
+      {
+        input: 'friends_a = ["Sam", "Mia", "Leo"], friends_b = ["Mia", "Zoe", "Sam"]',
+        output: "['Sam', 'Mia']",
+        explanation: "Sam and Mia are on both friend lists.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def find_mutual_friends(friends_a, friends_b):
+    # 👉 Write 1 line: return [f for f in friends_a if f in friends_b]
+    return []
+
+print(find_mutual_friends(["Sam", "Mia", "Leo"], ["Mia", "Zoe", "Sam"]))`,
+    expected_output: "['Sam', 'Mia']",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = find_mutual_friends(["Sam", "Mia", "Leo"], ["Mia", "Zoe", "Sam"])
+    results.append({"id": 1, "input": "['Sam','Mia','Leo'] & ['Mia','Zoe','Sam']", "expected": "['Sam', 'Mia']", "actual": str(r1), "passed": r1 == ["Sam", "Mia"]})
+    r2 = find_mutual_friends(["Kai"], ["Leo"])
+    results.append({"id": 2, "input": "No mutual friends", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: '"Sam"', value: "IN BOTH -> KEEP ✓", address: "match" },
+      { label: '"Mia"', value: "IN BOTH -> KEEP ✓", address: "match" },
+      { label: '"Leo"', value: "not in friends_b", address: "skip" },
+    ],
+    hints: [
+      "Replace `return []` with `return [f for f in friends_a if f in friends_b]`.",
+    ],
+  },
+  {
+    id: "exp-alg-12",
+    title: "Running Total: Daily Step Tracker",
+    track: "algorithms",
+    category: "PREFIX SUMS",
+    difficulty: "Easy",
+    tree_row: 10,
+    lesson_order: 12,
+    is_free: false,
+    description:
+      "Build a running total list that records the cumulative sum after each number.",
+    content:
+      "A **Running Total (Prefix Sum)** keeps adding each day's points to `total` and saves the progress after each step:\n\n```python\nresult = []\ntotal = 0\nfor n in numbers:\n    total += n\n    result.append(total)\n```",
+    assignment:
+      "We already wrote the loop and `total += n` for you! Add the 1 missing line inside the loop (`result.append(total)`) so each running total is saved.",
+    constraints: [
+      "Append `total` to `result` inside the loop using `result.append(total)`",
+      "Return `result` at the end",
+    ],
+    examples: [
+      {
+        input: "numbers = [10, 20, 15, 5]",
+        output: "[10, 30, 45, 50]",
+        explanation: "10 -> 10+20=30 -> 30+15=45 -> 45+5=50.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def running_totals(numbers):
+    result = []
+    total = 0
+    for n in numbers:
+        total += n
+        # 👉 Write 1 line: append 'total' to 'result'
+        
+    return result
+
+print(running_totals([10, 20, 15, 5]))`,
+    expected_output: "[10, 30, 45, 50]",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = running_totals([10, 20, 15, 5])
+    results.append({"id": 1, "input": "[10, 20, 15, 5]", "expected": "[10, 30, 45, 50]", "actual": str(r1), "passed": r1 == [10, 30, 45, 50]})
+    r2 = running_totals([5, 5, 5])
+    results.append({"id": 2, "input": "[5, 5, 5]", "expected": "[5, 10, 15]", "actual": str(r2), "passed": r2 == [5, 10, 15]})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "+10", value: "total = 10", address: "[10]" },
+      { label: "+20", value: "total = 30", address: "[10, 30]" },
+      { label: "+15", value: "total = 45", address: "[10, 30, 45]" },
+      { label: "+5", value: "total = 50 ✓", address: "[10, 30, 45, 50]" },
+    ],
+    hints: [
+      "Right under `total += n`, write `result.append(total)` (indented by 8 spaces to match `total += n`).",
+    ],
+  },
+
+  // --------------------------------------------------------------------------
+  // SYSTEM ARCHITECTURE (MODULES 09 - 12 — BEGINNER-FRIENDLY PRO TRACK)
+  // --------------------------------------------------------------------------
+  {
+    id: "exp-sys-09",
+    title: "Retry Cap: Maximum Wait Time Shield",
+    track: "system_design",
+    category: "RESILIENCE PATTERNS",
+    difficulty: "Easy",
+    tree_row: 8,
+    lesson_order: 9,
+    is_free: false,
+    description:
+      "Use min(delay_ms, max_ms) so a reconnecting app never waits longer than the maximum cap.",
+    content:
+      "When an app loses connection, it waits between retries (`delay_ms`). To keep the app responsive, we cap the wait time at `max_ms` using **`min(delay_ms, max_ms)`**:\n\n```python\ndef get_retry_wait(delay_ms, max_ms):\n    return min(delay_ms, max_ms)\n```",
+    assignment:
+      "Complete `get_retry_wait(delay_ms, max_ms)` so it returns whichever value is smaller using `min(delay_ms, max_ms)`.",
+    constraints: [
+      "Use `min(delay_ms, max_ms)` to cap the retry wait time",
+      "Return the result",
+    ],
+    examples: [
+      {
+        input: "get_retry_wait(400, 1000) and get_retry_wait(1600, 1000)",
+        output: "400 1000",
+        explanation: "400 stays 400; 1600 is capped at 1000.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def get_retry_wait(delay_ms, max_ms):
+    # 👉 Write 1 line: return min(delay_ms, max_ms)
+    return 0
+
+print(get_retry_wait(400, 1000), get_retry_wait(1600, 1000))`,
+    expected_output: "400 1000",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = get_retry_wait(400, 1000)
+    results.append({"id": 1, "input": "delay=400, max=1000", "expected": "400", "actual": str(r1), "passed": r1 == 400})
+    r2 = get_retry_wait(1600, 1000)
+    results.append({"id": 2, "input": "delay=1600, max=1000 (capped)", "expected": "1000", "actual": str(r2), "passed": r2 == 1000})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "delay = 400ms", value: "400ms (under cap)", address: "min(400, 1000)" },
+      { label: "delay = 800ms", value: "800ms (under cap)", address: "min(800, 1000)" },
+      { label: "delay = 1600ms", value: "CAPPED AT 1000ms ✓", address: "min(1600, 1000)" },
+    ],
+    hints: [
+      "Replace `return 0` with `return min(delay_ms, max_ms)`.",
+    ],
+  },
+  {
+    id: "exp-sys-10",
+    title: "Stuck Job Alert: 3-Strike Rule",
+    track: "system_design",
+    category: "WORKER QUEUES",
+    difficulty: "Easy",
+    tree_row: 8,
+    lesson_order: 10,
+    is_free: false,
+    description:
+      'Alert the engineering team when a background job fails 3 or more times (attempts >= 3).',
+    content:
+      "In background queues, if a job fails **3 or more times** (`attempts >= 3`), we stop retrying and return **`\"ALERT_TEAM\"`**. Otherwise we return **`\"RETRY\"`**:\n\n```python\ndef check_job_status(attempts):\n    if attempts >= 3:\n        return \"ALERT_TEAM\"\n    return \"RETRY\"\n```",
+    assignment:
+      'Complete the `if attempts >= 3:` block so it returns `"ALERT_TEAM"`.',
+    constraints: [
+      'Return `"ALERT_TEAM"` when `attempts >= 3`',
+      'Return `"RETRY"` when `attempts < 3`',
+    ],
+    examples: [
+      {
+        input: "check_job_status(1) and check_job_status(3)",
+        output: "RETRY ALERT_TEAM",
+        explanation: "1 attempt retries; 3 attempts alerts the team.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def check_job_status(attempts):
+    if attempts >= 3:
+        # 👉 Write 1 line: return "ALERT_TEAM"
+        pass
+    return "RETRY"
+
+print(check_job_status(1), check_job_status(3))`,
+    expected_output: "RETRY ALERT_TEAM",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = check_job_status(1)
+    results.append({"id": 1, "input": "attempts = 1", "expected": "RETRY", "actual": str(r1), "passed": r1 == "RETRY"})
+    r2 = check_job_status(3)
+    results.append({"id": 2, "input": "attempts = 3", "expected": "ALERT_TEAM", "actual": str(r2), "passed": r2 == "ALERT_TEAM"})
+    r3 = check_job_status(5)
+    results.append({"id": 3, "input": "attempts = 5", "expected": "ALERT_TEAM", "actual": str(r3), "passed": r3 == "ALERT_TEAM"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "Attempt 1", value: "-> RETRY", address: "1 < 3" },
+      { label: "Attempt 2", value: "-> RETRY", address: "2 < 3" },
+      { label: "Attempt 3", value: "-> ALERT_TEAM 🚨", address: "3 >= 3" },
+    ],
+    hints: [
+      'Replace `pass` inside the `if attempts >= 3:` block with `return "ALERT_TEAM"`.',
+    ],
+  },
+  {
+    id: "exp-sys-11",
+    title: "Server Failover: Automatic Backup Switch",
+    track: "system_design",
+    category: "HIGH AVAILABILITY",
+    difficulty: "Easy",
+    tree_row: 9,
+    lesson_order: 11,
+    is_free: false,
+    description:
+      'Route traffic to "primary" when online, and automatically switch to "backup" when offline.',
+    content:
+      "How do apps like Netflix stay online even if a server loses power? **Automatic Failover**!\n\n• If `primary_online` is `True`, return **`\"primary\"`**.\n• Otherwise, return **`\"backup\"`**!",
+    assignment:
+      'Complete `choose_server(primary_online)` so it returns `"primary"` when `primary_online` is True, and `"backup"` when False.',
+    constraints: [
+      'Return `"primary"` when `primary_online` is `True`',
+      'Return `"backup"` when `primary_online` is `False`',
+    ],
+    examples: [
+      {
+        input: "choose_server(True) and choose_server(False)",
+        output: "primary backup",
+        explanation: "Uses primary when healthy; switches to backup when offline.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def choose_server(primary_online):
+    if primary_online:
+        return "primary"
+    # 👉 Write 1 line: return "backup"
+    return ""
+
+print(choose_server(True), choose_server(False))`,
+    expected_output: "primary backup",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = choose_server(True)
+    results.append({"id": 1, "input": "primary_online = True", "expected": "primary", "actual": str(r1), "passed": r1 == "primary"})
+    r2 = choose_server(False)
+    results.append({"id": 2, "input": "primary_online = False", "expected": "backup", "actual": str(r2), "passed": r2 == "backup"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "primary_online=True", value: "-> primary ✓", address: "healthy" },
+      { label: "primary_online=False", value: "-> backup (FAILOVER) ⚡", address: "standby" },
+    ],
+    hints: [
+      'Replace `return ""` at the bottom of `choose_server` with `return "backup"`.',
+    ],
+  },
+  {
+    id: "exp-sys-12",
+    title: "CDN Router: Closest Video Server",
+    track: "system_design",
+    category: "GLOBAL CDN",
+    difficulty: "Easy",
+    tree_row: 10,
+    lesson_order: 12,
+    is_free: false,
+    description:
+      'Look up the closest regional server in a CDN dictionary, or fall back to "global-edge".',
+    content:
+      "A **CDN (Content Delivery Network)** stores videos on servers around the world (`{\"eu\": \"eu-west\", \"asia\": \"tokyo-edge\"}`).\n\nUsing **`cdn_map.get(region, \"global-edge\")`** returns the matching regional server, or safely falls back to `\"global-edge\"` if the region isn't in the dictionary!",
+    assignment:
+      'Complete `pick_cdn_server(cdn_map, region)` using `cdn_map.get(region, "global-edge")`.',
+    constraints: [
+      'Return `cdn_map.get(region, "global-edge")`',
+      "Keep the `print(...)` line at the bottom",
+    ],
+    examples: [
+      {
+        input: 'region="eu" -> "eu-west"; region="sa" -> "global-edge"',
+        output: "eu-west global-edge",
+        explanation: '"eu" is found in cdn_map; "sa" uses the fallback "global-edge".',
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def pick_cdn_server(cdn_map, region):
+    # 👉 Write 1 line: return cdn_map.get(region, "global-edge")
+    return ""
+
+servers = {"eu": "eu-west", "asia": "tokyo-edge"}
+print(pick_cdn_server(servers, "eu"), pick_cdn_server(servers, "sa"))`,
+    expected_output: "eu-west global-edge",
+    hidden_tests: `import json
+results = []
+try:
+    s = {"eu": "eu-west", "asia": "tokyo-edge"}
+    r1 = pick_cdn_server(s, "eu")
+    results.append({"id": 1, "input": "region = 'eu'", "expected": "eu-west", "actual": str(r1), "passed": r1 == "eu-west"})
+    r2 = pick_cdn_server(s, "sa")
+    results.append({"id": 2, "input": "region = 'sa' (fallback)", "expected": "global-edge", "actual": str(r2), "passed": r2 == "global-edge"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: 'region = "eu"', value: '-> "eu-west" ✓', address: "direct hit" },
+      { label: 'region = "asia"', value: '-> "tokyo-edge" ✓', address: "direct hit" },
+      { label: 'region = "sa"', value: '-> "global-edge" (FALLBACK)', address: "default" },
+    ],
+    hints: [
+      'Replace `return ""` with `return cdn_map.get(region, "global-edge")`.',
     ],
   },
 ];
