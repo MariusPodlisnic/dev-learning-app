@@ -227,7 +227,7 @@ function FormattedText({ text, style }: { text?: string; style?: any }) {
   const blocks = normalized.split(/(```[\s\S]*?```)/g);
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: 12, flex: 1, minWidth: 0, flexShrink: 1 }}>
       {blocks.map((block, bIdx) => {
         const trimmedBlock = block.trim();
         if (!trimmedBlock) return null;
@@ -249,7 +249,7 @@ function FormattedText({ text, style }: { text?: string; style?: any }) {
 
         const paragraphs = trimmedBlock.split("\n\n");
         return (
-          <View key={bIdx} style={{ gap: 10 }}>
+          <View key={bIdx} style={{ gap: 10, minWidth: 0, flexShrink: 1 }}>
             {paragraphs.map((para, pIdx) => {
               const lines = para.split("\n");
               const isBulletList =
@@ -261,7 +261,7 @@ function FormattedText({ text, style }: { text?: string; style?: any }) {
 
               if (isBulletList) {
                 return (
-                  <View key={pIdx} style={{ gap: 6 }}>
+                  <View key={pIdx} style={{ gap: 6, minWidth: 0 }}>
                     {lines.map((line, lIdx) => {
                       const cleanLine = line
                         .trim()
@@ -269,7 +269,12 @@ function FormattedText({ text, style }: { text?: string; style?: any }) {
                       return (
                         <View key={lIdx} style={styles.bulletRow}>
                           <Text style={styles.bulletDot}>•</Text>
-                          <Text style={[style, { flex: 1 }]}>
+                          <Text
+                            style={[
+                              style,
+                              { flex: 1, minWidth: 0, flexShrink: 1 },
+                            ]}
+                          >
                             {renderInlineSegments(cleanLine)}
                           </Text>
                         </View>
@@ -280,7 +285,10 @@ function FormattedText({ text, style }: { text?: string; style?: any }) {
               }
 
               return (
-                <Text key={pIdx} style={style}>
+                <Text
+                  key={pIdx}
+                  style={[style, { flexShrink: 1, minWidth: 0 }]}
+                >
                   {renderInlineSegments(para)}
                 </Text>
               );
@@ -3325,6 +3333,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     lineHeight: 24,
+    flexShrink: 1,
+    ...Platform.select({
+      web: {
+        wordBreak: "break-word" as any,
+        overflowWrap: "anywhere" as any,
+      },
+    }),
   },
   boldInline: { color: StudioColors.textPrimary, fontWeight: "900" },
   bulletRow: {
@@ -3332,6 +3347,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 8,
     paddingLeft: 4,
+    width: "100%",
+    minWidth: 0,
   },
   bulletDot: {
     color: StudioColors.textPrimary,
@@ -3366,6 +3383,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     padding: 12,
+    ...Platform.select({
+      web: {
+        whiteSpace: "pre-wrap" as any,
+        wordBreak: "break-word" as any,
+        overflowWrap: "anywhere" as any,
+      },
+    }),
   },
   inlineCode: {
     backgroundColor: StudioColors.surfaceElevated,
@@ -3376,6 +3400,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
+    ...Platform.select({
+      web: {
+        whiteSpace: "pre-wrap" as any,
+        wordBreak: "break-word" as any,
+        overflowWrap: "anywhere" as any,
+      },
+    }),
   },
   pitfallCard: {
     backgroundColor: StudioColors.surface,
@@ -3385,6 +3416,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 16,
     gap: 10,
+    overflow: "hidden",
     ...HardShadowSm,
   },
   pitfallHeaderRow: {
@@ -3420,23 +3452,25 @@ const styles = StyleSheet.create({
   },
   pitfallWrongBox: {
     flex: 1,
-    minWidth: 200,
+    minWidth: 180,
     backgroundColor: "#1C1417",
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: StudioColors.coral,
     padding: 10,
     gap: 4,
+    overflow: "hidden",
   },
   pitfallRightBox: {
     flex: 1,
-    minWidth: 200,
+    minWidth: 180,
     backgroundColor: "#121C16",
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: StudioColors.lime,
     padding: 10,
     gap: 4,
+    overflow: "hidden",
   },
   pitfallWrongLabel: {
     color: StudioColors.coral,
@@ -3457,6 +3491,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     fontFamily: MonoFont,
+    ...Platform.select({
+      web: {
+        whiteSpace: "pre-wrap" as any,
+        wordBreak: "break-word" as any,
+        overflowWrap: "anywhere" as any,
+      },
+    }),
   },
   pitfallExplanation: {
     color: StudioColors.textSecondary,
@@ -3471,6 +3512,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 10,
     marginBottom: 16,
+    overflow: "hidden",
     ...HardShadow,
   },
   assignmentHeaderRow: {
@@ -3538,6 +3580,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     lineHeight: 22,
     marginBottom: 12,
+    flexShrink: 1,
+    ...Platform.select({
+      web: {
+        wordBreak: "break-word" as any,
+        overflowWrap: "anywhere" as any,
+      },
+    }),
   },
   checklistContainer: {
     backgroundColor: StudioColors.bg,
@@ -3546,11 +3595,21 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: StudioColors.border,
     gap: 10,
+    overflow: "hidden",
+    width: "100%",
   },
-  missionRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  missionRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    width: "100%",
+    minWidth: 0,
+  },
   missionBulletBox: {
     width: 22,
     height: 22,
+    marginTop: 1,
+    flexShrink: 0,
     borderRadius: 4,
     backgroundColor: StudioColors.surface,
     borderWidth: 1.5,
@@ -3567,7 +3626,15 @@ const styles = StyleSheet.create({
   missionText: {
     color: StudioColors.textPrimary,
     fontSize: 13,
+    lineHeight: 20,
     fontWeight: "600",
+    flexShrink: 1,
+    ...Platform.select({
+      web: {
+        wordBreak: "break-word" as any,
+        overflowWrap: "anywhere" as any,
+      },
+    }),
   },
   exampleBlock: { marginBottom: 16 },
   exampleTitle: {
@@ -3585,6 +3652,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: StudioColors.border,
+    overflow: "hidden",
     ...HardShadowSm,
   },
   exampleCode: {
@@ -3593,6 +3661,13 @@ const styles = StyleSheet.create({
     fontFamily: MonoFont,
     marginBottom: 4,
     lineHeight: 20,
+    ...Platform.select({
+      web: {
+        whiteSpace: "pre-wrap" as any,
+        wordBreak: "break-word" as any,
+        overflowWrap: "anywhere" as any,
+      },
+    }),
   },
   bold: { color: StudioColors.lime, fontWeight: "800" },
   ideFrame: {

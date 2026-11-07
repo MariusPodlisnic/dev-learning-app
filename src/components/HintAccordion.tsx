@@ -198,6 +198,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: StudioColors.border,
+    overflow: "hidden",
   },
   hintCardHeader: {
     flexDirection: "row",
@@ -230,6 +231,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     lineHeight: 20,
+    flexShrink: 1,
+    ...Platform.select({
+      web: {
+        wordBreak: "break-word" as any,
+        overflowWrap: "anywhere" as any,
+      },
+    }),
   },
   inlineCode: {
     backgroundColor: StudioColors.surface,
@@ -240,6 +248,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
+    ...Platform.select({
+      web: {
+        whiteSpace: "pre-wrap" as any,
+        wordBreak: "break-word" as any,
+        overflowWrap: "anywhere" as any,
+      },
+    }),
   },
   actionsRow: {
     marginTop: 14,
