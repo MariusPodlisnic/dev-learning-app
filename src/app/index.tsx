@@ -37,6 +37,7 @@ import {
 } from "../constants/theme";
 import {
   ExplainStyle,
+  isLessonLockedForUser,
   Lesson,
   readLocalJson,
   STORAGE_DRAFTS_KEY,
@@ -159,9 +160,8 @@ export default function HomeScreen() {
     setThemeMode(initialTheme);
     applyColorTheme(initialTheme);
 
-    // Non-pro users start on python_basics until profile confirms Pro status
     const safeInitialTrack =
-      savedState.activeTrack && !TrackThemes[savedState.activeTrack]?.isPro
+      savedState.activeTrack && TrackThemes[savedState.activeTrack]
         ? savedState.activeTrack
         : "python_basics";
     setActiveTrack(safeInitialTrack);
@@ -242,23 +242,21 @@ export default function HomeScreen() {
         const all = mergeCurriculumLessons<Lesson>((data as Lesson[]) || []);
         setLessons(all);
         const targetTrack =
-          preferredTrack && (!TrackThemes[preferredTrack]?.isPro || isPremium)
+          preferredTrack && TrackThemes[preferredTrack]
             ? preferredTrack
             : "python_basics";
         const candidateById = preferredLessonId
           ? all.find((l) => l.id === preferredLessonId)
           : undefined;
         const allowedCandidate =
-          candidateById &&
-          (isPremium ||
-            (candidateById.is_free &&
-              !TrackThemes[candidateById.track]?.isPro))
+          candidateById && !isLessonLockedForUser(candidateById, isPremium)
             ? candidateById
             : undefined;
         const initialLesson =
           allowedCandidate ||
           all.find(
-            (l) => l.track === targetTrack && (l.is_free || isPremium),
+            (l) =>
+              l.track === targetTrack && !isLessonLockedForUser(l, isPremium),
           ) ||
           all.find((l) => l.track === "python_basics" && l.is_free) ||
           all.find((l) => l.track === "python_basics");
@@ -335,13 +333,9 @@ export default function HomeScreen() {
   }
 
   function handleSwitchTrack(trackName: string) {
-    if (TrackThemes[trackName]?.isPro && !isPremium) {
-      setShowPaywallModal(true);
-      return;
-    }
     setActiveTrack(trackName);
     const firstInTrack = lessons.find(
-      (l) => l.track === trackName && (l.is_free || isPremium),
+      (l) => l.track === trackName && !isLessonLockedForUser(l, isPremium),
     );
     if (firstInTrack) {
       setSelectedLesson(firstInTrack);
@@ -361,10 +355,7 @@ export default function HomeScreen() {
     const fullLesson = lessons.find((item) => item.id === lesson.id);
     if (!fullLesson) return;
 
-    if (
-      (!fullLesson.is_free || TrackThemes[fullLesson.track]?.isPro) &&
-      !isPremium
-    ) {
+    if (isLessonLockedForUser(fullLesson, isPremium)) {
       setShowPaywallModal(true);
       return;
     }
@@ -722,6 +713,8 @@ export default function HomeScreen() {
                       }
                     }}
                     testResults={testResults}
+                    isPremium={isPremium}
+                    onOpenPaywall={() => setShowPaywallModal(true)}
                   />
                 )}
 

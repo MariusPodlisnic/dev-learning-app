@@ -32,8 +32,8 @@ const PRO_FEATURES = [
   },
   {
     icon: "03",
-    title: "Progressive Hints & Solution Walkthroughs",
-    desc: "Unblock yourself with contextual hints and line-by-line engineering breakdowns",
+    title: "Official Solutions & Line-by-Line Walkthroughs",
+    desc: "1-click verified solution loading and plain-English line-by-line breakdowns for all 48 modules",
   },
 ];
 

@@ -15,9 +15,15 @@ import {
   StudioColors,
   TrackThemes,
 } from "../constants/theme";
-import { ExplainStyle, Lesson, TestCaseResult } from "../types/lesson";
+import {
+  ExplainStyle,
+  isProTrackPreviewLesson,
+  Lesson,
+  TestCaseResult,
+} from "../types/lesson";
 import FormattedText from "./FormattedText";
 import HintAccordion from "./HintAccordion";
+import ProSolutionCard from "./ProSolutionCard";
 import VisualLessonPanel from "./VisualLessonPanel";
 
 interface LessonProblemPanelProps {
@@ -34,6 +40,8 @@ interface LessonProblemPanelProps {
   onSelectQuizOption: (optionIdx: number) => void;
   onLoadGuidedSteps: (guidedCode: string) => void;
   testResults: TestCaseResult[] | null;
+  isPremium: boolean;
+  onOpenPaywall: () => void;
 }
 
 export default function LessonProblemPanel({
@@ -50,6 +58,8 @@ export default function LessonProblemPanel({
   onSelectQuizOption,
   onLoadGuidedSteps,
   testResults,
+  isPremium,
+  onOpenPaywall,
 }: LessonProblemPanelProps) {
   const styles = getStyles();
   const currentTrackTheme =
@@ -74,6 +84,9 @@ export default function LessonProblemPanel({
         </Text>
         {completedLessons[selectedLesson.id] && (
           <Text style={styles.completedLessonPill}>SOLVED ✓</Text>
+        )}
+        {isProTrackPreviewLesson(selectedLesson) && !isPremium && (
+          <Text style={styles.freePreviewLessonPill}>★ FREE PRO PREVIEW</Text>
         )}
         {selectedLesson.complexities?.time && (
           <Text style={styles.complexityBadge}>
@@ -413,6 +426,15 @@ export default function LessonProblemPanel({
               </View>
             </View>
           ))}
+
+          {/* Pro Official Solution & Line-by-Line Walkthrough */}
+          <ProSolutionCard
+            selectedLesson={selectedLesson}
+            lessonEnrichment={lessonEnrichment}
+            isPremium={isPremium}
+            onLoadSolution={onLoadGuidedSteps}
+            onOpenPaywall={onOpenPaywall}
+          />
         </View>
       ) : (
         <VisualLessonPanel
@@ -451,6 +473,19 @@ const getStyles = () =>
     },
     completedLessonPill: {
       backgroundColor: StudioColors.mint,
+      color: StudioColors.ink,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      borderRadius: 4,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+      letterSpacing: 0.6,
+    },
+    freePreviewLessonPill: {
+      backgroundColor: StudioColors.lime,
       color: StudioColors.ink,
       fontSize: 10,
       fontWeight: "900",

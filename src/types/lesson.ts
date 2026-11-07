@@ -62,3 +62,32 @@ export function writeLocalJson(key: string, value: unknown) {
     window.localStorage.setItem(key, JSON.stringify(value));
   } catch (_e) {}
 }
+
+/**
+ * Module 01 of Pro tracks (algorithms & system_design) is unlocked as a
+ * "Free Pro Preview" so non-Pro users can experience the track first.
+ */
+export function isProTrackPreviewLesson(lesson: {
+  track: string;
+  lesson_order: number;
+}): boolean {
+  return lesson.track !== "python_basics" && lesson.lesson_order === 1;
+}
+
+/**
+ * Determines whether a lesson is locked for the current user.
+ * - Pro users can access every lesson.
+ * - Module 01 of every Pro track is unlocked as a Free Preview.
+ * - Modules 02+ of Pro tracks require Pro.
+ * - In python_basics, lessons respect lesson.is_free.
+ */
+export function isLessonLockedForUser(
+  lesson: { track: string; lesson_order: number; is_free: boolean },
+  isPremium: boolean,
+): boolean {
+  if (isPremium) return false;
+  if (isProTrackPreviewLesson(lesson)) return false;
+  if (lesson.track !== "python_basics") return true;
+  return !lesson.is_free;
+}
+

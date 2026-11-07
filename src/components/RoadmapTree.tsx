@@ -14,6 +14,10 @@ import {
   StudioColors,
   TrackThemes,
 } from "../constants/theme";
+import {
+  isLessonLockedForUser,
+  isProTrackPreviewLesson,
+} from "../types/lesson";
 
 export interface Lesson {
   id: string;
@@ -236,7 +240,7 @@ export default function RoadmapTree({
   // Determine the "Next Up" recommended lesson in the current track
   const nextUpLesson =
     trackLessons.find(
-      (l) => !completedLessons[l.id] && (l.is_free || isPremium),
+      (l) => !completedLessons[l.id] && !isLessonLockedForUser(l, isPremium),
     ) ||
     trackLessons.find((l) => !completedLessons[l.id]) ||
     trackLessons[0];
@@ -441,7 +445,7 @@ export default function RoadmapTree({
                 </Text>
                 {isTrackLocked ? (
                   <View style={styles.trackProBadge}>
-                    <Text style={styles.trackProBadgeText}>PRO</Text>
+                    <Text style={styles.trackProBadgeText}>PRO · 1 FREE</Text>
                   </View>
                 ) : (
                   <View style={styles.trackCountBadge}>
@@ -556,7 +560,9 @@ export default function RoadmapTree({
               <View style={styles.nodesRow}>
                 {rowNodes.map((node) => {
                   const isDone = Boolean(completedLessons[node.id]);
-                  const isLocked = !node.is_free && !isPremium;
+                  const isFreePreview =
+                    isProTrackPreviewLesson(node) && !isPremium;
+                  const isLocked = isLessonLockedForUser(node, isPremium);
                   const isNextUp =
                     !isDone && !isLocked && nextUpLesson?.id === node.id;
                   const diffStyle = getDifficultyColor(node.difficulty);
@@ -614,7 +620,13 @@ export default function RoadmapTree({
                           </Text>
                         </View>
 
-                        {isNextUp ? (
+                        {isFreePreview ? (
+                          <View style={styles.nextUpNodePill}>
+                            <Text style={styles.nextUpNodePillText}>
+                              ★ FREE PREVIEW
+                            </Text>
+                          </View>
+                        ) : isNextUp ? (
                           <View style={styles.nextUpNodePill}>
                             <Text style={styles.nextUpNodePillText}>
                               PLAY ★

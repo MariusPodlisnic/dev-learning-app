@@ -14,7 +14,11 @@ import {
   StudioColors,
   TrackThemes,
 } from "../constants/theme";
-import { Lesson } from "../types/lesson";
+import {
+  isLessonLockedForUser,
+  isProTrackPreviewLesson,
+  Lesson,
+} from "../types/lesson";
 
 interface StudioSidebarProps {
   isCompactStudio: boolean;
@@ -96,11 +100,11 @@ export default function StudioSidebar({
                       },
                     ]}
                   >
-                    [{isTrackLocked ? "🔒" : meta.icon}] {meta.label}
+                    [{meta.icon}] {meta.label}
                   </Text>
                   {isTrackLocked && (
                     <View style={styles.sidebarProPill}>
-                      <Text style={styles.sidebarProText}>PRO</Text>
+                      <Text style={styles.sidebarProText}>PRO · 1 FREE</Text>
                     </View>
                   )}
                 </View>
@@ -139,7 +143,9 @@ export default function StudioSidebar({
           ) : (
             currentLessons.map((lesson, idx) => {
               const isCompleted = completedLessons[lesson.id];
-              const isLocked = !lesson.is_free && !isPremium;
+              const isLocked = isLessonLockedForUser(lesson, isPremium);
+              const isFreeProPreview =
+                isProTrackPreviewLesson(lesson) && !isPremium;
               const isActive = selectedLesson?.id === lesson.id;
               return (
                 <Pressable
@@ -185,6 +191,11 @@ export default function StudioSidebar({
                     >
                       {lesson.title}
                     </Text>
+                    {isFreeProPreview && (
+                      <View style={styles.sidebarFreePreviewPill}>
+                        <Text style={styles.sidebarProText}>FREE TRY</Text>
+                      </View>
+                    )}
                     {isLocked && (
                       <View style={styles.sidebarProPill}>
                         <Text style={styles.sidebarProText}>PRO</Text>
@@ -432,6 +443,14 @@ const getStyles = () =>
     activeLessonTitle: { color: StudioColors.ink, fontWeight: "900" },
     sidebarProPill: {
       backgroundColor: StudioColors.pink,
+      borderWidth: 1,
+      borderColor: StudioColors.ink,
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+      borderRadius: 3,
+    },
+    sidebarFreePreviewPill: {
+      backgroundColor: StudioColors.lime,
       borderWidth: 1,
       borderColor: StudioColors.ink,
       paddingHorizontal: 5,
