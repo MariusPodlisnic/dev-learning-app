@@ -23,7 +23,10 @@ import ProfileStatsModal, {
 import RoadmapTree from "../components/RoadmapTree";
 import SuccessModal from "../components/SuccessModal";
 import VisualLessonPanel from "../components/VisualLessonPanel";
-import { getLessonEnrichment } from "../constants/curriculum";
+import {
+  getLessonEnrichment,
+  mergeCurriculumLessons,
+} from "../constants/curriculum";
 import {
   applyColorTheme,
   HardShadow,
@@ -497,8 +500,10 @@ export default function HomeScreen() {
 
       if (error) {
         console.error("Error fetching lessons:", error);
+        const fallbackAll = mergeCurriculumLessons<Lesson>([]);
+        setLessons(fallbackAll);
       } else {
-        const all = data || [];
+        const all = mergeCurriculumLessons<Lesson>((data as Lesson[]) || []);
         setLessons(all);
         const targetTrack =
           preferredTrack && (!TrackThemes[preferredTrack]?.isPro || isPremium)
@@ -815,12 +820,14 @@ export default function HomeScreen() {
                 }));
 
                 if (session) {
-                  await supabase.from("user_progress").upsert({
-                    user_id: session.user.id,
-                    lesson_id: selectedLesson.id,
-                    completed: true,
-                    updated_at: new Date().toISOString(),
-                  });
+                  if (!selectedLesson.id.startsWith("exp-")) {
+                    await supabase.from("user_progress").upsert({
+                      user_id: session.user.id,
+                      lesson_id: selectedLesson.id,
+                      completed: true,
+                      updated_at: new Date().toISOString(),
+                    });
+                  }
 
                   if (!isAlreadyCompleted) {
                     await supabase.from("profiles").upsert({
@@ -1743,6 +1750,43 @@ export default function HomeScreen() {
                         </View>
                       )}
 
+                      {/* Common Pitfall Warning Card */}
+                      {lessonEnrichment?.commonPitfall && (
+                        <View style={styles.pitfallCard}>
+                          <View style={styles.pitfallHeaderRow}>
+                            <View style={styles.pitfallSticker}>
+                              <Text style={styles.pitfallStickerText}>
+                                ⚠️ COMMON PITFALL TO AVOID
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={styles.pitfallTitle}>
+                            {lessonEnrichment.commonPitfall.title}
+                          </Text>
+                          <View style={styles.pitfallCompareRow}>
+                            <View style={styles.pitfallWrongBox}>
+                              <Text style={styles.pitfallWrongLabel}>
+                                ✕ COMMON MISTAKE
+                              </Text>
+                              <Text style={styles.pitfallCodeText}>
+                                {lessonEnrichment.commonPitfall.wrongCode}
+                              </Text>
+                            </View>
+                            <View style={styles.pitfallRightBox}>
+                              <Text style={styles.pitfallRightLabel}>
+                                ✓ CORRECT PATTERN
+                              </Text>
+                              <Text style={styles.pitfallCodeText}>
+                                {lessonEnrichment.commonPitfall.rightCode}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={styles.pitfallExplanation}>
+                            {lessonEnrichment.commonPitfall.explanation}
+                          </Text>
+                        </View>
+                      )}
+
                       <View style={styles.assignmentBox}>
                         <View style={styles.assignmentHeaderRow}>
                           <View style={styles.missionSticker}>
@@ -1750,8 +1794,40 @@ export default function HomeScreen() {
                               YOUR CODING MISSION
                             </Text>
                           </View>
-                          <View style={styles.xpRewardPill}>
-                            <Text style={styles.xpRewardPillText}>+50 XP</Text>
+                          <View style={styles.missionRightActions}>
+                            {lessonEnrichment?.guidedCode && (
+                              <Pressable
+                                style={({ pressed }) => [
+                                  styles.guidedTemplateBtn,
+                                  pressed && {
+                                    transform: [
+                                      { translateX: 1 },
+                                      { translateY: 1 },
+                                    ],
+                                  },
+                                ]}
+                                onPress={() => {
+                                  if (lessonEnrichment.guidedCode) {
+                                    updateCodeWithDraft(
+                                      lessonEnrichment.guidedCode,
+                                      selectedLesson,
+                                    );
+                                    if (isCompactStudio) {
+                                      setMobileStudioPane("code");
+                                    }
+                                  }
+                                }}
+                              >
+                                <Text style={styles.guidedTemplateBtnText}>
+                                  🧩 LOAD GUIDED STEPS
+                                </Text>
+                              </Pressable>
+                            )}
+                            <View style={styles.xpRewardPill}>
+                              <Text style={styles.xpRewardPillText}>
+                                +50 XP
+                              </Text>
+                            </View>
                           </View>
                         </View>
 
@@ -1862,6 +1938,23 @@ export default function HomeScreen() {
                         )}
                       </View>
                       <View style={styles.ideHeaderActions}>
+                        {lessonEnrichment?.guidedCode && (
+                          <Pressable
+                            style={styles.ideGuidedBtn}
+                            onPress={() => {
+                              if (lessonEnrichment.guidedCode) {
+                                updateCodeWithDraft(
+                                  lessonEnrichment.guidedCode,
+                                  selectedLesson,
+                                );
+                              }
+                            }}
+                          >
+                            <Text style={styles.ideGuidedBtnText}>
+                              🧩 GUIDED TEMPLATE
+                            </Text>
+                          </Pressable>
+                        )}
                         <Pressable
                           style={[
                             styles.copyCodeBtn,
@@ -3284,6 +3377,93 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderRadius: 4,
   },
+  pitfallCard: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 10,
+    ...HardShadowSm,
+  },
+  pitfallHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  pitfallSticker: {
+    backgroundColor: StudioColors.coral,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  pitfallStickerText: {
+    color: StudioColors.ink,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.7,
+  },
+  pitfallTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 20,
+  },
+  pitfallCompareRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  pitfallWrongBox: {
+    flex: 1,
+    minWidth: 200,
+    backgroundColor: "#1C1417",
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: StudioColors.coral,
+    padding: 10,
+    gap: 4,
+  },
+  pitfallRightBox: {
+    flex: 1,
+    minWidth: 200,
+    backgroundColor: "#121C16",
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: StudioColors.lime,
+    padding: 10,
+    gap: 4,
+  },
+  pitfallWrongLabel: {
+    color: StudioColors.coral,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  pitfallRightLabel: {
+    color: StudioColors.lime,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  pitfallCodeText: {
+    color: "#F4F0E6",
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: MonoFont,
+  },
+  pitfallExplanation: {
+    color: StudioColors.textSecondary,
+    fontSize: 12.5,
+    fontWeight: "600",
+    lineHeight: 19,
+  },
   assignmentBox: {
     backgroundColor: StudioColors.surface,
     borderWidth: 2,
@@ -3297,7 +3477,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
     marginBottom: 12,
+  },
+  missionRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  guidedTemplateBtn: {
+    backgroundColor: StudioColors.violet,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 5,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  guidedTemplateBtnText: {
+    color: StudioColors.ink,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.4,
   },
   missionSticker: {
     backgroundColor: StudioColors.mint,
@@ -3452,6 +3656,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  ideGuidedBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: StudioColors.violet,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  ideGuidedBtnText: {
+    color: StudioColors.ink,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   copyCodeBtn: {
     paddingHorizontal: 10,
