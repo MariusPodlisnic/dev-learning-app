@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Platform,
   Pressable,
@@ -64,11 +64,30 @@ export default function LessonProblemPanel({
   onOpenPaywall,
 }: LessonProblemPanelProps) {
   const styles = getStyles();
+  const scrollRef = useRef<any>(null);
   const currentTrackTheme =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
 
+  function scrollToTop() {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    }, 0);
+  }
+
+  function handleSwitchTab(tab: "problem" | "mission" | "visual") {
+    playKeyClick();
+    onChangeActiveTab(tab);
+    scrollToTop();
+  }
+
+  useEffect(() => {
+    scrollToTop();
+  }, [activeTab, selectedLesson.id]);
+
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.explanationPanel}
       showsVerticalScrollIndicator={false}
     >
@@ -112,10 +131,9 @@ export default function LessonProblemPanel({
           activeTab === "mission" && styles.missionHudStripActive,
           pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
         ]}
-        onPress={() => {
-          playKeyClick();
-          onChangeActiveTab(activeTab === "mission" ? "problem" : "mission");
-        }}
+        onPress={() =>
+          handleSwitchTab(activeTab === "mission" ? "problem" : "mission")
+        }
       >
         <View style={styles.missionHudLeft}>
           <View style={styles.missionHudTopBadges}>
@@ -156,10 +174,7 @@ export default function LessonProblemPanel({
             styles.tabItem,
             activeTab === "problem" && styles.activeTabItem,
           ]}
-          onPress={() => {
-            playKeyClick();
-            onChangeActiveTab("problem");
-          }}
+          onPress={() => handleSwitchTab("problem")}
         >
           <Text
             style={[
@@ -175,10 +190,7 @@ export default function LessonProblemPanel({
             styles.tabItem,
             activeTab === "mission" && styles.activeMissionTabItem,
           ]}
-          onPress={() => {
-            playKeyClick();
-            onChangeActiveTab("mission");
-          }}
+          onPress={() => handleSwitchTab("mission")}
         >
           <Text
             style={[
@@ -194,10 +206,7 @@ export default function LessonProblemPanel({
             styles.tabItem,
             activeTab === "visual" && styles.activeTabItem,
           ]}
-          onPress={() => {
-            playKeyClick();
-            onChangeActiveTab("visual");
-          }}
+          onPress={() => handleSwitchTab("visual")}
         >
           <Text
             style={[
@@ -419,10 +428,7 @@ export default function LessonProblemPanel({
               styles.jumpToMissionBannerBtn,
               pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
             ]}
-            onPress={() => {
-              playKeyClick();
-              onChangeActiveTab("mission");
-            }}
+            onPress={() => handleSwitchTab("mission")}
           >
             <View>
               <Text style={styles.jumpToMissionSubLabel}>

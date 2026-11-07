@@ -381,6 +381,7 @@ export default function HomeScreen() {
     setOutput("");
     setTestResults(null);
     setQuizSelection(null);
+    setActiveTab("problem");
     setBottomTab("console");
     setMobileDrawerOpen(false);
     setViewMode("studio");
