@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   HardShadow,
@@ -7,6 +7,8 @@ import {
   MonoFont,
   StudioColors,
 } from "../constants/theme";
+import { playKeyClick, playVictoryFanfare } from "../utils/soundEffects";
+import PixelConfetti from "./PixelConfetti";
 import { getDeveloperRank } from "./ProfileStatsModal";
 
 interface SuccessModalProps {
@@ -34,9 +36,14 @@ export default function SuccessModal({
   const previousRank = getDeveloperRank(Math.max(0, totalXp - xpEarned));
   const didLevelUp = currentRank.level > previousRank.level;
 
+  useEffect(() => {
+    playVictoryFanfare();
+  }, []);
+
   return (
     <View style={styles.card}>
       <View style={styles.topGlowBar} />
+      <PixelConfetti />
 
       <View style={styles.topHeaderRow}>
         <View style={styles.iconCircle}>
@@ -136,7 +143,10 @@ export default function SuccessModal({
             styles.nextBtn,
             pressed && { opacity: 0.9, transform: [{ translateY: 1 }] },
           ]}
-          onPress={onNextLesson}
+          onPress={() => {
+            playKeyClick();
+            onNextLesson();
+          }}
         >
           <Text style={styles.nextBtnLabel}>UP NEXT MISSION</Text>
           <Text style={styles.nextBtnText} numberOfLines={1}>

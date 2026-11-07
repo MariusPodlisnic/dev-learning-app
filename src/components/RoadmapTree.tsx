@@ -20,6 +20,7 @@ import {
   isLessonLockedForUser,
   isProTrackPreviewLesson,
 } from "../types/lesson";
+import { playCrtChannelSwitch, playKeyClick } from "../utils/soundEffects";
 import DailyWarmupCard from "./DailyWarmupCard";
 
 export interface Lesson {
@@ -350,6 +351,7 @@ export default function RoadmapTree({
   const [statusFilter, setStatusFilter] = useState<"all" | "unsolved" | "solved">("all");
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [crtChannel, setCrtChannel] = useState<0 | 1 | 2>(0);
 
   const trackLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = trackLessons.filter(
@@ -457,8 +459,17 @@ export default function RoadmapTree({
             <Text style={styles.subHeading}>{currentTrackMeta.subtitle}</Text>
           </View>
 
-          {/* Right-Side Thematic Retro CRT & Code Cartridge Illustration */}
-          <View style={styles.heroIllustrationWrap} pointerEvents="none">
+          {/* Right-Side Interactive 3-Channel Retro CRT & Code Cartridge */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.heroIllustrationWrap,
+              pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+            ]}
+            onPress={() => {
+              playCrtChannelSwitch();
+              setCrtChannel((prev) => ((prev + 1) % 3) as 0 | 1 | 2);
+            }}
+          >
             {/* Inserted ROM Cartridge on Top */}
             <View
               style={[
@@ -468,7 +479,7 @@ export default function RoadmapTree({
             >
               <View style={styles.crtCartridgeGrip} />
               <Text style={styles.crtCartridgeText}>
-                ROM // {currentTrackMeta.tag}
+                ROM // CH-0{crtChannel + 1}
               </Text>
             </View>
 
@@ -477,16 +488,23 @@ export default function RoadmapTree({
               <View style={styles.crtScreen}>
                 <View style={styles.crtScreenTopBar}>
                   <Text style={styles.crtScreenTag}>
-                    ● {activeTrack === "python_basics"
-                      ? "PYTHON_KERNEL.PY"
-                      : activeTrack === "algorithms"
-                        ? "GRAPH_ENGINE.PY"
-                        : "CLUSTER_MESH.PY"}
+                    ●{" "}
+                    {crtChannel === 1
+                      ? "SYS_TELEMETRY.SH"
+                      : crtChannel === 2
+                        ? "BIT_BOT_PET.EXE"
+                        : activeTrack === "python_basics"
+                          ? "PYTHON_KERNEL.PY"
+                          : activeTrack === "algorithms"
+                            ? "GRAPH_ENGINE.PY"
+                            : "CLUSTER_MESH.PY"}
                   </Text>
-                  <Text style={styles.crtScreenFps}>60Hz</Text>
+                  <Text style={styles.crtScreenFps}>
+                    CH 0{crtChannel + 1}/03
+                  </Text>
                 </View>
 
-                {activeTrack === "python_basics" && (
+                {crtChannel === 0 && activeTrack === "python_basics" && (
                   <View style={styles.crtCodeBlock}>
                     <Text style={styles.crtCodeLineLime}>
                       {"def train_skill(dev):"}
@@ -500,7 +518,7 @@ export default function RoadmapTree({
                   </View>
                 )}
 
-                {activeTrack === "algorithms" && (
+                {crtChannel === 0 && activeTrack === "algorithms" && (
                   <View style={styles.crtCodeBlock}>
                     <Text style={styles.crtCodeLineViolet}>
                       {"      [ROOT: 42]"}
@@ -514,7 +532,7 @@ export default function RoadmapTree({
                   </View>
                 )}
 
-                {activeTrack === "system_design" && (
+                {crtChannel === 0 && activeTrack === "system_design" && (
                   <View style={styles.crtCodeBlock}>
                     <Text style={styles.crtCodeLinePink}>
                       {"[CDN] ──► [LB: NGINX]"}
@@ -527,11 +545,52 @@ export default function RoadmapTree({
                     </Text>
                   </View>
                 )}
+
+                {crtChannel === 1 && (
+                  <View style={styles.crtCodeBlock}>
+                    <Text style={styles.crtCodeLineLime}>
+                      {`SOLVED: ${completedCount}/${trackLessons.length} MODULES`}
+                    </Text>
+                    <Text style={styles.crtCodeLineYellow}>
+                      {`METER : [${"█".repeat(
+                        Math.round((progressPercent / 100) * 8),
+                      )}${"░".repeat(
+                        Math.max(
+                          0,
+                          8 - Math.round((progressPercent / 100) * 8),
+                        ),
+                      )}] ${progressPercent}%`}
+                    </Text>
+                    <Text style={styles.crtCodeLinePink}>
+                      {progressPercent === 100
+                        ? "STATUS: TRACK CLEARED ★"
+                        : "STATUS: KERNEL ACTIVE"}
+                    </Text>
+                  </View>
+                )}
+
+                {crtChannel === 2 && (
+                  <View style={styles.crtCodeBlock}>
+                    <Text style={styles.crtCodeLineViolet}>
+                      {"  /\\_/\\   BIT-BOT v2.4"}
+                    </Text>
+                    <Text style={styles.crtCodeLineLime}>
+                      {completedCount > 0
+                        ? ' ( ⚡_⚡ )  "CRUSHING IT!"'
+                        : ' ( ^ _ ^ )  "FEED ME CODE!"'}
+                    </Text>
+                    <Text style={styles.crtCodeLineYellow}>
+                      {"  > ^ <   [TAP CRT ↻]"}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               <View style={styles.crtMonitorChin}>
                 <View style={styles.crtPowerLed} />
-                <Text style={styles.crtMonitorBrand}>DEVLEARN // DECK-01</Text>
+                <Text style={styles.crtMonitorBrand}>
+                  DECK-01 · TAP SCREEN ↻
+                </Text>
                 <View style={styles.crtVentSlots}>
                   <View style={styles.crtVentSlot} />
                   <View style={styles.crtVentSlot} />
@@ -547,7 +606,7 @@ export default function RoadmapTree({
             <View style={styles.heroArtStickerBottomRight}>
               <Text style={styles.heroArtStickerText}>⚡ XP+50</Text>
             </View>
-          </View>
+          </Pressable>
         </View>
 
         {/* Tactile Color-Blocked Track Selector */}
@@ -1187,6 +1246,7 @@ const styles = StyleSheet.create({
     width: 248,
     alignItems: "center",
     paddingTop: 14,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   crtCartridge: {
     width: 136,

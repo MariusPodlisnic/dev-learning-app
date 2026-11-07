@@ -53,6 +53,7 @@ import {
   executePlaygroundPython,
   loadPyodideScript,
 } from "../utils/pyodideRunner";
+import { playErrorBuzz, playSuccessChime } from "../utils/soundEffects";
 
 export default function HomeScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -60,7 +61,9 @@ export default function HomeScreen() {
   const [activeTrack, setActiveTrack] = useState<string>("python_basics");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
-  const [activeTab, setActiveTab] = useState<"problem" | "visual">("problem");
+  const [activeTab, setActiveTab] = useState<"problem" | "mission" | "visual">(
+    "problem",
+  );
   const [explainStyle, setExplainStyle] = useState<ExplainStyle>("analogy");
   const [quizSelection, setQuizSelection] = useState<number | null>(null);
   const [solvedQuizzes, setSolvedQuizzes] = useState<Record<string, boolean>>(
@@ -551,12 +554,14 @@ export default function HomeScreen() {
   function handleSelectQuizOption(optionIdx: number) {
     if (!selectedLesson || !lessonEnrichment) return;
     setQuizSelection(optionIdx);
-    if (
-      optionIdx === lessonEnrichment.quiz.correctIndex &&
-      !solvedQuizzes[selectedLesson.id]
-    ) {
-      setSolvedQuizzes((prev) => ({ ...prev, [selectedLesson.id]: true }));
-      setXpPoints((prev) => prev + 10);
+    if (optionIdx === lessonEnrichment.quiz.correctIndex) {
+      playSuccessChime();
+      if (!solvedQuizzes[selectedLesson.id]) {
+        setSolvedQuizzes((prev) => ({ ...prev, [selectedLesson.id]: true }));
+        setXpPoints((prev) => prev + 10);
+      }
+    } else {
+      playErrorBuzz();
     }
   }
 
@@ -875,9 +880,9 @@ const getStyles = () =>
     content: { flex: 1, flexDirection: "row", zIndex: 1, position: "relative" },
     workspaceContainer: {
       flex: 1,
-      paddingHorizontal: 22,
-      paddingTop: 14,
-      paddingBottom: 18,
+      paddingHorizontal: 18,
+      paddingTop: 10,
+      paddingBottom: 12,
       backgroundColor: StudioColors.bg,
       overflow: "hidden",
     },
@@ -885,8 +890,8 @@ const getStyles = () =>
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 14,
-      paddingBottom: 10,
+      marginBottom: 10,
+      paddingBottom: 8,
       borderBottomWidth: 2,
       borderBottomColor: StudioColors.border,
       flexWrap: "wrap",

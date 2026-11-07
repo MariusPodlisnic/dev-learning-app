@@ -21,8 +21,10 @@ import {
   Lesson,
   TestCaseResult,
 } from "../types/lesson";
+import { playKeyClick } from "../utils/soundEffects";
 import FormattedText from "./FormattedText";
 import HintAccordion from "./HintAccordion";
+import LessonToolboxCard from "./LessonToolboxCard";
 import ProSolutionCard from "./ProSolutionCard";
 import VisualLessonPanel from "./VisualLessonPanel";
 
@@ -30,8 +32,8 @@ interface LessonProblemPanelProps {
   selectedLesson: Lesson;
   activeTrack: string;
   completedLessons: Record<string, boolean>;
-  activeTab: "problem" | "visual";
-  onChangeActiveTab: (tab: "problem" | "visual") => void;
+  activeTab: "problem" | "mission" | "visual";
+  onChangeActiveTab: (tab: "problem" | "mission" | "visual") => void;
   explainStyle: ExplainStyle;
   onChangeExplainStyle: (style: ExplainStyle) => void;
   lessonEnrichment: LessonEnrichment | null;
@@ -103,13 +105,61 @@ export default function LessonProblemPanel({
       <Text style={styles.title}>{selectedLesson.title}</Text>
       <Text style={styles.subtitleDesc}>{selectedLesson.description}</Text>
 
+      {/* Always-Visible Active Mission HUD Strip */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.missionHudStrip,
+          activeTab === "mission" && styles.missionHudStripActive,
+          pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+        ]}
+        onPress={() => {
+          playKeyClick();
+          onChangeActiveTab(activeTab === "mission" ? "problem" : "mission");
+        }}
+      >
+        <View style={styles.missionHudLeft}>
+          <View style={styles.missionHudTopBadges}>
+            <View style={styles.missionHudTagPill}>
+              <Text style={styles.missionHudTagText}>
+                🎯 YOUR CODING MISSION
+              </Text>
+            </View>
+            <View style={styles.missionHudXpPill}>
+              <Text style={styles.missionHudXpText}>
+                {selectedLesson.constraints?.length
+                  ? `${selectedLesson.constraints.length} STEPS · +50 XP`
+                  : "+50 XP"}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.missionHudGoalText} numberOfLines={2}>
+            {(selectedLesson.assignment || selectedLesson.description).replace(
+              /`/g,
+              "",
+            )}
+          </Text>
+        </View>
+
+        <View style={styles.missionHudCtaBtn}>
+          <Text style={styles.missionHudCtaText}>
+            {activeTab === "mission"
+              ? "← READ TOOLS"
+              : "OPEN MISSION →"}
+          </Text>
+        </View>
+      </Pressable>
+
+      {/* 3-Mode Focused Tab Switcher */}
       <View style={styles.tabBar}>
         <Pressable
           style={[
             styles.tabItem,
             activeTab === "problem" && styles.activeTabItem,
           ]}
-          onPress={() => onChangeActiveTab("problem")}
+          onPress={() => {
+            playKeyClick();
+            onChangeActiveTab("problem");
+          }}
         >
           <Text
             style={[
@@ -117,7 +167,26 @@ export default function LessonProblemPanel({
               activeTab === "problem" && styles.activeTabText,
             ]}
           >
-            CONCEPT & MISSION
+            01. LEARN & TOOLS
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.tabItem,
+            activeTab === "mission" && styles.activeMissionTabItem,
+          ]}
+          onPress={() => {
+            playKeyClick();
+            onChangeActiveTab("mission");
+          }}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "mission" && styles.activeTabText,
+            ]}
+          >
+            02. 🎯 MISSION BRIEF
           </Text>
         </Pressable>
         <Pressable
@@ -125,7 +194,10 @@ export default function LessonProblemPanel({
             styles.tabItem,
             activeTab === "visual" && styles.activeTabItem,
           ]}
-          onPress={() => onChangeActiveTab("visual")}
+          onPress={() => {
+            playKeyClick();
+            onChangeActiveTab("visual");
+          }}
         >
           <Text
             style={[
@@ -133,7 +205,7 @@ export default function LessonProblemPanel({
               activeTab === "visual" && styles.activeTabText,
             ]}
           >
-            MEMORY SIMULATOR
+            03. MEMORY SIM
           </Text>
         </Pressable>
       </View>
@@ -221,6 +293,9 @@ export default function LessonProblemPanel({
               />
             )}
           </View>
+
+          {/* Structured Lesson Toolbox: Tools & Syntax Variations */}
+          <LessonToolboxCard selectedLesson={selectedLesson} />
 
           {/* Interactive 1-Question Warm-Up Quiz */}
           {lessonEnrichment && (
@@ -338,11 +413,38 @@ export default function LessonProblemPanel({
             </View>
           )}
 
+          {/* High-Contrast Jump to Mission CTA at Bottom of Learn Tab */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.jumpToMissionBannerBtn,
+              pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              onChangeActiveTab("mission");
+            }}
+          >
+            <View>
+              <Text style={styles.jumpToMissionSubLabel}>
+                FINISHED READING THE TOOLS?
+              </Text>
+              <Text style={styles.jumpToMissionMainText}>
+                🎯 OPEN YOUR CODING MISSION BRIEF →
+              </Text>
+            </View>
+            <View style={styles.xpRewardPill}>
+              <Text style={styles.xpRewardPillText}>+50 XP</Text>
+            </View>
+          </Pressable>
+        </View>
+      ) : activeTab === "mission" ? (
+        <View style={styles.problemCard}>
           <View style={styles.assignmentBox}>
+            <View style={styles.missionCommandTopBar} />
             <View style={styles.assignmentHeaderRow}>
               <View style={styles.missionSticker}>
                 <Text style={styles.assignmentHeaderLabel}>
-                  YOUR CODING MISSION
+                  🎯 MISSION COMMAND DECK
                 </Text>
               </View>
               <View style={styles.missionRightActions}>
@@ -356,6 +458,7 @@ export default function LessonProblemPanel({
                     ]}
                     onPress={() => {
                       if (lessonEnrichment.guidedCode) {
+                        playKeyClick();
                         onLoadGuidedSteps(lessonEnrichment.guidedCode);
                       }
                     }}
@@ -371,30 +474,43 @@ export default function LessonProblemPanel({
               </View>
             </View>
 
-            {selectedLesson.assignment && (
+            <View style={styles.missionObjectiveCallout}>
+              <Text style={styles.missionObjectiveMicro}>
+                PRIMARY OBJECTIVE
+              </Text>
               <FormattedText
-                text={selectedLesson.assignment}
+                text={selectedLesson.assignment || selectedLesson.description}
                 style={styles.assignmentDescription}
               />
-            )}
+            </View>
 
             {selectedLesson.constraints &&
               selectedLesson.constraints.length > 0 && (
                 <View style={styles.checklistContainer}>
+                  <Text style={styles.checklistSectionTitle}>
+                    STEP-BY-STEP ACTION PLAN
+                  </Text>
                   {selectedLesson.constraints.map((c, i) => {
                     const isStepPassed = testResults?.[i]?.passed;
                     return (
-                      <View key={i} style={styles.missionRow}>
+                      <View
+                        key={i}
+                        style={[
+                          styles.missionRow,
+                          isStepPassed && styles.missionRowPassed,
+                        ]}
+                      >
                         <View
                           style={[
                             styles.missionBulletBox,
                             isStepPassed && {
                               backgroundColor: StudioColors.lime,
+                              borderColor: StudioColors.ink,
                             },
                           ]}
                         >
                           <Text style={styles.missionBullet}>
-                            {isStepPassed ? "✓" : i + 1}
+                            {isStepPassed ? "✓" : `0${i + 1}`}
                           </Text>
                         </View>
                         <FormattedText text={c} style={styles.missionText} />
@@ -403,6 +519,22 @@ export default function LessonProblemPanel({
                   })}
                 </View>
               )}
+
+            {selectedLesson.expected_output ? (
+              <View style={styles.targetOutputTerminal}>
+                <View style={styles.targetOutputHeader}>
+                  <Text style={styles.targetOutputHeaderLabel}>
+                    EXPECTED CONSOLE OUTPUT TARGET
+                  </Text>
+                  <Text style={styles.targetOutputMatchTag}>
+                    MUST MATCH EXACTLY
+                  </Text>
+                </View>
+                <Text style={styles.targetOutputCode}>
+                  {selectedLesson.expected_output}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           {selectedLesson.examples?.map((ex, i) => (
@@ -544,6 +676,198 @@ const getStyles = () =>
       backgroundColor: StudioColors.yellow,
       borderWidth: 1.5,
       borderColor: StudioColors.ink,
+    },
+    activeMissionTabItem: {
+      backgroundColor: StudioColors.lime,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+    },
+    missionHudStrip: {
+      backgroundColor: StudioColors.surface,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: StudioColors.ink,
+      borderLeftWidth: 7,
+      borderLeftColor: StudioColors.lime,
+      padding: 12,
+      marginBottom: 14,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 10,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    missionHudStripActive: {
+      borderLeftColor: StudioColors.yellow,
+      backgroundColor: StudioColors.bg,
+    },
+    missionHudLeft: {
+      flex: 1,
+      minWidth: 200,
+      gap: 4,
+    },
+    missionHudTopBadges: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap",
+    },
+    missionHudTagPill: {
+      backgroundColor: StudioColors.lime,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    missionHudTagText: {
+      color: StudioColors.ink,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.7,
+    },
+    missionHudXpPill: {
+      backgroundColor: StudioColors.yellow,
+      borderWidth: 1,
+      borderColor: StudioColors.ink,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    missionHudXpText: {
+      color: StudioColors.ink,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    missionHudGoalText: {
+      color: StudioColors.textPrimary,
+      fontSize: 13,
+      fontWeight: "800",
+      lineHeight: 18,
+    },
+    missionHudCtaBtn: {
+      backgroundColor: StudioColors.ink,
+      paddingHorizontal: 11,
+      paddingVertical: 7,
+      borderRadius: 6,
+    },
+    missionHudCtaText: {
+      color: StudioColors.lime,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.6,
+    },
+    jumpToMissionBannerBtn: {
+      backgroundColor: StudioColors.lime,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: StudioColors.ink,
+      padding: 16,
+      marginBottom: 16,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: 10,
+      ...HardShadow,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    jumpToMissionSubLabel: {
+      color: StudioColors.ink,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.8,
+      opacity: 0.8,
+    },
+    jumpToMissionMainText: {
+      color: StudioColors.ink,
+      fontSize: 14,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      marginTop: 2,
+    },
+    missionCommandTopBar: {
+      height: 6,
+      backgroundColor: StudioColors.lime,
+      borderRadius: 3,
+      borderWidth: 1,
+      borderColor: StudioColors.ink,
+      marginBottom: 12,
+    },
+    missionObjectiveCallout: {
+      backgroundColor: StudioColors.bg,
+      borderRadius: 8,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderLeftWidth: 4,
+      borderLeftColor: StudioColors.ink,
+      padding: 12,
+      marginBottom: 14,
+      gap: 4,
+    },
+    missionObjectiveMicro: {
+      color: StudioColors.textSecondary,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.8,
+    },
+    checklistSectionTitle: {
+      color: StudioColors.textSecondary,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.8,
+      marginBottom: 2,
+    },
+    missionRowPassed: {
+      backgroundColor: "#ECFDF5",
+      padding: 6,
+      borderRadius: 6,
+    },
+    targetOutputTerminal: {
+      marginTop: 14,
+      backgroundColor: StudioColors.codeBg,
+      borderRadius: 8,
+      borderWidth: 2,
+      borderColor: StudioColors.ink,
+      overflow: "hidden",
+    },
+    targetOutputHeader: {
+      backgroundColor: StudioColors.codeSurface,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderBottomWidth: 1,
+      borderBottomColor: StudioColors.codeBorder,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    targetOutputHeaderLabel: {
+      color: StudioColors.lime,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.8,
+    },
+    targetOutputMatchTag: {
+      color: StudioColors.yellow,
+      fontSize: 8.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    targetOutputCode: {
+      color: StudioColors.codeText,
+      fontSize: 13,
+      fontWeight: "800",
+      fontFamily: MonoFont,
+      padding: 12,
+      lineHeight: 20,
     },
     tabText: {
       color: StudioColors.textMuted,

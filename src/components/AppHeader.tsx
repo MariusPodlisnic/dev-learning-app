@@ -1,4 +1,5 @@
 import { Session } from "@supabase/supabase-js";
+import React, { useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   HardShadow,
@@ -8,6 +9,11 @@ import {
   ThemeMode,
 } from "../constants/theme";
 import { ViewMode } from "../types/lesson";
+import {
+  isSoundEnabled,
+  playKeyClick,
+  setSoundEnabled,
+} from "../utils/soundEffects";
 
 interface AppHeaderProps {
   viewMode: ViewMode;
@@ -43,12 +49,25 @@ export default function AppHeader({
   onSignOut,
 }: AppHeaderProps) {
   const styles = getStyles();
+  const [sfxOn, setSfxOn] = useState<boolean>(() => isSoundEnabled());
+
+  function handleSwitchMode(mode: ViewMode) {
+    playKeyClick();
+    onChangeViewMode(mode);
+  }
+
+  function handleToggleSfx() {
+    const next = !sfxOn;
+    setSfxOn(next);
+    setSoundEnabled(next);
+  }
+
   return (
     <View style={[styles.header, isCompactHeader && styles.headerCompact]}>
       <View style={styles.headerLeft}>
         <Pressable
           style={styles.brandGroup}
-          onPress={() => onChangeViewMode("roadmap")}
+          onPress={() => handleSwitchMode("roadmap")}
         >
           <View style={styles.brandIconBox}>
             <Text style={styles.brandIconText}>DEVLEARN</Text>
@@ -62,7 +81,7 @@ export default function AppHeader({
               styles.modeBtn,
               viewMode === "roadmap" && styles.modeBtnActive,
             ]}
-            onPress={() => onChangeViewMode("roadmap")}
+            onPress={() => handleSwitchMode("roadmap")}
           >
             <Text
               style={[
@@ -78,7 +97,7 @@ export default function AppHeader({
               styles.modeBtn,
               viewMode === "studio" && styles.modeBtnActive,
             ]}
-            onPress={() => onChangeViewMode("studio")}
+            onPress={() => handleSwitchMode("studio")}
           >
             <Text
               style={[
@@ -94,7 +113,7 @@ export default function AppHeader({
               styles.modeBtn,
               viewMode === "bughunt" && styles.modeBtnBugHuntActive,
             ]}
-            onPress={() => onChangeViewMode("bughunt")}
+            onPress={() => handleSwitchMode("bughunt")}
           >
             <Text
               style={[
@@ -110,7 +129,7 @@ export default function AppHeader({
               styles.modeBtn,
               viewMode === "blitz" && styles.modeBtnBlitzActive,
             ]}
-            onPress={() => onChangeViewMode("blitz")}
+            onPress={() => handleSwitchMode("blitz")}
           >
             <Text
               style={[
@@ -146,7 +165,22 @@ export default function AppHeader({
             styles.themeToggleBtn,
             pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
           ]}
-          onPress={onToggleTheme}
+          onPress={handleToggleSfx}
+        >
+          <Text style={styles.themeToggleBtnText}>
+            {sfxOn ? "🔊 SFX" : "🔇 MUTE"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.themeToggleBtn,
+            pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+          ]}
+          onPress={() => {
+            playKeyClick();
+            onToggleTheme();
+          }}
         >
           <Text style={styles.themeToggleBtnText}>
             {themeMode === "light" ? "☾ DARK" : "☀ LIGHT"}

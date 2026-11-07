@@ -14,6 +14,12 @@ import {
   MonoFont,
   StudioColors,
 } from "../constants/theme";
+import {
+  playErrorBuzz,
+  playKeyClick,
+  playSuccessChime,
+  playVictoryFanfare,
+} from "../utils/soundEffects";
 
 export type BlitzDeckKey =
   | "python_basics"
@@ -458,6 +464,7 @@ export default function SyntaxBlitzArena({
 
   function finishRound(finalXp: number) {
     setGameState("finished");
+    playVictoryFanfare();
     if (finalXp > 0) {
       onAwardBlitzXp(finalXp);
     }
@@ -499,6 +506,7 @@ export default function SyntaxBlitzArena({
 
     const isRight = idx === currentCard.correctIndex;
     if (isRight) {
+      playSuccessChime();
       const nextCombo = combo + 1;
       const nextMult = Math.min(4, Math.floor(nextCombo / 2) + 1);
       const earned = 10 * nextMult;
@@ -514,12 +522,14 @@ export default function SyntaxBlitzArena({
         setTimeout(() => setBonusSecondsToast(false), 1100);
       }
     } else {
+      playErrorBuzz();
       setCombo(0);
     }
   }
 
   function handleNextCard() {
     if (gameState !== "playing") return;
+    playKeyClick();
     setPickedOption(null);
     if (cardIndex + 1 >= deckQueue.length) {
       setDeckQueue((prev) => [...prev, ...shuffleCards(filteredPool)]);

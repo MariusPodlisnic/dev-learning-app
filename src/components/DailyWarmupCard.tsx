@@ -8,6 +8,11 @@ import {
   StudioColors,
 } from "../constants/theme";
 import { isLessonLockedForUser } from "../types/lesson";
+import {
+  playErrorBuzz,
+  playKeyClick,
+  playSuccessChime,
+} from "../utils/soundEffects";
 import { Lesson } from "./RoadmapTree";
 
 interface DailyWarmupCardProps {
@@ -66,8 +71,13 @@ export default function DailyWarmupCard({
 
   function handlePickOption(idx: number) {
     setSelectedOption(idx);
-    if (idx === quiz.correctIndex && !isClaimedToday) {
-      onClaimDailyWarmup(todayKey, 25);
+    if (idx === quiz.correctIndex) {
+      playSuccessChime();
+      if (!isClaimedToday) {
+        onClaimDailyWarmup(todayKey, 25);
+      }
+    } else {
+      playErrorBuzz();
     }
   }
 
