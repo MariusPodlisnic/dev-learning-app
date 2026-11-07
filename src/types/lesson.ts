@@ -40,7 +40,7 @@ export interface Lesson {
   hints?: string[];
 }
 
-export type ViewMode = "roadmap" | "studio" | "bughunt";
+export type ViewMode = "roadmap" | "studio" | "bughunt" | "blitz";
 export type ExplainStyle = "analogy" | "guide" | "cheatsheet";
 
 export const STORAGE_DRAFTS_KEY = "devlearn_code_drafts_v1";

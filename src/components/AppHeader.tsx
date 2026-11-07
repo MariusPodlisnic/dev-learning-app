@@ -105,6 +105,22 @@ export default function AppHeader({
               BUG HUNT
             </Text>
           </Pressable>
+          <Pressable
+            style={[
+              styles.modeBtn,
+              viewMode === "blitz" && styles.modeBtnBlitzActive,
+            ]}
+            onPress={() => onChangeViewMode("blitz")}
+          >
+            <Text
+              style={[
+                styles.modeBtnText,
+                viewMode === "blitz" && styles.modeBtnBlitzTextActive,
+              ]}
+            >
+              ⚡ SPEED BLITZ
+            </Text>
+          </Pressable>
         </View>
 
         {!isCompactHeader && (
@@ -333,6 +349,10 @@ const getStyles = () =>
     backgroundColor: StudioColors.coral,
     borderColor: StudioColors.ink,
   },
+  modeBtnBlitzActive: {
+    backgroundColor: StudioColors.lime,
+    borderColor: StudioColors.ink,
+  },
   modeBtnText: {
     color: StudioColors.textPrimary,
     fontSize: 11,
@@ -342,6 +362,10 @@ const getStyles = () =>
   },
   modeBtnTextActive: { color: StudioColors.ink },
   modeBtnBugHuntTextActive: {
+    color: StudioColors.ink,
+    fontWeight: "900",
+  },
+  modeBtnBlitzTextActive: {
     color: StudioColors.ink,
     fontWeight: "900",
   },

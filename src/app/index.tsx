@@ -23,6 +23,7 @@ import RoadmapTree from "../components/RoadmapTree";
 import StudioCodeEditor from "../components/StudioCodeEditor";
 import StudioSidebar from "../components/StudioSidebar";
 import SuccessModal from "../components/SuccessModal";
+import SyntaxBlitzArena from "../components/SyntaxBlitzArena";
 import {
   getLessonEnrichment,
   mergeCurriculumLessons,
@@ -498,6 +499,26 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleAwardBlitzXp(xpEarned: number) {
+    if (xpEarned <= 0) return;
+    const newXp = xpPoints + xpEarned;
+    const newStreak = streakCount === 0 ? 1 : streakCount;
+    setXpPoints(newXp);
+    setStreakCount(newStreak);
+
+    if (session) {
+      try {
+        await supabase.from("profiles").upsert({
+          id: session.user.id,
+          email: session.user.email,
+          xp_points: newXp,
+          streak_count: newStreak,
+          last_completed_at: new Date().toISOString(),
+        });
+      } catch (_e) {}
+    }
+  }
+
   async function handleClaimDailyWarmup(dateKey: string, bonusXp: number) {
     if (dailyCompletedDate === dateKey) return;
     const newXp = xpPoints + bonusXp;
@@ -607,6 +628,12 @@ export default function HomeScreen() {
           onAwardBugHuntXp={handleAwardBugHuntXp}
           solvedIncidents={solvedIncidents}
           renderHighlightedPython={renderHighlightedPython}
+        />
+      ) : viewMode === "blitz" ? (
+        <SyntaxBlitzArena
+          isPremium={isPremium}
+          onRequirePro={() => setShowPaywallModal(true)}
+          onAwardBlitzXp={handleAwardBlitzXp}
         />
       ) : (
         <View style={styles.content}>
