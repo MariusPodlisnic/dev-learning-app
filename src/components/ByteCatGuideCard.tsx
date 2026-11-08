@@ -1,8 +1,8 @@
+import { Image } from "expo-image";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   AppState,
-  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -18,6 +18,7 @@ import {
 import { readLocalJson, writeLocalJson } from "../types/lesson";
 import { playKeyClick } from "../utils/soundEffects";
 
+const BYTE_CAT_IMAGE = require("../../assets/images/byte-cat.jpg");
 const STORAGE_BYTECAT_QUOTE_KEY = "devlearn_bytecat_quote_state_v1";
 
 export interface ByteCatQuote {
@@ -177,11 +178,12 @@ export default function ByteCatGuideCard({
     (playAudio = false) => {
       if (playAudio) {
         playKeyClick();
+        triggerBounce();
       }
-      triggerBounce();
       setQuoteIndex((prev) => {
         // Pick a new quote index different from the current one
-        const offset = 1 + Math.floor(Math.random() * (BYTE_CAT_QUOTES.length - 1));
+        const offset =
+          1 + Math.floor(Math.random() * (BYTE_CAT_QUOTES.length - 1));
         const nextIdx = (prev + offset) % BYTE_CAT_QUOTES.length;
         writeLocalJson(STORAGE_BYTECAT_QUOTE_KEY, {
           lastIndex: nextIdx,
@@ -211,6 +213,21 @@ export default function ByteCatGuideCard({
 
   // Also advance to a fresh quote whenever the user reopens/foregrounds the app or tab
   useEffect(() => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          advanceToFreshQuote(false);
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      return () => {
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange,
+        );
+      };
+    }
+
     const sub = AppState.addEventListener("change", (nextAppState) => {
       if (
         appStateRef.current.match(/inactive|background/) &&
@@ -221,28 +238,8 @@ export default function ByteCatGuideCard({
       appStateRef.current = nextAppState;
     });
 
-    let handleVisibilityChange: (() => void) | null = null;
-    if (Platform.OS === "web" && typeof document !== "undefined") {
-      handleVisibilityChange = () => {
-        if (document.visibilityState === "visible") {
-          advanceToFreshQuote(false);
-        }
-      };
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-    }
-
     return () => {
       sub.remove();
-      if (
-        Platform.OS === "web" &&
-        typeof document !== "undefined" &&
-        handleVisibilityChange
-      ) {
-        document.removeEventListener(
-          "visibilitychange",
-          handleVisibilityChange,
-        );
-      }
     };
   }, [advanceToFreshQuote]);
 
@@ -273,9 +270,10 @@ export default function ByteCatGuideCard({
           ]}
         >
           <Image
-            source={require("../../assets/images/byte-cat.jpg")}
+            source={BYTE_CAT_IMAGE}
             style={styles.avatarImage}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
           />
           <View style={styles.liveDotBadge}>
             <View style={styles.liveDot} />
@@ -394,8 +392,8 @@ const styles = StyleSheet.create({
     ...HardShadowSm,
   },
   avatarImage: {
-    width: "100%",
-    height: "100%",
+    width: 108,
+    height: 108,
   },
   liveDotBadge: {
     position: "absolute",
