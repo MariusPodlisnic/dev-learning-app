@@ -21,6 +21,7 @@ import {
   isProTrackPreviewLesson,
 } from "../types/lesson";
 import { playCrtChannelSwitch, playKeyClick } from "../utils/soundEffects";
+import ByteCatGuideCard from "./ByteCatGuideCard";
 import DailyWarmupCard from "./DailyWarmupCard";
 
 export interface Lesson {
@@ -492,7 +493,7 @@ export default function RoadmapTree({
                     {crtChannel === 1
                       ? "SYS_TELEMETRY.SH"
                       : crtChannel === 2
-                        ? "BIT_BOT_PET.EXE"
+                        ? "BYTE_CAT_OS.EXE"
                         : activeTrack === "python_basics"
                           ? "PYTHON_KERNEL.PY"
                           : activeTrack === "algorithms"
@@ -572,15 +573,15 @@ export default function RoadmapTree({
                 {crtChannel === 2 && (
                   <View style={styles.crtCodeBlock}>
                     <Text style={styles.crtCodeLineViolet}>
-                      {"  /\\_/\\   BIT-BOT v2.4"}
+                      {"  /\\_/\\   BYTE-CAT v1.0"}
                     </Text>
                     <Text style={styles.crtCodeLineLime}>
                       {completedCount > 0
-                        ? ' ( ⚡_⚡ )  "CRUSHING IT!"'
-                        : ' ( ^ _ ^ )  "FEED ME CODE!"'}
+                        ? ' ( ★_★ )  "PURR-FECT CODE!"'
+                        : ' ( ^._.^ ) "LET\'S PAW-GRAM!"'}
                     </Text>
                     <Text style={styles.crtCodeLineYellow}>
-                      {"  > ^ <   [TAP CRT ↻]"}
+                      {"  { _ }   [TAP CRT ↻]"}
                     </Text>
                   </View>
                 )}
@@ -608,6 +609,17 @@ export default function RoadmapTree({
             </View>
           </Pressable>
         </View>
+
+        {/* Byte-Cat Main Menu Guide & Rotating Inspirational Quote */}
+        <ByteCatGuideCard
+          completedCount={completedCount}
+          totalCount={trackLessons.length}
+          activeTrackLabel={currentTrackMeta.label}
+          nextLessonTitle={nextUpLesson?.title}
+          onPressNextLesson={
+            nextUpLesson ? () => onSelectLesson(nextUpLesson) : undefined
+          }
+        />
 
         {/* Tactile Color-Blocked Track Selector */}
         <View style={styles.trackTabsBar}>
