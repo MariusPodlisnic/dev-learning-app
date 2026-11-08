@@ -15,6 +15,7 @@ import Auth from "../components/Auth";
 import BugHuntArena from "../components/BugHuntArena";
 import { renderHighlightedPython } from "../components/FormattedText";
 import LessonProblemPanel from "../components/LessonProblemPanel";
+import MinimalPcbBackground from "../components/MinimalPcbBackground";
 import PaywallModal from "../components/PaywallModal";
 import ProfileStatsModal, {
   getDeveloperRank,
@@ -589,6 +590,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <MinimalPcbBackground />
       <AppHeader
         viewMode={viewMode}
         onChangeViewMode={setViewMode}
@@ -877,14 +879,18 @@ export default function HomeScreen() {
 
 const getStyles = () =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: StudioColors.bg },
+    container: {
+      flex: 1,
+      backgroundColor: StudioColors.bg,
+      position: "relative",
+    },
     content: { flex: 1, flexDirection: "row", zIndex: 1, position: "relative" },
     workspaceContainer: {
       flex: 1,
       paddingHorizontal: 18,
       paddingTop: 10,
       paddingBottom: 12,
-      backgroundColor: StudioColors.bg,
+      backgroundColor: "transparent",
       overflow: "hidden",
     },
     studioTopBar: {

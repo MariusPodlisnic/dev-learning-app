@@ -931,7 +931,7 @@ export default function SyntaxBlitzArena({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: StudioColors.bg,
+    backgroundColor: "transparent",
   },
   content: {
     paddingVertical: 28,

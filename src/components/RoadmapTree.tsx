@@ -423,25 +423,6 @@ export default function RoadmapTree({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Decorative Upper-Right Neo-Brutalist Blueprint & Geometric Arcade Backdrop */}
-      <View style={styles.topRightBackdrop} pointerEvents="none">
-        <View style={styles.backdropOrbitOuter} />
-        <View style={styles.backdropOrbitMiddle} />
-        <View style={styles.backdropOrbitInner} />
-        <View
-          style={[
-            styles.backdropAccentDiamond,
-            { backgroundColor: currentTrackMeta.stickerBg },
-          ]}
-        />
-        <View style={styles.backdropCrosshairTop}>
-          <Text style={styles.backdropCrosshairText}>+ SYS_GRID // 01</Text>
-        </View>
-        <View style={styles.backdropCrosshairBottom}>
-          <Text style={styles.backdropCrosshairText}>+ 60HZ_SYNC</Text>
-        </View>
-      </View>
-
       {/* Top Neo-Brutalist Track Header & Selector */}
       <View style={styles.headerSection}>
         <View style={styles.editorialTopRow}>
@@ -1153,7 +1134,7 @@ export default function RoadmapTree({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: StudioColors.bg,
+    backgroundColor: "transparent",
     position: "relative",
   },
   content: {
@@ -1162,76 +1143,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: 72,
     position: "relative",
-  },
-  topRightBackdrop: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    width: 340,
-    height: 300,
-    zIndex: 0,
-    overflow: "hidden",
-  },
-  backdropOrbitOuter: {
-    position: "absolute",
-    top: -90,
-    right: -90,
-    width: 340,
-    height: 340,
-    borderRadius: 170,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    borderColor: StudioColors.borderSubtle,
-  },
-  backdropOrbitMiddle: {
-    position: "absolute",
-    top: -45,
-    right: -45,
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    borderWidth: 1.5,
-    borderColor: StudioColors.borderSubtle,
-  },
-  backdropOrbitInner: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    borderColor: StudioColors.borderSubtle,
-  },
-  backdropAccentDiamond: {
-    position: "absolute",
-    top: 34,
-    right: 42,
-    width: 22,
-    height: 22,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: StudioColors.ink,
-    transform: [{ rotate: "45deg" }],
-    opacity: 0.85,
-  },
-  backdropCrosshairTop: {
-    position: "absolute",
-    top: 18,
-    right: 90,
-  },
-  backdropCrosshairBottom: {
-    position: "absolute",
-    top: 155,
-    right: 22,
-  },
-  backdropCrosshairText: {
-    color: StudioColors.textDim,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 1,
   },
   headerSection: {
     width: "100%",

@@ -789,7 +789,7 @@ export default function BugHuntArena({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: StudioColors.bg,
+    backgroundColor: "transparent",
   },
   // LOBBY STYLES
   lobbyContent: {
