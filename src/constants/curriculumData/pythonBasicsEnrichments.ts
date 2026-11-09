@@ -540,4 +540,147 @@ print(get_user_theme({"theme": "dark"}), get_user_theme({}))`,
         'Because `"theme"` is not in `{}`, `.get()` returns the fallback value `"light"`!',
     },
   },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 17,
+    matchKeywords: ["f-string", "badge", "formatter", "level"],
+    realWorldUse:
+      'Used in notifications, receipts, and player profiles to plug live variables into text (like `"Welcome back, Aria!"`).',
+    analogyTitle: "Fill-in-the-Blank Templates with f-strings",
+    analogyText:
+      'An **f-string** starts with the letter **`f`** right before the opening quote. Anything inside curly braces **`{name}`** automatically gets replaced with that variable\'s value!',
+    cheatSheet: `name = "Aria"
+level = 5
+
+# Put 'f' before the quote and {variable} inside:
+badge = f"Player {name} - Level {level}"
+print(badge)  # "Player Aria - Level 5"`,
+    commonPitfall: {
+      title: "Forgetting the letter 'f' before the opening quote",
+      wrongCode: 'return "Player {name} - Level {level}"  # Prints literal {name}!',
+      rightCode: 'return f"Player {name} - Level {level}" # Plugs in values!',
+      explanation:
+        "Without the `f` right before the first quote, Python treats `{name}` as plain text instead of a variable.",
+    },
+    guidedCode: `def make_badge(name, level):
+    # 👉 Return the formatted f-string:
+    return f"Player {name} - Level {level}"
+
+print(make_badge("Aria", 5))`,
+    quiz: {
+      question: 'If `coins = 10`, what does `f"Coins: {coins}"` produce?',
+      options: ['"Coins: 10"', '"Coins: {coins}"', "SyntaxError"],
+      correctIndex: 0,
+      explanation:
+        "The `f` before the quote tells Python to replace `{coins}` with its value `10`!",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 18,
+    matchKeywords: ["split", "sentence", "word", "counter"],
+    realWorldUse:
+      "Used in Google Docs, Notion, and social post editors to count how many words you have typed.",
+    analogyTitle: "Chopping a Sentence into Words with .split()",
+    analogyText:
+      'Calling **`sentence.split()`** chops a string wherever there is a space and hands back a list of words. Wrapping that in **`len(...)`** tells you how many words there are!',
+    cheatSheet: `sentence = "Python is super fun"
+
+# 1. Chop into a list of words:
+words = sentence.split()  # ['Python', 'is', 'super', 'fun']
+
+# 2. Count the words:
+print(len(words))         # 4`,
+    commonPitfall: {
+      title: "Calling len(sentence) instead of len(sentence.split())",
+      wrongCode: "return len(sentence)          # Counts letters & spaces (19)!",
+      rightCode: "return len(sentence.split())  # Counts words (4)!",
+      explanation:
+        "`len(sentence)` counts every single character, whereas `len(sentence.split())` counts the words.",
+    },
+    guidedCode: `def count_words(sentence):
+    # 👉 Split the sentence into words and return the count:
+    return len(sentence.split())
+
+print(count_words("Python is super fun"))`,
+    quiz: {
+      question: 'What does `"one two three".split()` return?',
+      options: [
+        '["one", "two", "three"]',
+        "3",
+        '"one-two-three"',
+      ],
+      correctIndex: 0,
+      explanation:
+        "`.split()` breaks the string at spaces and returns a list of words!",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 19,
+    matchKeywords: ["membership", "backpack", "in", "inventory"],
+    realWorldUse:
+      "Used in games to check if a player has a key in their inventory, or in apps to check if an email is on the allowlist.",
+    analogyTitle: "Instant List Check with the 'in' Keyword",
+    analogyText:
+      'Instead of writing a loop to check every slot in a list, Python lets you ask **`item in backpack`** — it immediately returns `True` if found, or `False` if not!',
+    cheatSheet: `backpack = ["torch", "map", "potion"]
+
+print("map" in backpack)  # True
+print("key" in backpack)  # False`,
+    commonPitfall: {
+      title: "Writing backpack in item (backwards order)",
+      wrongCode: "return backpack in item  # Backwards!",
+      rightCode: "return item in backpack  # Checks if item is inside backpack!",
+      explanation:
+        "Always put the single `item` you are looking for on the left, and the `backpack` list on the right: `item in backpack`.",
+    },
+    guidedCode: `def has_item(backpack, item):
+    # 👉 Check if item is inside backpack using 'in':
+    return item in backpack
+
+bag = ["torch", "map", "potion"]
+print(has_item(bag, "map"), has_item(bag, "key"))`,
+    quiz: {
+      question: 'What does `"cat" in ["dog", "cat", "bird"]` return?',
+      options: ["True", "False", "1"],
+      correctIndex: 0,
+      explanation:
+        '`"cat"` is inside the list, so `"cat" in [...]` returns `True`!',
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 20,
+    matchKeywords: ["round", "rating", "decimal", "star"],
+    realWorldUse:
+      "Used in App Store ratings, Uber driver scores, and checkout totals to display clean decimals like `4.7` instead of `4.6666667`.",
+    analogyTitle: "Polishing Long Decimals with round()",
+    analogyText:
+      "Python's built-in **`round(number, digits)`** takes a decimal number and rounds it to `digits` decimal places!",
+    cheatSheet: `rating = 4.66667
+
+# Round to 1 decimal place:
+clean = round(rating, 1)
+print(clean)  # 4.7`,
+    commonPitfall: {
+      title: "Calling round(rating) without the second number (1)",
+      wrongCode: "return round(rating)     # Rounds to whole integer 5!",
+      rightCode: "return round(rating, 1)  # Rounds to 1 decimal place (4.7)!",
+      explanation:
+        "Pass `1` as the second argument (`round(rating, 1)`) so Python keeps 1 digit after the decimal point.",
+    },
+    guidedCode: `def format_rating(rating):
+    # 👉 Round rating to 1 decimal place using round(rating, 1):
+    return round(rating, 1)
+
+print(format_rating(4.66667))`,
+    quiz: {
+      question: "What does `round(3.86, 1)` return?",
+      options: ["3.9", "3", "3.8"],
+      correctIndex: 0,
+      explanation:
+        "`3.86` rounded to 1 decimal place rounds up to `3.9`!",
+    },
+  },
 ];

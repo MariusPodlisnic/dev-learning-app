@@ -412,4 +412,137 @@ print(has_vip_pass(["Aria", "Kai", "Nova"], "Kai"), has_vip_pass(["Aria", "Kai"]
       explanation: 'Since `"Kai"` is inside the list, `in` returns `True`!',
     },
   },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 17,
+    matchKeywords: ["palindrome", "reverse", "word"],
+    realWorldUse:
+      "Used in DNA sequence matching, text processing, and classic coding interviews to test string reversal.",
+    analogyTitle: "Mirror-Image Words with [::-1]",
+    analogyText:
+      'In Python, **`word[::-1]`** reads a string from right to left (backwards). If `word == word[::-1]`, the word is a palindrome!',
+    cheatSheet: `word = "level"
+reversed_word = word[::-1]  # "level"
+
+print(word == reversed_word)  # True`,
+    commonPitfall: {
+      title: "Writing word[:-1] (drops last letter) instead of word[::-1] (reverses)",
+      wrongCode: "return word == word[:-1]   # Only one colon!",
+      rightCode: "return word == word[::-1]  # Two colons [::-1] reverses!",
+      explanation:
+        "Make sure to include TWO colons inside `[::-1]` so Python steps backwards through the whole word.",
+    },
+    guidedCode: `def is_palindrome(word):
+    # 👉 Compare word to its reversed slice word[::-1]:
+    return word == word[::-1]
+
+print(is_palindrome("level"), is_palindrome("code"))`,
+    quiz: {
+      question: 'What does `"abc"[::-1]` produce in Python?',
+      options: ['"cba"', '"ab"', '"abc"'],
+      correctIndex: 0,
+      explanation: "`[::-1]` reverses the string from end to start!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 18,
+    matchKeywords: ["unique", "duplicate", "username"],
+    realWorldUse:
+      "Used in signup forms and database imports to quickly verify that no two users share the same username.",
+    analogyTitle: "Comparing List Length vs. Set Length",
+    analogyText:
+      "A `set` automatically deletes duplicates. So if **`len(names) == len(set(names))`**, no duplicates were deleted—meaning every item was unique!",
+    cheatSheet: `names = ["aria", "kai"]
+is_unique = len(names) == len(set(names))
+print(is_unique)  # True`,
+    commonPitfall: {
+      title: "Comparing names == set(names) directly instead of their lengths",
+      wrongCode: "return names == set(names)  # Always False (list != set)!",
+      rightCode: "return len(names) == len(set(names))  # Compares counts!",
+      explanation:
+        "A list and a set are different types, so compare their sizes using `len(names) == len(set(names))`.",
+    },
+    guidedCode: `def all_unique(names):
+    # 👉 Compare len(names) to len(set(names)):
+    return len(names) == len(set(names))
+
+print(all_unique(["aria", "kai"]), all_unique(["aria", "aria"]))`,
+    quiz: {
+      question: 'If `items = ["a", "a", "b"]`, what is `len(set(items))`?',
+      options: ["2", "3", "1"],
+      correctIndex: 0,
+      explanation:
+        '`set(items)` keeps only `{"a", "b"}`, so its length is `2`!',
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 19,
+    matchKeywords: ["abs", "absolute", "temperature", "swing", "distance"],
+    realWorldUse:
+      "Used in weather apps, GPS distance calculators, and game physics where distance is always a positive number.",
+    analogyTitle: "Always-Positive Distance with abs()",
+    analogyText:
+      "Whether you walk from mile 5 to mile 15 or from mile 15 to mile 5, you walked `10` miles. **`abs(a - b)`** turns negative numbers positive!",
+    cheatSheet: `print(abs(15 - 25))  # 10
+print(abs(25 - 15))  # 10`,
+    commonPitfall: {
+      title: "Subtracting a - b without wrapping it in abs()",
+      wrongCode: "return a - b       # Returns -10 when b is bigger!",
+      rightCode: "return abs(a - b)  # Always returns positive +10!",
+      explanation:
+        "`abs()` strips away any negative sign so the distance is always positive.",
+    },
+    guidedCode: `def temp_swing(a, b):
+    # 👉 Return the positive difference using abs(a - b):
+    return abs(a - b)
+
+print(temp_swing(15, 25))`,
+    quiz: {
+      question: "What does `abs(-42)` return?",
+      options: ["42", "-42", "0"],
+      correctIndex: 0,
+      explanation:
+        "`abs()` returns the non-negative magnitude of a number (`42`)!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 20,
+    matchKeywords: ["zip", "scoreboard", "pair"],
+    realWorldUse:
+      "Used to combine spreadsheet columns (like a column of student names and a column of grades) into a lookup dictionary.",
+    analogyTitle: "Zipping Two Lists Together with dict(zip(...))",
+    analogyText:
+      "Just like zipping up a jacket, **`zip(names, scores)`** pairs item 0 with item 0, item 1 with item 1, and **`dict(...)`** turns them into a dictionary!",
+    cheatSheet: `names = ["Aria", "Kai"]
+scores = [100, 85]
+
+board = dict(zip(names, scores))
+print(board)  # {'Aria': 100, 'Kai': 85}`,
+    commonPitfall: {
+      title: "Returning zip(names, scores) without wrapping it in dict(...)",
+      wrongCode: "return zip(names, scores)        # Returns a <zip object>!",
+      rightCode: "return dict(zip(names, scores))  # Returns a clean dictionary!",
+      explanation:
+        "`zip()` creates a lazy iterator; wrapping it in `dict(...)` builds the actual dictionary.",
+    },
+    guidedCode: `def build_scoreboard(names, scores):
+    # 👉 Pair names and scores into a dictionary with dict(zip(names, scores)):
+    return dict(zip(names, scores))
+
+print(build_scoreboard(["Aria", "Kai"], [100, 85]))`,
+    quiz: {
+      question: 'What does `dict(zip(["a", "b"], [1, 2]))` return?',
+      options: [
+        "{'a': 1, 'b': 2}",
+        "['a', 'b', 1, 2]",
+        "{1: 'a', 2: 'b'}",
+      ],
+      correctIndex: 0,
+      explanation:
+        "The first list becomes the keys and the second list becomes the values!",
+    },
+  },
 ];

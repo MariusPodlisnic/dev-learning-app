@@ -451,4 +451,225 @@ except Exception as e:
       'Replace `return ""` with `return settings.get("theme", "light")`.',
     ],
   },
+  {
+    id: "exp-py-17",
+    title: "F-Strings: Player Badge Formatter",
+    track: "python_basics",
+    category: "STRING FORMATTING",
+    difficulty: "Easy",
+    tree_row: 14,
+    lesson_order: 17,
+    is_free: true,
+    description:
+      'Plug variables directly into a text string using an f-string: f"Player {name} - Level {level}".',
+    content:
+      'Instead of gluing strings and numbers together with `+`, modern Python uses **f-strings**! Put the letter **`f`** right before the opening quote, and place any variable inside curly braces **`{ }`**:\n\n```python\nname = "Aria"\nlevel = 5\nbadge = f"Player {name} - Level {level}"\nprint(badge)  # "Player Aria - Level 5"\n```',
+    assignment:
+      'Complete `make_badge(name, level)` so it returns `f"Player {name} - Level {level}"`.',
+    constraints: [
+      'Use an f-string: `f"Player {name} - Level {level}"`',
+      "Return the formatted string",
+    ],
+    examples: [
+      {
+        input: 'name = "Aria", level = 5',
+        output: "Player Aria - Level 5",
+        explanation:
+          "{name} becomes Aria and {level} becomes 5 inside the f-string.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def make_badge(name, level):
+    # 👉 Write 1 line: return f"Player {name} - Level {level}"
+    return ""
+
+print(make_badge("Aria", 5))`,
+    expected_output: "Player Aria - Level 5",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = make_badge("Aria", 5)
+    results.append({"id": 1, "input": "name='Aria', level=5", "expected": "Player Aria - Level 5", "actual": str(r1), "passed": r1 == "Player Aria - Level 5"})
+    r2 = make_badge("Kai", 12)
+    results.append({"id": 2, "input": "name='Kai', level=12", "expected": "Player Kai - Level 12", "actual": str(r2), "passed": r2 == "Player Kai - Level 12"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "{name}", value: '"Aria"', type: "str", address: "0x10" },
+      { label: "{level}", value: "5", type: "int", address: "0x14" },
+      {
+        label: "f-string",
+        value: '"Player Aria - Level 5"',
+        type: "str",
+        address: "0x18",
+      },
+    ],
+    hints: [
+      'Replace `return ""` with `return f"Player {name} - Level {level}"`.',
+    ],
+  },
+  {
+    id: "exp-py-18",
+    title: "Splitting Text: Sentence Word Counter",
+    track: "python_basics",
+    category: "STRING TOOLS",
+    difficulty: "Easy",
+    tree_row: 14,
+    lesson_order: 18,
+    is_free: true,
+    description:
+      "Break a sentence into a list of words with .split() and count them with len().",
+    content:
+      'How do writing apps count how many words you typed?\n\n1. **`sentence.split()`** chops a sentence at every space and returns a list of words.\n2. **`len(...)`** counts how many words are in that list!\n\n```python\ntext = "Python is super fun"\nwords = text.split()   # [\'Python\', \'is\', \'super\', \'fun\']\nprint(len(words))      # 4\n```',
+    assignment:
+      "Complete `count_words(sentence)` so it splits `sentence` into words and returns how many words there are (`len(sentence.split())`).",
+    constraints: [
+      "Use `sentence.split()` to break the sentence into words",
+      "Wrap it in `len(sentence.split())` and return the count",
+    ],
+    examples: [
+      {
+        input: 'sentence = "Python is super fun"',
+        output: "4",
+        explanation:
+          '.split() produces 4 words: ["Python", "is", "super", "fun"].',
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def count_words(sentence):
+    # 👉 Write 1 line: return len(sentence.split())
+    return 0
+
+print(count_words("Python is super fun"))`,
+    expected_output: "4",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = count_words("Python is super fun")
+    results.append({"id": 1, "input": "'Python is super fun'", "expected": "4", "actual": str(r1), "passed": r1 == 4})
+    r2 = count_words("Hello world")
+    results.append({"id": 2, "input": "'Hello world'", "expected": "2", "actual": str(r2), "passed": r2 == 2})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: 'word 0: "Python"', value: "count = 1", address: "split[0]" },
+      { label: 'word 1: "is"', value: "count = 2", address: "split[1]" },
+      { label: 'word 2: "super"', value: "count = 3", address: "split[2]" },
+      { label: 'word 3: "fun"', value: "len = 4 ✓", address: "split[3]" },
+    ],
+    hints: ["Replace `return 0` with `return len(sentence.split())`."],
+  },
+  {
+    id: "exp-py-19",
+    title: "List Membership: Backpack Item Check",
+    track: "python_basics",
+    category: "BOOLEAN LOGIC",
+    difficulty: "Easy",
+    tree_row: 15,
+    lesson_order: 19,
+    is_free: true,
+    description:
+      "Check if an item is inside a player's backpack list in one line using Python's 'in' keyword.",
+    content:
+      'Want to check if a player has a `"map"` inside their `backpack` list? Just ask Python in plain English using **`in`**:\n\n```python\nbackpack = ["torch", "map", "potion"]\nprint("map" in backpack)  # True\nprint("key" in backpack)  # False\n```',
+    assignment:
+      "Complete `has_item(backpack, item)` so it returns `True` if `item` is inside `backpack`, or `False` otherwise.",
+    constraints: [
+      "Use `item in backpack`",
+      "Return the boolean result",
+    ],
+    examples: [
+      {
+        input: 'backpack = ["torch", "map", "potion"], item = "map"',
+        output: "True False",
+        explanation: '"map" is in the list (True); "key" is not (False).',
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def has_item(backpack, item):
+    # 👉 Write 1 line: return item in backpack
+    return False
+
+bag = ["torch", "map", "potion"]
+print(has_item(bag, "map"), has_item(bag, "key"))`,
+    expected_output: "True False",
+    hidden_tests: `import json
+results = []
+try:
+    bag = ["torch", "map", "potion"]
+    r1 = has_item(bag, "map")
+    results.append({"id": 1, "input": "item = 'map'", "expected": "True", "actual": str(r1), "passed": r1 is True})
+    r2 = has_item(bag, "key")
+    results.append({"id": 2, "input": "item = 'key'", "expected": "False", "actual": str(r2), "passed": r2 is False})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: '"torch"', value: "skip", address: "idx 0" },
+      { label: '"map"', value: "FOUND -> True 🎒", address: "idx 1" },
+      { label: '"potion"', value: "in backpack", address: "idx 2" },
+    ],
+    hints: ["Replace `return False` with `return item in backpack`."],
+  },
+  {
+    id: "exp-py-20",
+    title: "Rounding Numbers: Clean Star Rating",
+    track: "python_basics",
+    category: "MATH & NUMBERS",
+    difficulty: "Easy",
+    tree_row: 16,
+    lesson_order: 20,
+    is_free: true,
+    description:
+      "Round a messy decimal average like 4.66667 to 1 clean decimal place (4.7) using round(rating, 1).",
+    content:
+      "When you average app reviews, you often get long decimals like `4.6666667`. Python's built-in **`round(number, digits)`** rounds it to the exact number of decimal places you want:\n\n```python\nrating = 4.66667\nclean = round(rating, 1)\nprint(clean)  # 4.7\n```",
+    assignment:
+      "Complete `format_rating(rating)` so it rounds `rating` to `1` decimal place using `round(rating, 1)`.",
+    constraints: [
+      "Use `round(rating, 1)` to round to 1 decimal place",
+      "Return the rounded number",
+    ],
+    examples: [
+      {
+        input: "rating = 4.66667",
+        output: "4.7",
+        explanation: "4.66667 rounded to 1 decimal place is 4.7.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def format_rating(rating):
+    # 👉 Write 1 line: return round(rating, 1)
+    return 0.0
+
+print(format_rating(4.66667))`,
+    expected_output: "4.7",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = format_rating(4.66667)
+    results.append({"id": 1, "input": "4.66667", "expected": "4.7", "actual": str(r1), "passed": r1 == 4.7})
+    r2 = format_rating(3.14159)
+    results.append({"id": 2, "input": "3.14159", "expected": "3.1", "actual": str(r2), "passed": r2 == 3.1})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "raw float", value: "4.66667", type: "float", address: "0x10" },
+      { label: "digits", value: "1", type: "int", address: "0x14" },
+      {
+        label: "round(rating, 1)",
+        value: "4.7 ⭐",
+        type: "float",
+        address: "0x18",
+      },
+    ],
+    hints: ["Replace `return 0.0` with `return round(rating, 1)`."],
+  },
 ];

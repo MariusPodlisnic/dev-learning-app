@@ -659,6 +659,138 @@ export const LESSON_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 17,
+    tools: [
+      {
+        toolName: 'f"..." — Formatted String Literals (f-strings)',
+        badge: "STRING FORMATTING",
+        purpose:
+          "Embeds variables and expressions directly inside a string using curly braces { }.",
+        syntaxPattern: 'f"Text {variable_1} more text {variable_2}"',
+        variations: [
+          {
+            label: "1. Plug variables directly into text",
+            code: 'name = "Aria"\nlevel = 5\nprint(f"Player {name} - Level {level}")',
+            output: "Player Aria - Level 5",
+            note: "Put f before the opening quote; Python automatically converts numbers like 5 into text.",
+          },
+          {
+            label: "2. Do math or call methods inside { }",
+            code: 'score = 40\nprint(f"Double score: {score * 2}")',
+            output: "Double score: 80",
+            note: "You can put any valid Python expression inside the curly braces { }.",
+          },
+          {
+            label: "3. Format decimals inside an f-string",
+            code: 'price = 9.5\nprint(f"Total: ${price:.2f}")',
+            output: "Total: $9.50",
+            note: "Adding :.2f inside the braces formats a number to 2 decimal places.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 18,
+    tools: [
+      {
+        toolName: ".split() — String-to-List Splitter",
+        badge: "STRING METHOD",
+        purpose:
+          "Breaks a string into a list of smaller strings (words or tokens).",
+        syntaxPattern: "text.split(optional_separator)",
+        variations: [
+          {
+            label: "1. Split a sentence on whitespace (default)",
+            code: 'words = "Python is super fun".split()\nprint(words)',
+            output: "['Python', 'is', 'super', 'fun']",
+            note: "With empty parentheses (), .split() cuts at any space and ignores extra spaces.",
+          },
+          {
+            label: "2. Count words by combining len() and .split()",
+            code: 'print(len("Python is super fun".split()))',
+            output: "4",
+            note: ".split() creates a list of 4 words, and len() returns 4.",
+          },
+          {
+            label: "3. Split on a specific character (like a comma)",
+            code: 'print("red,green,blue".split(","))',
+            output: "['red', 'green', 'blue']",
+            note: 'Pass "," to split CSV values or "-" to split hyphenated tags.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 19,
+    tools: [
+      {
+        toolName: "in / not in — Membership Operators",
+        badge: "BOOLEAN OPERATOR",
+        purpose:
+          "Checks whether an item exists inside a list, string, set, or dictionary.",
+        syntaxPattern: "target_item in collection",
+        variations: [
+          {
+            label: "1. Check if an item is inside a list",
+            code: 'bag = ["torch", "map", "potion"]\nprint("map" in bag)',
+            output: "True",
+            note: "Returns True immediately as soon as it finds a matching item.",
+          },
+          {
+            label: "2. Check if an item is NOT in a list",
+            code: 'print("key" not in ["torch", "map"])',
+            output: "True",
+            note: "`not in` returns True when the item is absent from the collection.",
+          },
+          {
+            label: "3. Check if a word is inside a larger string",
+            code: 'print("err" in "error_log.txt")',
+            output: "True",
+            note: "`in` also works on strings to check if a substring appears anywhere inside!",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 20,
+    tools: [
+      {
+        toolName: "round(number, ndigits) — Decimal Rounding",
+        badge: "BUILT-IN MATH",
+        purpose:
+          "Rounds a floating-point number to a chosen number of decimal places or to the nearest integer.",
+        syntaxPattern: "round(number, decimal_places)",
+        variations: [
+          {
+            label: "1. Round to 1 decimal place",
+            code: "print(round(4.66667, 1))",
+            output: "4.7",
+            note: "The second argument (1) tells Python to keep 1 digit after the decimal point.",
+          },
+          {
+            label: "2. Round currency to 2 decimal places",
+            code: "print(round(19.995, 2))",
+            output: "20.0",
+            note: "Pass 2 as the second argument when rounding prices or percentages.",
+          },
+          {
+            label: "3. Round to the nearest whole integer",
+            code: "print(round(4.66667))",
+            output: "5",
+            note: "Omitting the second argument rounds to the closest whole int.",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export function getLessonToolbox(lesson: {

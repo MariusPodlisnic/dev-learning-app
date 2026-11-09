@@ -384,4 +384,136 @@ print(needs_extra_worker(["j1", "j2"]), needs_extra_worker(["j1", "j2", "j3", "j
       explanation: "`len(queue)` returns the number of items in `queue`, and `> 5` checks if it exceeds 5!",
     },
   },
+  {
+    matchTrack: "system_design",
+    matchOrder: 17,
+    matchKeywords: ["api key", "auth", "header", "valid_keys"],
+    realWorldUse:
+      "Used by Stripe, OpenAI, and GitHub APIs to verify that a request includes an active API key before running.",
+    analogyTitle: "Checking the VIP Wristband at the Door",
+    analogyText:
+      "An API Gateway keeps a list of active `valid_keys`. When a request arrives with `api_key`, **`api_key in valid_keys`** checks if that wristband is on the list!",
+    cheatSheet: `def is_valid_api_key(valid_keys, api_key):
+    return api_key in valid_keys`,
+    commonPitfall: {
+      title: "Comparing api_key == valid_keys instead of using 'in'",
+      wrongCode: "return api_key == valid_keys  # Compares string to entire list!",
+      rightCode: "return api_key in valid_keys  # Checks membership inside list!",
+      explanation:
+        "Use `in` to check whether a single key string exists inside the `valid_keys` collection.",
+    },
+    guidedCode: `def is_valid_api_key(valid_keys, api_key):
+    # 👉 Check if api_key is inside valid_keys:
+    return api_key in valid_keys
+
+keys = ["k_live_1", "k_live_2"]
+print(is_valid_api_key(keys, "k_live_1"), is_valid_api_key(keys, "k_bad"))`,
+    quiz: {
+      question: "Which expression checks if `token` is inside `allowed_tokens`?",
+      options: [
+        "token in allowed_tokens",
+        "token == allowed_tokens",
+        "allowed_tokens.has(token)",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`token in allowed_tokens` returns `True` if `token` is a member of `allowed_tokens`!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 18,
+    matchKeywords: ["pagination", "offset", "page", "skip"],
+    realWorldUse:
+      "Used in Google Search, Amazon product listings, and SQL `OFFSET` queries to load one page of results at a time.",
+    analogyTitle: "Skipping Previous Pages with (page - 1) * page_size",
+    analogyText:
+      "On **Page 1**, you skip `0` items (`(1 - 1) * 10 = 0`). On **Page 3**, you skip the first `2` full pages (`(3 - 1) * 10 = 20`)!",
+    cheatSheet: `def get_page_offset(page, page_size):
+    return (page - 1) * page_size`,
+    commonPitfall: {
+      title: "Forgetting parentheses around (page - 1)",
+      wrongCode: "return page - 1 * page_size    # Multiplies 1 * page_size first!",
+      rightCode: "return (page - 1) * page_size  # Subtracts 1 first, then multiplies!",
+      explanation:
+        "Wrap `(page - 1)` in parentheses so Python subtracts 1 before multiplying by `page_size`.",
+    },
+    guidedCode: `def get_page_offset(page, page_size):
+    # 👉 Calculate how many items to skip: (page - 1) * page_size
+    return (page - 1) * page_size
+
+print(get_page_offset(1, 10), get_page_offset(3, 10))`,
+    quiz: {
+      question: "If `page_size = 20`, how many items should be skipped on `page = 1`?",
+      options: ["0", "20", "1"],
+      correctIndex: 0,
+      explanation:
+        "Page 1 starts at the very first item, so `(1 - 1) * 20 = 0` items are skipped!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 19,
+    matchKeywords: ["cache key", "profile", "redis"],
+    realWorldUse:
+      'Used in Redis and Memcached to name cache entries consistently across microservices (e.g. `"user:42:profile"`).',
+    analogyTitle: "Standardized Labeled Folders in Redis",
+    analogyText:
+      'Naming cache keys with colons like **`f"user:{user_id}:profile"`** makes every user\'s cached profile easy to find and never collide with other keys!',
+    cheatSheet: `def make_cache_key(user_id):
+    return f"user:{user_id}:profile"`,
+    commonPitfall: {
+      title: "Forgetting the 'f' prefix on the cache key string",
+      wrongCode: 'return "user:{user_id}:profile"',
+      rightCode: 'return f"user:{user_id}:profile"',
+      explanation:
+        "Include `f` before the quote so `{user_id}` is replaced with the actual ID number.",
+    },
+    guidedCode: `def make_cache_key(user_id):
+    # 👉 Return the Redis key f"user:{user_id}:profile":
+    return f"user:{user_id}:profile"
+
+print(make_cache_key(42))`,
+    quiz: {
+      question: 'If `user_id = 7`, what does `f"user:{user_id}:profile"` return?',
+      options: [
+        '"user:7:profile"',
+        '"user:{user_id}:profile"',
+        '"user:profile:7"',
+      ],
+      correctIndex: 0,
+      explanation: "`{user_id}` is replaced with `7` inside the f-string!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 20,
+    matchKeywords: ["batch", "chunk", "notification"],
+    realWorldUse:
+      "Used in email and push-notification workers that send messages in fixed batches of 100 at a time.",
+    analogyTitle: "Filling Full Boxes with Integer Division (//)",
+    analogyText:
+      "If you have `250` apples and each box holds `100`, how many **full boxes** can you pack? **`250 // 100`** drops the decimal and gives `2`!",
+    cheatSheet: `def count_full_batches(total_users, batch_size):
+    return total_users // batch_size`,
+    commonPitfall: {
+      title: "Using single slash '/' (2.5) instead of double slash '//' (2)",
+      wrongCode: "return total_users / batch_size   # Returns float 2.5!",
+      rightCode: "return total_users // batch_size  # Returns whole int 2!",
+      explanation:
+        "Double slash `//` performs integer division, returning a clean whole number of full batches.",
+    },
+    guidedCode: `def count_full_batches(total_users, batch_size):
+    # 👉 Return full batches using integer division //:
+    return total_users // batch_size
+
+print(count_full_batches(250, 100))`,
+    quiz: {
+      question: "What does `350 // 100` evaluate to in Python?",
+      options: ["3", "3.5", "50"],
+      correctIndex: 0,
+      explanation:
+        "`//` divides and rounds down to the nearest whole integer (`3`)!",
+    },
+  },
 ];

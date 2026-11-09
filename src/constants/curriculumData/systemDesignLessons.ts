@@ -468,4 +468,217 @@ except Exception as e:
     ],
     hints: ["Replace `return False` with `return len(queue) > 5`."],
   },
+  {
+    id: "exp-sys-17",
+    title: "API Key Guard: Auth Header Check",
+    track: "system_design",
+    category: "API SECURITY",
+    difficulty: "Easy",
+    tree_row: 14,
+    lesson_order: 17,
+    is_free: false,
+    description:
+      "Verify if an incoming request's api_key is in the valid_keys allowlist using Python's 'in' operator.",
+    content:
+      'Before an API server returns private data, it checks whether the caller\'s **`api_key`** is inside **`valid_keys`** using **`api_key in valid_keys`**:\n\n```python\ndef is_valid_api_key(valid_keys, api_key):\n    return api_key in valid_keys\n```',
+    assignment:
+      "Complete `is_valid_api_key(valid_keys, api_key)` so it returns `True` if `api_key` is in `valid_keys`, or `False` otherwise.",
+    constraints: [
+      "Use `api_key in valid_keys`",
+      "Return the boolean result",
+    ],
+    examples: [
+      {
+        input: 'valid_keys = ["k_live_1", "k_live_2"], api_key = "k_live_1"',
+        output: "True False",
+        explanation:
+          '"k_live_1" is in valid_keys (True); "k_bad" is rejected (False).',
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def is_valid_api_key(valid_keys, api_key):
+    # 👉 Write 1 line: return api_key in valid_keys
+    return False
+
+keys = ["k_live_1", "k_live_2"]
+print(is_valid_api_key(keys, "k_live_1"), is_valid_api_key(keys, "k_bad"))`,
+    expected_output: "True False",
+    hidden_tests: `import json
+results = []
+try:
+    keys = ["k_live_1", "k_live_2"]
+    r1 = is_valid_api_key(keys, "k_live_1")
+    results.append({"id": 1, "input": "api_key = 'k_live_1'", "expected": "True", "actual": str(r1), "passed": r1 is True})
+    r2 = is_valid_api_key(keys, "k_bad")
+    results.append({"id": 2, "input": "api_key = 'k_bad'", "expected": "False", "actual": str(r2), "passed": r2 is False})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: '"k_live_1"', value: "ALLOW (200 OK) ✓", address: "in valid_keys" },
+      { label: '"k_bad"', value: "DENY (401) ✕", address: "unauthorized" },
+    ],
+    hints: ["Replace `return False` with `return api_key in valid_keys`."],
+  },
+  {
+    id: "exp-sys-18",
+    title: "Pagination Offset: Page Skip Calculator",
+    track: "system_design",
+    category: "DATABASE QUERIES",
+    difficulty: "Easy",
+    tree_row: 14,
+    lesson_order: 18,
+    is_free: false,
+    description:
+      "Calculate how many database rows to skip for a given page number using (page - 1) * page_size.",
+    content:
+      "When you click **Page 1, Page 2, Page 3** on a website showing `10` items per page (`page_size = 10`):\n\n• **Page 1** skips `0` items: `(1 - 1) * 10 = 0`\n• **Page 2** skips `10` items: `(2 - 1) * 10 = 10`\n• **Page 3** skips `20` items: `(3 - 1) * 10 = 20`\n\nFormula: **`(page - 1) * page_size`**!",
+    assignment:
+      "Complete `get_page_offset(page, page_size)` so it returns `(page - 1) * page_size`.",
+    constraints: [
+      "Use `(page - 1) * page_size`",
+      "Return the calculated offset",
+    ],
+    examples: [
+      {
+        input: "get_page_offset(1, 10) and get_page_offset(3, 10)",
+        output: "0 20",
+        explanation: "Page 1 skips 0 items; Page 3 skips (3 - 1) * 10 = 20 items.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def get_page_offset(page, page_size):
+    # 👉 Write 1 line: return (page - 1) * page_size
+    return 0
+
+print(get_page_offset(1, 10), get_page_offset(3, 10))`,
+    expected_output: "0 20",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = get_page_offset(1, 10)
+    results.append({"id": 1, "input": "page=1, page_size=10", "expected": "0", "actual": str(r1), "passed": r1 == 0})
+    r2 = get_page_offset(3, 10)
+    results.append({"id": 2, "input": "page=3, page_size=10", "expected": "20", "actual": str(r2), "passed": r2 == 20})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "Page 1", value: "skip 0 (rows 0..9)", address: "(1-1)*10" },
+      { label: "Page 2", value: "skip 10 (rows 10..19)", address: "(2-1)*10" },
+      { label: "Page 3", value: "skip 20 (rows 20..29) ✓", address: "(3-1)*10" },
+    ],
+    hints: ["Replace `return 0` with `return (page - 1) * page_size`."],
+  },
+  {
+    id: "exp-sys-19",
+    title: "Cache Key Builder: User Profile Key",
+    track: "system_design",
+    category: "REDIS CACHING",
+    difficulty: "Easy",
+    tree_row: 15,
+    lesson_order: 19,
+    is_free: false,
+    description:
+      'Format a standardized Redis cache key like "user:42:profile" using an f-string.',
+    content:
+      'In Redis caches, engineers organize keys with colons (`:`), like **`"user:42:profile"`**.\n\nWe can build this cache key cleanly for any `user_id` using an **f-string**:\n\n```python\ndef make_cache_key(user_id):\n    return f"user:{user_id}:profile"\n```',
+    assignment:
+      'Complete `make_cache_key(user_id)` so it returns `f"user:{user_id}:profile"`.',
+    constraints: [
+      'Use `f"user:{user_id}:profile"`',
+      "Return the formatted string",
+    ],
+    examples: [
+      {
+        input: "user_id = 42",
+        output: "user:42:profile",
+        explanation: "Plugs 42 into {user_id} between 'user:' and ':profile'.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def make_cache_key(user_id):
+    # 👉 Write 1 line: return f"user:{user_id}:profile"
+    return ""
+
+print(make_cache_key(42))`,
+    expected_output: "user:42:profile",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = make_cache_key(42)
+    results.append({"id": 1, "input": "user_id = 42", "expected": "user:42:profile", "actual": str(r1), "passed": r1 == "user:42:profile"})
+    r2 = make_cache_key(99)
+    results.append({"id": 2, "input": "user_id = 99", "expected": "user:99:profile", "actual": str(r2), "passed": r2 == "user:99:profile"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      {
+        label: "user_id = 42",
+        value: '-> "user:42:profile" ✓',
+        address: "Redis key",
+      },
+      {
+        label: "user_id = 99",
+        value: '-> "user:99:profile" ✓',
+        address: "Redis key",
+      },
+    ],
+    hints: ['Replace `return ""` with `return f"user:{user_id}:profile"`.'],
+  },
+  {
+    id: "exp-sys-20",
+    title: "Batch Splitter: Notification Chunk Count",
+    track: "system_design",
+    category: "BATCH PROCESSING",
+    difficulty: "Easy",
+    tree_row: 16,
+    lesson_order: 20,
+    is_free: false,
+    description:
+      "Calculate how many full notification batches can be sent using integer division (total_users // batch_size).",
+    content:
+      "When sending push notifications to `250` users in batches of `100` (`batch_size = 100`), how many **full batches** are there?\n\nUse Python's integer division **`//`**:\n\n```python\nfull_batches = 250 // 100  # 2 full batches\n```",
+    assignment:
+      "Complete `count_full_batches(total_users, batch_size)` so it returns `total_users // batch_size`.",
+    constraints: [
+      "Use `total_users // batch_size` (double slash integer division)",
+      "Return the whole number of full batches",
+    ],
+    examples: [
+      {
+        input: "total_users = 250, batch_size = 100",
+        output: "2",
+        explanation: "250 // 100 = 2 full batches of 100 users.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def count_full_batches(total_users, batch_size):
+    # 👉 Write 1 line: return total_users // batch_size
+    return 0
+
+print(count_full_batches(250, 100))`,
+    expected_output: "2",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = count_full_batches(250, 100)
+    results.append({"id": 1, "input": "250 users, batch 100", "expected": "2", "actual": str(r1), "passed": r1 == 2})
+    r2 = count_full_batches(500, 100)
+    results.append({"id": 2, "input": "500 users, batch 100", "expected": "5", "actual": str(r2), "passed": r2 == 5})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "Batch #1", value: "100 users ✓", address: "0..99" },
+      { label: "Batch #2", value: "100 users ✓", address: "100..199" },
+      { label: "Remainder", value: "50 users (partial)", address: "250 // 100 = 2" },
+    ],
+    hints: ["Replace `return 0` with `return total_users // batch_size`."],
+  },
 ];

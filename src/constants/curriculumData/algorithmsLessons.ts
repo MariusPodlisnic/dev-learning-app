@@ -432,4 +432,218 @@ except Exception as e:
     ],
     hints: ["Replace `return False` with `return name in vip_list`."],
   },
+  {
+    id: "exp-alg-17",
+    title: "String Reversal: Palindrome Checker",
+    track: "algorithms",
+    category: "STRING ALGORITHMS",
+    difficulty: "Easy",
+    tree_row: 14,
+    lesson_order: 17,
+    is_free: false,
+    description:
+      "Check if a word reads the same forwards and backwards using Python's reverse slice word[::-1].",
+    content:
+      'A **Palindrome** is a word like `"level"` or `"radar"` that spells the exact same thing backwards.\n\nIn Python, **`word[::-1]`** reverses a string in 1 step! So we just check **`word == word[::-1]`**:\n\n```python\nword = "level"\nprint(word == word[::-1])  # True\n```',
+    assignment:
+      "Complete `is_palindrome(word)` so it returns `True` if `word` equals its reversed self (`word[::-1]`), and `False` otherwise.",
+    constraints: [
+      "Use `word == word[::-1]`",
+      "Return the boolean result",
+    ],
+    examples: [
+      {
+        input: 'is_palindrome("level") and is_palindrome("code")',
+        output: "True False",
+        explanation:
+          '"level" reversed is "level" (True); "code" reversed is "edoc" (False).',
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def is_palindrome(word):
+    # 👉 Write 1 line: return word == word[::-1]
+    return False
+
+print(is_palindrome("level"), is_palindrome("code"))`,
+    expected_output: "True False",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = is_palindrome("level")
+    results.append({"id": 1, "input": "'level'", "expected": "True", "actual": str(r1), "passed": r1 is True})
+    r2 = is_palindrome("code")
+    results.append({"id": 2, "input": "'code'", "expected": "False", "actual": str(r2), "passed": r2 is False})
+    r3 = is_palindrome("racecar")
+    results.append({"id": 3, "input": "'racecar'", "expected": "True", "actual": str(r3), "passed": r3 is True})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: 'word: "level"', value: 'reversed: "level"', address: "MATCH ✓" },
+      { label: 'word: "code"', value: 'reversed: "edoc"', address: "False" },
+    ],
+    hints: ["Replace `return False` with `return word == word[::-1]`."],
+  },
+  {
+    id: "exp-alg-18",
+    title: "Duplicate Detector: Unique Username Check",
+    track: "algorithms",
+    category: "HASH SET O(N)",
+    difficulty: "Easy",
+    tree_row: 14,
+    lesson_order: 18,
+    is_free: false,
+    description:
+      "Check if all usernames in a list are unique by comparing len(names) == len(set(names)).",
+    content:
+      'How do you check in 1 line whether a list has **no duplicates**?\n\nSince `set(names)` removes duplicates, if **`len(names) == len(set(names))`**, then every single item was already unique!\n\n```python\nnames = ["aria", "kai", "nova"]\nprint(len(names) == len(set(names)))  # True (all unique)\n```',
+    assignment:
+      "Complete `all_unique(names)` so it returns `True` if `len(names) == len(set(names))`, or `False` if there are duplicates.",
+    constraints: [
+      "Compare `len(names) == len(set(names))`",
+      "Return the boolean result",
+    ],
+    examples: [
+      {
+        input: 'all_unique(["aria", "kai"]) and all_unique(["aria", "aria"])',
+        output: "True False",
+        explanation:
+          '["aria", "kai"] has 2 unique items (True); ["aria", "aria"] shrinks to 1 in a set (False).',
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def all_unique(names):
+    # 👉 Write 1 line: return len(names) == len(set(names))
+    return False
+
+print(all_unique(["aria", "kai"]), all_unique(["aria", "aria"]))`,
+    expected_output: "True False",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = all_unique(["aria", "kai"])
+    results.append({"id": 1, "input": "['aria', 'kai']", "expected": "True", "actual": str(r1), "passed": r1 is True})
+    r2 = all_unique(["aria", "aria"])
+    results.append({"id": 2, "input": "['aria', 'aria']", "expected": "False", "actual": str(r2), "passed": r2 is False})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      {
+        label: '["aria", "kai"]',
+        value: "len 2 == set len 2 -> True ✓",
+        address: "unique",
+      },
+      {
+        label: '["aria", "aria"]',
+        value: "len 2 != set len 1 -> False",
+        address: "duplicate!",
+      },
+    ],
+    hints: [
+      "Replace `return False` with `return len(names) == len(set(names))`.",
+    ],
+  },
+  {
+    id: "exp-alg-19",
+    title: "Absolute Difference: Temperature Swing",
+    track: "algorithms",
+    category: "MATH & DISTANCE",
+    difficulty: "Easy",
+    tree_row: 15,
+    lesson_order: 19,
+    is_free: false,
+    description:
+      "Find the positive distance between two numbers using Python's built-in abs(a - b).",
+    content:
+      "What is the distance between `15°C` and `25°C`? It's `10`—never `-10`!\n\nIn algorithms, **`abs(a - b)`** (absolute value) removes any minus sign so you always get a positive distance:\n\n```python\nprint(abs(15 - 25))  # 10\nprint(abs(25 - 15))  # 10\n```",
+    assignment:
+      "Complete `temp_swing(a, b)` so it returns the positive difference between `a` and `b` using `abs(a - b)`.",
+    constraints: [
+      "Use `abs(a - b)`",
+      "Return the positive difference",
+    ],
+    examples: [
+      {
+        input: "a = 15, b = 25",
+        output: "10",
+        explanation: "15 - 25 is -10, and abs(-10) is 10.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def temp_swing(a, b):
+    # 👉 Write 1 line: return abs(a - b)
+    return 0
+
+print(temp_swing(15, 25))`,
+    expected_output: "10",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = temp_swing(15, 25)
+    results.append({"id": 1, "input": "a=15, b=25", "expected": "10", "actual": str(r1), "passed": r1 == 10})
+    r2 = temp_swing(30, 12)
+    results.append({"id": 2, "input": "a=30, b=12", "expected": "18", "actual": str(r2), "passed": r2 == 18})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "a - b", value: "-10", type: "int", address: "0x10" },
+      { label: "abs(a - b)", value: "10 ✓", type: "int", address: "0x14" },
+    ],
+    hints: ["Replace `return 0` with `return abs(a - b)`."],
+  },
+  {
+    id: "exp-alg-20",
+    title: "Pairing Lists: Scoreboard Zipper",
+    track: "algorithms",
+    category: "HASH MAP BUILDER",
+    difficulty: "Easy",
+    tree_row: 16,
+    lesson_order: 20,
+    is_free: false,
+    description:
+      "Pair a list of player names with a list of scores into a dictionary using dict(zip(names, scores)).",
+    content:
+      'Have two matching lists—one of `names` and one of `scores`? **`zip(names, scores)`** pairs them up like a zipper, and **`dict(...)`** turns those pairs into a dictionary in 1 line!\n\n```python\nnames = ["Aria", "Kai"]\nscores = [100, 85]\nboard = dict(zip(names, scores))\n# {\'Aria\': 100, \'Kai\': 85}\n```',
+    assignment:
+      "Complete `build_scoreboard(names, scores)` so it returns a dictionary pairing each name to its score using `dict(zip(names, scores))`.",
+    constraints: [
+      "Use `dict(zip(names, scores))`",
+      "Return the resulting dictionary",
+    ],
+    examples: [
+      {
+        input: 'names = ["Aria", "Kai"], scores = [100, 85]',
+        output: "{'Aria': 100, 'Kai': 85}",
+        explanation: "Pairs index 0 ('Aria': 100) and index 1 ('Kai': 85).",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def build_scoreboard(names, scores):
+    # 👉 Write 1 line: return dict(zip(names, scores))
+    return {}
+
+print(build_scoreboard(["Aria", "Kai"], [100, 85]))`,
+    expected_output: "{'Aria': 100, 'Kai': 85}",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = build_scoreboard(["Aria", "Kai"], [100, 85])
+    results.append({"id": 1, "input": "['Aria', 'Kai'] & [100, 85]", "expected": "{'Aria': 100, 'Kai': 85}", "actual": str(r1), "passed": r1 == {"Aria": 100, "Kai": 85}})
+    r2 = build_scoreboard(["Mia"], [50])
+    results.append({"id": 2, "input": "['Mia'] & [50]", "expected": "{'Mia': 50}", "actual": str(r2), "passed": r2 == {"Mia": 50}})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: '"Aria" + 100', value: "'Aria': 100", address: "pair 0" },
+      { label: '"Kai" + 85', value: "'Kai': 85", address: "pair 1" },
+    ],
+    hints: ["Replace `return {}` with `return dict(zip(names, scores))`."],
+  },
 ];
