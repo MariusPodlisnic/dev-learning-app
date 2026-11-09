@@ -54,7 +54,11 @@ import {
   executePlaygroundPython,
   loadPyodideScript,
 } from "../utils/pyodideRunner";
-import { playErrorBuzz, playSuccessChime } from "../utils/soundEffects";
+import {
+  playErrorBuzz,
+  playSuccessChime,
+  playVictoryFanfare,
+} from "../utils/soundEffects";
 
 export default function HomeScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -103,6 +107,9 @@ export default function HomeScreen() {
   const [dailyCompletedDate, setDailyCompletedDate] = useState<string | null>(
     null,
   );
+  const [claimedChapters, setClaimedChapters] = useState<
+    Record<string, boolean>
+  >({});
 
   const [session, setSession] = useState<Session | null>(null);
   const [isPremium, setIsPremium] = useState<boolean>(false);
@@ -144,6 +151,7 @@ export default function HomeScreen() {
     const savedState = readLocalJson<{
       completedLessons?: Record<string, boolean>;
       solvedIncidents?: Record<string, boolean>;
+      claimedChapters?: Record<string, boolean>;
       xpPoints?: number;
       streakCount?: number;
       dailyCompletedDate?: string | null;
@@ -157,6 +165,9 @@ export default function HomeScreen() {
     }
     if (savedState.solvedIncidents) {
       setSolvedIncidents(savedState.solvedIncidents);
+    }
+    if (savedState.claimedChapters) {
+      setClaimedChapters(savedState.claimedChapters);
     }
     if (typeof savedState.xpPoints === "number") {
       setXpPoints(savedState.xpPoints);
@@ -220,6 +231,7 @@ export default function HomeScreen() {
     writeLocalJson(STORAGE_STATE_KEY, {
       completedLessons,
       solvedIncidents,
+      claimedChapters,
       xpPoints,
       streakCount,
       dailyCompletedDate,
@@ -230,6 +242,7 @@ export default function HomeScreen() {
   }, [
     completedLessons,
     solvedIncidents,
+    claimedChapters,
     xpPoints,
     streakCount,
     dailyCompletedDate,
@@ -545,6 +558,28 @@ export default function HomeScreen() {
     }
   }
 
+  async function handleClaimChapterBonus(chapterKey: string, bonusXp: number) {
+    if (claimedChapters[chapterKey]) return;
+    playVictoryFanfare();
+    const newXp = xpPoints + bonusXp;
+    const newStreak = streakCount === 0 ? 1 : streakCount;
+    setClaimedChapters((prev) => ({ ...prev, [chapterKey]: true }));
+    setXpPoints(newXp);
+    setStreakCount(newStreak);
+
+    if (session) {
+      try {
+        await supabase.from("profiles").upsert({
+          id: session.user.id,
+          email: session.user.email,
+          xp_points: newXp,
+          streak_count: newStreak,
+          last_completed_at: new Date().toISOString(),
+        });
+      } catch (_e) {}
+    }
+  }
+
   // Ensure styles re-compute on theme change
   void themeMode;
   const styles = getStyles();
@@ -620,6 +655,8 @@ export default function HomeScreen() {
           onSelectLesson={handleSelectLesson}
           dailyCompletedDate={dailyCompletedDate}
           onClaimDailyWarmup={handleClaimDailyWarmup}
+          claimedChapters={claimedChapters}
+          onClaimChapterBonus={handleClaimChapterBonus}
         />
       ) : viewMode === "bughunt" ? (
         <BugHuntArena

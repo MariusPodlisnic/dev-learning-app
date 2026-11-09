@@ -19,6 +19,123 @@ import { Lesson, TestCaseResult } from "../types/lesson";
 import { playKeyClick } from "../utils/soundEffects";
 import { renderHighlightedPython } from "./FormattedText";
 
+interface BeginnerErrorHint {
+  badge: string;
+  lineNumber: number | null;
+  whatHappened: string;
+  howToFix: string;
+}
+
+function translatePythonError(rawOutput: string): BeginnerErrorHint | null {
+  if (!rawOutput) return null;
+
+  const lineMatch = rawOutput.match(/line\s+(\d+)/i);
+  const lineNumber = lineMatch ? parseInt(lineMatch[1], 10) : null;
+
+  if (rawOutput.includes("IndentationError")) {
+    return {
+      badge: "INDENTATION FIX",
+      lineNumber,
+      whatHappened:
+        "Python expects code inside a block (after a colon ':') to be indented by 4 spaces.",
+      howToFix:
+        "Add 4 spaces (or tap '⇥ Tab') at the start of the line right below your 'def', 'if', 'else', or 'for' line.",
+    };
+  }
+
+  if (rawOutput.includes("SyntaxError")) {
+    return {
+      badge: "SYNTAX TYPO",
+      lineNumber,
+      whatHappened:
+        "Python spotted a punctuation typo and couldn't read this line.",
+      howToFix:
+        "Check for a missing colon ':' at the end of 'def/if/else/for', unclosed quotes \" \", or using single '=' instead of '==' inside an 'if' check.",
+    };
+  }
+
+  if (rawOutput.includes("NameError")) {
+    const nameMatch = rawOutput.match(/name\s+'([^']+)'\s+is not defined/i);
+    const unknownName = nameMatch ? nameMatch[1] : "that name";
+    return {
+      badge: `UNKNOWN NAME '${unknownName}'`,
+      lineNumber,
+      whatHappened: `Python doesn't recognize '${unknownName}' as a variable or function.`,
+      howToFix:
+        unknownName === "true" || unknownName === "false"
+          ? "In Python, booleans must start with a capital letter: write True or False."
+          : `Check the spelling of '${unknownName}', or wrap it in quotes ("${unknownName}") if you meant it as text!`,
+    };
+  }
+
+  if (rawOutput.includes("TypeError")) {
+    return {
+      badge: "DATA TYPE MISMATCH",
+      lineNumber,
+      whatHappened:
+        "You combined two incompatible data types (like adding text to a number) or passed the wrong number of arguments.",
+      howToFix:
+        "Make sure numbers aren't wrapped in quotes when doing math, and check that functions like len() or round() receive the right inputs.",
+    };
+  }
+
+  if (rawOutput.includes("KeyError")) {
+    return {
+      badge: "MISSING DICTIONARY KEY",
+      lineNumber,
+      whatHappened:
+        "Your code looked up a key in a dictionary Using [ ], but that key wasn't found.",
+      howToFix:
+        "Use dict.get(key, default) so Python returns a safe fallback value when a key is missing!",
+    };
+  }
+
+  if (rawOutput.includes("IndexError")) {
+    return {
+      badge: "INDEX OUT OF RANGE",
+      lineNumber,
+      whatHappened:
+        "Your code tried to read an index position past the end of the list.",
+      howToFix:
+        "Remember that Python lists start counting at index 0 (a 3-item list only has indices 0, 1, and 2).",
+    };
+  }
+
+  if (rawOutput.includes("AttributeError")) {
+    return {
+      badge: "METHOD NAME CHECK",
+      lineNumber,
+      whatHappened:
+        "That dot-method doesn't exist on this type of value.",
+      howToFix:
+        "Double-check the spelling (e.g., .startswith() has an 's' in the middle, and .join() is called on the separator string like \"-\".join(words)).",
+    };
+  }
+
+  if (rawOutput.includes("ZeroDivisionError")) {
+    return {
+      badge: "DIVISION BY ZERO",
+      lineNumber,
+      whatHappened: "Your code divided a number by 0, which isn't allowed in math!",
+      howToFix:
+        "Wrap the division inside a 'try: ... except ZeroDivisionError:' block or check if the denominator is 0 first.",
+    };
+  }
+
+  if (rawOutput.includes("✕ Output mismatch")) {
+    return {
+      badge: "ALMOST THERE · OUTPUT CHECK",
+      lineNumber: null,
+      whatHappened:
+        "Your code ran without errors, but the printed result didn't match the expected output yet.",
+      howToFix:
+        "Compare your output below with the Expected Output—check exact spelling, capitalization, and make sure your function returns the result!",
+    };
+  }
+
+  return null;
+}
+
 interface StudioCodeEditorProps {
   selectedLesson: Lesson;
   code: string;
@@ -453,7 +570,40 @@ export default function StudioCodeEditor({
         <ScrollView style={styles.bottomContent}>
           {bottomTab === "console" ? (
             output ? (
-              <Text style={styles.terminalText}>{output}</Text>
+              <View style={styles.consoleOutputWrap}>
+                {(() => {
+                  const beginnerHint = translatePythonError(output);
+                  if (!beginnerHint) return null;
+                  return (
+                    <View style={styles.byteCatErrorCard}>
+                      <View style={styles.byteCatErrorHeader}>
+                        <View style={styles.byteCatErrorBadge}>
+                          <Text style={styles.byteCatErrorBadgeText}>
+                            🐾 BYTE-CAT DEBUG HELPER · {beginnerHint.badge}
+                          </Text>
+                        </View>
+                        {beginnerHint.lineNumber !== null && (
+                          <View style={styles.byteCatLinePill}>
+                            <Text style={styles.byteCatLinePillText}>
+                              CHECK LINE {beginnerHint.lineNumber}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.byteCatErrorWhat}>
+                        {beginnerHint.whatHappened}
+                      </Text>
+                      <View style={styles.byteCatFixRow}>
+                        <Text style={styles.byteCatFixLabel}>💡 HOW TO FIX:</Text>
+                        <Text style={styles.byteCatFixText}>
+                          {beginnerHint.howToFix}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })()}
+                <Text style={styles.terminalText}>{output}</Text>
+              </View>
             ) : (
               <View style={styles.emptyConsoleBox}>
                 <Text style={styles.emptyConsoleTitle}>
@@ -1176,5 +1326,77 @@ const getStyles = () =>
       fontWeight: "600",
       lineHeight: 18,
       flexShrink: 1,
+    },
+    consoleOutputWrap: {
+      gap: 10,
+    },
+    byteCatErrorCard: {
+      backgroundColor: "#1E2231",
+      borderRadius: 10,
+      borderWidth: 1.5,
+      borderColor: StudioColors.yellow,
+      padding: 11,
+      gap: 6,
+    },
+    byteCatErrorHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      flexWrap: "wrap",
+      gap: 6,
+    },
+    byteCatErrorBadge: {
+      backgroundColor: StudioColors.yellow,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 5,
+    },
+    byteCatErrorBadgeText: {
+      color: StudioColors.ink,
+      fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.5,
+    },
+    byteCatLinePill: {
+      backgroundColor: StudioColors.coral,
+      paddingHorizontal: 7,
+      paddingVertical: 2.5,
+      borderRadius: 5,
+    },
+    byteCatLinePillText: {
+      color: StudioColors.ink,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.5,
+    },
+    byteCatErrorWhat: {
+      color: "#F8FAFC",
+      fontSize: 12,
+      fontWeight: "700",
+      lineHeight: 17,
+    },
+    byteCatFixRow: {
+      backgroundColor: "rgba(163, 230, 53, 0.12)",
+      borderRadius: 7,
+      borderWidth: 1,
+      borderColor: "rgba(163, 230, 53, 0.4)",
+      paddingHorizontal: 9,
+      paddingVertical: 6,
+      gap: 2,
+    },
+    byteCatFixLabel: {
+      color: StudioColors.lime,
+      fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.5,
+    },
+    byteCatFixText: {
+      color: "#E2E8F0",
+      fontSize: 11.5,
+      fontWeight: "600",
+      lineHeight: 16,
     },
   });

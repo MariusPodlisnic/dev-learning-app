@@ -52,6 +52,8 @@ interface RoadmapTreeProps {
   onSelectLesson: (lesson: Lesson) => void;
   dailyCompletedDate?: string | null;
   onClaimDailyWarmup?: (dateKey: string, bonusXp: number) => void;
+  claimedChapters?: Record<string, boolean>;
+  onClaimChapterBonus?: (chapterKey: string, bonusXp: number) => void;
 }
 
 interface ChapterTierMeta {
@@ -372,6 +374,8 @@ export default function RoadmapTree({
   onSelectLesson,
   dailyCompletedDate = null,
   onClaimDailyWarmup,
+  claimedChapters = {},
+  onClaimChapterBonus,
 }: RoadmapTreeProps) {
   const [statusFilter, setStatusFilter] = useState<"all" | "unsolved" | "solved">("all");
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
@@ -826,6 +830,14 @@ export default function RoadmapTree({
 
             {trackChapters.map((ch) => {
               const isSelected = chapterFilter === ch.id;
+              const chLessons = trackLessons.filter(
+                (l) =>
+                  l.lesson_order >= ch.minOrder &&
+                  l.lesson_order <= ch.maxOrder,
+              );
+              const chCleared =
+                chLessons.length > 0 &&
+                chLessons.every((l) => completedLessons[l.id]);
               return (
                 <Pressable
                   key={ch.id}
@@ -847,6 +859,7 @@ export default function RoadmapTree({
                     ]}
                   >
                     CH. {ch.roman}
+                    {chCleared ? " ★" : ""}
                   </Text>
                 </Pressable>
               );
@@ -932,29 +945,54 @@ export default function RoadmapTree({
             const isChapterCleared =
               chapterLessons.length > 0 &&
               chapterDoneCount === chapterLessons.length;
+            const chapterBonusKey = `${activeTrack}_ch_${currentChapter.id}`;
+            const isChapterBonusClaimed = Boolean(
+              claimedChapters[chapterBonusKey],
+            );
 
             return (
               <View key={rowNum} style={styles.rowWrapper}>
                 {isFirstRowOfChapter && (
-                  <View style={styles.chapterBannerCard}>
+                  <View
+                    style={[
+                      styles.chapterBannerCard,
+                      isChapterCleared && styles.chapterBannerCardCleared,
+                    ]}
+                  >
                     <View
                       style={[
                         styles.chapterTopAccent,
                         {
                           backgroundColor: isChapterCleared
-                            ? StudioColors.mint
+                            ? StudioColors.yellow
                             : currentTrackMeta.stickerBg,
                         },
                       ]}
                     />
                     <View style={styles.chapterBannerRow}>
                       <View style={styles.chapterBannerLeft}>
-                        <View style={styles.chapterRomanPill}>
-                          <Text style={styles.chapterRomanText}>
-                            CHAPTER {currentChapter.roman} · MODULES{" "}
-                            {String(currentChapter.minOrder).padStart(2, "0")}–
-                            {String(currentChapter.maxOrder).padStart(2, "0")}
-                          </Text>
+                        <View style={styles.chapterRomanRow}>
+                          <View style={styles.chapterRomanPill}>
+                            <Text style={styles.chapterRomanText}>
+                              CHAPTER {currentChapter.roman} · MODULES{" "}
+                              {String(currentChapter.minOrder).padStart(2, "0")}–
+                              {String(currentChapter.maxOrder).padStart(2, "0")}
+                            </Text>
+                          </View>
+                          <View
+                            style={[
+                              styles.chapterBonusTagPill,
+                              isChapterCleared && {
+                                backgroundColor: StudioColors.mint,
+                              },
+                            ]}
+                          >
+                            <Text style={styles.chapterBonusTagText}>
+                              {isChapterCleared
+                                ? "🏆 MILESTONE UNLOCKED"
+                                : "🎁 +100 XP BONUS AT 4/4"}
+                            </Text>
+                          </View>
                         </View>
                         <Text style={styles.chapterBannerTitle}>
                           {currentChapter.title}
@@ -962,20 +1000,68 @@ export default function RoadmapTree({
                         <Text style={styles.chapterBannerSubtitle}>
                           {currentChapter.subtitle}
                         </Text>
+
+                        {/* 4-Segment Chapter Progress Bar */}
+                        <View style={styles.chapterSegmentsRow}>
+                          {chapterLessons.map((chLesson) => {
+                            const segDone = Boolean(
+                              completedLessons[chLesson.id],
+                            );
+                            return (
+                              <View
+                                key={chLesson.id}
+                                style={[
+                                  styles.chapterSegmentBlock,
+                                  segDone && {
+                                    backgroundColor: StudioColors.mint,
+                                  },
+                                ]}
+                              />
+                            );
+                          })}
+                        </View>
                       </View>
-                      <View
-                        style={[
-                          styles.chapterProgressBadge,
-                          isChapterCleared && {
-                            backgroundColor: StudioColors.mint,
-                          },
-                        ]}
-                      >
-                        <Text style={styles.chapterProgressBadgeText}>
-                          {isChapterCleared
-                            ? "★ CHAPTER CLEARED ✓"
-                            : `${chapterDoneCount} / ${chapterLessons.length} SOLVED`}
-                        </Text>
+
+                      <View style={styles.chapterRightCol}>
+                        {isChapterCleared &&
+                        !isChapterBonusClaimed &&
+                        onClaimChapterBonus ? (
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.claimChapterBonusBtn,
+                              pressed && {
+                                transform: [
+                                  { translateX: 1 },
+                                  { translateY: 1 },
+                                ],
+                              },
+                            ]}
+                            onPress={() =>
+                              onClaimChapterBonus(chapterBonusKey, 100)
+                            }
+                          >
+                            <Text style={styles.claimChapterBonusText}>
+                              🎁 CLAIM +100 XP →
+                            </Text>
+                          </Pressable>
+                        ) : (
+                          <View
+                            style={[
+                              styles.chapterProgressBadge,
+                              isChapterCleared && {
+                                backgroundColor: StudioColors.yellow,
+                              },
+                            ]}
+                          >
+                            <Text style={styles.chapterProgressBadgeText}>
+                              {isChapterCleared
+                                ? isChapterBonusClaimed
+                                  ? "🏆 STAMPED · +100 XP ✓"
+                                  : "★ CHAPTER CLEARED ✓"
+                                : `${chapterDoneCount} / ${chapterLessons.length} SOLVED`}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     </View>
                   </View>
@@ -1951,6 +2037,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...HardShadow,
   },
+  chapterBannerCardCleared: {
+    backgroundColor: "#FFFDF4",
+  },
   chapterTopAccent: {
     position: "absolute",
     top: 0,
@@ -1972,13 +2061,69 @@ const styles = StyleSheet.create({
     minWidth: 220,
     gap: 3,
   },
+  chapterRomanRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 2,
+  },
   chapterRomanPill: {
     alignSelf: "flex-start",
     backgroundColor: StudioColors.ink,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
-    marginBottom: 2,
+  },
+  chapterBonusTagPill: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 7,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  chapterBonusTagText: {
+    color: StudioColors.ink,
+    fontSize: 8.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  chapterSegmentsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 6,
+    maxWidth: 200,
+  },
+  chapterSegmentBlock: {
+    flex: 1,
+    height: 7,
+    borderRadius: 3,
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+  },
+  chapterRightCol: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  claimChapterBonusBtn: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    ...HardShadowSm,
+  },
+  claimChapterBonusText: {
+    color: StudioColors.ink,
+    fontSize: 10.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
   },
   chapterRomanText: {
     color: "#FFFFFF",
