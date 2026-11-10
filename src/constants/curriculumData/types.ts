@@ -28,3 +28,24 @@ export interface EnrichedLessonData extends LessonEnrichment {
   matchOrder?: number;
   matchKeywords: string[];
 }
+
+export interface ToolVariation {
+  label: string;
+  code: string;
+  output: string;
+  note: string;
+}
+
+export interface LessonToolSpec {
+  toolName: string;
+  badge: string;
+  purpose: string;
+  syntaxPattern: string;
+  variations: ToolVariation[];
+}
+
+export interface LessonToolboxEntry {
+  matchTrack: string;
+  matchOrder: number;
+  tools: LessonToolSpec[];
+}

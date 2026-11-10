@@ -1,25 +1,14 @@
-export interface ToolVariation {
-  label: string;
-  code: string;
-  output: string;
-  note: string;
-}
+import { ALGORITHMS_TOOLBOXES } from "./algorithmsToolboxes";
+import { SYSTEM_DESIGN_TOOLBOXES } from "./systemDesignToolboxes";
+import {
+  LessonToolboxEntry,
+  LessonToolSpec,
+  ToolVariation,
+} from "./types";
 
-export interface LessonToolSpec {
-  toolName: string;
-  badge: string;
-  purpose: string;
-  syntaxPattern: string;
-  variations: ToolVariation[];
-}
+export type { ToolVariation, LessonToolSpec, LessonToolboxEntry };
 
-export interface LessonToolboxEntry {
-  matchTrack: string;
-  matchOrder: number;
-  tools: LessonToolSpec[];
-}
-
-export const LESSON_TOOLBOXES: LessonToolboxEntry[] = [
+const PYTHON_BASICS_TOOLBOXES: LessonToolboxEntry[] = [
   // ============================================================================
   // PYTHON BASICS (MODULES 01 - 16)
   // ============================================================================
@@ -791,6 +780,12 @@ export const LESSON_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
+];
+
+export const LESSON_TOOLBOXES: LessonToolboxEntry[] = [
+  ...PYTHON_BASICS_TOOLBOXES,
+  ...ALGORITHMS_TOOLBOXES,
+  ...SYSTEM_DESIGN_TOOLBOXES,
 ];
 
 export function getLessonToolbox(lesson: {
