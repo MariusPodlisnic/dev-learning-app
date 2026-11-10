@@ -672,4 +672,266 @@ except Exception as e:
     ],
     hints: ["Replace `return 0.0` with `return round(rating, 1)`."],
   },
+  {
+    id: "exp-py-21",
+    title: "Mini-App: RPG Critical Hit Calculator",
+    track: "python_basics",
+    category: "MINI-APP",
+    difficulty: "Easy",
+    tree_row: 17,
+    lesson_order: 21,
+    is_free: true,
+    description:
+      "Build a battle damage calculator that doubles attack on critical hits and subtracts defense (minimum 1 damage).",
+    content:
+      "In action games and RPGs, attacking an enemy calculates damage based on weapon attack power, defense, and whether you landed a **Critical Hit**!\n\nHere's how game developers write it in 2 lines:\n1. If `is_crit` is `True`, attack power doubles (`attack * 2`), otherwise it stays `attack`.\n2. Subtract target `defense`.\n3. Make sure damage is at least 1 using **`max(dmg - defense, 1)`** so an attack never heals or deals negative damage!\n\n```python\nattack = 50\nis_crit = True\ndefense = 20\n\ndmg = (attack * 2) if is_crit else attack\nfinal_dmg = max(dmg - defense, 1)\nprint(final_dmg)  # 80\n```",
+    assignment:
+      "Complete `calc_damage(attack, is_crit, defense)`: double `attack` if `is_crit` is True (otherwise use normal `attack`), subtract `defense`, and return `max(dmg - defense, 1)`.",
+    constraints: [
+      "Double attack when `is_crit` is True (`attack * 2`), otherwise use `attack`",
+      "Subtract `defense`",
+      "Use `max(dmg - defense, 1)` so damage is at least 1",
+    ],
+    examples: [
+      {
+        input: "attack = 50, is_crit = True, defense = 20",
+        output: "80",
+        explanation: "50 * 2 = 100 base damage; 100 - 20 defense = 80 final damage.",
+      },
+      {
+        input: "attack = 10, is_crit = False, defense = 15",
+        output: "1",
+        explanation: "10 - 15 = -5, but max(-5, 1) ensures at least 1 damage is dealt.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def calc_damage(attack, is_crit, defense):
+    # 👉 1. Double attack if is_crit is True, else normal attack:
+    dmg = attack * 2 if is_crit else attack
+    # 👉 2. Subtract defense, minimum 1 damage:
+    return max(dmg - defense, 1)
+
+print(calc_damage(50, True, 20))`,
+    expected_output: "80",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = calc_damage(50, True, 20)
+    results.append({"id": 1, "input": "50, True, 20", "expected": "80", "actual": str(r1), "passed": r1 == 80})
+    r2 = calc_damage(10, False, 15)
+    results.append({"id": 2, "input": "10, False, 15", "expected": "1", "actual": str(r2), "passed": r2 == 1})
+    r3 = calc_damage(30, False, 10)
+    results.append({"id": 3, "input": "30, False, 10", "expected": "20", "actual": str(r3), "passed": r3 == 20})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "base attack", value: "50 ⚔️", type: "int", address: "0x10" },
+      { label: "is_crit", value: "True (x2)", type: "bool", address: "0x14" },
+      { label: "defense", value: "20 🛡️", type: "int", address: "0x18" },
+      { label: "max(100 - 20, 1)", value: "80 💥", type: "int", address: "0x1C" },
+    ],
+    hints: [
+      "Calculate base damage: `dmg = attack * 2 if is_crit else attack`",
+      "Return `max(dmg - defense, 1)` so hits deal at least 1 damage.",
+    ],
+  },
+  {
+    id: "exp-py-22",
+    title: "Mini-App: Password Strength Checker",
+    track: "python_basics",
+    category: "MINI-APP",
+    difficulty: "Easy",
+    tree_row: 17,
+    lesson_order: 22,
+    is_free: true,
+    description:
+      "Validate sign-up passwords by checking for a minimum 8-character length and at least one digit.",
+    content:
+      "Every login system checks passwords to protect accounts. A clean validator checks two basic rules:\n\n1. **Length**: Is the password at least 8 characters? (`len(password) >= 8`)\n2. **Numbers**: Does it contain at least 1 number? (`any(ch.isdigit() for ch in password)`)\n\nIf both pass, return `\"STRONG\"`. Otherwise, return `\"WEAK\"`!\n\n```python\npassword = \"Python99\"\nhas_num = any(ch.isdigit() for ch in password)\n\nif len(password) >= 8 and has_num:\n    print(\"STRONG\")\nelse:\n    print(\"WEAK\")\n```",
+    assignment:
+      "Complete `check_password(password)` so it returns `'STRONG'` if `len(password) >= 8` and contains at least one digit (`any(ch.isdigit() for ch in password)`), otherwise return `'WEAK'`.",
+    constraints: [
+      "Check that `len(password) >= 8`",
+      "Check for at least one number using `any(ch.isdigit() for ch in password)`",
+      "Return `'STRONG'` if both conditions are met, else `'WEAK'`",
+    ],
+    examples: [
+      {
+        input: 'password = "Python99"',
+        output: "STRONG",
+        explanation: "Length is 8 and contains digits 9, so it is STRONG.",
+      },
+      {
+        input: 'password = "secret"',
+        output: "WEAK",
+        explanation: "Length is only 6 and contains no digits.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def check_password(password):
+    # 👉 Check length >= 8 and at least one digit:
+    has_digit = any(ch.isdigit() for ch in password)
+    if len(password) >= 8 and has_digit:
+        return "STRONG"
+    return "WEAK"
+
+print(check_password("Python99"))`,
+    expected_output: "STRONG",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = check_password("Python99")
+    results.append({"id": 1, "input": "'Python99'", "expected": "STRONG", "actual": str(r1), "passed": r1 == "STRONG"})
+    r2 = check_password("secret")
+    results.append({"id": 2, "input": "'secret'", "expected": "WEAK", "actual": str(r2), "passed": r2 == "WEAK"})
+    r3 = check_password("short1")
+    results.append({"id": 3, "input": "'short1'", "expected": "WEAK", "actual": str(r3), "passed": r3 == "WEAK"})
+    r4 = check_password("longpasswordwithnodigits")
+    results.append({"id": 4, "input": "'longpasswordwithnodigits'", "expected": "WEAK", "actual": str(r4), "passed": r4 == "WEAK"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "len >= 8", value: "len('Python99') == 8 -> OK ✅", address: "rule 1" },
+      { label: "has digit", value: "any(ch.isdigit()) -> '9' ✅", address: "rule 2" },
+      { label: "status", value: '"STRONG" 🔒', address: "result" },
+    ],
+    hints: [
+      "Use `has_digit = any(ch.isdigit() for ch in password)`.",
+      "Check `if len(password) >= 8 and has_digit: return 'STRONG'` else return `'WEAK'`.",
+    ],
+  },
+  {
+    id: "exp-py-23",
+    title: "Mini-App: Restaurant Bill & Tip Splitter",
+    track: "python_basics",
+    category: "MINI-APP",
+    difficulty: "Easy",
+    tree_row: 18,
+    lesson_order: 23,
+    is_free: true,
+    description:
+      "Calculate each person's exact share of a dinner bill including tip percentage, rounded to 2 decimal places.",
+    content:
+      "When dining out with friends, splitting the bill evenly is super common!\n\nHere is how to calculate it in 2 simple steps:\n1. Compute each person's share with tip: `(total * (1 + tip_percent / 100)) / people`.\n2. Round to 2 decimal places using **`round(share, 2)`** so it represents clean dollars and cents!\n\n```python\ntotal = 100.0\ntip_percent = 20\npeople = 4\n\nshare = (total * (1 + tip_percent / 100)) / people\nprint(round(share, 2))  # 30.0\n```",
+    assignment:
+      "Complete `split_bill(total, tip_percent, people)` to calculate each person's share including `tip_percent` and return it rounded to 2 decimal places using `round(share, 2)`.",
+    constraints: [
+      "Calculate total with tip: `total * (1 + tip_percent / 100)`",
+      "Divide by `people`",
+      "Round to 2 decimal places with `round(..., 2)`",
+    ],
+    examples: [
+      {
+        input: "total = 100.0, tip_percent = 20, people = 4",
+        output: "30.0",
+        explanation: "$100 + 20% tip = $120 total. $120 / 4 people = $30.0 each.",
+      },
+      {
+        input: "total = 75.50, tip_percent = 15, people = 3",
+        output: "28.94",
+        explanation: "$75.50 * 1.15 / 3 = 28.9416... rounded to 28.94.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def split_bill(total, tip_percent, people):
+    # 👉 1. Calculate each person's share with tip:
+    share = (total * (1 + tip_percent / 100)) / people
+    # 👉 2. Round to 2 decimal places:
+    return round(share, 2)
+
+print(split_bill(100.0, 20, 4))`,
+    expected_output: "30.0",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = split_bill(100.0, 20, 4)
+    results.append({"id": 1, "input": "100.0, 20, 4", "expected": "30.0", "actual": str(r1), "passed": r1 == 30.0})
+    r2 = split_bill(75.50, 15, 3)
+    results.append({"id": 2, "input": "75.50, 15, 3", "expected": "28.94", "actual": str(r2), "passed": r2 == 28.94})
+    r3 = split_bill(50.0, 0, 2)
+    results.append({"id": 3, "input": "50.0, 0, 2", "expected": "25.0", "actual": str(r3), "passed": r3 == 25.0})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "bill + 20% tip", value: "$120.00 🧾", type: "float", address: "0x10" },
+      { label: "friends", value: "4 👥", type: "int", address: "0x14" },
+      { label: "each pays", value: "$30.00 💳", type: "float", address: "0x18" },
+    ],
+    hints: [
+      "Calculate the share: `share = (total * (1 + tip_percent / 100)) / people`.",
+      "Return `round(share, 2)` to format it to 2 decimal places.",
+    ],
+  },
+  {
+    id: "exp-py-24",
+    title: "Mini-App: Emoji Mood Chat Bot",
+    track: "python_basics",
+    category: "MINI-APP",
+    difficulty: "Easy",
+    tree_row: 18,
+    lesson_order: 24,
+    is_free: true,
+    description:
+      "Build a chat bot response engine using dictionary lookup (.get()), case normalization (.lower()), and f-string formatting.",
+    content:
+      "Chat bots and AI responders start by reading user messages and matching them to appropriate responses!\n\nThis mini-bot combines 3 essential Python skills:\n1. **`.lower()`**: Normalizes input so `\"HAPPY\"`, `\"Happy\"`, and `\"happy\"` all match!\n2. **`dict.get(key, fallback)`**: Looks up a message safely without crashing on unknown text.\n3. **`f\"Bot: {reply}\"`**: Returns the final answer in chatbot format!\n\n```python\nmoods = {\"happy\": \"🎉 Yay!\", \"tired\": \"☕ Grab coffee!\"}\nmsg = \"HAPPY\"\n\nreply = moods.get(msg.lower(), \"🤖 I hear you!\")\nprint(f\"Bot: {reply}\")  # Bot: 🎉 Yay!\n```",
+    assignment:
+      "Complete `bot_reply(message, mood_map)`: normalize `message` with `.lower()`, look up the response in `mood_map` with fallback `'🤖 I hear you!'`, and return `f'Bot: {reply}'`.",
+    constraints: [
+      "Use `message.lower()` to normalize input text",
+      "Use `mood_map.get(message.lower(), '🤖 I hear you!')`",
+      "Return formatted f-string: `f'Bot: {reply}'`",
+    ],
+    examples: [
+      {
+        input: 'message = "HAPPY", mood_map = {"happy": "🎉 Yay!"}',
+        output: "Bot: 🎉 Yay!",
+        explanation: '"HAPPY".lower() matches "happy", returning "Bot: 🎉 Yay!".',
+      },
+      {
+        input: 'message = "curious", mood_map = {"happy": "🎉 Yay!"}',
+        output: "Bot: 🤖 I hear you!",
+        explanation: '"curious" is not in mood_map, so fallback "🤖 I hear you!" is used.',
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def bot_reply(message, mood_map):
+    # 👉 1. Safely look up message.lower() with fallback "🤖 I hear you!":
+    reply = mood_map.get(message.lower(), "🤖 I hear you!")
+    # 👉 2. Return f-string format:
+    return f"Bot: {reply}"
+
+moods = {"happy": "🎉 Yay!", "tired": "☕ Grab coffee!"}
+print(bot_reply("HAPPY", moods))`,
+    expected_output: "Bot: 🎉 Yay!",
+    hidden_tests: `import json
+results = []
+try:
+    moods = {"happy": "🎉 Yay!", "tired": "☕ Grab coffee!"}
+    r1 = bot_reply("HAPPY", moods)
+    results.append({"id": 1, "input": "'HAPPY'", "expected": "Bot: 🎉 Yay!", "actual": str(r1), "passed": r1 == "Bot: 🎉 Yay!"})
+    r2 = bot_reply("tired", moods)
+    results.append({"id": 2, "input": "'tired'", "expected": "Bot: ☕ Grab coffee!", "actual": str(r2), "passed": r2 == "Bot: ☕ Grab coffee!"})
+    r3 = bot_reply("unknown_mood", moods)
+    results.append({"id": 3, "input": "'unknown_mood'", "expected": "Bot: 🤖 I hear you!", "actual": str(r3), "passed": r3 == "Bot: 🤖 I hear you!"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "input.lower()", value: '"happy"', type: "str", address: "0x10" },
+      { label: "mood_map.get()", value: '"🎉 Yay!"', type: "str", address: "0x14" },
+      { label: "bot response", value: '"Bot: 🎉 Yay!" 🤖', type: "str", address: "0x18" },
+    ],
+    hints: [
+      "Use `reply = mood_map.get(message.lower(), '🤖 I hear you!')`.",
+      "Return `f'Bot: {reply}'` to format the message.",
+    ],
+  },
 ];

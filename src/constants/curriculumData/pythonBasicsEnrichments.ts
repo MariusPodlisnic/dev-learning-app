@@ -683,4 +683,172 @@ print(format_rating(4.66667))`,
         "`3.86` rounded to 1 decimal place rounds up to `3.9`!",
     },
   },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 21,
+    matchKeywords: ["rpg", "combat", "critical", "damage", "hit", "game", "max"],
+    realWorldUse:
+      "Used in combat calculation engines in games like Pokémon, Final Fantasy, and Elden Ring to compute damage, critical multipliers, and armor reduction.",
+    analogyTitle: "Game Combat Math: Crit Multiplier + Armor Reduction",
+    analogyText:
+      "When an attack lands, a critical hit doubles the raw power. Armor then reduces the damage, and **`max(dmg - defense, 1)`** guarantees the player always deals at least 1 damage point!",
+    cheatSheet: `attack = 50
+is_crit = True
+defense = 20
+
+# 1. Double attack on crit:
+dmg = (attack * 2) if is_crit else attack
+
+# 2. Subtract defense, minimum 1 damage:
+final_dmg = max(dmg - defense, 1)
+print(final_dmg)  # 80`,
+    commonPitfall: {
+      title: "Allowing negative damage when defense is higher than attack",
+      wrongCode: "return (attack * 2 if is_crit else attack) - defense  # Returns -5 if defense > attack!",
+      rightCode: "return max(dmg - defense, 1)  # Always at least 1 damage!",
+      explanation:
+        "Without `max(..., 1)`, high defense could result in negative damage, which would accidentally heal the enemy!",
+    },
+    guidedCode: `def calc_damage(attack, is_crit, defense):
+    # 👉 Double attack on crit, subtract defense, clamp to at least 1:
+    dmg = attack * 2 if is_crit else attack
+    return max(dmg - defense, 1)
+
+print(calc_damage(50, True, 20))`,
+    quiz: {
+      question: "Why do games use `max(dmg - defense, 1)`?",
+      options: [
+        "To prevent damage from dropping below 1",
+        "To double the player's attack power",
+        "To reset the player's health",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`max(..., 1)` ensures attacks always deal at least 1 damage instead of negative numbers!",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 22,
+    matchKeywords: ["password", "strength", "security", "checker", "validator", "auth"],
+    realWorldUse:
+      "Used on every registration page (Google, Discord, Netflix) to give live feedback on whether a user's chosen password is safe.",
+    analogyTitle: "Multi-Condition Security Gate",
+    analogyText:
+      "A secure password needs both size and variety! We check length with **`len(password) >= 8`** and numbers with **`any(ch.isdigit() for ch in password)`**. If both pass, it's strong!",
+    cheatSheet: `password = "Python99"
+
+# 1. Check length and digits:
+has_digit = any(ch.isdigit() for ch in password)
+is_long = len(password) >= 8
+
+# 2. Decide status:
+status = "STRONG" if is_long and has_digit else "WEAK"
+print(status)  # "STRONG"`,
+    commonPitfall: {
+      title: "Calling ch.isdigit without parentheses ch.isdigit()",
+      wrongCode: "any(ch.isdigit for ch in password)    # Checks method existence, not call!",
+      rightCode: "any(ch.isdigit() for ch in password)  # Actually calls the method!",
+      explanation:
+        "Make sure to include parentheses `ch.isdigit()` so Python executes the check on each character.",
+    },
+    guidedCode: `def check_password(password):
+    # 👉 Check length >= 8 and at least one digit:
+    has_digit = any(ch.isdigit() for ch in password)
+    if len(password) >= 8 and has_digit:
+        return "STRONG"
+    return "WEAK"
+
+print(check_password("Python99"))`,
+    quiz: {
+      question: "What does `any(ch.isdigit() for ch in 'cat5')` return?",
+      options: ["True", "False", "5"],
+      correctIndex: 0,
+      explanation:
+        "Because `'5'` is a digit, `any()` finds a match and immediately returns `True`!",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 23,
+    matchKeywords: ["bill", "tip", "splitter", "restaurant", "math", "percent", "split"],
+    realWorldUse:
+      "Used in bill splitting apps like Splitwise, Uber Eats group orders, and mobile banking payment requests.",
+    analogyTitle: "Fair Split: Tip Formula + 2-Decimal Precision",
+    analogyText:
+      "To tip 20%, multiply the bill by `(1 + 20 / 100)` (which is `1.20`). Then divide by how many friends are eating, and polish with **`round(share, 2)`** for clean change!",
+    cheatSheet: `total = 100.0
+tip_percent = 20
+people = 4
+
+# Total bill with tip divided by people:
+share = (total * (1 + tip_percent / 100)) / people
+
+# Round to 2 decimal places:
+clean_share = round(share, 2)
+print(clean_share)  # 30.0`,
+    commonPitfall: {
+      title: "Doing total * (tip_percent / 100) and forgetting to add the base bill",
+      wrongCode: "share = (total * (tip / 100)) / people        # Only splits the TIP, not the food!",
+      rightCode: "share = (total * (1 + tip / 100)) / people    # Splits food + tip!",
+      explanation:
+        "Multiplying by `(1 + tip / 100)` includes the original bill plus the extra tip amount.",
+    },
+    guidedCode: `def split_bill(total, tip_percent, people):
+    # 👉 Calculate each person's share with tip rounded to 2 decimals:
+    share = (total * (1 + tip_percent / 100)) / people
+    return round(share, 2)
+
+print(split_bill(100.0, 20, 4))`,
+    quiz: {
+      question: "What is the total of a $50 bill with a 10% tip?",
+      options: ["$55.0", "$5.0", "$60.0"],
+      correctIndex: 0,
+      explanation: "50 * (1 + 10 / 100) = 50 * 1.10 = $55.0!",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 24,
+    matchKeywords: ["bot", "chatbot", "mood", "emoji", "dictionary", "lower", "fstring"],
+    realWorldUse:
+      "Used in Slack bots, customer service automated replies, and virtual game NPC dialogue trees.",
+    analogyTitle: "The 3-Step Chatbot Pipeline",
+    analogyText:
+      "A smart chat bot: 1) converts the user's text to lowercase with **`.lower()`**, 2) finds a match safely with **`dict.get(key, fallback)`**, and 3) outputs a friendly greeting with an **`f\"Bot: {reply}\"`** string!",
+    cheatSheet: `mood_map = {"happy": "🎉 Yay!", "tired": "☕ Grab coffee!"}
+user_msg = "TIRED"
+
+# 1. Lowercase + safe lookup with fallback:
+reply = mood_map.get(user_msg.lower(), "🤖 I hear you!")
+
+# 2. Format with f-string:
+bot_msg = f"Bot: {reply}"
+print(bot_msg)  # "Bot: ☕ Grab coffee!"`,
+    commonPitfall: {
+      title: "Using square brackets mood_map[key] instead of .get()",
+      wrongCode: 'reply = mood_map[message.lower()]  # Crashes with KeyError on unknown mood!',
+      rightCode: 'reply = mood_map.get(message.lower(), "🤖 I hear you!")  # Safe fallback!',
+      explanation:
+        "`.get()` prevents crashes when a user types an unexpected mood message.",
+    },
+    guidedCode: `def bot_reply(message, mood_map):
+    # 👉 Safe dictionary lookup + f-string response:
+    reply = mood_map.get(message.lower(), "🤖 I hear you!")
+    return f"Bot: {reply}"
+
+moods = {"happy": "🎉 Yay!", "tired": "☕ Grab coffee!"}
+print(bot_reply("HAPPY", moods))`,
+    quiz: {
+      question: "Why is `mood_map.get(key, default)` preferred over `mood_map[key]` for chatbots?",
+      options: [
+        "It provides a fallback instead of crashing with a KeyError",
+        "It makes the text uppercase",
+        "It deletes old messages",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`.get()` safely returns your fallback string when the message isn't in the dictionary!",
+    },
+  },
 ];

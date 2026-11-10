@@ -107,6 +107,14 @@ const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
       minOrder: 17,
       maxOrder: 20,
     },
+    {
+      id: 6,
+      roman: "VI",
+      title: "Real-World Mini-App Projects",
+      subtitle: "RPG combat math, security check, tip splitter, and bot",
+      minOrder: 21,
+      maxOrder: 24,
+    },
   ],
   algorithms: [
     {

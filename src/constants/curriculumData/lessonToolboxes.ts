@@ -780,6 +780,228 @@ const PYTHON_BASICS_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 21,
+    tools: [
+      {
+        toolName: "value if condition else fallback — Ternary Operator",
+        badge: "FLOW CONTROL",
+        purpose:
+          "Evaluates a condition and picks between two expressions in a single clean line.",
+        syntaxPattern: "result = x if condition else y",
+        variations: [
+          {
+            label: "1. Critical hit multiplier",
+            code: "attack = 50\nis_crit = True\ndmg = attack * 2 if is_crit else attack\nprint(dmg)",
+            output: "100",
+            note: "If is_crit is True, attack * 2 is chosen; otherwise plain attack.",
+          },
+          {
+            label: "2. Quick status message",
+            code: 'is_online = True\nstatus = "ONLINE" if is_online else "OFFLINE"\nprint(status)',
+            output: "ONLINE",
+            note: "Super handy for toggling UI text labels or state tags.",
+          },
+          {
+            label: "3. Clamping with a ternary",
+            code: "health = -5\nsafe_hp = health if health > 0 else 0\nprint(safe_hp)",
+            output: "0",
+            note: "Prevents values from dropping into invalid ranges.",
+          },
+        ],
+      },
+      {
+        toolName: "max() & min() — Boundary Clamping",
+        badge: "BUILT-IN MATH",
+        purpose:
+          "Guarantees that a numeric value never drops below a minimum floor or exceeds a maximum ceiling.",
+        syntaxPattern: "max(value, minimum_floor)",
+        variations: [
+          {
+            label: "1. Floor damage at minimum 1 point",
+            code: "dmg = 10\ndefense = 25\nprint(max(dmg - defense, 1))",
+            output: "1",
+            note: "10 - 25 is -15, but max(-15, 1) keeps it at 1 so attacks never deal negative damage.",
+          },
+          {
+            label: "2. Cap player health at 100",
+            code: "hp = 95\nheal = 20\nprint(min(hp + heal, 100))",
+            output: "100",
+            note: "min() ensures health will never exceed 100 HP.",
+          },
+          {
+            label: "3. Clamp between a min and max (0 to 100)",
+            code: "val = 150\nclamped = max(0, min(val, 100))\nprint(clamped)",
+            output: "100",
+            note: "Combines min and max to keep numbers inside a strict boundary range.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 22,
+    tools: [
+      {
+        toolName: "any(...) — Fast Any-Match Scanner",
+        badge: "LOGICAL SEARCH",
+        purpose:
+          "Checks every item in an iterable and returns True the instant any item satisfies the test.",
+        syntaxPattern: "any(condition(x) for x in collection)",
+        variations: [
+          {
+            label: "1. Detect if password contains at least one digit",
+            code: 'pw = "Secret9"\nprint(any(ch.isdigit() for ch in pw))',
+            output: "True",
+            note: "Walks each character; returns True as soon as '9' is encountered.",
+          },
+          {
+            label: "2. Check for any uppercase character",
+            code: 'pw = "secret"\nprint(any(ch.isupper() for ch in pw))',
+            output: "False",
+            note: "All characters are lowercase, so any() returns False.",
+          },
+          {
+            label: "3. Check for special symbols",
+            code: 'pw = "user@key"\nprint(any(ch in "!@#$" for ch in pw))',
+            output: "True",
+            note: "Returns True because '@' appears in the allowed symbols string.",
+          },
+        ],
+      },
+      {
+        toolName: "len() & and / or — Multi-Rule Security Gate",
+        badge: "CONDITION CHECK",
+        purpose:
+          "Combines multiple independent requirements into a single decision.",
+        syntaxPattern: "if len(val) >= min_len and condition:",
+        variations: [
+          {
+            label: "1. Validate both length and number requirement",
+            code: 'pw = "Python99"\nhas_num = any(ch.isdigit() for ch in pw)\nprint(len(pw) >= 8 and has_num)',
+            output: "True",
+            note: "Both conditions must be True for the whole 'and' check to be True.",
+          },
+          {
+            label: "2. One-line return ternary",
+            code: 'pw = "abc"\nres = "STRONG" if len(pw) >= 8 else "WEAK"\nprint(res)',
+            output: "WEAK",
+            note: "Directly maps validation results into user-facing status words.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 23,
+    tools: [
+      {
+        toolName: "(1 + tip / 100) — Tip & Percentage Arithmetic",
+        badge: "PERCENTAGE MATH",
+        purpose:
+          "Adds a percentage fee or tip to a base amount in a single multiplication.",
+        syntaxPattern: "total_with_tip = total * (1 + tip_percent / 100)",
+        variations: [
+          {
+            label: "1. Add 20% tip to a bill",
+            code: "total = 100.0\nwith_tip = total * (1 + 20 / 100)\nprint(with_tip)",
+            output: "120.0",
+            note: "1 + 20/100 is 1.20, which multiplies the base $100 up to $120.",
+          },
+          {
+            label: "2. Split bill among 4 people",
+            code: "with_tip = 120.0\npeople = 4\nprint(with_tip / people)",
+            output: "30.0",
+            note: "Divides total evenly among all diners.",
+          },
+          {
+            label: "3. Combined one-line formula",
+            code: "total, tip, diners = 75.50, 15, 3\nshare = (total * (1 + tip / 100)) / diners\nprint(round(share, 2))",
+            output: "28.94",
+            note: "Computes total with tip and splits in a single math expression.",
+          },
+        ],
+      },
+      {
+        toolName: "round(amount, 2) — 2-Decimal Currency Precision",
+        badge: "PRECISION",
+        purpose:
+          "Rounds floating-point division into exact two-decimal dollar and cent amounts.",
+        syntaxPattern: "round(number, 2)",
+        variations: [
+          {
+            label: "1. Round repeating fractions to 2 decimals",
+            code: "print(round(28.9416666, 2))",
+            output: "28.94",
+            note: "Keeps 2 decimal digits for clean receipts.",
+          },
+          {
+            label: "2. Format as a currency string with f-string",
+            code: "amt = 28.94\nprint(f'${amt:.2f}')",
+            output: "$28.94",
+            note: ":.2f inside an f-string guarantees exactly two decimal places.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 24,
+    tools: [
+      {
+        toolName: "dict.get(key, fallback) — Safe Chatbot Dispatcher",
+        badge: "DICTIONARY METHOD",
+        purpose:
+          "Looks up an automated response from a dictionary with a graceful default if the message is unknown.",
+        syntaxPattern: "response = mood_map.get(key, default_message)",
+        variations: [
+          {
+            label: "1. Matching keyword returns custom message",
+            code: 'moods = {"happy": "🎉 Yay!", "tired": "☕ Rest!"}\nprint(moods.get("happy", "🤖 Hi!"))',
+            output: "🎉 Yay!",
+            note: "Key found -> returns the value associated with 'happy'.",
+          },
+          {
+            label: "2. Unknown keyword falls back safely",
+            code: 'moods = {"happy": "🎉 Yay!"}\nprint(moods.get("puzzled", "🤖 I hear you!"))',
+            output: "🤖 I hear you!",
+            note: "Key missing -> returns fallback instead of raising a KeyError.",
+          },
+          {
+            label: "3. Default None when no fallback is specified",
+            code: 'print({"a": 1}.get("b"))',
+            output: "None",
+            note: "Returns None if the key doesn't exist and no fallback is given.",
+          },
+        ],
+      },
+      {
+        toolName: ".lower() & f-strings — Text Pipeline",
+        badge: "TEXT PROCESSING",
+        purpose:
+          "Normalizes user casing so matches work reliably, then embeds results into conversational messages.",
+        syntaxPattern: 'f"Bot: {mood_map.get(text.lower(), default)}"',
+        variations: [
+          {
+            label: "1. Case-insensitive normalization",
+            code: 'msg = "HAPPY"\nprint(msg.lower())',
+            output: "happy",
+            note: "Converts 'HAPPY', 'Happy', or 'hApPy' to identical lowercase.",
+          },
+          {
+            label: "2. Wrap in chat bot prefix",
+            code: 'reply = "🎉 Yay!"\nprint(f"Bot: {reply}")',
+            output: "Bot: 🎉 Yay!",
+            note: "f-strings make conversational formatting simple and readable.",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export const LESSON_TOOLBOXES: LessonToolboxEntry[] = [
