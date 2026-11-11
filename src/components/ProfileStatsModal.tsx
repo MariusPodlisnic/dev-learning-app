@@ -1,5 +1,8 @@
+import React, { useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { HardShadow, HardShadowSm, MonoFont, StudioColors, TrackThemes } from "../constants/theme";
+import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
+import { playKeyClick } from "../utils/soundEffects";
 import { Lesson } from "./RoadmapTree";
 
 interface ProfileStatsModalProps {
@@ -129,9 +132,30 @@ export default function ProfileStatsModal({
   onOpenAuth,
   onClose,
 }: ProfileStatsModalProps) {
+  const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
   const rank = getDeveloperRank(xpPoints);
   const totalLessons = lessons.length;
   const totalCompleted = lessons.filter((l) => completedLessons[l.id]).length;
+
+  async function handleShareDevCard() {
+    playKeyClick();
+    const url = buildChallengeUrl();
+    const message = [
+      `🐾 DevLearn Developer Card`,
+      `🏅 Level ${rank.level}: ${rank.title}`,
+      `"${rank.tagline}"`,
+      `⚡ ${xpPoints} XP · 🔥 ${streakCount}d streak · ✓ ${totalCompleted}/${totalLessons} modules solved`,
+      `Join me on DevLearn 👉 ${url}`,
+    ].join("\n");
+    const outcome = await shareOrCopyText({
+      title: `DevLearn Rank: ${rank.title}`,
+      message,
+    });
+    if (outcome !== "failed") {
+      setShareFeedback(outcome);
+      setTimeout(() => setShareFeedback("idle"), 2500);
+    }
+  }
 
   const pyLessons = lessons.filter((l) => l.track === "python_basics");
   const pyDone = pyLessons.filter((l) => completedLessons[l.id]).length;
@@ -176,7 +200,7 @@ export default function ProfileStatsModal({
           <View style={styles.levelBadgeCircle}>
             <Text style={styles.levelNumberText}>L{rank.level}</Text>
           </View>
-          <View>
+          <View style={styles.headerTextCol}>
             <View style={styles.rankTitleRow}>
               <Text style={styles.rankTitle}>{rank.title}</Text>
               <View
@@ -254,6 +278,23 @@ export default function ProfileStatsModal({
             <Text style={styles.statLabel}>SOLVED</Text>
           </View>
         </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.shareCardBtn,
+            shareFeedback !== "idle" && styles.shareCardBtnDone,
+            pressed && { transform: [{ translateY: 1 }] },
+          ]}
+          onPress={handleShareDevCard}
+        >
+          <Text style={styles.shareCardBtnText}>
+            {shareFeedback === "copied"
+              ? "✓ DEVELOPER CARD COPIED TO CLIPBOARD!"
+              : shareFeedback === "shared"
+                ? "✓ DEVELOPER CARD SHARED!"
+                : "📤 SHARE MY DEVELOPER CARD ↗"}
+          </Text>
+        </Pressable>
 
         {/* Track Mastery Breakdown */}
         <Text style={styles.sectionHeading}>TRACK MASTERY</Text>
@@ -381,7 +422,8 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: 12,
     marginBottom: 18,
     paddingTop: 8,
   },
@@ -390,10 +432,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     flex: 1,
+    minWidth: 0,
+  },
+  headerTextCol: {
+    flex: 1,
+    minWidth: 0,
   },
   levelBadgeCircle: {
     width: 46,
     height: 46,
+    flexShrink: 0,
     borderRadius: 10,
     backgroundColor: StudioColors.violet,
     borderWidth: 2,
@@ -411,6 +459,7 @@ const styles = StyleSheet.create({
   rankTitleRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
     gap: 8,
   },
   rankTitle: {
@@ -418,6 +467,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
     letterSpacing: -0.3,
+    flexShrink: 1,
   },
   rankTagline: {
     color: StudioColors.textSecondary,
@@ -465,6 +515,7 @@ const styles = StyleSheet.create({
   closeIconBtn: {
     width: 32,
     height: 32,
+    flexShrink: 0,
     borderRadius: 8,
     backgroundColor: StudioColors.bg,
     borderWidth: 1.5,
@@ -665,5 +716,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "900",
     fontFamily: MonoFont,
+  },
+  shareCardBtn: {
+    marginBottom: 16,
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  shareCardBtnDone: {
+    backgroundColor: StudioColors.mint,
+  },
+  shareCardBtnText: {
+    color: StudioColors.ink,
+    fontSize: 11.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
   },
 });

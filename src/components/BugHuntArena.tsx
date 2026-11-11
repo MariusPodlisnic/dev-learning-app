@@ -16,6 +16,8 @@ import {
   StudioColors,
   TrackThemes,
 } from "../constants/theme";
+import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
+import { playKeyClick } from "../utils/soundEffects";
 
 export interface BugIncident {
   id: string;
@@ -363,6 +365,7 @@ export default function BugHuntArena({
     "playing" | "resolved" | "failed" | "timeout"
   >("playing");
   const [earnedXp, setEarnedXp] = useState<number>(0);
+  const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
 
   function startMission(index: number) {
     const inc = BUG_INCIDENTS[index];
@@ -379,6 +382,7 @@ export default function BugHuntArena({
     setErrorMessage("");
     setPatchStatus("playing");
     setEarnedXp(0);
+    setShareFeedback("idle");
   }
 
   useEffect(() => {
@@ -565,6 +569,28 @@ export default function BugHuntArena({
     }
   }
 
+  async function handleSharePatch() {
+    if (!currentIncident) return;
+    playKeyClick();
+    const isFast = secondsLeft >= Math.floor(currentIncident.timeLimitSec * 0.5);
+    const speedBar = isFast ? "🟩🟩🟩 ⚡" : secondsLeft > 0 ? "🟩🟩🟨 🛠️" : "🟩🟨🟨 ⏱️";
+    const url = buildChallengeUrl({ mode: "bughunt" });
+    const message = [
+      `🪲 DevLearn Bug Hunt — ${currentIncident.codeId}: ${currentIncident.title}`,
+      `${speedBar} Defect Patched! (+${earnedXp} XP)`,
+      `⏱ ${formattedTime} remaining · ${currentIncident.difficulty}`,
+      `Can you fix this production bug faster? 👉 ${url}`,
+    ].join("\n");
+    const outcome = await shareOrCopyText({
+      title: `DevLearn Bug Hunt — ${currentIncident.title}`,
+      message,
+    });
+    if (outcome !== "failed") {
+      setShareFeedback(outcome);
+      setTimeout(() => setShareFeedback("idle"), 2500);
+    }
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -648,6 +674,21 @@ export default function BugHuntArena({
             </Text>
           </View>
           <View style={styles.winActions}>
+            <Pressable
+              style={[
+                styles.sharePatchBtn,
+                shareFeedback !== "idle" && styles.sharePatchBtnDone,
+              ]}
+              onPress={handleSharePatch}
+            >
+              <Text style={styles.sharePatchBtnText}>
+                {shareFeedback === "copied"
+                  ? "✓ COPIED!"
+                  : shareFeedback === "shared"
+                    ? "✓ SHARED!"
+                    : "📤 SHARE FIX ↗"}
+              </Text>
+            </Pressable>
             <Pressable
               style={styles.nextBtn}
               onPress={() =>
@@ -1135,7 +1176,27 @@ const styles = StyleSheet.create({
   },
   winActions: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
+  },
+  sharePatchBtn: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  sharePatchBtnDone: {
+    backgroundColor: StudioColors.surface,
+  },
+  sharePatchBtnText: {
+    color: StudioColors.ink,
+    fontSize: 12,
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   nextBtn: {
     backgroundColor: StudioColors.lime,

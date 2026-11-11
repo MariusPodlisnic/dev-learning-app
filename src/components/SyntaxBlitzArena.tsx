@@ -14,6 +14,7 @@ import {
   MonoFont,
   StudioColors,
 } from "../constants/theme";
+import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import {
   playErrorBuzz,
   playKeyClick,
@@ -414,6 +415,8 @@ export default function SyntaxBlitzArena({
   const [maxCombo, setMaxCombo] = useState<number>(0);
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [attemptCount, setAttemptCount] = useState<number>(0);
+  const [answerGrid, setAnswerGrid] = useState<("🟩" | "🟥")[]>([]);
+  const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
   const [bonusSecondsToast, setBonusSecondsToast] = useState<boolean>(false);
   const [highScore, setHighScore] = useState<number>(() => {
     if (typeof window !== "undefined" && window.localStorage) {
@@ -458,6 +461,8 @@ export default function SyntaxBlitzArena({
     setMaxCombo(0);
     setCorrectCount(0);
     setAttemptCount(0);
+    setAnswerGrid([]);
+    setShareFeedback("idle");
     setTimeLeft(60);
     setGameState("playing");
   }
@@ -505,6 +510,7 @@ export default function SyntaxBlitzArena({
     setAttemptCount((prev) => prev + 1);
 
     const isRight = idx === currentCard.correctIndex;
+    setAnswerGrid((prev) => [...prev, isRight ? "🟩" : "🟥"]);
     if (isRight) {
       playSuccessChime();
       const nextCombo = combo + 1;
@@ -558,6 +564,36 @@ export default function SyntaxBlitzArena({
   const accuracyPct =
     attemptCount > 0 ? Math.round((correctCount / attemptCount) * 100) : 100;
   const rating = getBlitzSpeedRating(correctCount);
+
+  const emojiGridLines: string[] = [];
+  const cappedGrid = answerGrid.slice(0, 24);
+  for (let i = 0; i < cappedGrid.length; i += 8) {
+    emojiGridLines.push(cappedGrid.slice(i, i + 8).join(""));
+  }
+  if (answerGrid.length > 24) {
+    emojiGridLines.push(`+${answerGrid.length - 24} more`);
+  }
+  const formattedEmojiGrid = emojiGridLines.join("\n");
+
+  async function handleShareScore() {
+    playKeyClick();
+    const url = buildChallengeUrl({ mode: "blitz" });
+    const message = [
+      `⚡ DevLearn Speed Blitz — ${rating.badge}`,
+      `🏆 ${rating.title}`,
+      `+${scoreXp} XP · ${correctCount} cleared · ${maxCombo}x streak · ${accuracyPct}% accuracy`,
+      ...(formattedEmojiGrid ? [formattedEmojiGrid] : []),
+      `Beat my 60s score 👉 ${url}`,
+    ].join("\n");
+    const outcome = await shareOrCopyText({
+      title: `DevLearn Speed Blitz — +${scoreXp} XP`,
+      message,
+    });
+    if (outcome !== "failed") {
+      setShareFeedback(outcome);
+      setTimeout(() => setShareFeedback("idle"), 2500);
+    }
+  }
 
   return (
     <ScrollView
@@ -911,17 +947,43 @@ export default function SyntaxBlitzArena({
             </View>
           </View>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.startBlitzBtn,
-              pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
-            ]}
-            onPress={() => startRound(selectedDeck)}
-          >
-            <Text style={styles.startBlitzBtnText}>
-              PLAY ANOTHER 60s ROUND ↻
-            </Text>
-          </Pressable>
+          {formattedEmojiGrid ? (
+            <View style={styles.emojiGridBox}>
+              <Text style={styles.emojiGridLabel}>RUN TELEMETRY GRID</Text>
+              <Text style={styles.emojiGridText}>{formattedEmojiGrid}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.scoreboardActions}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.shareScoreBtn,
+                shareFeedback !== "idle" && styles.shareScoreBtnDone,
+                pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
+              ]}
+              onPress={handleShareScore}
+            >
+              <Text style={styles.shareScoreBtnText}>
+                {shareFeedback === "copied"
+                  ? "✓ SCORE GRID COPIED!"
+                  : shareFeedback === "shared"
+                    ? "✓ SCORE SHARED!"
+                    : "📤 SHARE SCORE GRID ↗"}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.startBlitzBtn,
+                pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
+              ]}
+              onPress={() => startRound(selectedDeck)}
+            >
+              <Text style={styles.startBlitzBtnText}>
+                PLAY ANOTHER 60s ROUND ↻
+              </Text>
+            </Pressable>
+          </View>
         </View>
       )}
     </ScrollView>
@@ -1438,6 +1500,56 @@ const styles = StyleSheet.create({
   metricLabel: {
     color: StudioColors.ink,
     fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.7,
+  },
+  emojiGridBox: {
+    alignSelf: "stretch",
+    backgroundColor: StudioColors.bg,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    borderRadius: 10,
+    padding: 12,
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  emojiGridLabel: {
+    color: StudioColors.textMuted,
+    fontSize: 9.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 1,
+  },
+  emojiGridText: {
+    fontSize: 18,
+    lineHeight: 24,
+    textAlign: "center",
+    letterSpacing: 2,
+  },
+  scoreboardActions: {
+    width: "100%",
+    gap: 10,
+    marginTop: 6,
+  },
+  shareScoreBtn: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 2.5,
+    borderColor: StudioColors.ink,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    alignItems: "center",
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  shareScoreBtnDone: {
+    backgroundColor: StudioColors.mint,
+  },
+  shareScoreBtnText: {
+    color: StudioColors.ink,
+    fontSize: 13,
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.7,

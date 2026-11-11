@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   HardShadow,
@@ -7,6 +7,7 @@ import {
   MonoFont,
   StudioColors,
 } from "../constants/theme";
+import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick, playVictoryFanfare } from "../utils/soundEffects";
 import PixelConfetti from "./PixelConfetti";
 import { getDeveloperRank } from "./ProfileStatsModal";
@@ -14,6 +15,8 @@ import { getDeveloperRank } from "./ProfileStatsModal";
 interface SuccessModalProps {
   xpEarned: number;
   totalXp?: number;
+  streakCount?: number;
+  lessonId?: string;
   lessonTitle: string;
   keyTakeaway?: string;
   nextLessonTitle?: string;
@@ -25,6 +28,8 @@ interface SuccessModalProps {
 export default function SuccessModal({
   xpEarned,
   totalXp = 50,
+  streakCount = 0,
+  lessonId,
   lessonTitle,
   keyTakeaway,
   nextLessonTitle,
@@ -32,6 +37,7 @@ export default function SuccessModal({
   onNextLesson,
   onClose,
 }: SuccessModalProps) {
+  const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
   const currentRank = getDeveloperRank(totalXp);
   const previousRank = getDeveloperRank(Math.max(0, totalXp - xpEarned));
   const didLevelUp = currentRank.level > previousRank.level;
@@ -39,6 +45,26 @@ export default function SuccessModal({
   useEffect(() => {
     playVictoryFanfare();
   }, []);
+
+  async function handleShare() {
+    playKeyClick();
+    const challengeUrl = buildChallengeUrl(
+      lessonId ? { lessonId } : undefined,
+    );
+    const streakSegment = streakCount > 0 ? ` · 🔥 ${streakCount}d streak` : "";
+    const message = didLevelUp
+      ? `🎉 Promoted to Level ${currentRank.level}: ${currentRank.title} in DevLearn!\n✅ Just solved "${lessonTitle}" (+${xpEarned} XP${streakSegment})\nTry this lab 👉 ${challengeUrl}`
+      : `✅ Solved "${lessonTitle}" in DevLearn (+${xpEarned} XP${streakSegment})!\n🏅 Rank: L${currentRank.level} ${currentRank.title}\nBeat my solution 👉 ${challengeUrl}`;
+
+    const outcome = await shareOrCopyText({
+      title: `DevLearn — ${lessonTitle}`,
+      message,
+    });
+    if (outcome !== "failed") {
+      setShareFeedback(outcome);
+      setTimeout(() => setShareFeedback("idle"), 2500);
+    }
+  }
 
   return (
     <View style={styles.card}>
@@ -166,6 +192,25 @@ export default function SuccessModal({
           <Text style={styles.nextBtnText}>RETURN TO SKILL MAP →</Text>
         </Pressable>
       )}
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.shareBtn,
+          shareFeedback !== "idle" && styles.shareBtnDone,
+          pressed && { opacity: 0.9, transform: [{ translateY: 1 }] },
+        ]}
+        onPress={handleShare}
+      >
+        <Text style={styles.shareBtnText}>
+          {shareFeedback === "copied"
+            ? "✓ ACHIEVEMENT COPIED TO CLIPBOARD!"
+            : shareFeedback === "shared"
+              ? "✓ ACHIEVEMENT SHARED!"
+              : didLevelUp
+                ? "📤 SHARE LEVEL-UP CARD ↗"
+                : "📤 CHALLENGE A FRIEND / SHARE ↗"}
+        </Text>
+      </Pressable>
 
       <Pressable
         style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
@@ -415,6 +460,31 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontSize: 13,
     letterSpacing: 0.5,
+    fontFamily: MonoFont,
+  },
+  shareBtn: {
+    marginTop: 10,
+    backgroundColor: StudioColors.yellow,
+    width: "100%",
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    alignItems: "center",
+    ...HardShadowSm,
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
+  },
+  shareBtnDone: {
+    backgroundColor: StudioColors.mint,
+  },
+  shareBtnText: {
+    color: StudioColors.ink,
+    fontWeight: "900",
+    fontSize: 11.5,
+    letterSpacing: 0.6,
     fontFamily: MonoFont,
   },
   closeBtn: {

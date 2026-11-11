@@ -1,4 +1,5 @@
 import { Session } from "@supabase/supabase-js";
+import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Platform,
@@ -132,6 +133,12 @@ export default function HomeScreen() {
   const codeDraftsRef = useRef<Record<string, string>>({});
   const hydratedRef = useRef<boolean>(false);
   const resumePaywallAfterAuthRef = useRef<boolean>(false);
+  const handledDeepLinkRef = useRef<boolean>(false);
+  const searchParams = useLocalSearchParams<{
+    lesson?: string;
+    mode?: string;
+    track?: string;
+  }>();
 
   function updateCodeWithDraft(nextCode: string, lessonObj?: Lesson | null) {
     setCode(nextCode);
@@ -237,6 +244,35 @@ export default function HomeScreen() {
   useEffect(() => {
     applyColorTheme(themeMode);
   }, [themeMode]);
+
+  useEffect(() => {
+    if (handledDeepLinkRef.current) return;
+    const { lesson, mode, track } = searchParams;
+    if (!lesson && !mode && !track) return;
+
+    if (mode === "bughunt") {
+      handledDeepLinkRef.current = true;
+      setViewMode("bughunt");
+      return;
+    }
+    if (mode === "blitz") {
+      handledDeepLinkRef.current = true;
+      setViewMode("blitz");
+      return;
+    }
+    if (lessons.length === 0) return;
+
+    if (lesson) {
+      handledDeepLinkRef.current = true;
+      handleSelectLesson({ id: lesson });
+      return;
+    }
+    if (track && TrackThemes[track]) {
+      handledDeepLinkRef.current = true;
+      handleSwitchTrack(track);
+      setViewMode("roadmap");
+    }
+  }, [searchParams, lessons]);
 
   useEffect(() => {
     if (!hydratedRef.current) return;
@@ -971,6 +1007,8 @@ export default function HomeScreen() {
           <SuccessModal
             xpEarned={50}
             totalXp={xpPoints}
+            streakCount={streakCount}
+            lessonId={selectedLesson?.id}
             lessonTitle={selectedLesson?.title || ""}
             keyTakeaway={
               lessonEnrichment?.realWorldUse || selectedLesson?.description
