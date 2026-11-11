@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "dev-learning-app",
+    "name": "DevLearn Arcade",
     "slug": "dev-learning-app",
+    "description": "Interactive Python, Algorithms & System Design coding arcade with live browser execution and Byte-Cat.",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -21,7 +22,11 @@
     },
     "web": {
       "output": "server",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "DevLearn Arcade",
+      "shortName": "DevLearn",
+      "description": "Interactive Python, Algorithms & System Design coding arcade with live browser execution.",
+      "themeColor": "#F4F0E6"
     },
     "plugins": [
       "expo-router",

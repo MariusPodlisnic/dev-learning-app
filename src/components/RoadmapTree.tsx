@@ -1,3 +1,4 @@
+import { Link } from "expo-router";
 import React, { useState } from "react";
 import {
   Platform,
@@ -1245,6 +1246,16 @@ export default function RoadmapTree({
           })
         )}
       </View>
+
+      <View style={styles.showcaseFooterWrap}>
+        <Link href="/explore" asChild>
+          <Pressable style={styles.showcaseFooterBtn}>
+            <Text style={styles.showcaseFooterText}>
+              📖 View Track Syllabus &amp; Showcase →
+            </Text>
+          </Pressable>
+        </Link>
+      </View>
     </ScrollView>
   );
 }
@@ -2201,6 +2212,27 @@ const styles = StyleSheet.create({
   resetFilterCtaText: {
     color: StudioColors.ink,
     fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  showcaseFooterWrap: {
+    marginTop: 28,
+    alignItems: "center",
+    zIndex: 2,
+  },
+  showcaseFooterBtn: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer" } }),
+  },
+  showcaseFooterText: {
+    color: StudioColors.textPrimary,
+    fontSize: 12,
     fontWeight: "900",
     fontFamily: MonoFont,
   },

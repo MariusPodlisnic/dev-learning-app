@@ -1,5 +1,7 @@
 import { Session } from "@supabase/supabase-js";
 import { useLocalSearchParams } from "expo-router";
+import Head from "expo-router/head";
+import type { Metadata } from "expo-router/server";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Platform,
@@ -64,6 +66,28 @@ import {
   playSuccessChime,
   playVictoryFanfare,
 } from "../utils/soundEffects";
+
+export function generateMetadata(): Metadata {
+  return {
+    title: "DevLearn Arcade | Interactive Python, Algorithms & System Design",
+    description:
+      "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.",
+    openGraph: {
+      title: "DevLearn Arcade | Interactive Coding Arcade",
+      description:
+        "Learn Python, Algorithms & System Design through live playgrounds, playable mini-apps, and 60-second coding sprints.",
+      type: "website",
+      images: ["/og-preview.jpg"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "DevLearn Arcade | Interactive Coding Arcade",
+      description:
+        "Learn Python, Algorithms & System Design through live playgrounds, playable mini-apps, and 60-second coding sprints.",
+      images: ["/og-preview.jpg"],
+    },
+  };
+}
 
 export default function HomeScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -709,8 +733,36 @@ export default function HomeScreen() {
     }
   }
 
+  const seoTitle =
+    viewMode === "studio" && selectedLesson
+      ? `${selectedLesson.title} | DevLearn Arcade`
+      : viewMode === "bughunt"
+        ? "Bug Hunt Arena | DevLearn Arcade"
+        : viewMode === "blitz"
+          ? "60s Syntax Blitz | DevLearn Arcade"
+          : "DevLearn Arcade | Interactive Python, Algorithms & System Design";
+
+  const seoDescription =
+    viewMode === "studio" && selectedLesson
+      ? `${selectedLesson.description} Practice interactively in the live DevLearn Arcade studio.`
+      : viewMode === "bughunt"
+        ? "Spot and fix broken Python and algorithm snippets in the DevLearn Arcade Bug Hunt Arena."
+        : viewMode === "blitz"
+          ? "Race the 60-second clock to predict outputs and spot syntax bugs in DevLearn Arcade."
+          : "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.";
+
   return (
     <SafeAreaView style={styles.container}>
+      <Head>
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
+        <meta property="og:image" content="/og-preview.jpg" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoTitle} />
+        <meta name="twitter:description" content={seoDescription} />
+      </Head>
       <MinimalPcbBackground />
       <AppHeader
         viewMode={viewMode}
