@@ -24,6 +24,8 @@ interface SuccessModalProps {
   isGuest?: boolean;
   totalSolvedCount?: number;
   onSaveProgress?: () => void;
+  trackCertificateLabel?: string;
+  onViewCertificate?: () => void;
   onNextLesson: () => void;
   onClose: () => void;
 }
@@ -40,6 +42,8 @@ export default function SuccessModal({
   isGuest = false,
   totalSolvedCount = 0,
   onSaveProgress,
+  trackCertificateLabel,
+  onViewCertificate,
   onNextLesson,
   onClose,
 }: SuccessModalProps) {
@@ -243,6 +247,23 @@ export default function SuccessModal({
                 : "📤 CHALLENGE A FRIEND / SHARE ↗"}
         </Text>
       </Pressable>
+
+      {trackCertificateLabel && onViewCertificate ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.certLaunchBtn,
+            pressed && { opacity: 0.9, transform: [{ translateY: 1 }] },
+          ]}
+          onPress={() => {
+            playKeyClick();
+            onViewCertificate();
+          }}
+        >
+          <Text style={styles.certLaunchBtnText}>
+            🎓 CLAIM {trackCertificateLabel.toUpperCase()} CERTIFICATE ↗
+          </Text>
+        </Pressable>
+      ) : null}
 
       <Pressable
         style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
@@ -562,6 +583,28 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontSize: 11.5,
     letterSpacing: 0.6,
+    fontFamily: MonoFont,
+  },
+  certLaunchBtn: {
+    marginTop: 8,
+    backgroundColor: StudioColors.violet,
+    width: "100%",
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    alignItems: "center",
+    ...HardShadowSm,
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
+  },
+  certLaunchBtnText: {
+    color: StudioColors.ink,
+    fontWeight: "900",
+    fontSize: 11,
+    letterSpacing: 0.5,
     fontFamily: MonoFont,
   },
   closeBtn: {

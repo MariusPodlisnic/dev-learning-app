@@ -10,6 +10,10 @@ import {
   View,
 } from "react-native";
 import {
+  ChapterTierMeta,
+  TRACK_CHAPTERS,
+} from "../constants/certificates";
+import {
   HardShadow,
   HardShadowHero,
   HardShadowSm,
@@ -65,153 +69,9 @@ interface RoadmapTreeProps {
   totalSolvedCount?: number;
   onStartQuickMode?: (mode: "bughunt" | "blitz") => void;
   onOpenAuth?: (mode?: "signup" | "signin", reason?: string) => void;
+  onOpenTrackCertificate?: (trackKey: string) => void;
+  onOpenChapterCertificate?: (trackKey: string, chapter: ChapterTierMeta) => void;
 }
-
-interface ChapterTierMeta {
-  id: number;
-  roman: string;
-  title: string;
-  subtitle: string;
-  minOrder: number;
-  maxOrder: number;
-}
-
-const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
-  python_basics: [
-    {
-      id: 1,
-      roman: "I",
-      title: "Core Python Foundations",
-      subtitle: "Variables, conditionals, loops, and list collections",
-      minOrder: 1,
-      maxOrder: 4,
-    },
-    {
-      id: 2,
-      roman: "II",
-      title: "Functions & Key-Value Data",
-      subtitle: "Reusable functions, string methods, dictionaries, and slicing",
-      minOrder: 5,
-      maxOrder: 8,
-    },
-    {
-      id: 3,
-      roman: "III",
-      title: "Safe & Object-Oriented Code",
-      subtitle: "Sets, list comprehensions, error handling, and classes",
-      minOrder: 9,
-      maxOrder: 12,
-    },
-    {
-      id: 4,
-      roman: "IV",
-      title: "Python One-Line Power Tools",
-      subtitle: "Text replacing, sum(), URL checks, and safe .get() defaults",
-      minOrder: 13,
-      maxOrder: 16,
-    },
-    {
-      id: 5,
-      roman: "V",
-      title: "Everyday Python Essentials",
-      subtitle: "F-strings, word splitting, 'in' membership, and rounding",
-      minOrder: 17,
-      maxOrder: 20,
-    },
-    {
-      id: 6,
-      roman: "VI",
-      title: "Real-World Mini-App Projects",
-      subtitle: "RPG combat math, security check, tip splitter, and bot",
-      minOrder: 21,
-      maxOrder: 24,
-    },
-  ],
-  algorithms: [
-    {
-      id: 1,
-      roman: "I",
-      title: "Hashing & Pointer Speedups",
-      subtitle: "Hash maps, two pointers, sliding windows, and binary search",
-      minOrder: 1,
-      maxOrder: 4,
-    },
-    {
-      id: 2,
-      roman: "II",
-      title: "Stacks, Linked Lists & Trees",
-      subtitle: "LIFO validation, pointer reversal, recursion, and DFS",
-      minOrder: 5,
-      maxOrder: 8,
-    },
-    {
-      id: 3,
-      roman: "III",
-      title: "Fast Searches & Running Totals",
-      subtitle: "Minimum scan, middle index, list intersection, and prefix sums",
-      minOrder: 9,
-      maxOrder: 12,
-    },
-    {
-      id: 4,
-      roman: "IV",
-      title: "Sorting & Filtering Patterns",
-      subtitle: "Max search, leaderboard sorting, modulo filters, and VIP lookup",
-      minOrder: 13,
-      maxOrder: 16,
-    },
-    {
-      id: 5,
-      roman: "V",
-      title: "Practical Interview Classics",
-      subtitle: "Palindromes, unique set checks, abs() distance, and zip() maps",
-      minOrder: 17,
-      maxOrder: 20,
-    },
-  ],
-  system_design: [
-    {
-      id: 1,
-      roman: "I",
-      title: "Traffic & Caching Layers",
-      subtitle: "Load balancing, LRU eviction, rate limiting, and sharding",
-      minOrder: 1,
-      maxOrder: 4,
-    },
-    {
-      id: 2,
-      roman: "II",
-      title: "Messaging & Distributed Consensus",
-      subtitle: "Consistent hashing, pub/sub queues, circuit breakers, and quorum",
-      minOrder: 5,
-      maxOrder: 8,
-    },
-    {
-      id: 3,
-      roman: "III",
-      title: "Resilience & Global Routing",
-      subtitle: "Retry caps, 3-strike alerts, server failover, and CDN routing",
-      minOrder: 9,
-      maxOrder: 12,
-    },
-    {
-      id: 4,
-      roman: "IV",
-      title: "Alarms, Flags & Autoscaling",
-      subtitle: "RAM alarms, feature flags, upload guards, and queue scaling",
-      minOrder: 13,
-      maxOrder: 16,
-    },
-    {
-      id: 5,
-      roman: "V",
-      title: "API Keys, Pagination & Batches",
-      subtitle: "Auth checks, page offsets, Redis cache keys, and batch chunks",
-      minOrder: 17,
-      maxOrder: 20,
-    },
-  ],
-};
 
 const TRACK_KEYS = ["python_basics", "algorithms", "system_design"] as const;
 
@@ -401,6 +261,8 @@ export default function RoadmapTree({
   totalSolvedCount = 0,
   onStartQuickMode,
   onOpenAuth,
+  onOpenTrackCertificate,
+  onOpenChapterCertificate,
 }: RoadmapTreeProps) {
   const [statusFilter, setStatusFilter] = useState<"all" | "unsolved" | "solved">("all");
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
@@ -882,17 +744,37 @@ export default function RoadmapTree({
                   {completedCount} of {trackLessons.length} modules solved
                 </Text>
               </View>
-              <View
-                style={[
-                  styles.percentBadge,
-                  {
-                    backgroundColor: currentTrackMeta.stickerBg,
-                  },
-                ]}
-              >
-                <Text style={styles.progressPercentText}>
-                  {progressPercent}%
-                </Text>
+              <View style={styles.trackBadgesRightRow}>
+                {completedCount === trackLessons.length &&
+                trackLessons.length > 0 &&
+                onOpenTrackCertificate ? (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.trackCertPillBtn,
+                      pressed && { transform: [{ translateY: 1 }] },
+                    ]}
+                    onPress={() => {
+                      playKeyClick();
+                      onOpenTrackCertificate(activeTrack);
+                    }}
+                  >
+                    <Text style={styles.trackCertPillText}>
+                      🎓 CERTIFICATE ↗
+                    </Text>
+                  </Pressable>
+                ) : null}
+                <View
+                  style={[
+                    styles.percentBadge,
+                    {
+                      backgroundColor: currentTrackMeta.stickerBg,
+                    },
+                  ]}
+                >
+                  <Text style={styles.progressPercentText}>
+                    {progressPercent}%
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -1235,6 +1117,25 @@ export default function RoadmapTree({
                             </Text>
                           </View>
                         )}
+                        {isChapterCleared && onOpenChapterCertificate ? (
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.chapterCertBtn,
+                              pressed && { transform: [{ translateY: 1 }] },
+                            ]}
+                            onPress={() => {
+                              playKeyClick();
+                              onOpenChapterCertificate(
+                                activeTrack,
+                                currentChapter,
+                              );
+                            }}
+                          >
+                            <Text style={styles.chapterCertBtnText}>
+                              🎓 CERTIFICATE ↗
+                            </Text>
+                          </Pressable>
+                        ) : null}
                       </View>
                     </View>
                   </View>
@@ -2291,6 +2192,24 @@ const styles = StyleSheet.create({
   chapterRightCol: {
     alignItems: "flex-end",
     justifyContent: "center",
+    gap: 6,
+  },
+  chapterCertBtn: {
+    backgroundColor: StudioColors.violet,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  chapterCertBtnText: {
+    color: StudioColors.ink,
+    fontSize: 9.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
   },
   claimChapterBonusBtn: {
     backgroundColor: StudioColors.yellow,
@@ -2566,5 +2485,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
+  },
+  trackBadgesRightRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  trackCertPillBtn: {
+    backgroundColor: StudioColors.violet,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  trackCertPillText: {
+    color: StudioColors.ink,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
   },
 });

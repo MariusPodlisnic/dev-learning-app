@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  CertificateData,
+  getUnlockedCertificates,
+} from "../constants/certificates";
 import { HardShadow, HardShadowSm, MonoFont, StudioColors, TrackThemes } from "../constants/theme";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick } from "../utils/soundEffects";
@@ -13,6 +17,7 @@ interface ProfileStatsModalProps {
   lessons: Lesson[];
   completedLessons: Record<string, boolean>;
   onSelectTrack: (trackKey: string) => void;
+  onOpenCertificate?: (certificate: CertificateData) => void;
   onOpenAuth: () => void;
   onClose: () => void;
 }
@@ -129,6 +134,7 @@ export default function ProfileStatsModal({
   lessons,
   completedLessons,
   onSelectTrack,
+  onOpenCertificate,
   onOpenAuth,
   onClose,
 }: ProfileStatsModalProps) {
@@ -136,6 +142,14 @@ export default function ProfileStatsModal({
   const rank = getDeveloperRank(xpPoints);
   const totalLessons = lessons.length;
   const totalCompleted = lessons.filter((l) => completedLessons[l.id]).length;
+  const unlockedCertificates = getUnlockedCertificates({
+    lessons,
+    completedLessons,
+    xpPoints,
+    streakCount,
+    rankLabel: `L${rank.level} ${rank.title}`,
+    userEmail,
+  });
 
   async function handleShareDevCard() {
     playKeyClick();
@@ -344,6 +358,55 @@ export default function ProfileStatsModal({
             );
           })}
         </View>
+
+        {/* Unlockable Certificates */}
+        <Text style={styles.sectionHeading}>
+          CERTIFICATES & CREDENTIALS ({unlockedCertificates.length})
+        </Text>
+        {unlockedCertificates.length > 0 ? (
+          <View style={styles.certsList}>
+            {unlockedCertificates.map((cert) => (
+              <Pressable
+                key={cert.id}
+                style={({ pressed }) => [
+                  styles.certRowCard,
+                  pressed && { transform: [{ translateY: 1 }] },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  onClose();
+                  onOpenCertificate?.(cert);
+                }}
+              >
+                <View
+                  style={[styles.certIconBox, { backgroundColor: cert.accent }]}
+                >
+                  <Text style={styles.certIconText}>
+                    {cert.kind === "track" ? "🎓" : "🏆"}
+                  </Text>
+                </View>
+                <View style={styles.certCopyCol}>
+                  <Text style={styles.certRowTitle} numberOfLines={1}>
+                    {cert.title}
+                  </Text>
+                  <Text style={styles.certRowMeta} numberOfLines={1}>
+                    ID: {cert.credentialCode} · {cert.completedCount} labs
+                  </Text>
+                </View>
+                <View style={styles.certViewPill}>
+                  <Text style={styles.certViewPillText}>SHARE ↗</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.certLockedTeaser}>
+            <Text style={styles.certLockedTeaserText}>
+              Complete any 4-module chapter or finish a full track to mint your
+              first shareable Certificate & LinkedIn credential.
+            </Text>
+          </View>
+        )}
 
         {/* Unlockable Achievements */}
         <Text style={styles.sectionHeading}>ACHIEVEMENT BADGES</Text>
@@ -738,5 +801,77 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.5,
+  },
+  certsList: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  certRowCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    borderRadius: 10,
+    padding: 10,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  certIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  certIconText: {
+    fontSize: 16,
+  },
+  certCopyCol: {
+    flex: 1,
+    gap: 2,
+  },
+  certRowTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  certRowMeta: {
+    color: StudioColors.textSecondary,
+    fontFamily: MonoFont,
+    fontSize: 9.5,
+    fontWeight: "700",
+  },
+  certViewPill: {
+    backgroundColor: StudioColors.lime,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  certViewPillText: {
+    color: StudioColors.ink,
+    fontFamily: MonoFont,
+    fontSize: 9.5,
+    fontWeight: "900",
+  },
+  certLockedTeaser: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderStyle: "dashed",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  certLockedTeaserText: {
+    color: StudioColors.textSecondary,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: "600",
   },
 });

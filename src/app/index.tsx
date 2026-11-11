@@ -16,6 +16,7 @@ import { supabase } from "../../lib/supabase";
 import AppHeader from "../components/AppHeader";
 import Auth from "../components/Auth";
 import BugHuntArena from "../components/BugHuntArena";
+import CertificateModal from "../components/CertificateModal";
 import { renderHighlightedPython } from "../components/FormattedText";
 import LessonProblemPanel from "../components/LessonProblemPanel";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
@@ -31,6 +32,13 @@ import StudioCodeEditor from "../components/StudioCodeEditor";
 import StudioSidebar from "../components/StudioSidebar";
 import SuccessModal from "../components/SuccessModal";
 import SyntaxBlitzArena from "../components/SyntaxBlitzArena";
+import {
+  buildChapterCertificate,
+  buildTrackCertificate,
+  CertificateData,
+  ChapterTierMeta,
+  TRACK_CHAPTERS,
+} from "../constants/certificates";
 import {
   getLessonEnrichment,
   mergeCurriculumLessons,
@@ -156,6 +164,8 @@ export default function HomeScreen() {
   });
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+  const [activeCertificate, setActiveCertificate] =
+    useState<CertificateData | null>(null);
   const [upgrading, setUpgrading] = useState<boolean>(false);
   const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(false);
 
@@ -741,6 +751,52 @@ export default function HomeScreen() {
     }
   }
 
+  function openTrackCertificate(
+    trackKey: string,
+    overrideXp: number = xpPoints,
+    overrideStreak: number = streakCount,
+  ) {
+    const trackLessons = lessons.filter((l) => l.track === trackKey);
+    const doneCount = trackLessons.filter((l) => completedLessons[l.id]).length;
+    const rank = getDeveloperRank(overrideXp);
+    setActiveCertificate(
+      buildTrackCertificate({
+        trackKey,
+        completedCount: doneCount || trackLessons.length,
+        xpPoints: overrideXp,
+        streakCount: overrideStreak,
+        rankLabel: `L${rank.level} ${rank.title}`,
+        userEmail: session?.user?.email,
+      }),
+    );
+  }
+
+  function openChapterCertificate(
+    trackKey: string,
+    chapter: ChapterTierMeta,
+    overrideXp: number = xpPoints,
+    overrideStreak: number = streakCount,
+  ) {
+    const chLessons = lessons.filter(
+      (l) =>
+        l.track === trackKey &&
+        l.lesson_order >= chapter.minOrder &&
+        l.lesson_order <= chapter.maxOrder,
+    );
+    const rank = getDeveloperRank(overrideXp);
+    setActiveCertificate(
+      buildChapterCertificate({
+        trackKey,
+        chapter,
+        completedCount: chLessons.length || 4,
+        xpPoints: overrideXp,
+        streakCount: overrideStreak,
+        rankLabel: `L${rank.level} ${rank.title}`,
+        userEmail: session?.user?.email,
+      }),
+    );
+  }
+
   async function handleClaimChapterBonus(chapterKey: string, bonusXp: number) {
     if (claimedChapters[chapterKey]) return;
     playVictoryFanfare();
@@ -749,6 +805,14 @@ export default function HomeScreen() {
     setClaimedChapters((prev) => ({ ...prev, [chapterKey]: true }));
     setXpPoints(newXp);
     setStreakCount(newStreak);
+
+    const [trackKey, chIdRaw] = chapterKey.split("_ch_");
+    const chapterMeta = (TRACK_CHAPTERS[trackKey] || []).find(
+      (c) => String(c.id) === chIdRaw,
+    );
+    if (chapterMeta) {
+      openChapterCertificate(trackKey, chapterMeta, newXp, newStreak);
+    }
 
     if (session) {
       try {
@@ -888,6 +952,10 @@ export default function HomeScreen() {
           totalSolvedCount={totalSolvedCount}
           onStartQuickMode={(mode) => setViewMode(mode)}
           onOpenAuth={openAuthModal}
+          onOpenTrackCertificate={(trackKey) => openTrackCertificate(trackKey)}
+          onOpenChapterCertificate={(trackKey, chapter) =>
+            openChapterCertificate(trackKey, chapter)
+          }
         />
       ) : viewMode === "bughunt" ? (
         <BugHuntArena
@@ -1177,6 +1245,21 @@ export default function HomeScreen() {
                 `Save your ${xpPoints} XP and ${totalSolvedCount} solved modules before closing this browser.`,
               );
             }}
+            trackCertificateLabel={
+              currentLessons.length > 0 &&
+              completedCount === currentLessons.length
+                ? (TrackThemes[activeTrack] || TrackThemes.python_basics).label
+                : undefined
+            }
+            onViewCertificate={
+              currentLessons.length > 0 &&
+              completedCount === currentLessons.length
+                ? () => {
+                    setShowSuccessModal(false);
+                    openTrackCertificate(activeTrack);
+                  }
+                : undefined
+            }
             onNextLesson={handleNextLesson}
             onClose={() => setShowSuccessModal(false)}
           />
@@ -1195,8 +1278,18 @@ export default function HomeScreen() {
             onSelectTrack={(trackKey) => {
               handleSwitchTrack(trackKey);
             }}
+            onOpenCertificate={(cert) => setActiveCertificate(cert)}
             onOpenAuth={() => openAuthModal()}
             onClose={() => setShowProfileModal(false)}
+          />
+        </View>
+      )}
+
+      {activeCertificate && (
+        <View style={styles.modalOverlay}>
+          <CertificateModal
+            certificate={activeCertificate}
+            onClose={() => setActiveCertificate(null)}
           />
         </View>
       )}
