@@ -16,7 +16,10 @@ import BugHuntArena from "../components/BugHuntArena";
 import { renderHighlightedPython } from "../components/FormattedText";
 import LessonProblemPanel from "../components/LessonProblemPanel";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
-import PaywallModal from "../components/PaywallModal";
+import PaywallModal, {
+  PaywallPlanId,
+  PaywallTriggerContext,
+} from "../components/PaywallModal";
 import ProfileStatsModal, {
   getDeveloperRank,
 } from "../components/ProfileStatsModal";
@@ -40,6 +43,7 @@ import {
 import {
   ExplainStyle,
   isLessonLockedForUser,
+  isProTrackPreviewLesson,
   Lesson,
   readLocalJson,
   STORAGE_DRAFTS_KEY,
@@ -116,6 +120,9 @@ export default function HomeScreen() {
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
+  const [paywallContext, setPaywallContext] = useState<PaywallTriggerContext>({
+    source: "header",
+  });
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [upgrading, setUpgrading] = useState<boolean>(false);
@@ -124,6 +131,7 @@ export default function HomeScreen() {
   const pyodideRef = useRef<any>(null);
   const codeDraftsRef = useRef<Record<string, string>>({});
   const hydratedRef = useRef<boolean>(false);
+  const resumePaywallAfterAuthRef = useRef<boolean>(false);
 
   function updateCodeWithDraft(nextCode: string, lessonObj?: Lesson | null) {
     setCode(nextCode);
@@ -207,6 +215,10 @@ export default function HomeScreen() {
         setSession(session);
         if (session) {
           setShowAuthModal(false);
+          if (resumePaywallAfterAuthRef.current) {
+            resumePaywallAfterAuthRef.current = false;
+            setShowPaywallModal(true);
+          }
           fetchUserProgress(session.user.id);
           fetchUserProfile(session.user.id);
         } else {
@@ -336,8 +348,30 @@ export default function HomeScreen() {
     }
   }
 
-  async function handleUpgradeToPro() {
+  function openPaywall(context: PaywallTriggerContext = { source: "header" }) {
+    setPaywallContext(context);
+    setShowPaywallModal(true);
+  }
+
+  function openLessonInStudio(fullLesson: Lesson) {
+    setActiveTrack(fullLesson.track);
+    setSelectedLesson(fullLesson);
+    const defaultCode = (fullLesson.initial_code || "").replace(/\\n/g, "\n");
+    const draft = codeDraftsRef.current[fullLesson.id];
+    setCode(draft !== undefined ? draft : defaultCode);
+    setHasSavedDraft(draft !== undefined && draft !== defaultCode);
+    setOutput("");
+    setTestResults(null);
+    setQuizSelection(null);
+    setActiveTab("problem");
+    setBottomTab("console");
+    setMobileDrawerOpen(false);
+    setViewMode("studio");
+  }
+
+  async function handleUpgradeToPro(_plan: PaywallPlanId = "annual") {
     if (!session) {
+      resumePaywallAfterAuthRef.current = true;
       setShowPaywallModal(false);
       setShowAuthModal(true);
       return;
@@ -352,6 +386,15 @@ export default function HomeScreen() {
       if (error) throw error;
       setIsPremium(true);
       setShowPaywallModal(false);
+      playVictoryFanfare();
+      if (paywallContext.lessonId) {
+        const unlockedLesson = lessons.find(
+          (item) => item.id === paywallContext.lessonId,
+        );
+        if (unlockedLesson) {
+          openLessonInStudio(unlockedLesson);
+        }
+      }
     } catch (err: any) {
       console.error("Upgrade error:", err.message);
     } finally {
@@ -383,22 +426,15 @@ export default function HomeScreen() {
     if (!fullLesson) return;
 
     if (isLessonLockedForUser(fullLesson, isPremium)) {
-      setShowPaywallModal(true);
+      openPaywall({
+        source: "lesson",
+        lessonId: fullLesson.id,
+        lessonTitle: fullLesson.title,
+        track: fullLesson.track,
+      });
       return;
     }
-    setActiveTrack(fullLesson.track);
-    setSelectedLesson(fullLesson);
-    const defaultCode = (fullLesson.initial_code || "").replace(/\\n/g, "\n");
-    const draft = codeDraftsRef.current[fullLesson.id];
-    setCode(draft !== undefined ? draft : defaultCode);
-    setHasSavedDraft(draft !== undefined && draft !== defaultCode);
-    setOutput("");
-    setTestResults(null);
-    setQuizSelection(null);
-    setActiveTab("problem");
-    setBottomTab("console");
-    setMobileDrawerOpen(false);
-    setViewMode("studio");
+    openLessonInStudio(fullLesson);
   }
 
   function handleNextLesson() {
@@ -606,6 +642,20 @@ export default function HomeScreen() {
   const completedCount = currentLessons.filter(
     (l) => completedLessons[l.id],
   ).length;
+  const totalSolvedCount = Object.values(completedLessons).filter(Boolean).length;
+  const algoModulesCount = lessons.filter((l) => l.track === "algorithms").length;
+  const sysDesignModulesCount = lessons.filter(
+    (l) => l.track === "system_design",
+  ).length;
+  const paywallFreePreviewLesson =
+    paywallContext.track && paywallContext.track !== "python_basics"
+      ? lessons.find(
+          (l) =>
+            l.track === paywallContext.track &&
+            isProTrackPreviewLesson(l) &&
+            !completedLessons[l.id],
+        )
+      : undefined;
   const progressPercent = currentLessons.length
     ? Math.round((completedCount / currentLessons.length) * 100)
     : 0;
@@ -640,7 +690,7 @@ export default function HomeScreen() {
         isPremium={isPremium}
         session={session}
         onOpenProfile={() => setShowProfileModal(true)}
-        onOpenPaywall={() => setShowPaywallModal(true)}
+        onOpenPaywall={() => openPaywall({ source: "header" })}
         onOpenAuth={() => setShowAuthModal(true)}
         onSignOut={() => supabase.auth.signOut()}
       />
@@ -662,7 +712,12 @@ export default function HomeScreen() {
         <BugHuntArena
           pyodideReady={pyodideReady}
           isPremium={isPremium}
-          onRequirePro={() => setShowPaywallModal(true)}
+          onRequirePro={() =>
+            openPaywall({
+              source: "arena",
+              lessonTitle: "Pro Production Incidents",
+            })
+          }
           onExecutePatch={(userCode, testHarness) =>
             executeBugPatchVerification(
               pyodideRef.current,
@@ -677,7 +732,12 @@ export default function HomeScreen() {
       ) : viewMode === "blitz" ? (
         <SyntaxBlitzArena
           isPremium={isPremium}
-          onRequirePro={() => setShowPaywallModal(true)}
+          onRequirePro={() =>
+            openPaywall({
+              source: "arena",
+              lessonTitle: "All Speed Blitz Tracks",
+            })
+          }
           onAwardBlitzXp={handleAwardBlitzXp}
         />
       ) : (
@@ -818,7 +878,13 @@ export default function HomeScreen() {
                     }}
                     testResults={testResults}
                     isPremium={isPremium}
-                    onOpenPaywall={() => setShowPaywallModal(true)}
+                    onOpenPaywall={() =>
+                      openPaywall({
+                        source: "solution",
+                        lessonTitle: selectedLesson.title,
+                        track: selectedLesson.track,
+                      })
+                    }
                   />
                 )}
 
@@ -851,10 +917,21 @@ export default function HomeScreen() {
       {showAuthModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Auth onSuccess={() => setShowAuthModal(false)} />
+            <Auth
+              onSuccess={() => {
+                setShowAuthModal(false);
+                if (resumePaywallAfterAuthRef.current) {
+                  resumePaywallAfterAuthRef.current = false;
+                  setShowPaywallModal(true);
+                }
+              }}
+            />
             <Pressable
               style={styles.closeModalBtn}
-              onPress={() => setShowAuthModal(false)}
+              onPress={() => {
+                resumePaywallAfterAuthRef.current = false;
+                setShowAuthModal(false);
+              }}
             >
               <Text style={styles.closeModalText}>Cancel</Text>
             </Pressable>
@@ -868,6 +945,23 @@ export default function HomeScreen() {
             onClose={() => setShowPaywallModal(false)}
             onUpgrade={handleUpgradeToPro}
             loading={upgrading}
+            totalModules={lessons.length || 64}
+            algoModulesCount={algoModulesCount || 20}
+            sysDesignModulesCount={sysDesignModulesCount || 20}
+            xpPoints={xpPoints}
+            completedCount={totalSolvedCount}
+            streakCount={streakCount}
+            hasSession={Boolean(session)}
+            triggerContext={paywallContext}
+            freePreviewLessonTitle={paywallFreePreviewLesson?.title}
+            onTryFreePreview={
+              paywallFreePreviewLesson
+                ? () => {
+                    setShowPaywallModal(false);
+                    openLessonInStudio(paywallFreePreviewLesson);
+                  }
+                : undefined
+            }
           />
         </View>
       )}
