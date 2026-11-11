@@ -1,5 +1,5 @@
 import { Link } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -20,6 +20,10 @@ import {
 import {
   isLessonLockedForUser,
   isProTrackPreviewLesson,
+  readLocalJson,
+  STORAGE_CLOUD_NUDGE_DISMISSED_KEY,
+  STORAGE_QUICKSTART_DISMISSED_KEY,
+  writeLocalJson,
 } from "../types/lesson";
 import { playCrtChannelSwitch, playKeyClick } from "../utils/soundEffects";
 import ByteCatGuideCard from "./ByteCatGuideCard";
@@ -55,6 +59,12 @@ interface RoadmapTreeProps {
   onClaimDailyWarmup?: (dateKey: string, bonusXp: number) => void;
   claimedChapters?: Record<string, boolean>;
   onClaimChapterBonus?: (chapterKey: string, bonusXp: number) => void;
+  isAuthenticated?: boolean;
+  totalXp?: number;
+  streakCount?: number;
+  totalSolvedCount?: number;
+  onStartQuickMode?: (mode: "bughunt" | "blitz") => void;
+  onOpenAuth?: (mode?: "signup" | "signin", reason?: string) => void;
 }
 
 interface ChapterTierMeta {
@@ -385,11 +395,28 @@ export default function RoadmapTree({
   onClaimDailyWarmup,
   claimedChapters = {},
   onClaimChapterBonus,
+  isAuthenticated = false,
+  totalXp = 0,
+  streakCount = 0,
+  totalSolvedCount = 0,
+  onStartQuickMode,
+  onOpenAuth,
 }: RoadmapTreeProps) {
   const [statusFilter, setStatusFilter] = useState<"all" | "unsolved" | "solved">("all");
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [crtChannel, setCrtChannel] = useState<0 | 1 | 2>(0);
+  const [quickstartDismissed, setQuickstartDismissed] = useState<boolean>(false);
+  const [cloudNudgeDismissed, setCloudNudgeDismissed] = useState<boolean>(false);
+
+  useEffect(() => {
+    setQuickstartDismissed(
+      readLocalJson<boolean>(STORAGE_QUICKSTART_DISMISSED_KEY, false),
+    );
+    setCloudNudgeDismissed(
+      readLocalJson<boolean>(STORAGE_CLOUD_NUDGE_DISMISSED_KEY, false),
+    );
+  }, []);
 
   const trackLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = trackLessons.filter(
@@ -420,6 +447,21 @@ export default function RoadmapTree({
     ) ||
     trackLessons.find((l) => !completedLessons[l.id]) ||
     trackLessons[0];
+
+  const quickstartLesson =
+    lessons.find(
+      (l) => l.track === "python_basics" && !isLessonLockedForUser(l, isPremium),
+    ) || nextUpLesson;
+
+  const showFirstVisitQuickstart =
+    !quickstartDismissed && totalXp === 0 && totalSolvedCount === 0 && Boolean(quickstartLesson);
+
+  const showGuestCloudNudge =
+    !showFirstVisitQuickstart &&
+    !isAuthenticated &&
+    !cloudNudgeDismissed &&
+    (totalXp >= 50 || totalSolvedCount >= 1) &&
+    Boolean(onOpenAuth);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredTrackLessons = trackLessons.filter((lesson) => {
@@ -638,6 +680,128 @@ export default function RoadmapTree({
             nextUpLesson ? () => onSelectLesson(nextUpLesson) : undefined
           }
         />
+
+        {showFirstVisitQuickstart && quickstartLesson ? (
+          <View style={styles.onboardingBannerCard}>
+            <View style={styles.onboardingHeaderRow}>
+              <View style={styles.onboardingBadge}>
+                <Text style={styles.onboardingBadgeText}>
+                  ⚡ 30-SECOND QUICKSTART · ZERO SETUP
+                </Text>
+              </View>
+              <Pressable
+                style={styles.onboardingDismissBtn}
+                onPress={() => {
+                  playKeyClick();
+                  setQuickstartDismissed(true);
+                  writeLocalJson(STORAGE_QUICKSTART_DISMISSED_KEY, true);
+                }}
+              >
+                <Text style={styles.onboardingDismissText}>✕</Text>
+              </Pressable>
+            </View>
+
+            <Text style={styles.onboardingTitle}>
+              Claim your first +50 XP in under 30 seconds
+            </Text>
+            <Text style={styles.onboardingSubtext}>
+              Run real Python right in your browser or jump straight into an
+              arcade sprint—no account required to start.
+            </Text>
+
+            <View style={styles.onboardingActionRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.onboardingPrimaryBtn,
+                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  onSelectLesson(quickstartLesson);
+                }}
+              >
+                <Text style={styles.onboardingPrimaryBtnText}>
+                  ▶ LESSON 01 (+50 XP) →
+                </Text>
+              </Pressable>
+
+              {onStartQuickMode ? (
+                <>
+                  <Pressable
+                    style={styles.onboardingSecondaryBtn}
+                    onPress={() => {
+                      playKeyClick();
+                      onStartQuickMode("blitz");
+                    }}
+                  >
+                    <Text style={styles.onboardingSecondaryBtnText}>
+                      ⚡ 60S BLITZ
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.onboardingSecondaryBtn}
+                    onPress={() => {
+                      playKeyClick();
+                      onStartQuickMode("bughunt");
+                    }}
+                  >
+                    <Text style={styles.onboardingSecondaryBtnText}>
+                      🪲 BUG HUNT
+                    </Text>
+                  </Pressable>
+                </>
+              ) : null}
+            </View>
+          </View>
+        ) : showGuestCloudNudge && onOpenAuth ? (
+          <View style={styles.cloudNudgeCard}>
+            <View style={styles.cloudNudgeCopy}>
+              <View style={styles.cloudNudgeTopRow}>
+                <View style={styles.cloudNudgeBadge}>
+                  <Text style={styles.cloudNudgeBadgeText}>
+                    ☁️ GUEST PROGRESS · {totalXp} XP
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.cloudNudgeTitle}>
+                Lock in your {totalXp} XP
+                {streakCount > 0 ? ` & ${streakCount}d streak` : ""} across
+                devices
+              </Text>
+              <Text style={styles.cloudNudgeSubtext}>
+                Create a free cloud profile so you never lose solved modules if
+                browser storage clears.
+              </Text>
+            </View>
+
+            <View style={styles.cloudNudgeActions}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.cloudNudgeCtaBtn,
+                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  onOpenAuth(
+                    "signup",
+                    `Sync your ${totalXp} XP${streakCount > 0 ? `, ${streakCount}-day streak,` : ""} and ${totalSolvedCount} solved modules to your free cloud profile.`,
+                  );
+                }}
+              >
+                <Text style={styles.cloudNudgeCtaText}>SAVE FREE →</Text>
+              </Pressable>
+              <Pressable
+                style={styles.onboardingDismissBtn}
+                onPress={() => {
+                  setCloudNudgeDismissed(true);
+                  writeLocalJson(STORAGE_CLOUD_NUDGE_DISMISSED_KEY, true);
+                }}
+              >
+                <Text style={styles.onboardingDismissText}>✕</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         {/* Tactile Color-Blocked Track Selector */}
         <View style={styles.trackTabsBar}>
@@ -2233,6 +2397,173 @@ const styles = StyleSheet.create({
   showcaseFooterText: {
     color: StudioColors.textPrimary,
     fontSize: 12,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  onboardingBannerCard: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 18,
+    gap: 8,
+    ...HardShadow,
+  },
+  onboardingHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+  },
+  onboardingBadge: {
+    backgroundColor: StudioColors.lime,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  onboardingBadgeText: {
+    color: StudioColors.ink,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  onboardingDismissBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    backgroundColor: StudioColors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  onboardingDismissText: {
+    color: StudioColors.textSecondary,
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  onboardingTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+  },
+  onboardingSubtext: {
+    color: StudioColors.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "500",
+  },
+  onboardingActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 4,
+  },
+  onboardingPrimaryBtn: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  onboardingPrimaryBtnText: {
+    color: StudioColors.ink,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  onboardingSecondaryBtn: {
+    backgroundColor: StudioColors.surfaceElevated,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  onboardingSecondaryBtnText: {
+    color: StudioColors.textPrimary,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  cloudNudgeCard: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 18,
+    ...HardShadowSm,
+  },
+  cloudNudgeCopy: {
+    flex: 1,
+    minWidth: 220,
+    gap: 3,
+  },
+  cloudNudgeTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  cloudNudgeBadge: {
+    backgroundColor: StudioColors.mint,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    borderRadius: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  cloudNudgeBadgeText: {
+    color: StudioColors.ink,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  cloudNudgeTitle: {
+    color: StudioColors.ink,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  cloudNudgeSubtext: {
+    color: StudioColors.ink,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: "600",
+    opacity: 0.85,
+  },
+  cloudNudgeActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cloudNudgeCtaBtn: {
+    backgroundColor: StudioColors.lime,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 8,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  cloudNudgeCtaText: {
+    color: StudioColors.ink,
+    fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
   },

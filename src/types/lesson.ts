@@ -45,6 +45,8 @@ export type ExplainStyle = "analogy" | "guide" | "cheatsheet";
 
 export const STORAGE_DRAFTS_KEY = "devlearn_code_drafts_v1";
 export const STORAGE_STATE_KEY = "devlearn_state_v1";
+export const STORAGE_QUICKSTART_DISMISSED_KEY = "devlearn_quickstart_dismissed_v1";
+export const STORAGE_CLOUD_NUDGE_DISMISSED_KEY = "devlearn_cloud_nudge_dismissed_v1";
 
 export function readLocalJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined" || !window.localStorage) return fallback;

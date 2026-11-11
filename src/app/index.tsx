@@ -144,6 +144,12 @@ export default function HomeScreen() {
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [authDefaultMode, setAuthDefaultMode] = useState<"signup" | "signin">(
+    "signin",
+  );
+  const [authPromptReason, setAuthPromptReason] = useState<string | undefined>(
+    undefined,
+  );
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [paywallContext, setPaywallContext] = useState<PaywallTriggerContext>({
     source: "header",
@@ -158,6 +164,24 @@ export default function HomeScreen() {
   const hydratedRef = useRef<boolean>(false);
   const resumePaywallAfterAuthRef = useRef<boolean>(false);
   const handledDeepLinkRef = useRef<boolean>(false);
+  const latestGuestStateRef = useRef<{
+    xpPoints: number;
+    streakCount: number;
+    completedLessons: Record<string, boolean>;
+  }>({
+    xpPoints: 0,
+    streakCount: 0,
+    completedLessons: {},
+  });
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    latestGuestStateRef.current = {
+      xpPoints,
+      streakCount,
+      completedLessons,
+    };
+  }, [xpPoints, streakCount, completedLessons]);
   const searchParams = useLocalSearchParams<{
     lesson?: string;
     mode?: string;
@@ -227,6 +251,13 @@ export default function HomeScreen() {
         ? savedState.activeTrack
         : "python_basics";
     setActiveTrack(safeInitialTrack);
+    latestGuestStateRef.current = {
+      xpPoints:
+        typeof savedState.xpPoints === "number" ? savedState.xpPoints : 0,
+      streakCount:
+        typeof savedState.streakCount === "number" ? savedState.streakCount : 0,
+      completedLessons: savedState.completedLessons || {},
+    };
     hydratedRef.current = true;
 
     fetchLessons(
@@ -236,8 +267,7 @@ export default function HomeScreen() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
-        fetchUserProgress(session.user.id);
-        fetchUserProfile(session.user.id);
+        syncCloudAndGuestAccount(session.user.id, session.user.email);
       }
     });
 
@@ -250,8 +280,7 @@ export default function HomeScreen() {
             resumePaywallAfterAuthRef.current = false;
             setShowPaywallModal(true);
           }
-          fetchUserProgress(session.user.id);
-          fetchUserProfile(session.user.id);
+          syncCloudAndGuestAccount(session.user.id, session.user.email);
         } else {
           setIsPremium(false);
           setActiveTrack("python_basics");
@@ -375,37 +404,92 @@ export default function HomeScreen() {
     }
   }
 
-  async function fetchUserProfile(userId: string) {
+  async function syncCloudAndGuestAccount(userId: string, userEmail?: string) {
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("is_premium, xp_points, streak_count")
-        .eq("id", userId)
-        .single();
-      if (data) {
-        setIsPremium(data.is_premium || false);
-        setXpPoints((prev) => Math.max(prev, data.xp_points || 0));
-        setStreakCount((prev) => Math.max(prev, data.streak_count || 0));
+      const guest = latestGuestStateRef.current;
+      const [{ data: profileData }, { data: progressRows }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("is_premium, xp_points, streak_count")
+          .eq("id", userId)
+          .single(),
+        supabase
+          .from("user_progress")
+          .select("lesson_id, completed")
+          .eq("user_id", userId),
+      ]);
+
+      const cloudProgressMap: Record<string, boolean> = {};
+      progressRows?.forEach((row) => {
+        if (row.completed) cloudProgressMap[row.lesson_id] = true;
+      });
+
+      const cloudXp = profileData?.xp_points || 0;
+      const cloudStreak = profileData?.streak_count || 0;
+      const mergedXp = Math.max(cloudXp, guest.xpPoints);
+      const mergedStreak = Math.max(cloudStreak, guest.streakCount);
+
+      if (profileData) {
+        setIsPremium(profileData.is_premium || false);
+      }
+      setXpPoints(mergedXp);
+      setStreakCount(mergedStreak);
+      setCompletedLessons((prev) => ({ ...prev, ...cloudProgressMap }));
+
+      const shouldSyncProfileToCloud =
+        guest.xpPoints > cloudXp ||
+        guest.streakCount > cloudStreak ||
+        (!profileData && (guest.xpPoints > 0 || guest.streakCount > 0));
+
+      if (shouldSyncProfileToCloud) {
+        await supabase.from("profiles").upsert({
+          id: userId,
+          email: userEmail,
+          xp_points: mergedXp,
+          streak_count: mergedStreak,
+          last_completed_at: new Date().toISOString(),
+        });
+      }
+
+      const missingLessonIds = Object.keys(guest.completedLessons).filter(
+        (id) =>
+          guest.completedLessons[id] &&
+          !id.startsWith("exp-") &&
+          !cloudProgressMap[id],
+      );
+      if (missingLessonIds.length > 0) {
+        const timestamp = new Date().toISOString();
+        await Promise.all(
+          missingLessonIds.map((lessonId) =>
+            supabase.from("user_progress").upsert({
+              user_id: userId,
+              lesson_id: lessonId,
+              completed: true,
+              updated_at: timestamp,
+            }),
+          ),
+        );
       }
     } catch (err) {
-      console.error("Failed to load profile:", err);
+      console.error("Failed to sync account state:", err);
     }
   }
 
-  async function fetchUserProgress(userId: string) {
-    try {
-      const { data } = await supabase
-        .from("user_progress")
-        .select("lesson_id, completed")
-        .eq("user_id", userId);
-      const progressMap: Record<string, boolean> = {};
-      data?.forEach((row) => {
-        if (row.completed) progressMap[row.lesson_id] = true;
-      });
-      setCompletedLessons((prev) => ({ ...prev, ...progressMap }));
-    } catch (err) {
-      console.error("Failed to load user progress:", err);
-    }
+  function openAuthModal(
+    defaultMode?: "signup" | "signin",
+    reason?: string,
+  ) {
+    const solvedTotal = Object.values(
+      latestGuestStateRef.current.completedLessons,
+    ).filter(Boolean).length;
+    const resolvedMode =
+      defaultMode ??
+      (latestGuestStateRef.current.xpPoints > 0 || solvedTotal > 0
+        ? "signup"
+        : "signin");
+    setAuthDefaultMode(resolvedMode);
+    setAuthPromptReason(reason);
+    setShowAuthModal(true);
   }
 
   function openPaywall(context: PaywallTriggerContext = { source: "header" }) {
@@ -433,7 +517,10 @@ export default function HomeScreen() {
     if (!session) {
       resumePaywallAfterAuthRef.current = true;
       setShowPaywallModal(false);
-      setShowAuthModal(true);
+      openAuthModal(
+        "signup",
+        "Create your free developer account first, then unlock Pro Arcade.",
+      );
       return;
     }
     setUpgrading(true);
@@ -779,7 +866,7 @@ export default function HomeScreen() {
         session={session}
         onOpenProfile={() => setShowProfileModal(true)}
         onOpenPaywall={() => openPaywall({ source: "header" })}
-        onOpenAuth={() => setShowAuthModal(true)}
+        onOpenAuth={() => openAuthModal()}
         onSignOut={() => supabase.auth.signOut()}
       />
 
@@ -795,6 +882,12 @@ export default function HomeScreen() {
           onClaimDailyWarmup={handleClaimDailyWarmup}
           claimedChapters={claimedChapters}
           onClaimChapterBonus={handleClaimChapterBonus}
+          isAuthenticated={Boolean(session)}
+          totalXp={xpPoints}
+          streakCount={streakCount}
+          totalSolvedCount={totalSolvedCount}
+          onStartQuickMode={(mode) => setViewMode(mode)}
+          onOpenAuth={openAuthModal}
         />
       ) : viewMode === "bughunt" ? (
         <BugHuntArena
@@ -1006,6 +1099,10 @@ export default function HomeScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Auth
+              defaultMode={authDefaultMode}
+              guestXp={xpPoints}
+              guestSolvedCount={totalSolvedCount}
+              promptReason={authPromptReason}
               onSuccess={() => {
                 setShowAuthModal(false);
                 if (resumePaywallAfterAuthRef.current) {
@@ -1071,6 +1168,15 @@ export default function HomeScreen() {
                 : undefined
             }
             hasNextLesson={Boolean(hasNextLesson)}
+            isGuest={!session}
+            totalSolvedCount={totalSolvedCount}
+            onSaveProgress={() => {
+              setShowSuccessModal(false);
+              openAuthModal(
+                "signup",
+                `Save your ${xpPoints} XP and ${totalSolvedCount} solved modules before closing this browser.`,
+              );
+            }}
             onNextLesson={handleNextLesson}
             onClose={() => setShowSuccessModal(false)}
           />
@@ -1089,7 +1195,7 @@ export default function HomeScreen() {
             onSelectTrack={(trackKey) => {
               handleSwitchTrack(trackKey);
             }}
-            onOpenAuth={() => setShowAuthModal(true)}
+            onOpenAuth={() => openAuthModal()}
             onClose={() => setShowProfileModal(false)}
           />
         </View>

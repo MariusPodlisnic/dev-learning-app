@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -12,19 +12,37 @@ import { supabase } from "../../lib/supabase";
 import { StudioColors } from "../constants/theme";
 
 interface AuthProps {
+  defaultMode?: "signup" | "signin";
+  guestXp?: number;
+  guestSolvedCount?: number;
+  promptReason?: string;
   onSuccess?: () => void;
 }
 
-export default function Auth({ onSuccess }: AuthProps) {
+export default function Auth({
+  defaultMode = "signin",
+  guestXp = 0,
+  guestSolvedCount = 0,
+  promptReason,
+  onSuccess,
+}: AuthProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(defaultMode === "signup");
   const [errorMsg, setErrorMsg] = useState("");
   const [isSuccessMsg, setIsSuccessMsg] = useState(false);
   const [focusedField, setFocusedField] = useState<"email" | "password" | null>(
     null,
   );
+
+  useEffect(() => {
+    setIsSignUp(defaultMode === "signup");
+    setErrorMsg("");
+    setIsSuccessMsg(false);
+  }, [defaultMode]);
+
+  const hasGuestProgress = guestXp > 0 || guestSolvedCount > 0;
 
   async function handleAuth() {
     if (!email || !password) {
@@ -39,15 +57,19 @@ export default function Auth({ onSuccess }: AuthProps) {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
         if (error) throw error;
-        setIsSuccessMsg(true);
-        setErrorMsg(
-          "Account created! Check your email to confirm or sign in directly.",
-        );
+        if (data.session && onSuccess) {
+          onSuccess();
+        } else {
+          setIsSuccessMsg(true);
+          setErrorMsg(
+            "Account created! Check your email to confirm or sign in directly.",
+          );
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -67,15 +89,24 @@ export default function Auth({ onSuccess }: AuthProps) {
   return (
     <View style={styles.card}>
       <View style={styles.headerBadge}>
-        <Text style={styles.headerBadgeText}>⚡ CLOUD SYNC</Text>
+        <Text style={styles.headerBadgeText}>
+          {hasGuestProgress && isSignUp
+            ? `⚡ CLOUD SYNC · ${guestXp} XP · ${guestSolvedCount} SOLVED`
+            : "⚡ CLOUD SYNC"}
+        </Text>
       </View>
 
       <Text style={styles.title}>
-        {isSignUp ? "Create Your Developer Profile" : "Welcome Back"}
+        {isSignUp
+          ? hasGuestProgress
+            ? "Save Your Arcade Progress"
+            : "Create Your Developer Profile"
+          : "Welcome Back"}
       </Text>
       <Text style={styles.subtitle}>
         {isSignUp
-          ? "Sync your solved modules, XP streak, and Pro tracks across all devices."
+          ? promptReason ||
+            "Sync your solved modules, XP streak, and Pro tracks across all devices."
           : "Sign in to restore your completed modules and streak progress."}
       </Text>
 

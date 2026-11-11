@@ -21,6 +21,9 @@ interface SuccessModalProps {
   keyTakeaway?: string;
   nextLessonTitle?: string;
   hasNextLesson: boolean;
+  isGuest?: boolean;
+  totalSolvedCount?: number;
+  onSaveProgress?: () => void;
   onNextLesson: () => void;
   onClose: () => void;
 }
@@ -34,6 +37,9 @@ export default function SuccessModal({
   keyTakeaway,
   nextLessonTitle,
   hasNextLesson,
+  isGuest = false,
+  totalSolvedCount = 0,
+  onSaveProgress,
   onNextLesson,
   onClose,
 }: SuccessModalProps) {
@@ -162,6 +168,32 @@ export default function SuccessModal({
           </Text>
         </Text>
       </View>
+
+      {isGuest && totalSolvedCount >= 2 && onSaveProgress ? (
+        <View style={styles.guestSaveBanner}>
+          <View style={styles.guestSaveCopy}>
+            <Text style={styles.guestSaveTitle}>
+              ☁️ SAVE YOUR {totalXp} XP PROGRESS
+            </Text>
+            <Text style={styles.guestSaveSub}>
+              You've solved {totalSolvedCount} modules—lock your streak into a
+              free cloud account.
+            </Text>
+          </View>
+          <Pressable
+            style={({ pressed }) => [
+              styles.guestSaveBtn,
+              pressed && { opacity: 0.9, transform: [{ translateY: 1 }] },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              onSaveProgress();
+            }}
+          >
+            <Text style={styles.guestSaveBtnText}>SAVE FREE →</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {hasNextLesson ? (
         <Pressable
@@ -431,6 +463,51 @@ const styles = StyleSheet.create({
   nextRankBold: {
     color: StudioColors.textPrimary,
     fontWeight: "900",
+  },
+  guestSaveBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 14,
+    ...HardShadowSm,
+  },
+  guestSaveCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  guestSaveTitle: {
+    color: StudioColors.ink,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  guestSaveSub: {
+    color: StudioColors.ink,
+    fontSize: 11,
+    fontWeight: "600",
+    lineHeight: 15,
+  },
+  guestSaveBtn: {
+    backgroundColor: StudioColors.surfaceElevated,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  guestSaveBtnText: {
+    color: StudioColors.textPrimary,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   nextBtn: {
     backgroundColor: StudioColors.lime,
