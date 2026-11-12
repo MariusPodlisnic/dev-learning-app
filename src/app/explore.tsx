@@ -13,6 +13,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import ExplorePythonSandbox from "../components/ExplorePythonSandbox";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
 import {
   HardShadow,
@@ -244,6 +245,9 @@ export default function ExploreScreen() {
             </View>
           </View>
         </View>
+
+        {/* Interactive Live Python Mini-Sandbox */}
+        <ExplorePythonSandbox isCompact={isCompact} />
 
         {/* Section 1: Curriculum Tracks */}
         <View style={styles.sectionBlock}>

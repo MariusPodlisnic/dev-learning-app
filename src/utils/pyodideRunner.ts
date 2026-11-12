@@ -1,31 +1,95 @@
 import { Platform } from "react-native";
 import { Lesson, TestCaseResult } from "../types/lesson";
 
+let sharedPyodideInstance: any = null;
+let sharedPyodidePromise: Promise<any> | null = null;
+
+function resolveSharedPyodide(): Promise<any> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("Pyodide requires a browser runtime."));
+  }
+  if (sharedPyodideInstance) {
+    return Promise.resolve(sharedPyodideInstance);
+  }
+  if (sharedPyodidePromise) {
+    return sharedPyodidePromise;
+  }
+
+  sharedPyodidePromise = new Promise((resolve, reject) => {
+    const bootInstance = async () => {
+      try {
+        if (!(window as any).loadPyodide) {
+          throw new Error("Pyodide loader not found on window.");
+        }
+        const instance = await (window as any).loadPyodide();
+        sharedPyodideInstance = instance;
+        resolve(instance);
+      } catch (err) {
+        sharedPyodidePromise = null;
+        reject(err);
+      }
+    };
+
+    if ((window as any).loadPyodide) {
+      bootInstance();
+      return;
+    }
+
+    const existingScript = document.getElementById(
+      "pyodide-script",
+    ) as HTMLScriptElement | null;
+    if (existingScript) {
+      existingScript.addEventListener("load", () => {
+        void bootInstance();
+      }, { once: true });
+      existingScript.addEventListener(
+        "error",
+        () => {
+          sharedPyodidePromise = null;
+          reject(new Error("Failed to load Pyodide script."));
+        },
+        { once: true },
+      );
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "pyodide-script";
+    script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js";
+    script.onload = () => {
+      void bootInstance();
+    };
+    script.onerror = () => {
+      sharedPyodidePromise = null;
+      reject(new Error("Failed to load Pyodide script."));
+    };
+    document.head.appendChild(script);
+  });
+
+  return sharedPyodidePromise;
+}
+
 export function loadPyodideScript(
   pyodideRef: { current: any },
   onReady: () => void,
+  onError?: (err: unknown) => void,
 ) {
   if (typeof window === "undefined") return;
-  if ("loadPyodide" in window && pyodideRef.current) {
+  if (sharedPyodideInstance) {
+    pyodideRef.current = sharedPyodideInstance;
     onReady();
     return;
   }
-  try {
-    if (!document.getElementById("pyodide-script")) {
-      const script = document.createElement("script");
-      script.id = "pyodide-script";
-      script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js";
-      script.onload = async () => {
-        if ((window as any).loadPyodide) {
-          pyodideRef.current = await (window as any).loadPyodide();
-          onReady();
-        }
-      };
-      document.head.appendChild(script);
-    }
-  } catch (err) {
-    console.error("Failed to load Pyodide engine:", err);
-  }
+
+  resolveSharedPyodide()
+    .then((instance) => {
+      pyodideRef.current = instance;
+      onReady();
+    })
+    .catch((err) => {
+      console.error("Failed to load Pyodide engine:", err);
+      onError?.(err);
+    });
 }
 
 export async function executePlaygroundPython(
