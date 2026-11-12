@@ -36,6 +36,7 @@ export default function CertificateModal({
     const outcome = await shareOrCopyText({
       title: `DevLearn Arcade — ${certificate.title}`,
       message: buildCertificateShareText(certificate),
+      channel: "certificate",
     });
     if (outcome !== "failed") {
       setShareStatus(outcome);
@@ -48,6 +49,7 @@ export default function CertificateModal({
     const outcome = await shareOrCopyText({
       title: certificate.title,
       message: buildLinkedInCredentialText(certificate),
+      channel: "certificate_linkedin",
     });
     if (outcome !== "failed") {
       setLinkedInCopied(true);

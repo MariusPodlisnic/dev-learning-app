@@ -59,7 +59,7 @@ export default function SuccessModal({
   async function handleShare() {
     playKeyClick();
     const challengeUrl = buildChallengeUrl(
-      lessonId ? { lessonId } : undefined,
+      lessonId ? { lessonId, ref: "lesson_win" } : { ref: "lesson_win" },
     );
     const streakSegment = streakCount > 0 ? ` · 🔥 ${streakCount}d streak` : "";
     const message = didLevelUp
@@ -69,6 +69,7 @@ export default function SuccessModal({
     const outcome = await shareOrCopyText({
       title: `DevLearn — ${lessonTitle}`,
       message,
+      channel: "lesson_win",
     });
     if (outcome !== "failed") {
       setShareFeedback(outcome);

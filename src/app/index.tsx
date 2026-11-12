@@ -64,6 +64,10 @@ import {
   writeLocalJson,
 } from "../types/lesson";
 import {
+  captureLandingAttribution,
+  trackFunnelMilestone,
+} from "../utils/attribution";
+import {
   executeBugPatchVerification,
   executeLessonVerification,
   executePlaygroundPython,
@@ -196,6 +200,12 @@ export default function HomeScreen() {
     lesson?: string;
     mode?: string;
     track?: string;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    utm_term?: string;
+    ref?: string;
   }>();
 
   function updateCodeWithDraft(nextCode: string, lessonObj?: Lesson | null) {
@@ -307,6 +317,30 @@ export default function HomeScreen() {
   useEffect(() => {
     applyColorTheme(themeMode);
   }, [themeMode]);
+
+  const {
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    utm_content,
+    utm_term,
+    ref: refCode,
+  } = searchParams;
+
+  useEffect(() => {
+    captureLandingAttribution({
+      path: "/",
+      searchParams: {
+        utm_source,
+        utm_medium,
+        utm_campaign,
+        utm_content,
+        utm_term,
+        ref: refCode,
+      },
+      milestone: "landed_studio",
+    });
+  }, [utm_source, utm_medium, utm_campaign, utm_content, utm_term, refCode]);
 
   useEffect(() => {
     if (handledDeepLinkRef.current) return;
@@ -500,11 +534,13 @@ export default function HomeScreen() {
     setAuthDefaultMode(resolvedMode);
     setAuthPromptReason(reason);
     setShowAuthModal(true);
+    trackFunnelMilestone("auth_prompt_opened", { source: reason });
   }
 
   function openPaywall(context: PaywallTriggerContext = { source: "header" }) {
     setPaywallContext(context);
     setShowPaywallModal(true);
+    trackFunnelMilestone("paywall_viewed", { source: context.source });
   }
 
   function openLessonInStudio(fullLesson: Lesson) {
@@ -523,7 +559,7 @@ export default function HomeScreen() {
     setViewMode("studio");
   }
 
-  async function handleUpgradeToPro(_plan: PaywallPlanId = "annual") {
+  async function handleUpgradeToPro(plan: PaywallPlanId = "annual") {
     if (!session) {
       resumePaywallAfterAuthRef.current = true;
       setShowPaywallModal(false);
@@ -543,6 +579,7 @@ export default function HomeScreen() {
       if (error) throw error;
       setIsPremium(true);
       setShowPaywallModal(false);
+      trackFunnelMilestone("pro_upgraded", { plan });
       playVictoryFanfare();
       if (paywallContext.lessonId) {
         const unlockedLesson = lessons.find(
@@ -612,6 +649,7 @@ export default function HomeScreen() {
     setIsExecuting(true);
     setBottomTab("console");
     setOutput("Running code...");
+    trackFunnelMilestone("first_code_run");
     try {
       const consoleOut = await executePlaygroundPython(
         pyodideRef.current,
@@ -627,6 +665,7 @@ export default function HomeScreen() {
     setIsExecuting(true);
     setOutput("Running verification suite...");
     setTestResults(null);
+    trackFunnelMilestone("first_code_run");
 
     try {
       const outcome = await executeLessonVerification(
@@ -644,6 +683,7 @@ export default function HomeScreen() {
 
       if (outcome.allPassed && selectedLesson) {
         setShowSuccessModal(true);
+        trackFunnelMilestone("first_lesson_solved");
         const isAlreadyCompleted = completedLessons[selectedLesson.id];
         const newXp = isAlreadyCompleted ? xpPoints : xpPoints + 50;
         const newStreak = isAlreadyCompleted

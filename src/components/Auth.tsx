@@ -10,6 +10,10 @@ import {
 } from "react-native";
 import { supabase } from "../../lib/supabase";
 import { StudioColors } from "../constants/theme";
+import {
+  getSupabaseSignupMetadata,
+  trackFunnelMilestone,
+} from "../utils/attribution";
 
 interface AuthProps {
   defaultMode?: "signup" | "signin";
@@ -60,8 +64,12 @@ export default function Auth({
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: getSupabaseSignupMetadata(),
+          },
         });
         if (error) throw error;
+        trackFunnelMilestone("account_signed_up");
         if (data.session && onSuccess) {
           onSuccess();
         } else {

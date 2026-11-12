@@ -574,7 +574,7 @@ export default function BugHuntArena({
     playKeyClick();
     const isFast = secondsLeft >= Math.floor(currentIncident.timeLimitSec * 0.5);
     const speedBar = isFast ? "🟩🟩🟩 ⚡" : secondsLeft > 0 ? "🟩🟩🟨 🛠️" : "🟩🟨🟨 ⏱️";
-    const url = buildChallengeUrl({ mode: "bughunt" });
+    const url = buildChallengeUrl({ mode: "bughunt", ref: "bughunt_card" });
     const message = [
       `🪲 DevLearn Bug Hunt — ${currentIncident.codeId}: ${currentIncident.title}`,
       `${speedBar} Defect Patched! (+${earnedXp} XP)`,
@@ -584,6 +584,7 @@ export default function BugHuntArena({
     const outcome = await shareOrCopyText({
       title: `DevLearn Bug Hunt — ${currentIncident.title}`,
       message,
+      channel: "bughunt_card",
     });
     if (outcome !== "failed") {
       setShareFeedback(outcome);

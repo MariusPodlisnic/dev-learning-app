@@ -19,6 +19,7 @@ import {
   executePlaygroundPython,
   loadPyodideScript,
 } from "../utils/pyodideRunner";
+import { trackFunnelMilestone } from "../utils/attribution";
 import { playKeyClick } from "../utils/soundEffects";
 import { renderHighlightedPython } from "./FormattedText";
 
@@ -202,6 +203,7 @@ export default function ExplorePythonSandbox({
       setOutput(
         `${activePreset.sampleOutput}\n\n[INFO] Live WASM Python runs in web browsers. Launch the full Studio to run on this device!`,
       );
+      trackFunnelMilestone("explore_sandbox_run");
       setRunCount((c) => c + 1);
       return;
     }
@@ -218,6 +220,7 @@ export default function ExplorePythonSandbox({
     setIsRunning(true);
     try {
       const result = await executePlaygroundPython(pyodideRef.current, code);
+      trackFunnelMilestone("explore_sandbox_run");
       if (mountedRef.current) {
         setOutput(result);
         setRunCount((c) => c + 1);

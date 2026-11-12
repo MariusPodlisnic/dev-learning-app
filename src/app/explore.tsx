@@ -1,7 +1,7 @@
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 import Head from "expo-router/head";
 import type { Metadata } from "expo-router/server";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Image,
   Platform,
@@ -24,6 +24,7 @@ import {
   StudioColors,
   TrackThemes,
 } from "../constants/theme";
+import { captureLandingAttribution } from "../utils/attribution";
 
 export function generateMetadata(): Metadata {
   return {
@@ -144,6 +145,38 @@ const ARCADE_MODES = [
 export default function ExploreScreen() {
   const { width } = useWindowDimensions();
   const isCompact = width > 0 && width < 760;
+  const searchParams = useLocalSearchParams<{
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    utm_term?: string;
+    ref?: string;
+  }>();
+
+  const {
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    utm_content,
+    utm_term,
+    ref: refCode,
+  } = searchParams;
+
+  useEffect(() => {
+    captureLandingAttribution({
+      path: "/explore",
+      searchParams: {
+        utm_source,
+        utm_medium,
+        utm_campaign,
+        utm_content,
+        utm_term,
+        ref: refCode,
+      },
+      milestone: "landed_explore",
+    });
+  }, [utm_source, utm_medium, utm_campaign, utm_content, utm_term, refCode]);
 
   const pageTitle = "Curriculum Showcase & Syllabus | DevLearn Arcade";
   const pageDesc =

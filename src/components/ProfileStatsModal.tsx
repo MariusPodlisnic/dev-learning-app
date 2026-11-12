@@ -153,7 +153,7 @@ export default function ProfileStatsModal({
 
   async function handleShareDevCard() {
     playKeyClick();
-    const url = buildChallengeUrl();
+    const url = buildChallengeUrl({ ref: "profile_card" });
     const message = [
       `🐾 DevLearn Developer Card`,
       `🏅 Level ${rank.level}: ${rank.title}`,
@@ -164,6 +164,7 @@ export default function ProfileStatsModal({
     const outcome = await shareOrCopyText({
       title: `DevLearn Rank: ${rank.title}`,
       message,
+      channel: "profile_card",
     });
     if (outcome !== "failed") {
       setShareFeedback(outcome);

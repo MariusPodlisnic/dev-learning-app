@@ -320,7 +320,7 @@ export function getUnlockedCertificates(options: {
 }
 
 export function buildCertificateShareText(cert: CertificateData): string {
-  const url = buildChallengeUrl({ track: cert.trackKey });
+  const url = buildChallengeUrl({ track: cert.trackKey, ref: "certificate" });
   const streakPart = cert.streakCount > 0 ? ` · 🔥 ${cert.streakCount}d streak` : "";
   return [
     `🎓 Just earned "${cert.title}" on DevLearn Arcade!`,
@@ -331,7 +331,7 @@ export function buildCertificateShareText(cert: CertificateData): string {
 }
 
 export function buildLinkedInCredentialText(cert: CertificateData): string {
-  const url = buildChallengeUrl({ track: cert.trackKey });
+  const url = buildChallengeUrl({ track: cert.trackKey, ref: "certificate" });
   return [
     `Name: ${cert.title}`,
     `Issuing Organization: DevLearn Arcade`,

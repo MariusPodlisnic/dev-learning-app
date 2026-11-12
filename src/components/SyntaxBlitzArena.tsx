@@ -577,7 +577,7 @@ export default function SyntaxBlitzArena({
 
   async function handleShareScore() {
     playKeyClick();
-    const url = buildChallengeUrl({ mode: "blitz" });
+    const url = buildChallengeUrl({ mode: "blitz", ref: "blitz_card" });
     const message = [
       `⚡ DevLearn Speed Blitz — ${rating.badge}`,
       `🏆 ${rating.title}`,
@@ -588,6 +588,7 @@ export default function SyntaxBlitzArena({
     const outcome = await shareOrCopyText({
       title: `DevLearn Speed Blitz — +${scoreXp} XP`,
       message,
+      channel: "blitz_card",
     });
     if (outcome !== "failed") {
       setShareFeedback(outcome);
