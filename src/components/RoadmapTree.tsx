@@ -32,6 +32,7 @@ import {
 import { playCrtChannelSwitch, playKeyClick } from "../utils/soundEffects";
 import ByteCatGuideCard from "./ByteCatGuideCard";
 import DailyWarmupCard from "./DailyWarmupCard";
+import StreakAtRiskBanner from "./StreakAtRiskBanner";
 
 export interface Lesson {
   id: string;
@@ -66,8 +67,10 @@ interface RoadmapTreeProps {
   isAuthenticated?: boolean;
   totalXp?: number;
   streakCount?: number;
+  lastActiveDate?: string | null;
   totalSolvedCount?: number;
   onStartQuickMode?: (mode: "bughunt" | "blitz") => void;
+  onSaveStreak?: () => void;
   onOpenAuth?: (mode?: "signup" | "signin", reason?: string) => void;
   onOpenTrackCertificate?: (trackKey: string) => void;
   onOpenChapterCertificate?: (trackKey: string, chapter: ChapterTierMeta) => void;
@@ -258,8 +261,10 @@ export default function RoadmapTree({
   isAuthenticated = false,
   totalXp = 0,
   streakCount = 0,
+  lastActiveDate = null,
   totalSolvedCount = 0,
   onStartQuickMode,
+  onSaveStreak,
   onOpenAuth,
   onOpenTrackCertificate,
   onOpenChapterCertificate,
@@ -835,12 +840,26 @@ export default function RoadmapTree({
           )}
         </View>
 
+        {/* Streak At-Risk / Protected Banner */}
+        <StreakAtRiskBanner
+          streakCount={streakCount}
+          lastActiveDate={lastActiveDate}
+          onSaveStreak={() => {
+            if (onSaveStreak) {
+              onSaveStreak();
+            } else if (nextUpLesson) {
+              onSelectLesson(nextUpLesson);
+            }
+          }}
+        />
+
         {/* Daily 60-Second Warm-Up Challenge Card */}
         {onClaimDailyWarmup && (
           <DailyWarmupCard
             lessons={lessons}
             isPremium={isPremium}
             dailyCompletedDate={dailyCompletedDate}
+            streakCount={streakCount}
             onClaimDailyWarmup={onClaimDailyWarmup}
             onSelectLesson={onSelectLesson}
           />

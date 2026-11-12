@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { getTodayDateKey } from "../constants/streaks";
 import { getLessonEnrichment } from "../constants/curriculum";
 import {
   HardShadow,
@@ -10,31 +11,26 @@ import {
 import { isLessonLockedForUser } from "../types/lesson";
 import {
   playErrorBuzz,
-  playKeyClick,
   playSuccessChime,
 } from "../utils/soundEffects";
 import { Lesson } from "./RoadmapTree";
+
+export { getTodayDateKey };
 
 interface DailyWarmupCardProps {
   lessons: Lesson[];
   isPremium: boolean;
   dailyCompletedDate: string | null;
+  streakCount?: number;
   onClaimDailyWarmup: (dateKey: string, bonusXp: number) => void;
   onSelectLesson: (lesson: Lesson) => void;
-}
-
-export function getTodayDateKey(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 
 export default function DailyWarmupCard({
   lessons,
   isPremium,
   dailyCompletedDate,
+  streakCount = 0,
   onClaimDailyWarmup,
   onSelectLesson,
 }: DailyWarmupCardProps) {
@@ -127,13 +123,20 @@ export default function DailyWarmupCard({
                 {isClaimedToday ? "✓ +25 XP CLAIMED" : "+25 BONUS XP"}
               </Text>
             </View>
+            {!isClaimedToday && streakCount > 0 && (
+              <View style={styles.streakAlertPill}>
+                <Text style={styles.streakAlertText}>
+                  🔥 {streakCount}D STREAK AT STAKE
+                </Text>
+              </View>
+            )}
           </View>
 
           <Text style={styles.questionPreviewTitle} numberOfLines={2}>
             {quiz.question}
           </Text>
           <Text style={styles.topicSubtext} numberOfLines={1}>
-            Today's Featured Topic: {lesson.title}
+            Today&apos;s Featured Topic: {lesson.title}
           </Text>
         </View>
 
@@ -295,6 +298,21 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   xpBonusText: {
+    color: StudioColors.ink,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  streakAlertPill: {
+    backgroundColor: StudioColors.coral,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  streakAlertText: {
     color: StudioColors.ink,
     fontSize: 9,
     fontWeight: "900",

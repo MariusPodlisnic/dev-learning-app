@@ -31,7 +31,12 @@ import RoadmapTree from "../components/RoadmapTree";
 import StudioCodeEditor from "../components/StudioCodeEditor";
 import StudioSidebar from "../components/StudioSidebar";
 import SuccessModal from "../components/SuccessModal";
+import StreakMilestoneModal from "../components/StreakMilestoneModal";
 import SyntaxBlitzArena from "../components/SyntaxBlitzArena";
+import {
+  computeStreakUpdate,
+  StreakMilestone,
+} from "../constants/streaks";
 import {
   buildChapterCertificate,
   buildTrackCertificate,
@@ -148,6 +153,13 @@ export default function HomeScreen() {
   const [dailyCompletedDate, setDailyCompletedDate] = useState<string | null>(
     null,
   );
+  const [lastActiveDate, setLastActiveDate] = useState<string | null>(null);
+  const [claimedStreakMilestones, setClaimedStreakMilestones] = useState<
+    Record<number, boolean>
+  >({});
+  const [streakShields, setStreakShields] = useState<number>(1);
+  const [activeStreakMilestone, setActiveStreakMilestone] =
+    useState<StreakMilestone | null>(null);
   const [claimedChapters, setClaimedChapters] = useState<
     Record<string, boolean>
   >({});
@@ -238,6 +250,9 @@ export default function HomeScreen() {
       xpPoints?: number;
       streakCount?: number;
       dailyCompletedDate?: string | null;
+      lastActiveDate?: string | null;
+      claimedStreakMilestones?: Record<number, boolean>;
+      streakShields?: number;
       activeTrack?: string;
       lastLessonId?: string;
       themeMode?: ThemeMode;
@@ -260,6 +275,15 @@ export default function HomeScreen() {
     }
     if (savedState.dailyCompletedDate) {
       setDailyCompletedDate(savedState.dailyCompletedDate);
+    }
+    if (savedState.lastActiveDate) {
+      setLastActiveDate(savedState.lastActiveDate);
+    }
+    if (savedState.claimedStreakMilestones) {
+      setClaimedStreakMilestones(savedState.claimedStreakMilestones);
+    }
+    if (typeof savedState.streakShields === "number") {
+      setStreakShields(savedState.streakShields);
     }
     const initialTheme: ThemeMode =
       savedState.themeMode === "dark" ? "dark" : "light";
@@ -380,6 +404,9 @@ export default function HomeScreen() {
       xpPoints,
       streakCount,
       dailyCompletedDate,
+      lastActiveDate,
+      claimedStreakMilestones,
+      streakShields,
       activeTrack,
       lastLessonId: selectedLesson?.id,
       themeMode,
@@ -391,6 +418,9 @@ export default function HomeScreen() {
     xpPoints,
     streakCount,
     dailyCompletedDate,
+    lastActiveDate,
+    claimedStreakMilestones,
+    streakShields,
     activeTrack,
     selectedLesson?.id,
     themeMode,
@@ -645,6 +675,47 @@ export default function HomeScreen() {
     }
   }
 
+  function recordActiveDevSession(bonusXp = 0): {
+    newXp: number;
+    newStreak: number;
+    newLastActiveDate: string;
+  } {
+    const streakUpdate = computeStreakUpdate({
+      currentStreak: streakCount,
+      lastActiveDate,
+      claimedMilestones: claimedStreakMilestones,
+      streakShields,
+    });
+
+    const milestoneXp = streakUpdate.unlockedMilestone
+      ? streakUpdate.unlockedMilestone.bonusXp
+      : 0;
+    const newXp = xpPoints + bonusXp + milestoneXp;
+    const newStreak = streakUpdate.newStreak;
+    const newLastActiveDate = streakUpdate.newLastActiveDate;
+
+    setStreakCount(newStreak);
+    setLastActiveDate(newLastActiveDate);
+    setStreakShields(streakUpdate.remainingShields);
+    if (bonusXp > 0 || milestoneXp > 0) {
+      setXpPoints(newXp);
+    }
+
+    if (streakUpdate.unlockedMilestone) {
+      const milestoneDays = streakUpdate.unlockedMilestone.days;
+      setClaimedStreakMilestones((prev) => ({
+        ...prev,
+        [milestoneDays]: true,
+      }));
+      setActiveStreakMilestone(streakUpdate.unlockedMilestone);
+      trackFunnelMilestone("share_triggered", {
+        channel: `streak_milestone_${milestoneDays}`,
+      });
+    }
+
+    return { newXp, newStreak, newLastActiveDate };
+  }
+
   async function runPlaygroundOnly() {
     setIsExecuting(true);
     setBottomTab("console");
@@ -685,17 +756,10 @@ export default function HomeScreen() {
         setShowSuccessModal(true);
         trackFunnelMilestone("first_lesson_solved");
         const isAlreadyCompleted = completedLessons[selectedLesson.id];
-        const newXp = isAlreadyCompleted ? xpPoints : xpPoints + 50;
-        const newStreak = isAlreadyCompleted
-          ? streakCount
-          : streakCount === 0
-            ? 1
-            : streakCount;
+        const { newXp, newStreak } = recordActiveDevSession(
+          isAlreadyCompleted ? 0 : 50,
+        );
 
-        if (!isAlreadyCompleted) {
-          setXpPoints(newXp);
-          setStreakCount(newStreak);
-        }
         setCompletedLessons((prev) => ({
           ...prev,
           [selectedLesson.id]: true,
@@ -711,15 +775,13 @@ export default function HomeScreen() {
             });
           }
 
-          if (!isAlreadyCompleted) {
-            await supabase.from("profiles").upsert({
-              id: session.user.id,
-              email: session.user.email,
-              xp_points: newXp,
-              streak_count: newStreak,
-              last_completed_at: new Date().toISOString(),
-            });
-          }
+          await supabase.from("profiles").upsert({
+            id: session.user.id,
+            email: session.user.email,
+            xp_points: newXp,
+            streak_count: newStreak,
+            last_completed_at: new Date().toISOString(),
+          });
         }
       }
     } finally {
@@ -732,10 +794,7 @@ export default function HomeScreen() {
     setSolvedIncidents((prev) => ({ ...prev, [incidentId]: true }));
     if (alreadySolved) return;
 
-    const newXp = xpPoints + xpEarned;
-    const newStreak = streakCount === 0 ? 1 : streakCount;
-    setXpPoints(newXp);
-    setStreakCount(newStreak);
+    const { newXp, newStreak } = recordActiveDevSession(xpEarned);
 
     if (session) {
       try {
@@ -752,10 +811,7 @@ export default function HomeScreen() {
 
   async function handleAwardBlitzXp(xpEarned: number) {
     if (xpEarned <= 0) return;
-    const newXp = xpPoints + xpEarned;
-    const newStreak = streakCount === 0 ? 1 : streakCount;
-    setXpPoints(newXp);
-    setStreakCount(newStreak);
+    const { newXp, newStreak } = recordActiveDevSession(xpEarned);
 
     if (session) {
       try {
@@ -772,11 +828,8 @@ export default function HomeScreen() {
 
   async function handleClaimDailyWarmup(dateKey: string, bonusXp: number) {
     if (dailyCompletedDate === dateKey) return;
-    const newXp = xpPoints + bonusXp;
-    const newStreak = streakCount + 1;
     setDailyCompletedDate(dateKey);
-    setXpPoints(newXp);
-    setStreakCount(newStreak);
+    const { newXp, newStreak } = recordActiveDevSession(bonusXp);
 
     if (session) {
       try {
@@ -989,8 +1042,17 @@ export default function HomeScreen() {
           isAuthenticated={Boolean(session)}
           totalXp={xpPoints}
           streakCount={streakCount}
+          lastActiveDate={lastActiveDate}
           totalSolvedCount={totalSolvedCount}
           onStartQuickMode={(mode) => setViewMode(mode)}
+          onSaveStreak={() => {
+            const upNext = currentLessons.find(
+              (l) => !completedLessons[l.id] && !isLessonLockedForUser(l, isPremium),
+            );
+            if (upNext) {
+              openLessonInStudio(upNext);
+            }
+          }}
           onOpenAuth={openAuthModal}
           onOpenTrackCertificate={(trackKey) => openTrackCertificate(trackKey)}
           onOpenChapterCertificate={(trackKey, chapter) =>
@@ -1330,6 +1392,18 @@ export default function HomeScreen() {
           <CertificateModal
             certificate={activeCertificate}
             onClose={() => setActiveCertificate(null)}
+          />
+        </View>
+      )}
+
+      {activeStreakMilestone && (
+        <View style={styles.modalOverlay}>
+          <StreakMilestoneModal
+            milestone={activeStreakMilestone}
+            streakCount={streakCount}
+            xpPoints={xpPoints}
+            rankTitle={`L${devRank.level} ${devRank.title}`}
+            onClose={() => setActiveStreakMilestone(null)}
           />
         </View>
       )}
