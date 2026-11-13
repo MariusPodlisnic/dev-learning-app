@@ -30,6 +30,7 @@ import ProfileStatsModal, {
 } from "../components/ProfileStatsModal";
 import RoadmapTree from "../components/RoadmapTree";
 import StudioCodeEditor from "../components/StudioCodeEditor";
+import StudioFocusBackground from "../components/StudioFocusBackground";
 import StudioSidebar from "../components/StudioSidebar";
 import SuccessModal from "../components/SuccessModal";
 import StreakMilestoneModal from "../components/StreakMilestoneModal";
@@ -1009,11 +1010,18 @@ export default function HomeScreen() {
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
       </Head>
-      <MinimalPcbBackground
-        accentColor={activeBackdropAccent}
-        themeMode={themeMode}
-        variant={backdropVariant}
-      />
+      {viewMode === "studio" ? (
+        <StudioFocusBackground
+          accentColor={activeBackdropAccent}
+          themeMode={themeMode}
+        />
+      ) : (
+        <MinimalPcbBackground
+          accentColor={activeBackdropAccent}
+          themeMode={themeMode}
+          variant={backdropVariant}
+        />
+      )}
       <AppHeader
         viewMode={viewMode}
         onChangeViewMode={setViewMode}
