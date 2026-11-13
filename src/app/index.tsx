@@ -1069,6 +1069,12 @@ export default function HomeScreen() {
             }
           }}
           onOpenAuth={openAuthModal}
+          onOpenPaywall={() =>
+            openPaywall({
+              source: "companion",
+              lessonTitle: "Byte-Cat Treats & Level Perks",
+            })
+          }
           onOpenTrackCertificate={(trackKey) => openTrackCertificate(trackKey)}
           onOpenChapterCertificate={(trackKey, chapter) =>
             openChapterCertificate(trackKey, chapter)

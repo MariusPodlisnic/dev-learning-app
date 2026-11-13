@@ -30,7 +30,6 @@ import {
   isLessonLockedForUser,
   isProTrackPreviewLesson,
   readLocalJson,
-  STORAGE_CLOUD_NUDGE_DISMISSED_KEY,
   STORAGE_QUICKSTART_DISMISSED_KEY,
   writeLocalJson,
 } from "../types/lesson";
@@ -74,6 +73,7 @@ interface RoadmapTreeProps {
   onStartQuickMode?: (mode: "bughunt" | "blitz" | "algolab") => void;
   onSaveStreak?: () => void;
   onOpenAuth?: (mode?: "signup" | "signin", reason?: string) => void;
+  onOpenPaywall?: () => void;
   onOpenTrackCertificate?: (trackKey: string) => void;
   onOpenChapterCertificate?: (trackKey: string, chapter: ChapterTierMeta) => void;
 }
@@ -627,14 +627,13 @@ export default function RoadmapTree({
   onSelectLesson,
   claimedChapters = {},
   onClaimChapterBonus,
-  isAuthenticated = false,
   totalXp = 0,
   streakCount = 0,
   lastActiveDate = null,
   totalSolvedCount = 0,
   onStartQuickMode,
   onSaveStreak,
-  onOpenAuth,
+  onOpenPaywall,
   onOpenTrackCertificate,
   onOpenChapterCertificate,
 }: RoadmapTreeProps) {
@@ -646,7 +645,6 @@ export default function RoadmapTree({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [crtChannel, setCrtChannel] = useState<0 | 1 | 2>(0);
   const [quickstartDismissed, setQuickstartDismissed] = useState<boolean>(false);
-  const [cloudNudgeDismissed, setCloudNudgeDismissed] = useState<boolean>(false);
   const [treeOffsetY, setTreeOffsetY] = useState<number>(620);
   const [maxScrollBottomY, setMaxScrollBottomY] = useState<number>(viewportHeight);
   const [contentHeight, setContentHeight] = useState<number>(2000);
@@ -661,9 +659,6 @@ export default function RoadmapTree({
     const timer = setTimeout(() => {
       setQuickstartDismissed(
         readLocalJson<boolean>(STORAGE_QUICKSTART_DISMISSED_KEY, false),
-      );
-      setCloudNudgeDismissed(
-        readLocalJson<boolean>(STORAGE_CLOUD_NUDGE_DISMISSED_KEY, false),
       );
     }, 0);
     return () => clearTimeout(timer);
@@ -747,13 +742,6 @@ export default function RoadmapTree({
 
   const showFirstVisitQuickstart =
     !quickstartDismissed && totalXp === 0 && totalSolvedCount === 0 && Boolean(quickstartLesson);
-
-  const showGuestCloudNudge =
-    !showFirstVisitQuickstart &&
-    !isAuthenticated &&
-    !cloudNudgeDismissed &&
-    (totalXp >= 50 || totalSolvedCount >= 1) &&
-    Boolean(onOpenAuth);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredTrackLessons = trackLessons.filter((lesson) => {
@@ -995,6 +983,8 @@ export default function RoadmapTree({
           activeTrackAccent={currentTrackMeta.stickerBg}
           totalXp={totalXp}
           streakCount={streakCount}
+          isPremium={isPremium}
+          onOpenPaywall={onOpenPaywall}
           nextLessonTitle={nextUpLesson?.title}
           onPressNextLesson={
             nextUpLesson ? () => onSelectLesson(nextUpLesson) : undefined
@@ -1082,54 +1072,6 @@ export default function RoadmapTree({
                   </Pressable>
                 </>
               ) : null}
-            </View>
-          </View>
-        ) : showGuestCloudNudge && onOpenAuth ? (
-          <View style={styles.cloudNudgeCard}>
-            <View style={styles.cloudNudgeCopy}>
-              <View style={styles.cloudNudgeTopRow}>
-                <View style={styles.cloudNudgeBadge}>
-                  <Text style={styles.cloudNudgeBadgeText}>
-                    ☁️ GUEST PROGRESS · {totalXp} XP
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.cloudNudgeTitle}>
-                Lock in your {totalXp} XP
-                {streakCount > 0 ? ` & ${streakCount}d streak` : ""} across
-                devices
-              </Text>
-              <Text style={styles.cloudNudgeSubtext}>
-                Create a free cloud profile so you never lose solved modules if
-                browser storage clears.
-              </Text>
-            </View>
-
-            <View style={styles.cloudNudgeActions}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.cloudNudgeCtaBtn,
-                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-                ]}
-                onPress={() => {
-                  playKeyClick();
-                  onOpenAuth(
-                    "signup",
-                    `Sync your ${totalXp} XP${streakCount > 0 ? `, ${streakCount}-day streak,` : ""} and ${totalSolvedCount} solved modules to your free cloud profile.`,
-                  );
-                }}
-              >
-                <Text style={styles.cloudNudgeCtaText}>SAVE FREE →</Text>
-              </Pressable>
-              <Pressable
-                style={styles.onboardingDismissBtn}
-                onPress={() => {
-                  setCloudNudgeDismissed(true);
-                  writeLocalJson(STORAGE_CLOUD_NUDGE_DISMISSED_KEY, true);
-                }}
-              >
-                <Text style={styles.onboardingDismissText}>✕</Text>
-              </Pressable>
             </View>
           </View>
         ) : null}
@@ -2990,76 +2932,6 @@ const styles = StyleSheet.create({
   },
   onboardingSecondaryBtnText: {
     color: StudioColors.textPrimary,
-    fontSize: 11,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  cloudNudgeCard: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    backgroundColor: StudioColors.yellow,
-    borderWidth: 2,
-    borderColor: StudioColors.ink,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 18,
-    ...HardShadowSm,
-  },
-  cloudNudgeCopy: {
-    flex: 1,
-    minWidth: 220,
-    gap: 3,
-  },
-  cloudNudgeTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  cloudNudgeBadge: {
-    backgroundColor: StudioColors.mint,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-    borderRadius: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  cloudNudgeBadgeText: {
-    color: StudioColors.ink,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  cloudNudgeTitle: {
-    color: StudioColors.ink,
-    fontSize: 14,
-    fontWeight: "900",
-  },
-  cloudNudgeSubtext: {
-    color: StudioColors.ink,
-    fontSize: 11,
-    lineHeight: 16,
-    fontWeight: "600",
-    opacity: 0.85,
-  },
-  cloudNudgeActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  cloudNudgeCtaBtn: {
-    backgroundColor: StudioColors.lime,
-    borderWidth: 2,
-    borderColor: StudioColors.ink,
-    borderRadius: 8,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-    ...HardShadowSm,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  cloudNudgeCtaText: {
-    color: StudioColors.ink,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
