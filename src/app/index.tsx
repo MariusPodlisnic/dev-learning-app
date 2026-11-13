@@ -1267,7 +1267,6 @@ export default function HomeScreen() {
                     code={code}
                     onChangeCode={updateCodeWithDraft}
                     hasSavedDraft={hasSavedDraft}
-                    guidedCode={lessonEnrichment?.guidedCode}
                     pyodideReady={pyodideReady}
                     isExecuting={isExecuting}
                     onRunPlaygroundOnly={runPlaygroundOnly}

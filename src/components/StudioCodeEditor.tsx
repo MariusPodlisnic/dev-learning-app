@@ -1,5 +1,7 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
   Platform,
   Pressable,
   ScrollView,
@@ -18,6 +20,18 @@ import {
 import { Lesson, TestCaseResult } from "../types/lesson";
 import { playKeyClick } from "../utils/soundEffects";
 import { renderHighlightedPython } from "./FormattedText";
+
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
+
+const AUTO_PAIR_MAP: Record<string, string> = {
+  "(": ")",
+  "[": "]",
+  "{": "}",
+  '"': '"',
+  "'": "'",
+};
+
+const CLOSING_CHARS = new Set([")", "]", "}", '"', "'"]);
 
 interface BeginnerErrorHint {
   badge: string;
@@ -141,7 +155,6 @@ interface StudioCodeEditorProps {
   code: string;
   onChangeCode: (nextCode: string, lessonObj?: Lesson | null) => void;
   hasSavedDraft: boolean;
-  guidedCode?: string;
   pyodideReady: boolean;
   isExecuting: boolean;
   onRunPlaygroundOnly: () => void;
@@ -155,12 +168,62 @@ interface StudioCodeEditorProps {
   onSelectTestIndex: (idx: number) => void;
 }
 
+function HoverLiftButton({
+  flex,
+  disabled,
+  onPress,
+  style,
+  children,
+}: {
+  flex?: number;
+  disabled?: boolean;
+  onPress: () => void;
+  style: (hovered: boolean, pressed: boolean) => any;
+  children: React.ReactNode;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const [liftAnim] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.spring(liftAnim, {
+      toValue: pressed ? 1 : hovered && !disabled ? -2.5 : 0,
+      friction: 6,
+      tension: 190,
+      useNativeDriver: USE_NATIVE_DRIVER,
+    }).start();
+  }, [hovered, pressed, disabled, liftAnim]);
+
+  return (
+    <Animated.View
+      style={[
+        flex ? { flex } : null,
+        { transform: [{ translateY: liftAnim }] },
+      ]}
+    >
+      <Pressable
+        disabled={disabled}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => {
+          setHovered(false);
+          setPressed(false);
+        }}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        onPress={onPress}
+        style={style(hovered, pressed)}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export default function StudioCodeEditor({
   selectedLesson,
   code,
   onChangeCode,
   hasSavedDraft,
-  guidedCode,
   pyodideReady,
   isExecuting,
   onRunPlaygroundOnly,
@@ -175,17 +238,77 @@ export default function StudioCodeEditor({
 }: StudioCodeEditorProps) {
   const styles = getStyles();
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
+  const [confirmReset, setConfirmReset] = useState<boolean>(false);
   const [consoleExpanded, setConsoleExpanded] = useState<boolean>(false);
+  const [cursorPos, setCursorPos] = useState<number>(0);
+  const [hoveredChip, setHoveredChip] = useState<string | null>(null);
   const inputRef = useRef<any>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<{ start: number; end: number }>({
     start: 0,
     end: 0,
   });
 
-  const lineCount = Math.max((code || "").split("\n").length, 8);
+  const [readyPulse] = useState(() => new Animated.Value(0));
+  const [execSweep] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(readyPulse, {
+          toValue: 1,
+          duration: 1400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(readyPulse, {
+          toValue: 0,
+          duration: 1400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [readyPulse]);
+
+  useEffect(() => {
+    if (!isExecuting) {
+      execSweep.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.timing(execSweep, {
+        toValue: 1,
+        duration: 950,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isExecuting, execSweep]);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
+
+  const totalLines = (code || "").split("\n").length;
+  const lineCount = Math.max(totalLines, 8);
+  const safeCursor = Math.min(Math.max(0, cursorPos), (code || "").length);
+  const linesBeforeCursor = (code || "").slice(0, safeCursor).split("\n");
+  const activeLine = linesBeforeCursor.length;
+  const activeCol = linesBeforeCursor[linesBeforeCursor.length - 1].length + 1;
+  const allChecksPassed = Boolean(
+    testResults && testResults.length > 0 && testResults.every((t) => t.passed),
+  );
 
   function setCursorAt(pos: number) {
     selectionRef.current = { start: pos, end: pos };
+    setCursorPos(pos);
     if (Platform.OS === "web") {
       setTimeout(() => {
         try {
@@ -194,7 +317,7 @@ export default function StudioCodeEditor({
             el.focus();
             el.setSelectionRange(pos, pos);
           }
-        } catch (_e) {}
+        } catch {}
       }, 0);
     }
   }
@@ -228,18 +351,50 @@ export default function StudioCodeEditor({
       ) {
         await navigator.clipboard.writeText(code);
       }
+      playKeyClick();
       setCopiedCode(true);
       setTimeout(() => setCopiedCode(false), 1800);
-    } catch (_err) {
+    } catch {
       setCopiedCode(false);
     }
   }
+
+  function handleResetPress() {
+    playKeyClick();
+    if (!confirmReset) {
+      setConfirmReset(true);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => {
+        setConfirmReset(false);
+      }, 2400);
+      return;
+    }
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    setConfirmReset(false);
+    const freshCode = (selectedLesson.initial_code || "").replace(/\\n/g, "\n");
+    onChangeCode(freshCode, selectedLesson);
+    setCursorAt(0);
+  }
+
+  const readyDotScale = readyPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.9, 1.25],
+  });
+  const readyDotOpacity = readyPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.6, 1],
+  });
+  const sweepTranslateX = execSweep.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-180, 420],
+  });
 
   return (
     <View style={styles.editorPanel}>
       <View
         style={[
           styles.ideFrame,
+          allChecksPassed && styles.ideFrameSolved,
           consoleExpanded && { flex: 0.9, minHeight: 170 },
         ]}
       >
@@ -269,21 +424,11 @@ export default function StudioCodeEditor({
             <Text style={styles.ideMetaPill}>PY 3.11</Text>
             {hasSavedDraft && (
               <View style={styles.savedDraftPill}>
-                <Text style={styles.savedDraftPillText}>SAVED DRAFT</Text>
+                <Text style={styles.savedDraftPillText}>DRAFT SAVED</Text>
               </View>
             )}
           </View>
           <View style={styles.ideHeaderActions}>
-            {guidedCode && (
-              <Pressable
-                style={styles.ideGuidedBtn}
-                onPress={() => {
-                  onChangeCode(guidedCode, selectedLesson);
-                }}
-              >
-                <Text style={styles.ideGuidedBtnText}>🧩 GUIDED TEMPLATE</Text>
-              </Pressable>
-            )}
             <Pressable
               style={[
                 styles.copyCodeBtn,
@@ -301,15 +446,20 @@ export default function StudioCodeEditor({
               </Text>
             </Pressable>
             <Pressable
-              style={styles.resetBtn}
-              onPress={() =>
-                onChangeCode(
-                  (selectedLesson.initial_code || "").replace(/\\n/g, "\n"),
-                  selectedLesson,
-                )
-              }
+              style={[
+                styles.resetBtn,
+                confirmReset && styles.resetBtnConfirm,
+              ]}
+              onPress={handleResetPress}
             >
-              <Text style={styles.resetBtnText}>RESET</Text>
+              <Text
+                style={[
+                  styles.resetBtnText,
+                  confirmReset && { color: StudioColors.ink },
+                ]}
+              >
+                {confirmReset ? "SURE?" : "RESET"}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -325,15 +475,26 @@ export default function StudioCodeEditor({
             { label: ":", val: ":" },
             { label: "=", val: " = " },
             { label: "return", val: "return " },
-          ].map((item) => (
-            <Pressable
-              key={item.label}
-              style={styles.symbolChip}
-              onPress={() => insertSymbol(item.val)}
-            >
-              <Text style={styles.symbolText}>{item.label}</Text>
-            </Pressable>
-          ))}
+          ].map((item) => {
+            const isChipHovered = hoveredChip === item.label;
+            return (
+              <Pressable
+                key={item.label}
+                onHoverIn={() => setHoveredChip(item.label)}
+                onHoverOut={() =>
+                  setHoveredChip((prev) => (prev === item.label ? null : prev))
+                }
+                style={({ pressed }) => [
+                  styles.symbolChip,
+                  isChipHovered && styles.symbolChipHover,
+                  pressed && { transform: [{ translateY: 1 }] },
+                ]}
+                onPress={() => insertSymbol(item.val)}
+              >
+                <Text style={styles.symbolText}>{item.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <ScrollView
@@ -345,11 +506,20 @@ export default function StudioCodeEditor({
           showsVerticalScrollIndicator={true}
         >
           <View style={styles.lineNumbers}>
-            {Array.from({ length: lineCount }).map((_, i) => (
-              <Text key={i} style={styles.lineNumberText}>
-                {i + 1}
-              </Text>
-            ))}
+            {Array.from({ length: lineCount }).map((_, i) => {
+              const isCurrent = i + 1 === activeLine;
+              return (
+                <Text
+                  key={i}
+                  style={[
+                    styles.lineNumberText,
+                    isCurrent && styles.lineNumberTextActive,
+                  ]}
+                >
+                  {i + 1}
+                </Text>
+              );
+            })}
           </View>
           <View
             style={[
@@ -357,6 +527,14 @@ export default function StudioCodeEditor({
               { minHeight: lineCount * 21 + 32 },
             ]}
           >
+            {/* Subtle Active-Line Highlight Band */}
+            <View
+              pointerEvents="none"
+              style={[
+                styles.activeLineBand,
+                { top: 16 + (activeLine - 1) * 21 },
+              ]}
+            />
             <View
               pointerEvents="none"
               style={[
@@ -375,7 +553,9 @@ export default function StudioCodeEditor({
               value={code}
               onChangeText={(nextText) => onChangeCode(nextText)}
               onSelectionChange={(e) => {
-                selectionRef.current = e.nativeEvent.selection;
+                const sel = e.nativeEvent.selection;
+                selectionRef.current = sel;
+                setCursorPos(sel.start);
               }}
               onKeyPress={(e: any) => {
                 const nativeEv = e?.nativeEvent;
@@ -399,6 +579,57 @@ export default function StudioCodeEditor({
                   e.preventDefault?.();
                   insertSymbol("    ");
                   return;
+                }
+
+                // Smart auto-closing pairs, closing-char skip, & pair backspace on Web
+                if (
+                  Platform.OS === "web" &&
+                  !nativeEv.metaKey &&
+                  !nativeEv.ctrlKey &&
+                  !nativeEv.altKey
+                ) {
+                  const start = Math.min(
+                    Math.max(0, selectionRef.current.start),
+                    code.length,
+                  );
+                  const end = Math.min(
+                    Math.max(start, selectionRef.current.end),
+                    code.length,
+                  );
+
+                  if (
+                    start === end &&
+                    CLOSING_CHARS.has(nativeEv.key) &&
+                    code[start] === nativeEv.key
+                  ) {
+                    e.preventDefault?.();
+                    setCursorAt(start + 1);
+                    return;
+                  }
+
+                  if (start === end && AUTO_PAIR_MAP[nativeEv.key]) {
+                    e.preventDefault?.();
+                    const pair = nativeEv.key + AUTO_PAIR_MAP[nativeEv.key];
+                    const nextCode =
+                      code.slice(0, start) + pair + code.slice(end);
+                    onChangeCode(nextCode);
+                    setCursorAt(start + 1);
+                    return;
+                  }
+
+                  if (
+                    nativeEv.key === "Backspace" &&
+                    start === end &&
+                    start > 0 &&
+                    AUTO_PAIR_MAP[code[start - 1]] === code[start]
+                  ) {
+                    e.preventDefault?.();
+                    const nextCode =
+                      code.slice(0, start - 1) + code.slice(start + 1);
+                    onChangeCode(nextCode);
+                    setCursorAt(start - 1);
+                    return;
+                  }
                 }
 
                 // Enter key -> preserve indent and auto-indent +4 spaces after ':'
@@ -446,50 +677,63 @@ export default function StudioCodeEditor({
 
         <View style={styles.ideFooter}>
           <Text style={styles.ideFooterText}>
-            UTF-8 · {(code || "").split("\n").length} LINES
-            {selectedLesson.expected_output
-              ? ` · TARGET OUTPUT: ${selectedLesson.expected_output.split("\n")[0]}`
-              : ""}
+            LN {activeLine} · COL {activeCol} · {totalLines} LINES
           </Text>
-          <Text
-            style={[
-              styles.ideFooterText,
-              pyodideReady && { color: StudioColors.lime },
-            ]}
-          >
-            {pyodideReady ? "● READY · ⌘↵ RUN" : "○ INITIALIZING"}
-          </Text>
+          <View style={styles.ideStatusWrap}>
+            {pyodideReady && (
+              <Animated.View
+                style={[
+                  styles.readyPulseDot,
+                  {
+                    opacity: readyDotOpacity,
+                    transform: [{ scale: readyDotScale }],
+                  },
+                ]}
+              />
+            )}
+            <Text
+              style={[
+                styles.ideFooterText,
+                isExecuting
+                  ? { color: StudioColors.yellow }
+                  : pyodideReady && { color: StudioColors.lime },
+              ]}
+            >
+              {isExecuting
+                ? "RUNNING..."
+                : pyodideReady
+                  ? "READY · ⌘↵"
+                  : "INITIALIZING"}
+            </Text>
+          </View>
         </View>
       </View>
 
       <View style={styles.actionRow}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.secondaryRunBtn,
-            isExecuting && styles.disabledButton,
-            pressed && {
-              transform: [{ translateX: 1 }, { translateY: 1 }],
-            },
-          ]}
-          onPress={onRunPlaygroundOnly}
+        <HoverLiftButton
           disabled={isExecuting}
+          onPress={onRunPlaygroundOnly}
+          style={(hovered) => [
+            styles.secondaryRunBtn,
+            hovered && styles.secondaryRunBtnHovered,
+            isExecuting && styles.disabledButton,
+          ]}
         >
           <Text style={styles.secondaryRunBtnText}>▶ TEST RUN</Text>
           <View style={styles.shortcutBadgeDark}>
             <Text style={styles.shortcutBadgeDarkText}>⌘↵</Text>
           </View>
-        </Pressable>
+        </HoverLiftButton>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.runButton,
-            isExecuting && styles.disabledButton,
-            pressed && {
-              transform: [{ translateX: 2 }, { translateY: 2 }],
-            },
-          ]}
-          onPress={onRunPythonCode}
+        <HoverLiftButton
+          flex={1}
           disabled={isExecuting}
+          onPress={onRunPythonCode}
+          style={(hovered) => [
+            styles.runButton,
+            hovered && styles.runButtonHovered,
+            isExecuting && styles.disabledButton,
+          ]}
         >
           <Text style={styles.runButtonText}>
             {isExecuting ? "CHECKING CODE..." : "SUBMIT CODE (+50 XP)"}
@@ -499,7 +743,7 @@ export default function StudioCodeEditor({
               <Text style={styles.shortcutBadgeLightText}>→ ⇧⌘↵</Text>
             </View>
           )}
-        </Pressable>
+        </HoverLiftButton>
       </View>
 
       <View
@@ -508,6 +752,16 @@ export default function StudioCodeEditor({
           consoleExpanded && { flex: 1.9, minHeight: 240 },
         ]}
       >
+        {isExecuting && (
+          <View style={styles.execSweepTrack}>
+            <Animated.View
+              style={[
+                styles.execSweepBar,
+                { transform: [{ translateX: sweepTranslateX }] },
+              ]}
+            />
+          </View>
+        )}
         <View style={styles.bottomTabBar}>
           <View style={styles.bottomTabsLeft}>
             <Pressable
@@ -537,11 +791,12 @@ export default function StudioCodeEditor({
                 style={[
                   styles.bottomTabText,
                   bottomTab === "tests" && styles.activeBottomTabText,
+                  allChecksPassed && { color: StudioColors.lime },
                 ]}
               >
                 MISSION CHECKS{" "}
                 {testResults
-                  ? `[${testResults.filter((t) => t.passed).length}/${testResults.length}]`
+                  ? `[${testResults.filter((t) => t.passed).length}/${testResults.length}${allChecksPassed ? " ✓" : ""}]`
                   : ""}
               </Text>
             </Pressable>
@@ -620,7 +875,7 @@ export default function StudioCodeEditor({
               <View
                 style={[
                   styles.testSummaryBanner,
-                  testResults.every((t) => t.passed)
+                  allChecksPassed
                     ? styles.testSummarySuccess
                     : styles.testSummaryWarn,
                 ]}
@@ -628,12 +883,12 @@ export default function StudioCodeEditor({
                 <Text
                   style={[
                     styles.testSummaryText,
-                    testResults.every((t) => t.passed)
+                    allChecksPassed
                       ? { color: StudioColors.lime }
                       : { color: StudioColors.yellow },
                   ]}
                 >
-                  {testResults.every((t) => t.passed)
+                  {allChecksPassed
                     ? `✓ ALL ${testResults.length} MISSION CHECKS PASSED!`
                     : `→ ${testResults.filter((t) => t.passed).length} OF ${testResults.length} CHECKS PASSED — INSPECT BELOW`}
                 </Text>
@@ -748,6 +1003,9 @@ const getStyles = () =>
       overflow: "hidden",
       ...HardShadow,
     },
+    ideFrameSolved: {
+      borderColor: StudioColors.mint,
+    },
     ideHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -800,21 +1058,6 @@ const getStyles = () =>
       alignItems: "center",
       gap: 8,
     },
-    ideGuidedBtn: {
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      backgroundColor: StudioColors.violet,
-      borderRadius: 5,
-      borderWidth: 1.5,
-      borderColor: StudioColors.ink,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    ideGuidedBtnText: {
-      color: StudioColors.ink,
-      fontSize: 10,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
     copyCodeBtn: {
       paddingHorizontal: 10,
       paddingVertical: 5,
@@ -838,7 +1081,13 @@ const getStyles = () =>
       paddingVertical: 5,
       backgroundColor: "#2E2E2A",
       borderRadius: 5,
-      ...Platform.select({ web: { cursor: "pointer" } }),
+      borderWidth: 1,
+      borderColor: "transparent",
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    resetBtnConfirm: {
+      backgroundColor: StudioColors.coral,
+      borderColor: StudioColors.ink,
     },
     resetBtnText: {
       color: StudioColors.codeText,
@@ -869,10 +1118,14 @@ const getStyles = () =>
       backgroundColor: "#262623",
       paddingHorizontal: 10,
       paddingVertical: 4,
-      borderRadius: 4,
+      borderRadius: 5,
       borderWidth: 1,
       borderColor: "#3A3A35",
-      ...Platform.select({ web: { cursor: "pointer" } }),
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    symbolChipHover: {
+      backgroundColor: "#33332E",
+      borderColor: StudioColors.yellow,
     },
     symbolText: {
       color: StudioColors.yellow,
@@ -903,9 +1156,22 @@ const getStyles = () =>
       lineHeight: 21,
       fontFamily: MonoFont,
     },
+    lineNumberTextActive: {
+      color: StudioColors.lime,
+      fontWeight: "900",
+    },
     editorCodeWrapper: {
       flex: 1,
       position: "relative",
+    },
+    activeLineBand: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      height: 21,
+      backgroundColor: "rgba(184, 255, 59, 0.055)",
+      borderLeftWidth: 2,
+      borderLeftColor: "rgba(184, 255, 59, 0.6)",
     },
     syntaxHighlightLayer: {
       position: "absolute",
@@ -961,6 +1227,17 @@ const getStyles = () =>
       fontWeight: "800",
       fontFamily: MonoFont,
     },
+    ideStatusWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    readyPulseDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 3.5,
+      backgroundColor: StudioColors.lime,
+    },
     actionRow: {
       flexDirection: "row",
       gap: 10,
@@ -978,6 +1255,11 @@ const getStyles = () =>
       borderColor: StudioColors.border,
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    secondaryRunBtnHovered: {
+      backgroundColor: StudioColors.surfaceElevated,
+      borderColor: StudioColors.yellow,
+      ...HardShadow,
     },
     secondaryRunBtnText: {
       color: StudioColors.textPrimary,
@@ -1001,7 +1283,6 @@ const getStyles = () =>
       fontFamily: MonoFont,
     },
     runButton: {
-      flex: 1,
       flexDirection: "row",
       justifyContent: "center",
       alignItems: "center",
@@ -1014,6 +1295,9 @@ const getStyles = () =>
       borderColor: StudioColors.ink,
       ...HardShadowHero,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    runButtonHovered: {
+      backgroundColor: "#C8FF64",
     },
     disabledButton: { opacity: 0.6 },
     runButtonText: {
@@ -1045,6 +1329,17 @@ const getStyles = () =>
       minHeight: 165,
       overflow: "hidden",
       ...HardShadow,
+    },
+    execSweepTrack: {
+      height: 2.5,
+      width: "100%",
+      backgroundColor: "rgba(184, 255, 59, 0.14)",
+      overflow: "hidden",
+    },
+    execSweepBar: {
+      width: 160,
+      height: "100%",
+      backgroundColor: StudioColors.lime,
     },
     bottomTabBar: {
       flexDirection: "row",
@@ -1196,136 +1491,6 @@ const getStyles = () =>
       color: StudioColors.codeText,
       fontFamily: MonoFont,
       fontSize: 12,
-    },
-    pinnedMissionCard: {
-      backgroundColor: StudioColors.surface,
-      borderRadius: 10,
-      borderWidth: 2,
-      borderColor: StudioColors.ink,
-      borderLeftWidth: 6,
-      borderLeftColor: StudioColors.lime,
-      marginBottom: 10,
-      overflow: "hidden",
-      ...HardShadowSm,
-    },
-    pinnedMissionHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      gap: 8,
-      backgroundColor: StudioColors.surface,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    pinnedMissionHeaderLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      flex: 1,
-      minWidth: 0,
-    },
-    pinnedMissionSticker: {
-      backgroundColor: StudioColors.yellow,
-      borderWidth: 1.5,
-      borderColor: StudioColors.ink,
-      paddingHorizontal: 7,
-      paddingVertical: 2,
-      borderRadius: 4,
-      flexShrink: 0,
-    },
-    pinnedMissionStickerText: {
-      color: StudioColors.ink,
-      fontSize: 9,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.6,
-    },
-    pinnedMissionTitleText: {
-      color: StudioColors.textPrimary,
-      fontSize: 12,
-      fontWeight: "800",
-      flex: 1,
-    },
-    pinnedMissionHeaderRight: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      flexShrink: 0,
-    },
-    expectedOutMiniPill: {
-      backgroundColor: StudioColors.codeBg,
-      borderWidth: 1,
-      borderColor: StudioColors.ink,
-      paddingHorizontal: 7,
-      paddingVertical: 2,
-      borderRadius: 4,
-    },
-    expectedOutMiniLabel: {
-      color: StudioColors.lime,
-      fontSize: 9,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
-    pinnedStepCounterPill: {
-      backgroundColor: StudioColors.bg,
-      borderWidth: 1,
-      borderColor: StudioColors.border,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4,
-    },
-    pinnedStepCounterText: {
-      color: StudioColors.textPrimary,
-      fontSize: 9,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
-    pinnedCollapseChevron: {
-      color: StudioColors.textSecondary,
-      fontSize: 10,
-      fontWeight: "900",
-      marginLeft: 2,
-    },
-    pinnedMissionBody: {
-      paddingHorizontal: 12,
-      paddingVertical: 9,
-      borderTopWidth: 1.5,
-      borderTopColor: StudioColors.borderSubtle,
-      backgroundColor: StudioColors.bg,
-    },
-    pinnedStepsList: {
-      gap: 6,
-    },
-    pinnedStepRow: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 8,
-    },
-    pinnedStepNumBox: {
-      width: 19,
-      height: 19,
-      marginTop: 1,
-      borderRadius: 4,
-      backgroundColor: StudioColors.surface,
-      borderWidth: 1.5,
-      borderColor: StudioColors.border,
-      justifyContent: "center",
-      alignItems: "center",
-      flexShrink: 0,
-    },
-    pinnedStepNumText: {
-      color: StudioColors.textPrimary,
-      fontSize: 9,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
-    pinnedStepDescText: {
-      color: StudioColors.textPrimary,
-      fontSize: 12,
-      fontWeight: "600",
-      lineHeight: 18,
-      flexShrink: 1,
     },
     consoleOutputWrap: {
       gap: 10,
