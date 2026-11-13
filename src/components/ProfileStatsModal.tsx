@@ -18,6 +18,7 @@ interface ProfileStatsModalProps {
   completedLessons: Record<string, boolean>;
   onSelectTrack: (trackKey: string) => void;
   onOpenCertificate?: (certificate: CertificateData) => void;
+  onToggleDevPro?: () => void;
   onOpenAuth: () => void;
   onClose: () => void;
 }
@@ -135,6 +136,7 @@ export default function ProfileStatsModal({
   completedLessons,
   onSelectTrack,
   onOpenCertificate,
+  onToggleDevPro,
   onOpenAuth,
   onClose,
 }: ProfileStatsModalProps) {
@@ -240,6 +242,27 @@ export default function ProfileStatsModal({
             <Text style={styles.emailText} numberOfLines={1}>
               {userEmail ? userEmail : "Guest Profile · Not synced to cloud"}
             </Text>
+            {onToggleDevPro && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.devProToggleBtn,
+                  isPremium
+                    ? styles.devProToggleBtnOn
+                    : styles.devProToggleBtnOff,
+                  pressed && { transform: [{ translateY: 1 }] },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  onToggleDevPro();
+                }}
+              >
+                <Text style={styles.devProToggleText}>
+                  {isPremium
+                    ? "★ DEV PRO TEST: UNLOCKED (TAP TO TEST FREE)"
+                    : "🔒 DEV PRO TEST: OFF (TAP TO UNLOCK PRO)"}
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -575,6 +598,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     marginTop: 2,
+  },
+  devProToggleBtn: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer" } }),
+  },
+  devProToggleBtnOn: {
+    backgroundColor: StudioColors.lime,
+  },
+  devProToggleBtnOff: {
+    backgroundColor: StudioColors.yellow,
+  },
+  devProToggleText: {
+    color: StudioColors.ink,
+    fontFamily: MonoFont,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
   },
   closeIconBtn: {
     width: 32,

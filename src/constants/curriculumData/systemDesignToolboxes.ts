@@ -560,4 +560,148 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
+  {
+    matchTrack: "system_design",
+    matchOrder: 21,
+    tools: [
+      {
+        toolName: "[t for t in timestamps if t > now - window_sec] — Window Pruner",
+        badge: "SLIDING WINDOW",
+        purpose:
+          "Drops expired request timestamps strictly outside the trailing window before evaluating capacity.",
+        syntaxPattern: "active = [t for t in timestamps if t > now - window_sec]",
+        variations: [
+          {
+            label: "1. Pruning stale stamps at t=70 (30s window)",
+            code: "cutoff = 70 - 30\nprint([t for t in [10, 40, 45, 55] if t > cutoff])",
+            output: "[45, 55]",
+            note: "Timestamp 40 (`now - window_sec`) is pruned strictly.",
+          },
+        ],
+      },
+      {
+        toolName: "len(active) < limit — Admission Gate",
+        badge: "RATE LIMIT",
+        purpose:
+          "Admits and appends the incoming timestamp only while active traffic remains strictly under limit.",
+        syntaxPattern: "if len(active) < limit: active.append(now)",
+        variations: [
+          {
+            label: "1. Admitting 3rd request under limit=3",
+            code: "active = [45, 55]\nprint(len(active) < 3)",
+            output: "True",
+            note: "Admitting appends `now` so `active_count` becomes `3`.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 22,
+    tools: [
+      {
+        toolName: "min(capacity, tokens + elapsed * refill_rate) — Lazy Refill",
+        badge: "TOKEN BUCKET",
+        purpose:
+          "Calculates accrued burst tokens on demand using elapsed time, clamped cleanly at bucket capacity.",
+        syntaxPattern: "available = min(capacity, tokens + max(0, now_ts - last_ts) * refill_rate)",
+        variations: [
+          {
+            label: "1. Refilling 3s at 2 tokens/sec (cap 5)",
+            code: "print(min(5, 1 + (13 - 10) * 2))",
+            output: "5",
+            note: "1 + 6 caps cleanly at `capacity = 5` before spending 1 token.",
+          },
+        ],
+      },
+      {
+        toolName: "available >= 1 — Atomic Token Spend",
+        badge: "ADMISSION GUARD",
+        purpose:
+          "Consumes 1 token only when balance covers the request, leaving empty buckets unchanged.",
+        syntaxPattern: "if available >= 1: return available - 1",
+        variations: [
+          {
+            label: "1. Rejecting empty bucket",
+            code: "avail = 0\nprint(avail >= 1)",
+            output: "False",
+            note: "Rejected requests leave the token balance untouched.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 23,
+    tools: [
+      {
+        toolName: "sorted(ring_nodes, key=lambda n: n[0]) — Clockwise Ring Sort",
+        badge: "SHARD ROUTING",
+        purpose:
+          "Sorts (ring_pos, node_id) entries clockwise around the hash ring for deterministic routing.",
+        syntaxPattern: "ordered = sorted(ring_nodes, key=lambda n: n[0])",
+        variations: [
+          {
+            label: "1. Ordering unsorted shards",
+            code: 'print(sorted([(90, "db-c"), (20, "db-a"), (55, "db-b")]))',
+            output: "[(20, 'db-a'), (55, 'db-b'), (90, 'db-c')]",
+            note: "Sorted ring positions allow deterministic clockwise scans.",
+          },
+        ],
+      },
+      {
+        toolName: "ordered[0][1] — Circular Wrap Fallback",
+        badge: "RING WRAP",
+        purpose:
+          "Wraps keys whose hash exceeds every node position back around to the first clockwise node.",
+        syntaxPattern: "return ordered[0][1]",
+        variations: [
+          {
+            label: "1. Key hash 95 wrapping past 90",
+            code: 'ordered = [(20, "db-a"), (55, "db-b"), (90, "db-c")]\nprint(ordered[0][1])',
+            output: "db-a",
+            note: "Positions form a circle, so >90 lands on 20.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 24,
+    tools: [
+      {
+        toolName: "now_ts >= entry['expires_at'] — Inclusive TTL Boundary",
+        badge: "EXPIRY CHECK",
+        purpose:
+          "Treats reads arriving exactly at or past expires_at as expired so stale values are never returned.",
+        syntaxPattern: "if now_ts >= entry['expires_at']:",
+        variations: [
+          {
+            label: "1. Checking exact TTL cutoff",
+            code: "print(100 >= 100)",
+            output: "True",
+            note: "At `now_ts == expires_at`, the key is no longer valid.",
+          },
+        ],
+      },
+      {
+        toolName: "del cache[key] — Lazy Cache Eviction",
+        badge: "CACHE CLEANUP",
+        purpose:
+          "Purges expired entries on read so memory is reclaimed immediately without blocking scans.",
+        syntaxPattern: "del cache[key]; return 'EXPIRED'",
+        variations: [
+          {
+            label: "1. Removing stale key from dict",
+            code: 'c = {"u1": 1}\ndel c["u1"]\nprint("u1" in c)',
+            output: "False",
+            note: "Subsequent reads immediately return `'MISS'`.",
+          },
+        ],
+      },
+    ],
+  },
 ];

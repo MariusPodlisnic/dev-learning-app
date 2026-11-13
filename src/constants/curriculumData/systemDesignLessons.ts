@@ -681,4 +681,240 @@ except Exception as e:
     ],
     hints: ["Replace `return 0` with `return total_users // batch_size`."],
   },
+  {
+    id: "exp-sys-21",
+    title: "Architecture Capstone: Sliding Window Log Limiter",
+    track: "system_design",
+    category: "API GATEWAY",
+    difficulty: "Medium",
+    tree_row: 17,
+    lesson_order: 21,
+    is_free: false,
+    description:
+      "Prune expired request timestamps outside the rolling window and allow traffic only if under the rate limit.",
+    content:
+      'Production API gateways (Stripe, Cloudflare) prevent abuse using a **Sliding Window Log** instead of fixed minute boundaries.\n\nGiven past request `timestamps`, current time `now`, window width `window_sec`, and `limit`:\n1. Keep only active timestamps within the window: `active = [t for t in timestamps if now - t < window_sec]`\n2. If `len(active) < limit`, allow the request (`{"allowed": True, "active_count": len(active) + 1}`).\n3. Otherwise reject it (`{"allowed": False, "active_count": len(active)}`).',
+    assignment:
+      'Complete `evaluate_sliding_window(timestamps, now, window_sec, limit)` so it prunes expired timestamps (`now - t >= window_sec`) and returns `{"allowed": True/False, "active_count": ...}`.',
+    constraints: [
+      "Only keep timestamps where `now - t < window_sec`",
+      'Include the new request in `"active_count"` when `"allowed"` is `True`',
+    ],
+    examples: [
+      {
+        input: "timestamps = [10, 45, 55], now = 70, window_sec = 30, limit = 3",
+        output: "{'allowed': True, 'active_count': 3}",
+        explanation: "70 - 10 = 60 >= 30 (expired). Only [45, 55] remain (2 < 3), so new request is allowed (active_count=3).",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def evaluate_sliding_window(timestamps, now, window_sec, limit):
+    # 👉 1. Filter timestamps within the active window (now - t < window_sec)
+    # 👉 2. Return {"allowed": True/False, "active_count": ...}
+    return {"allowed": False, "active_count": 0}
+
+print(evaluate_sliding_window([10, 45, 55], 70, 30, 3))`,
+    expected_output: "{'allowed': True, 'active_count': 3}",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = evaluate_sliding_window([10, 45, 55], 70, 30, 3)
+    results.append({"id": 1, "input": "[10,45,55], now=70, win=30, lim=3", "expected": "{'allowed': True, 'active_count': 3}", "actual": str(r1), "passed": r1 == {"allowed": True, "active_count": 3}})
+    r2 = evaluate_sliding_window([50, 55, 60], 70, 30, 3)
+    results.append({"id": 2, "input": "[50,55,60], now=70, win=30, lim=3 (full)", "expected": "{'allowed': False, 'active_count': 3}", "actual": str(r2), "passed": r2 == {"allowed": False, "active_count": 3}})
+    r3 = evaluate_sliding_window([40], 70, 30, 1)
+    results.append({"id": 3, "input": "[40] boundary 70-40==30 (expired)", "expected": "{'allowed': True, 'active_count': 1}", "actual": str(r3), "passed": r3 == {"allowed": True, "active_count": 1}})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "t = 10s", value: "EXPIRED (70-10=60 >= 30)", address: "pruned" },
+      { label: "t = 45s", value: "ACTIVE (25s ago)", address: "kept" },
+      { label: "t = 55s", value: "ACTIVE (15s ago)", address: "kept" },
+      { label: "now = 70s", value: "2 < 3 -> ALLOWED (3) ✓", address: "200 OK" },
+    ],
+    hints: [
+      "Compute `active = [t for t in timestamps if now - t < window_sec]`.",
+      "If `len(active) < limit`, return `{\"allowed\": True, \"active_count\": len(active) + 1}`.",
+    ],
+  },
+  {
+    id: "exp-sys-22",
+    title: "Architecture Capstone: Token Bucket Refill Simulator",
+    track: "system_design",
+    category: "TRAFFIC SHAPING",
+    difficulty: "Medium",
+    tree_row: 17,
+    lesson_order: 22,
+    is_free: false,
+    description:
+      "Refill tokens proportionally to elapsed seconds without exceeding burst capacity, then spend 1 token if available.",
+    content:
+      "A **Token Bucket** lets users send short bursts while enforcing a steady long-term rate:\n\n1. Calculate elapsed seconds: `elapsed = max(0, now_ts - last_ts)`\n2. Refill and cap at `capacity`: `refilled = min(capacity, tokens + elapsed * refill_rate)`\n3. If `refilled >= 1`, deduct 1 token and return `{\"allowed\": True, \"tokens\": refilled - 1}`.\n4. Otherwise deny and return `{\"allowed\": False, \"tokens\": refilled}`.",
+    assignment:
+      'Complete `consume_token(tokens, last_ts, now_ts, refill_rate, capacity)` to refill tokens up to `capacity` and spend 1 token if `refilled >= 1`.',
+    constraints: [
+      "Never let refilled tokens exceed `capacity`",
+      "Only deduct 1 token when `refilled >= 1`",
+    ],
+    examples: [
+      {
+        input: "tokens=1, last_ts=10, now_ts=13, refill_rate=2, capacity=5",
+        output: "{'allowed': True, 'tokens': 4}",
+        explanation: "3s elapsed * 2 = +6 tokens -> capped at capacity 5 -> minus 1 = 4.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def consume_token(tokens, last_ts, now_ts, refill_rate, capacity):
+    # 👉 1. Refill tokens using elapsed time capped at capacity
+    # 👉 2. If refilled >= 1, spend 1 and allow; else deny
+    return {"allowed": False, "tokens": tokens}
+
+print(consume_token(1, 10, 13, 2, 5))`,
+    expected_output: "{'allowed': True, 'tokens': 4}",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = consume_token(1, 10, 13, 2, 5)
+    results.append({"id": 1, "input": "tokens=1, elapsed=3, rate=2, cap=5", "expected": "{'allowed': True, 'tokens': 4}", "actual": str(r1), "passed": r1 == {"allowed": True, "tokens": 4}})
+    r2 = consume_token(0, 10, 10, 1, 5)
+    results.append({"id": 2, "input": "empty bucket, elapsed=0", "expected": "{'allowed': False, 'tokens': 0}", "actual": str(r2), "passed": r2 == {"allowed": False, "tokens": 0}})
+    r3 = consume_token(2, 10, 11, 1, 5)
+    results.append({"id": 3, "input": "tokens=2, elapsed=1, rate=1, cap=5", "expected": "{'allowed': True, 'tokens': 2}", "actual": str(r3), "passed": r3 == {"allowed": True, "tokens": 2}})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "start tokens", value: "1", type: "int", address: "t=10s" },
+      { label: "elapsed * rate", value: "+6 (capped -> 5)", type: "int", address: "t=13s" },
+      { label: "spend 1 token", value: "4 remaining ✓", type: "bool", address: "ALLOWED" },
+    ],
+    hints: [
+      "Compute `refilled = min(capacity, tokens + max(0, now_ts - last_ts) * refill_rate)`.",
+      "If `refilled >= 1`: return `{\"allowed\": True, \"tokens\": refilled - 1}`.",
+    ],
+  },
+  {
+    id: "exp-sys-23",
+    title: "Architecture Capstone: Consistent Hash Ring Router",
+    track: "system_design",
+    category: "DISTRIBUTED ROUTING",
+    difficulty: "Medium",
+    tree_row: 18,
+    lesson_order: 23,
+    is_free: false,
+    description:
+      "Route a hashed request clockwise on a sorted consistent-hashing ring, wrapping around to node 0 when past the max node.",
+    content:
+      "In **Consistent Hashing** (used by DynamoDB, Cassandra, and Discord), servers sit at positions on a numeric ring.\n\nGiven unsorted `ring_nodes` like `[(90, 'db-c'), (20, 'db-a'), (55, 'db-b')]` and a `key_hash`:\n1. Sort nodes by their hash position: `ordered = sorted(ring_nodes, key=lambda item: item[0])`\n2. Walk clockwise and return the **first server** whose `node_hash >= key_hash`.\n3. If `key_hash` is greater than every node on the ring, wrap around and return `ordered[0][1]`!",
+    assignment:
+      "Complete `route_hash_ring(ring_nodes, key_hash)` so it sorts `ring_nodes` by position and returns the clockwise target server name (wrapping around to `ordered[0][1]`).",
+    constraints: [
+      "Sort `ring_nodes` by `node_hash` first",
+      "Wrap around to the smallest-hash server when `key_hash` exceeds all node hashes",
+    ],
+    examples: [
+      {
+        input: "ring_nodes = [(90, 'db-c'), (20, 'db-a'), (55, 'db-b')], key_hash = 60",
+        output: "db-c",
+        explanation: "Sorted ring is 20 -> 55 -> 90. Moving clockwise from 60 hits 90 ('db-c').",
+      },
+      {
+        input: "ring_nodes = [(90, 'db-c'), (20, 'db-a'), (55, 'db-b')], key_hash = 95",
+        output: "db-a",
+        explanation: "95 > 90, so it wraps around to the first node at 20 ('db-a').",
+      },
+    ],
+    complexities: { time: "O(n log n)", space: "O(n)" },
+    initial_code: `def route_hash_ring(ring_nodes, key_hash):
+    ordered = sorted(ring_nodes, key=lambda item: item[0])
+    # 👉 Return first server where node_hash >= key_hash, else wrap around to ordered[0][1]:
+    return ""
+
+print(route_hash_ring([(90, "db-c"), (20, "db-a"), (55, "db-b")], 60))`,
+    expected_output: "db-c",
+    hidden_tests: `import json
+results = []
+try:
+    ring = [(90, "db-c"), (20, "db-a"), (55, "db-b")]
+    r1 = route_hash_ring(ring, 60)
+    results.append({"id": 1, "input": "key_hash=60", "expected": "db-c", "actual": str(r1), "passed": r1 == "db-c"})
+    r2 = route_hash_ring(ring, 95)
+    results.append({"id": 2, "input": "key_hash=95 (wrap-around)", "expected": "db-a", "actual": str(r2), "passed": r2 == "db-a"})
+    r3 = route_hash_ring(ring, 20)
+    results.append({"id": 3, "input": "key_hash=20 (exact match)", "expected": "db-a", "actual": str(r3), "passed": r3 == "db-a"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "20: db-a", value: "handles 91..100 & 0..20", address: "wrap node" },
+      { label: "55: db-b", value: "handles 21..55", address: "slot 1" },
+      { label: "90: db-c", value: "key 60 -> db-c 🎯", address: "slot 2" },
+    ],
+    hints: [
+      "Loop `for node_hash, server in ordered:`: if `node_hash >= key_hash: return server`.",
+      "After the loop ends, return `ordered[0][1]` to wrap around.",
+    ],
+  },
+  {
+    id: "exp-sys-24",
+    title: "Architecture Capstone: TTL Cache Expiry Engine",
+    track: "system_design",
+    category: "CACHING ARCHITECTURE",
+    difficulty: "Hard",
+    tree_row: 18,
+    lesson_order: 24,
+    is_free: false,
+    description:
+      "Implement passive TTL cache reads that evict stale entries when now_ts >= expires_at and return live values otherwise.",
+    content:
+      'Caches attach a **Time-To-Live (`expires_at`)** to every key so stale database rows eventually refresh.\n\nEach entry in `cache` looks like `{"value": "Alice", "expires_at": 100}`:\n1. If `key not in cache`: return `"MISS"`\n2. If `now_ts >= cache[key]["expires_at"]`: delete the stale key (`del cache[key]`) and return `"EXPIRED"`\n3. Otherwise return `cache[key]["value"]`!',
+    assignment:
+      'Complete `read_ttl_cache(cache, key, now_ts)` so missing keys return `"MISS"`, expired keys are deleted from `cache` and return `"EXPIRED"`, and fresh keys return their stored `"value"`.',
+    constraints: [
+      'Delete expired keys from `cache` (`del cache[key]`) when `now_ts >= entry["expires_at"]`',
+      'Return `"MISS"`, `"EXPIRED"`, or the cached `"value"`',
+    ],
+    examples: [
+      {
+        input: 'cache = {"u1": {"value": "Alice", "expires_at": 100}}, now_ts = 80 / 100',
+        output: "Alice / EXPIRED",
+        explanation: "At t=80 (<100) returns 'Alice'; at t=100 (>=100) deletes key and returns 'EXPIRED'.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def read_ttl_cache(cache, key, now_ts):
+    # 👉 Handle missing key -> "MISS", expired -> del & "EXPIRED", valid -> value:
+    return "MISS"
+
+store = {"u1": {"value": "Alice", "expires_at": 100}}
+print(read_ttl_cache(store, "u1", 80), read_ttl_cache(store, "u1", 100))`,
+    expected_output: "Alice EXPIRED",
+    hidden_tests: `import json
+results = []
+try:
+    store = {"u1": {"value": "Alice", "expires_at": 100}, "u2": {"value": "Bob", "expires_at": 200}}
+    r1 = read_ttl_cache(store, "u1", 80)
+    results.append({"id": 1, "input": "u1 at t=80 (fresh)", "expected": "Alice", "actual": str(r1), "passed": r1 == "Alice"})
+    r2 = read_ttl_cache(store, "u1", 100)
+    results.append({"id": 2, "input": "u1 at t=100 (expired & evicted)", "expected": "EXPIRED (removed)", "actual": f"{r2} (in_cache={'u1' in store})", "passed": r2 == "EXPIRED" and "u1" not in store})
+    r3 = read_ttl_cache(store, "missing", 100)
+    results.append({"id": 3, "input": "unknown key", "expected": "MISS", "actual": str(r3), "passed": r3 == "MISS"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "t = 80s", value: "80 < 100 -> HIT ('Alice') ✓", address: "TTL active" },
+      { label: "t = 100s", value: "100 >= 100 -> del & EXPIRED", address: "evicted" },
+      { label: "key 'u9'", value: "not in cache -> MISS", address: "DB fallback" },
+    ],
+    hints: [
+      'Check `if key not in cache: return "MISS"`.',
+      'Then check `if now_ts >= cache[key]["expires_at"]: del cache[key]; return "EXPIRED"`.',
+    ],
+  },
 ];

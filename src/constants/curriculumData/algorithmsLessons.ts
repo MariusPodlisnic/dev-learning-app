@@ -646,4 +646,246 @@ except Exception as e:
     ],
     hints: ["Replace `return {}` with `return dict(zip(names, scores))`."],
   },
+  {
+    id: "exp-alg-21",
+    title: "Interview Capstone: Best Time to Buy & Sell Stock",
+    track: "algorithms",
+    category: "GREEDY SCAN O(N)",
+    difficulty: "Medium",
+    tree_row: 17,
+    lesson_order: 21,
+    is_free: false,
+    description:
+      "Track the running minimum buy price and compute the maximum single-trade profit in one O(n) pass.",
+    content:
+      "A classic coding interview problem: given daily stock `prices`, pick **one day to buy** and a **later day to sell** for maximum profit (or `0` if prices only fall).\n\nInstead of checking every `(buy, sell)` pair in O(n²), track two variables as you scan left to right:\n- `min_price`: lowest price seen **so far**\n- `best_profit`: largest `price - min_price` seen **so far**\n\n```python\nmin_price = float('inf')\nbest_profit = 0\nfor price in prices:\n    min_price = min(min_price, price)\n    best_profit = max(best_profit, price - min_price)\n```",
+    assignment:
+      "Complete `max_profit(prices)` so it scans `prices` once, updating `min_price` and `best_profit`, and returns the maximum achievable profit.",
+    constraints: [
+      "Solve in a single O(n) loop without nested loops",
+      "Return `0` if no profitable trade exists",
+    ],
+    examples: [
+      {
+        input: "prices = [7, 1, 5, 3, 6, 4]",
+        output: "5",
+        explanation: "Buy at 1 (day 2) and sell at 6 (day 5) -> 6 - 1 = 5.",
+      },
+      {
+        input: "prices = [7, 6, 4, 3, 1]",
+        output: "0",
+        explanation: "Prices drop every day, so best profit is 0.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def max_profit(prices):
+    min_price = float("inf")
+    best_profit = 0
+    # 👉 Loop through prices and update min_price and best_profit:
+    return best_profit
+
+print(max_profit([7, 1, 5, 3, 6, 4]))`,
+    expected_output: "5",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = max_profit([7, 1, 5, 3, 6, 4])
+    results.append({"id": 1, "input": "[7, 1, 5, 3, 6, 4]", "expected": "5", "actual": str(r1), "passed": r1 == 5})
+    r2 = max_profit([7, 6, 4, 3, 1])
+    results.append({"id": 2, "input": "[7, 6, 4, 3, 1]", "expected": "0", "actual": str(r2), "passed": r2 == 0})
+    r3 = max_profit([2, 4, 1, 7])
+    results.append({"id": 3, "input": "[2, 4, 1, 7]", "expected": "6", "actual": str(r3), "passed": r3 == 6})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "Day 1: $7", value: "min=$7, profit=0", address: "idx 0" },
+      { label: "Day 2: $1", value: "min=$1, profit=0", address: "idx 1" },
+      { label: "Day 3: $5", value: "min=$1, profit=4", address: "idx 2" },
+      { label: "Day 5: $6", value: "BEST PROFIT = 5 ✓", address: "idx 4" },
+    ],
+    hints: [
+      "Inside `for price in prices:`, update `min_price = min(min_price, price)`.",
+      "Then update `best_profit = max(best_profit, price - min_price)`.",
+    ],
+  },
+  {
+    id: "exp-alg-22",
+    title: "Interview Capstone: Group Anagrams",
+    track: "algorithms",
+    category: "HASH MAP BUCKETING",
+    difficulty: "Medium",
+    tree_row: 17,
+    lesson_order: 22,
+    is_free: false,
+    description:
+      "Bucket anagram words together using their sorted character signature as a dictionary key.",
+    content:
+      'Words like `"eat"`, `"tea"`, and `"ate"` have the exact same letters! When you sort their characters with **`"".join(sorted(word))`**, every anagram produces the identical signature **`"aet"`**.\n\nUse a dictionary `groups = {}` to collect words sharing the same signature:\n\n```python\ngroups = {}\nfor word in words:\n    sig = "".join(sorted(word))\n    groups.setdefault(sig, []).append(word)\nreturn list(groups.values())\n```',
+    assignment:
+      "Complete `group_anagrams(words)` so it groups matching anagrams into sublists and returns `list(groups.values())`.",
+    constraints: [
+      'Compute a sorted signature key with `"".join(sorted(word))`',
+      "Preserve word grouping inside `groups` and return `list(groups.values())`",
+    ],
+    examples: [
+      {
+        input: 'words = ["eat", "tea", "tan", "ate", "nat", "bat"]',
+        output: "[['eat', 'tea', 'ate'], ['tan', 'nat'], ['bat']]",
+        explanation: "'eat', 'tea', 'ate' all sort to 'aet'.",
+      },
+    ],
+    complexities: { time: "O(n * k log k)", space: "O(n * k)" },
+    initial_code: `def group_anagrams(words):
+    groups = {}
+    # 👉 Build signature key = "".join(sorted(word)) and append word to groups[key]:
+    return list(groups.values())
+
+print(group_anagrams(["eat", "tea", "tan", "ate", "nat", "bat"]))`,
+    expected_output: "[['eat', 'tea', 'ate'], ['tan', 'nat'], ['bat']]",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = group_anagrams(["eat", "tea", "tan", "ate", "nat", "bat"])
+    norm1 = sorted([sorted(g) for g in r1])
+    exp1 = sorted([sorted(["eat", "tea", "ate"]), sorted(["tan", "nat"]), sorted(["bat"])])
+    results.append({"id": 1, "input": "6 mixed words", "expected": str(exp1), "actual": str(norm1), "passed": norm1 == exp1})
+    r2 = group_anagrams(["listen", "silent", "hello"])
+    norm2 = sorted([sorted(g) for g in r2])
+    exp2 = sorted([["hello"], ["listen", "silent"]])
+    results.append({"id": 2, "input": "['listen', 'silent', 'hello']", "expected": str(exp2), "actual": str(norm2), "passed": norm2 == exp2})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: 'sig "aet"', value: "['eat', 'tea', 'ate']", address: "bucket 0" },
+      { label: 'sig "ant"', value: "['tan', 'nat']", address: "bucket 1" },
+      { label: 'sig "abt"', value: "['bat']", address: "bucket 2" },
+    ],
+    hints: [
+      'Inside `for word in words:`, compute `key = "".join(sorted(word))`.',
+      "Use `groups.setdefault(key, []).append(word)` or `if key not in groups: groups[key] = []`.",
+    ],
+  },
+  {
+    id: "exp-alg-23",
+    title: "Interview Capstone: Merge Overlapping Intervals",
+    track: "algorithms",
+    category: "INTERVAL SWEEP O(N LOG N)",
+    difficulty: "Medium",
+    tree_row: 18,
+    lesson_order: 23,
+    is_free: false,
+    description:
+      "Sort calendar meetings by start time and merge any overlapping ranges into clean continuous blocks.",
+    content:
+      "Calendar apps merge overlapping meetings like `[1, 3]` and `[2, 6]` into `[1, 6]`.\n\n1. Sort the intervals by their start value: `sorted_iv = sorted(intervals, key=lambda x: x[0])`\n2. Start `merged = []` and loop `[start, end]`:\n   - If `merged` is empty or `start > merged[-1][1]`, there is no overlap -> `merged.append([start, end])`\n   - Otherwise, merge by stretching the end: `merged[-1][1] = max(merged[-1][1], end)`",
+    assignment:
+      "Complete `merge_intervals(intervals)` so it sorts by start time, merges overlapping `[start, end]` pairs, and returns the merged list.",
+    constraints: [
+      "Handle unsorted input intervals safely",
+      "Treat touching intervals like `[1, 4]` and `[4, 5]` as overlapping (`[1, 5]`)",
+    ],
+    examples: [
+      {
+        input: "intervals = [[1, 3], [2, 6], [8, 10], [15, 18]]",
+        output: "[[1, 6], [8, 10], [15, 18]]",
+        explanation: "[1, 3] and [2, 6] overlap at 2..3, merging to [1, 6].",
+      },
+    ],
+    complexities: { time: "O(n log n)", space: "O(n)" },
+    initial_code: `def merge_intervals(intervals):
+    if not intervals:
+        return []
+    ordered = sorted(intervals, key=lambda x: x[0])
+    merged = []
+    # 👉 Sweep ordered intervals and merge overlaps into merged:
+    return merged
+
+print(merge_intervals([[1, 3], [2, 6], [8, 10], [15, 18]]))`,
+    expected_output: "[[1, 6], [8, 10], [15, 18]]",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = merge_intervals([[1, 3], [2, 6], [8, 10], [15, 18]])
+    results.append({"id": 1, "input": "[[1,3],[2,6],[8,10],[15,18]]", "expected": "[[1, 6], [8, 10], [15, 18]]", "actual": str(r1), "passed": r1 == [[1, 6], [8, 10], [15, 18]]})
+    r2 = merge_intervals([[4, 5], [1, 4]])
+    results.append({"id": 2, "input": "[[4,5],[1,4]] (unsorted)", "expected": "[[1, 5]]", "actual": str(r2), "passed": r2 == [[1, 5]]})
+    r3 = merge_intervals([])
+    results.append({"id": 3, "input": "[]", "expected": "[]", "actual": str(r3), "passed": r3 == []})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "[1, 3]", value: "seed merged = [[1,3]]", address: "step 1" },
+      { label: "[2, 6]", value: "2 <= 3 -> merge [1,6]", address: "step 2" },
+      { label: "[8, 10]", value: "8 > 6 -> append [8,10]", address: "step 3" },
+      { label: "[15, 18]", value: "append [15,18] ✓", address: "step 4" },
+    ],
+    hints: [
+      "Loop `for start, end in ordered:`.",
+      "If `not merged or start > merged[-1][1]`: `merged.append([start, end])`, else `merged[-1][1] = max(merged[-1][1], end)`.",
+    ],
+  },
+  {
+    id: "exp-alg-24",
+    title: "Interview Capstone: Top K Frequent Elements",
+    track: "algorithms",
+    category: "FREQUENCY RANKING",
+    difficulty: "Hard",
+    tree_row: 18,
+    lesson_order: 24,
+    is_free: false,
+    description:
+      "Count item occurrences in a hash map and extract the top K most frequent values.",
+    content:
+      "Trending hashtags and analytics dashboards constantly answer: **\"What are the top K most frequent items?\"**\n\nCombine two clean steps:\n1. Build a frequency map: `counts[n] = counts.get(n, 0) + 1`\n2. Sort the unique keys by frequency descending and slice `[:k]`:\n\n```python\nranked = sorted(counts.keys(), key=lambda x: counts[x], reverse=True)\nreturn ranked[:k]\n```",
+    assignment:
+      "Complete `top_k_frequent(nums, k)` so it counts each number's frequency and returns a list of the `k` most frequent numbers.",
+    constraints: [
+      "Count occurrences using a dictionary",
+      "Return the top `k` most frequent elements",
+    ],
+    examples: [
+      {
+        input: "nums = [1, 1, 1, 2, 2, 3], k = 2",
+        output: "[1, 2]",
+        explanation: "1 appears 3 times, 2 appears 2 times, 3 appears 1 time.",
+      },
+    ],
+    complexities: { time: "O(n log n)", space: "O(n)" },
+    initial_code: `def top_k_frequent(nums, k):
+    counts = {}
+    # 👉 1. Count occurrences of each num in nums
+    # 👉 2. Sort counts.keys() by frequency descending and return [:k]
+    return []
+
+print(top_k_frequent([1, 1, 1, 2, 2, 3], 2))`,
+    expected_output: "[1, 2]",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = top_k_frequent([1, 1, 1, 2, 2, 3], 2)
+    results.append({"id": 1, "input": "[1,1,1,2,2,3], k=2", "expected": "[1, 2]", "actual": str(r1), "passed": sorted(r1) == [1, 2] and len(r1) == 2})
+    r2 = top_k_frequent([5, 5, 9, 9, 9, 1], 1)
+    results.append({"id": 2, "input": "[5,5,9,9,9,1], k=1", "expected": "[9]", "actual": str(r2), "passed": r2 == [9]})
+    r3 = top_k_frequent(["py", "go", "py", "rs", "py", "go"], 2)
+    results.append({"id": 3, "input": "['py','go','py','rs','py','go'], k=2", "expected": "['py', 'go']", "actual": str(r3), "passed": r3 == ["py", "go"]})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "num 1", value: "count = 3 (#1)", address: "top 1 ✓" },
+      { label: "num 2", value: "count = 2 (#2)", address: "top 2 ✓" },
+      { label: "num 3", value: "count = 1 (#3)", address: "filtered out" },
+    ],
+    hints: [
+      "Count with `for n in nums: counts[n] = counts.get(n, 0) + 1`.",
+      "Sort keys with `sorted(counts.keys(), key=lambda x: counts[x], reverse=True)[:k]`.",
+    ],
+  },
 ];

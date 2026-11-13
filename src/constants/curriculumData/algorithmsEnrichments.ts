@@ -16,6 +16,32 @@ for i, num in enumerate(nums):
     if needed in seen:
         return [seen[needed], i]
     seen[num] = i`,
+    commonPitfall: {
+      title: "Using the same element twice or nested O(n^2) loops",
+      wrongCode: "seen[num] = i\nif target - num in seen:  # Can match itself on [3, 3]!",
+      rightCode: "needed = target - num\nif needed in seen:\n    return [seen[needed], i]\nseen[num] = i",
+      explanation:
+        "Always check `if needed in seen:` BEFORE inserting `seen[num] = i` so an element never pairs with itself when `num * 2 == target`.",
+    },
+    guidedCode: `class Solution:
+    def twoSum(self, nums, target):
+        seen = {}
+        for i, num in enumerate(nums):
+            # 👉 Compute needed = target - num and check if needed in seen:
+            needed = target - num
+            if needed in seen:
+                return [seen[needed], i]
+            seen[num] = i
+        return []`,
+    solutionCode: `class Solution:
+    def twoSum(self, nums, target):
+        seen = {}
+        for i, num in enumerate(nums):
+            needed = target - num
+            if needed in seen:
+                return [seen[needed], i]
+            seen[num] = i
+        return []`,
     quiz: {
       question: "Why do we store seen numbers in a dictionary `{}`?",
       options: [
@@ -543,6 +569,221 @@ print(build_scoreboard(["Aria", "Kai"], [100, 85]))`,
       correctIndex: 0,
       explanation:
         "The first list becomes the keys and the second list becomes the values!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 21,
+    matchKeywords: ["buy & sell stock", "max_profit", "profit"],
+    realWorldUse:
+      "Algorithmic trading backtesters, crypto arbitrage scanners, and dynamic pricing engines track running historical lows to find maximum single-pass gains in O(n) time.",
+    analogyTitle: "Single-Pass Time Machine",
+    analogyText:
+      "As you walk through prices day by day, you only need to remember the cheapest day you already walked past and check what selling today would earn.",
+    cheatSheet: `min_price = float("inf")
+best = 0
+for p in prices:
+    min_price = min(min_price, p)
+    best = max(best, p - min_price)`,
+    commonPitfall: {
+      title: "Subtracting global min from global max",
+      wrongCode: "return max(prices) - min(prices)  # Ignores day order!",
+      rightCode: "min_p = min(min_p, p)\nbest = max(best, p - min_p)",
+      explanation:
+        "You cannot buy on Thursday and sell on Monday; tracking the running minimum enforces chronological order in O(n) time.",
+    },
+    guidedCode: `def max_profit(prices):
+    min_price = float("inf")
+    best = 0
+    for price in prices:
+        # 👉 Update min_price, then check if price - min_price beats best:
+        min_price = min(min_price, price)
+        best = max(best, price - min_price)
+    return best
+
+print(max_profit([7, 1, 5, 3, 6, 4]))`,
+    solutionCode: `def max_profit(prices):
+    min_price = float("inf")
+    best = 0
+    for price in prices:
+        if price < min_price:
+            min_price = price
+        elif price - min_price > best:
+            best = price - min_price
+    return best
+
+print(max_profit([7, 1, 5, 3, 6, 4]))`,
+    quiz: {
+      question: "What is the time and space complexity of tracking `min_price` in a single loop?",
+      options: [
+        "O(n) time and O(1) space",
+        "O(n^2) time and O(1) space",
+        "O(n log n) time and O(n) space",
+      ],
+      correctIndex: 0,
+      explanation:
+        "A single pass visits each day once (`O(n)`) while storing only two scalar variables (`O(1)`).",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 22,
+    matchKeywords: ["group anagrams", "anagram", "sorted"],
+    realWorldUse:
+      "Search engines, spell-checkers, and spam filters normalize tokens into canonical signatures so scrambled variants map to the exact same bucket in O(1) lookup time.",
+    analogyTitle: "Canonical Mailboxes",
+    analogyText:
+      "Sorting the letters of 'eat', 'tea', and 'ate' produces the exact same stamp ('aet'), so all three letters drop into the same mailbox.",
+    cheatSheet: `groups = {}
+for w in words:
+    sig = "".join(sorted(w))
+    groups.setdefault(sig, []).append(w)`,
+    commonPitfall: {
+      title: "Using sorted(word) directly as a dict key",
+      wrongCode: "groups[sorted(word)].append(word)  # TypeError: unhashable list!",
+      rightCode: 'sig = "".join(sorted(word))\ngroups.setdefault(sig, []).append(word)',
+      explanation:
+        "`sorted(word)` returns a mutable Python list, which cannot be hashed as a dictionary key; joining into a string makes it hashable.",
+    },
+    guidedCode: `def group_anagrams(words):
+    groups = {}
+    for w in words:
+        # 👉 Use ''.join(sorted(w)) as a hashable key:
+        sig = "".join(sorted(w))
+        groups.setdefault(sig, []).append(w)
+    return list(groups.values())
+
+print(group_anagrams(["eat", "tea", "tan", "ate", "nat", "bat"]))`,
+    solutionCode: `def group_anagrams(words):
+    groups = {}
+    for word in words:
+        signature = "".join(sorted(word))
+        if signature not in groups:
+            groups[signature] = []
+        groups[signature].append(word)
+    return list(groups.values())
+
+print(group_anagrams(["eat", "tea", "tan", "ate", "nat", "bat"]))`,
+    quiz: {
+      question: "Why must we convert `sorted(word)` with `''.join(...)` before using it as a dict key?",
+      options: [
+        "`sorted()` returns a mutable list, which cannot be hashed as a dict key",
+        "`sorted()` mutates the original string in place",
+        "`''.join()` removes duplicate letters from the word",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Dict keys must be immutable and hashable; strings (or tuples) work, whereas lists raise `TypeError: unhashable type: 'list'`.",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 23,
+    matchKeywords: ["merge", "intervals", "overlap"],
+    realWorldUse:
+      "Calendar free/busy schedulers, video timeline editors, and cloud billing windows collapse overlapping time ranges into clean, non-overlapping spans.",
+    analogyTitle: "Dominos on a Timeline",
+    analogyText:
+      "Once intervals are sorted by start time, you only ever compare the next block against the very last merged block in your result list.",
+    cheatSheet: `ordered = sorted(intervals, key=lambda x: x[0])
+merged = [list(ordered[0])]
+for start, end in ordered[1:]:
+    if start <= merged[-1][1]:
+        merged[-1][1] = max(merged[-1][1], end)`,
+    commonPitfall: {
+      title: "Overwriting end time without taking max()",
+      wrongCode: "merged[-1][1] = end  # Shrinks [1, 10] when [2, 5] arrives!",
+      rightCode: "merged[-1][1] = max(merged[-1][1], end)",
+      explanation:
+        "If a shorter interval like `[2, 5]` sits completely inside `[1, 10]`, you must keep the larger endpoint `10`.",
+    },
+    guidedCode: `def merge_intervals(intervals):
+    if not intervals:
+        return []
+    ordered = sorted(intervals, key=lambda x: x[0])
+    merged = [list(ordered[0])]
+    for start, end in ordered[1:]:
+        # 👉 Merge when start <= merged[-1][1], else append [start, end]:
+        if start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return merged
+
+print(merge_intervals([[1, 3], [2, 6], [8, 10], [15, 18]]))`,
+    solutionCode: `def merge_intervals(intervals):
+    if not intervals:
+        return []
+    ordered = sorted(intervals, key=lambda span: span[0])
+    merged = [[ordered[0][0], ordered[0][1]]]
+    for start, end in ordered[1:]:
+        last = merged[-1]
+        if start <= last[1]:
+            last[1] = max(last[1], end)
+        else:
+            merged.append([start, end])
+    return merged
+
+print(merge_intervals([[1, 3], [2, 6], [8, 10], [15, 18]]))`,
+    quiz: {
+      question: "Why do we sort intervals by `x[0]` before iterating?",
+      options: [
+        "Sorting guarantees any overlapping interval can only touch the most recent merged interval",
+        "Sorting removes all overlapping intervals automatically",
+        "Python lists cannot compare two-element sublists unless sorted first",
+      ],
+      correctIndex: 0,
+      explanation:
+        "After sorting by start time, any new interval has `start >= previous_start`, so only `merged[-1]` can possibly overlap with it.",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 24,
+    matchKeywords: ["top k", "frequent", "frequency"],
+    realWorldUse:
+      "Trending hashtags, real-time API error dashboards, and recommendation engines aggregate event counts and surface the top K heavy hitters.",
+    analogyTitle: "Ballot Box + Leaderboard",
+    analogyText:
+      "First tally every vote into a hash map, then sort the distinct candidates by their vote total descending and slice the top K winners.",
+    cheatSheet: `counts = {}
+for n in nums:
+    counts[n] = counts.get(n, 0) + 1
+top_k = sorted(counts.keys(), key=lambda x: (-counts[x], x))[:k]`,
+    commonPitfall: {
+      title: "Sorting ascending and slicing the least frequent items",
+      wrongCode: "return sorted(counts, key=counts.get)[:k]  # Lowest counts!",
+      rightCode: "return sorted(counts.keys(), key=lambda x: (-counts[x], x))[:k]",
+      explanation:
+        "Python sorts ascending by default; negate `-counts[x]` so highest-frequency items land at the front of `[:k]`.",
+    },
+    guidedCode: `def top_k_frequent(nums, k):
+    counts = {}
+    for n in nums:
+        counts[n] = counts.get(n, 0) + 1
+    # 👉 Sort keys by highest frequency first, then slice [:k]:
+    ranked = sorted(counts.keys(), key=lambda x: -counts[x])
+    return ranked[:k]
+
+print(top_k_frequent([1, 1, 1, 2, 2, 3], 2))`,
+    solutionCode: `def top_k_frequent(nums, k):
+    counts = {}
+    for num in nums:
+        counts[num] = counts.get(num, 0) + 1
+    ranked = sorted(counts.keys(), key=lambda item: (-counts[item], item))
+    return ranked[:k]
+
+print(top_k_frequent([1, 1, 1, 2, 2, 3], 2))`,
+    quiz: {
+      question: "What does sorting by `key=lambda x: (-counts[x], x)` achieve?",
+      options: [
+        "Highest frequency first, breaking ties deterministically by smaller value",
+        "Lowest frequency first, breaking ties by larger value",
+        "Removes duplicate elements before counting them",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Negating `counts[x]` orders larger counts first, while the second tuple element `x` keeps ties deterministic.",
     },
   },
 ];

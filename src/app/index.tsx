@@ -166,6 +166,9 @@ export default function HomeScreen() {
 
   const [session, setSession] = useState<Session | null>(null);
   const [isPremium, setIsPremium] = useState<boolean>(false);
+  const isDevMode = typeof __DEV__ !== "undefined" && __DEV__;
+  const [devProOverride, setDevProOverride] = useState<boolean | null>(null);
+  const effectiveIsPremium = isDevMode ? (devProOverride ?? true) : isPremium;
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authDefaultMode, setAuthDefaultMode] = useState<"signup" | "signin">(
@@ -253,6 +256,7 @@ export default function HomeScreen() {
       lastActiveDate?: string | null;
       claimedStreakMilestones?: Record<number, boolean>;
       streakShields?: number;
+      devProOverride?: boolean | null;
       activeTrack?: string;
       lastLessonId?: string;
       themeMode?: ThemeMode;
@@ -285,6 +289,12 @@ export default function HomeScreen() {
     if (typeof savedState.streakShields === "number") {
       setStreakShields(savedState.streakShields);
     }
+    if (typeof savedState.devProOverride === "boolean" || savedState.devProOverride === null) {
+      setDevProOverride(savedState.devProOverride);
+    }
+    const initialDevPremium = isDevMode
+      ? (savedState.devProOverride ?? true)
+      : false;
     const initialTheme: ThemeMode =
       savedState.themeMode === "dark" ? "dark" : "light";
     setThemeMode(initialTheme);
@@ -307,6 +317,7 @@ export default function HomeScreen() {
     fetchLessons(
       safeInitialTrack,
       savedState.lastLessonId as string | undefined,
+      initialDevPremium,
     );
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -407,6 +418,7 @@ export default function HomeScreen() {
       lastActiveDate,
       claimedStreakMilestones,
       streakShields,
+      devProOverride,
       activeTrack,
       lastLessonId: selectedLesson?.id,
       themeMode,
@@ -421,6 +433,7 @@ export default function HomeScreen() {
     lastActiveDate,
     claimedStreakMilestones,
     streakShields,
+    devProOverride,
     activeTrack,
     selectedLesson?.id,
     themeMode,
@@ -429,7 +442,9 @@ export default function HomeScreen() {
   async function fetchLessons(
     preferredTrack?: string,
     preferredLessonId?: string,
+    initialPremiumFlag?: boolean,
   ) {
+    const canUnlockAll = initialPremiumFlag ?? effectiveIsPremium;
     try {
       const { data, error } = await supabase
         .from("lessons")
@@ -451,14 +466,15 @@ export default function HomeScreen() {
           ? all.find((l) => l.id === preferredLessonId)
           : undefined;
         const allowedCandidate =
-          candidateById && !isLessonLockedForUser(candidateById, isPremium)
+          candidateById && !isLessonLockedForUser(candidateById, canUnlockAll)
             ? candidateById
             : undefined;
         const initialLesson =
           allowedCandidate ||
           all.find(
             (l) =>
-              l.track === targetTrack && !isLessonLockedForUser(l, isPremium),
+              l.track === targetTrack &&
+              !isLessonLockedForUser(l, canUnlockAll),
           ) ||
           all.find((l) => l.track === "python_basics" && l.is_free) ||
           all.find((l) => l.track === "python_basics");
@@ -629,7 +645,8 @@ export default function HomeScreen() {
   function handleSwitchTrack(trackName: string) {
     setActiveTrack(trackName);
     const firstInTrack = lessons.find(
-      (l) => l.track === trackName && !isLessonLockedForUser(l, isPremium),
+      (l) =>
+        l.track === trackName && !isLessonLockedForUser(l, effectiveIsPremium),
     );
     if (firstInTrack) {
       setSelectedLesson(firstInTrack);
@@ -649,7 +666,7 @@ export default function HomeScreen() {
     const fullLesson = lessons.find((item) => item.id === lesson.id);
     if (!fullLesson) return;
 
-    if (isLessonLockedForUser(fullLesson, isPremium)) {
+    if (isLessonLockedForUser(fullLesson, effectiveIsPremium)) {
       openPaywall({
         source: "lesson",
         lessonId: fullLesson.id,
@@ -1019,7 +1036,7 @@ export default function HomeScreen() {
         }
         devRank={devRank}
         streakCount={streakCount}
-        isPremium={isPremium}
+        isPremium={effectiveIsPremium}
         session={session}
         onOpenProfile={() => setShowProfileModal(true)}
         onOpenPaywall={() => openPaywall({ source: "header" })}
@@ -1031,7 +1048,7 @@ export default function HomeScreen() {
         <RoadmapTree
           lessons={lessons}
           completedLessons={completedLessons}
-          isPremium={isPremium}
+          isPremium={effectiveIsPremium}
           activeTrack={activeTrack}
           onSelectTrack={handleSwitchTrack}
           onSelectLesson={handleSelectLesson}
@@ -1047,7 +1064,9 @@ export default function HomeScreen() {
           onStartQuickMode={(mode) => setViewMode(mode)}
           onSaveStreak={() => {
             const upNext = currentLessons.find(
-              (l) => !completedLessons[l.id] && !isLessonLockedForUser(l, isPremium),
+              (l) =>
+                !completedLessons[l.id] &&
+                !isLessonLockedForUser(l, effectiveIsPremium),
             );
             if (upNext) {
               openLessonInStudio(upNext);
@@ -1062,7 +1081,7 @@ export default function HomeScreen() {
       ) : viewMode === "bughunt" ? (
         <BugHuntArena
           pyodideReady={pyodideReady}
-          isPremium={isPremium}
+          isPremium={effectiveIsPremium}
           onRequirePro={() =>
             openPaywall({
               source: "arena",
@@ -1082,7 +1101,7 @@ export default function HomeScreen() {
         />
       ) : viewMode === "blitz" ? (
         <SyntaxBlitzArena
-          isPremium={isPremium}
+          isPremium={effectiveIsPremium}
           onRequirePro={() =>
             openPaywall({
               source: "arena",
@@ -1100,7 +1119,7 @@ export default function HomeScreen() {
             onCloseMobileDrawer={() => setMobileDrawerOpen(false)}
             onBackToMap={() => setViewMode("roadmap")}
             activeTrack={activeTrack}
-            isPremium={isPremium}
+            isPremium={effectiveIsPremium}
             onSwitchTrack={handleSwitchTrack}
             completedCount={completedCount}
             currentLessons={currentLessons}
@@ -1228,7 +1247,7 @@ export default function HomeScreen() {
                       }
                     }}
                     testResults={testResults}
-                    isPremium={isPremium}
+                    isPremium={effectiveIsPremium}
                     onOpenPaywall={() =>
                       openPaywall({
                         source: "solution",
@@ -1373,7 +1392,7 @@ export default function HomeScreen() {
           <ProfileStatsModal
             xpPoints={xpPoints}
             streakCount={streakCount}
-            isPremium={isPremium}
+            isPremium={effectiveIsPremium}
             userEmail={session?.user?.email}
             lessons={lessons}
             completedLessons={completedLessons}
@@ -1381,6 +1400,11 @@ export default function HomeScreen() {
               handleSwitchTrack(trackKey);
             }}
             onOpenCertificate={(cert) => setActiveCertificate(cert)}
+            onToggleDevPro={
+              isDevMode
+                ? () => setDevProOverride((prev) => !(prev ?? true))
+                : undefined
+            }
             onOpenAuth={() => openAuthModal()}
             onClose={() => setShowProfileModal(false)}
           />

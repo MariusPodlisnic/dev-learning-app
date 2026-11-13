@@ -614,4 +614,154 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 21,
+    tools: [
+      {
+        toolName: "Running Minimum Track — Single-Pass Floor",
+        badge: "GREEDY ONE-PASS",
+        purpose:
+          "Tracks the lowest historical price seen so far so every future step checks profit in O(1) per day.",
+        syntaxPattern: "min_price = min(min_price, p); best = max(best, p - min_price)",
+        variations: [
+          {
+            label: "1. Updating min floor and best spread",
+            code: "best = 0\nlow = float('inf')\nfor p in [7, 1, 5, 3]:\n    low = min(low, p)\n    best = max(best, p - low)\nprint(best)",
+            output: "4",
+            note: "Buy at 1 and sell at 5 without ever looking backward.",
+          },
+          {
+            label: "2. Strictly falling prices guard",
+            code: "print(max(0, 2 - 9))",
+            output: "0",
+            note: "Initialize best to 0 so unprofitable markets never return negative numbers.",
+          },
+        ],
+      },
+      {
+        toolName: "float('inf') — Positive Infinity Sentinel",
+        badge: "NUMERIC GUARD",
+        purpose:
+          "Provides an initial upper bound guaranteed to lose any first min() comparison.",
+        syntaxPattern: "min_price = float('inf')",
+        variations: [
+          {
+            label: "1. Safe initial floor",
+            code: "low = float('inf')\nprint(5 < low)",
+            output: "True",
+            note: "First element always replaces infinity cleanly without empty-list crashes.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 22,
+    tools: [
+      {
+        toolName: '"".join(sorted(word)) — Canonical Anagram Key',
+        badge: "HASH SIGNATURE",
+        purpose:
+          "Normalizes any word into an immutable, hashable signature shared by all of its anagrams.",
+        syntaxPattern: 'sig = "".join(sorted(word))',
+        variations: [
+          {
+            label: "1. Checking shared signature",
+            code: "print(''.join(sorted('tea')) == ''.join(sorted('ate')))",
+            output: "True",
+            note: "Both anagrams produce `'aet'`.",
+          },
+        ],
+      },
+      {
+        toolName: "dict.setdefault() — Auto-Bucket Append",
+        badge: "DICT PATTERN",
+        purpose:
+          "Initializes an empty bucket list on first sight and appends in a single expression.",
+        syntaxPattern: "groups.setdefault(sig, []).append(word)",
+        variations: [
+          {
+            label: "1. Grouping into buckets",
+            code: "g = {}\nfor w in ['eat', 'tea', 'tan']:\n    g.setdefault(''.join(sorted(w)), []).append(w)\nprint(list(g.values()))",
+            output: "[['eat', 'tea'], ['tan']]",
+            note: "Preserves original insertion order across Python 3.7+ dicts.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 23,
+    tools: [
+      {
+        toolName: "sorted(intervals, key=lambda x: x[0]) — Timeline Sort",
+        badge: "INTERVAL ORDERING",
+        purpose:
+          "Orders [start, end] pairs chronologically so any overlapping spans become adjacent.",
+        syntaxPattern: "ordered = sorted(intervals, key=lambda x: x[0])",
+        variations: [
+          {
+            label: "1. Sorting intervals safely",
+            code: "print(sorted([[8, 10], [1, 3], [2, 6]], key=lambda x: x[0]))",
+            output: "[[1, 3], [2, 6], [8, 10]]",
+            note: "Using `sorted(...)` keeps the caller's original list unmodified.",
+          },
+        ],
+      },
+      {
+        toolName: "max(merged[-1][1], end) — Overlap Merge",
+        badge: "BOUNDARY GUARD",
+        purpose:
+          "Extends the previous merged interval only when the new interval reaches further right.",
+        syntaxPattern: "merged[-1][1] = max(merged[-1][1], end)",
+        variations: [
+          {
+            label: "1. Touching boundary [1,4] & [4,5]",
+            code: "a = [1, 4]\nb = [4, 5]\nprint(b[0] <= a[1])",
+            output: "True",
+            note: "Using `<=` merges touching endpoints cleanly into `[1, 5]`.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 24,
+    tools: [
+      {
+        toolName: "counts.get(n, 0) + 1 — Frequency Tally",
+        badge: "HASH COUNTER",
+        purpose:
+          "Accumulates exact occurrence counts for each unique item in O(n) time.",
+        syntaxPattern: "counts[n] = counts.get(n, 0) + 1",
+        variations: [
+          {
+            label: "1. Counting occurrences",
+            code: "c = {}\nfor n in [4, 4, 2]:\n    c[n] = c.get(n, 0) + 1\nprint(c)",
+            output: "{4: 2, 2: 1}",
+            note: "`.get(n, 0)` avoids `KeyError` on the first sighting.",
+          },
+        ],
+      },
+      {
+        toolName: "sorted(..., key=lambda x: (-counts[x], x))[:k]",
+        badge: "TOP-K RANKING",
+        purpose:
+          "Ranks unique keys by descending frequency with deterministic tie-breaking, then slices top K.",
+        syntaxPattern: "sorted(counts.keys(), key=lambda x: (-counts[x], x))[:k]",
+        variations: [
+          {
+            label: "1. Slicing top 2 winners",
+            code: "c = {1: 3, 2: 2, 3: 1}\nprint(sorted(c.keys(), key=lambda x: (-c[x], x))[:2])",
+            output: "[1, 2]",
+            note: "Negating `-c[x]` sorts highest counts to the front.",
+          },
+        ],
+      },
+    ],
+  },
 ];

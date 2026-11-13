@@ -516,4 +516,213 @@ print(count_full_batches(250, 100))`,
         "`//` divides and rounds down to the nearest whole integer (`3`)!",
     },
   },
+  {
+    matchTrack: "system_design",
+    matchOrder: 21,
+    matchKeywords: ["sliding window", "limiter", "window_sec"],
+    realWorldUse:
+      "API gateways like Kong, Cloudflare, and Redis rate limiters use sliding window logs to block boundary bursts without punishing legitimate steady traffic.",
+    analogyTitle: "Moving Spotlight on a Timeline",
+    analogyText:
+      "Instead of resetting a counter every sharp minute on the clock, a sliding window always shines backwards `window_sec` seconds from `now` and counts only live stamps inside the beam.",
+    cheatSheet: `cutoff = now - window_sec
+active = [t for t in timestamps if t > cutoff]
+if len(active) < limit:
+    active.append(now)`,
+    commonPitfall: {
+      title: "Using >= instead of > for the window cutoff",
+      wrongCode: "active = [t for t in timestamps if t >= cutoff]",
+      rightCode: "active = [t for t in timestamps if t > now - window_sec]",
+      explanation:
+        "A timestamp at exactly `now - window_sec` is already `window_sec` seconds old; keeping it over-counts boundary requests.",
+    },
+    guidedCode: `def evaluate_sliding_window(timestamps, now, window_sec, limit):
+    cutoff = now - window_sec
+    # 👉 Keep strictly recent timestamps (t > cutoff), then allow if len(active) < limit:
+    active = [t for t in timestamps if t > cutoff]
+    if len(active) < limit:
+        active.append(now)
+        return {"allowed": True, "active_count": len(active)}
+    return {"allowed": False, "active_count": len(active)}
+
+print(evaluate_sliding_window([10, 45, 55], 70, 30, 3))`,
+    solutionCode: `def evaluate_sliding_window(timestamps, now, window_sec, limit):
+    cutoff = now - window_sec
+    active = [ts for ts in timestamps if ts > cutoff]
+    if len(active) < limit:
+        active.append(now)
+        return {"allowed": True, "active_count": len(active)}
+    return {"allowed": False, "active_count": len(active)}
+
+print(evaluate_sliding_window([10, 45, 55], 70, 30, 3))`,
+    quiz: {
+      question: "Why does a sliding window log beat a fixed-minute counter at `:59` and `:01`?",
+      options: [
+        "It prevents double-bursting across two adjacent clock boundaries",
+        "It always requires zero memory regardless of traffic",
+        "It drops every second request automatically",
+      ],
+      correctIndex: 0,
+      explanation:
+        "A fixed counter allows `limit` requests at `00:59` and another `limit` at `01:01` (`2x` burst in 2 seconds), whereas a sliding window tracks the exact trailing span.",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 22,
+    matchKeywords: ["token bucket", "refill", "capacity"],
+    realWorldUse:
+      "AWS API Gateway, Stripe, and Envoy proxies run Token Bucket limiters to store burst credits during quiet periods while capping steady-state throughput.",
+    analogyTitle: "Leaky-Proof Rain Barrel",
+    analogyText:
+      "Tokens drip into a bucket at a steady `refill_rate` up to a `capacity` lid. Each request drinks 1 token — if the barrel is empty, the request waits or gets `429`.",
+    cheatSheet: `elapsed = max(0, now_ts - last_ts)
+available = min(capacity, tokens + elapsed * refill_rate)
+if available >= 1:
+    return {"allowed": True, "tokens": available - 1}`,
+    commonPitfall: {
+      title: "Refilling tokens past bucket capacity",
+      wrongCode: "tokens = tokens + (now_ts - last_ts) * refill_rate",
+      rightCode: "available = min(capacity, tokens + elapsed * refill_rate)",
+      explanation:
+        "Without clamping via `min(capacity, ...)`, idle buckets accumulate unbounded tokens and allow massive bursts.",
+    },
+    guidedCode: `def consume_token(tokens, last_ts, now_ts, refill_rate, capacity):
+    elapsed = max(0, now_ts - last_ts)
+    # 👉 Lazy-refill up to capacity, then spend 1 token if >= 1:
+    available = min(capacity, tokens + elapsed * refill_rate)
+    if available >= 1:
+        return {"allowed": True, "tokens": available - 1}
+    return {"allowed": False, "tokens": available}
+
+print(consume_token(1, 10, 13, 2, 5))`,
+    solutionCode: `def consume_token(tokens, last_ts, now_ts, refill_rate, capacity):
+    elapsed = max(0, now_ts - last_ts)
+    available = min(capacity, tokens + elapsed * refill_rate)
+    if available >= 1:
+        return {"allowed": True, "tokens": available - 1}
+    return {"allowed": False, "tokens": available}
+
+print(consume_token(1, 10, 13, 2, 5))`,
+    quiz: {
+      question: "Why do production services compute token refills lazily on each request instead of running a timer every second per user?",
+      options: [
+        "Lazy math needs zero background timers and scales cleanly to millions of API keys",
+        "Background timers cannot use integer multiplication",
+        "Lazy math always bypasses the bucket capacity limit",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Computing `(now - last_ts) * refill_rate` on demand avoids spawning millions of timers and stores only two numbers per key.",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 23,
+    matchKeywords: ["consistent hash", "hash ring", "router"],
+    realWorldUse:
+      "Distributed caches and databases like Cassandra, DynamoDB, and Memcached clients use consistent hash rings so adding or removing a node only moves ~1/N keys.",
+    analogyTitle: "Clock-Face Parking Spots",
+    analogyText:
+      "Servers sit at numbered angles around a circular clock face. A key lands at its hash angle and drives clockwise until it hits the first server — wrapping past 12 back to 1 if needed.",
+    cheatSheet: `ordered = sorted(ring_nodes, key=lambda n: n[0])
+for pos, node_id in ordered:
+    if pos >= key_hash:
+        return node_id
+return ordered[0][1]`,
+    commonPitfall: {
+      title: "Falling back to hash % len(nodes) modulo routing",
+      wrongCode: "return ordered[key_hash % len(ordered)][1]",
+      rightCode: "for pos, node in ordered:\n    if pos >= key_hash: return node\nreturn ordered[0][1]",
+      explanation:
+        "Plain modulo routing reshuffles nearly every key when a node joins or leaves; walking clockwise around the ring moves only ~1/N keys.",
+    },
+    guidedCode: `def route_hash_ring(ring_nodes, key_hash):
+    ordered = sorted(ring_nodes, key=lambda node: node[0])
+    # 👉 Walk clockwise to find first pos >= key_hash, else wrap to ordered[0][1]:
+    for pos, node_id in ordered:
+        if pos >= key_hash:
+            return node_id
+    return ordered[0][1]
+
+print(route_hash_ring([(90, "db-c"), (20, "db-a"), (55, "db-b")], 60))`,
+    solutionCode: `def route_hash_ring(ring_nodes, key_hash):
+    if not ring_nodes:
+        return None
+    ordered = sorted(ring_nodes, key=lambda node: node[0])
+    for pos, node_id in ordered:
+        if pos >= key_hash:
+            return node_id
+    return ordered[0][1]
+
+print(route_hash_ring([(90, "db-c"), (20, "db-a"), (55, "db-b")], 60))`,
+    quiz: {
+      question: "What happens on a consistent hash ring when `key_hash` is greater than every node position on the ring?",
+      options: [
+        "It wraps clockwise back to the smallest-positioned node (`ordered[0]`)",
+        "It raises an out-of-bounds routing error",
+        "It routes to the last node in insertion order",
+      ],
+      correctIndex: 0,
+      explanation:
+        "The ring is circular, so walking clockwise past the highest position wraps seamlessly to the lowest node position.",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 24,
+    matchKeywords: ["ttl", "expiry", "cache"],
+    realWorldUse:
+      "Redis, CDNs, and session stores pair passive read-time eviction with active cleanup so expired credentials and stale cache entries are never served to clients.",
+    analogyTitle: "Milk Carton Expiration Check",
+    analogyText:
+      "Even if nobody has thrown the carton out of the fridge yet, checking the stamped `expires_at` date before pouring ensures you never serve spoiled data — and lets you toss it immediately.",
+    cheatSheet: `if key not in cache:
+    return "MISS"
+if now_ts >= cache[key]["expires_at"]:
+    del cache[key]
+    return "EXPIRED"
+return cache[key]["value"]`,
+    commonPitfall: {
+      title: "Using strict > instead of >= for expiry checks",
+      wrongCode: 'if now_ts > entry["expires_at"]:  # Serves stale data at t == expires_at!',
+      rightCode: 'if now_ts >= entry["expires_at"]:\n    del cache[key]\n    return "EXPIRED"',
+      explanation:
+        "When `now_ts` reaches `expires_at`, the TTL has elapsed; serving cached data at `t == expires_at` violates strict expiry contracts.",
+    },
+    guidedCode: `def read_ttl_cache(cache, key, now_ts):
+    if key not in cache:
+        return "MISS"
+    entry = cache[key]
+    # 👉 If now_ts >= entry['expires_at'], delete cache[key] and return 'EXPIRED':
+    if now_ts >= entry["expires_at"]:
+        del cache[key]
+        return "EXPIRED"
+    return entry["value"]
+
+store = {"u1": {"value": "Alice", "expires_at": 100}}
+print(read_ttl_cache(store, "u1", 80), read_ttl_cache(store, "u1", 100))`,
+    solutionCode: `def read_ttl_cache(cache, key, now_ts):
+    if key not in cache:
+        return "MISS"
+    entry = cache[key]
+    if now_ts >= entry["expires_at"]:
+        del cache[key]
+        return "EXPIRED"
+    return entry["value"]
+
+store = {"u1": {"value": "Alice", "expires_at": 100}}
+print(read_ttl_cache(store, "u1", 80), read_ttl_cache(store, "u1", 100))`,
+    quiz: {
+      question: "Why does `read_ttl_cache` delete `cache[key]` upon detecting expiration (`now_ts >= expires_at`)?",
+      options: [
+        "Lazy eviction frees memory immediately without needing a full-table background scan on every tick",
+        "Deleting converts the dictionary into a faster tuple",
+        "Python raises a KeyError if expired dicts stay in memory",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Passive/lazy eviction on read guarantees stale values are never returned while reclaiming memory opportunistically.",
+    },
+  },
 ];

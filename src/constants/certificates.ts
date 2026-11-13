@@ -109,6 +109,14 @@ export const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
       minOrder: 17,
       maxOrder: 20,
     },
+    {
+      id: 6,
+      roman: "VI",
+      title: "Pro Interview Capstones",
+      subtitle: "Best-profit greedy scan, anagram grouping, intervals, and top-K",
+      minOrder: 21,
+      maxOrder: 24,
+    },
   ],
   system_design: [
     {
@@ -151,6 +159,14 @@ export const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
       subtitle: "Auth checks, page offsets, Redis cache keys, and batch chunks",
       minOrder: 17,
       maxOrder: 20,
+    },
+    {
+      id: 6,
+      roman: "VI",
+      title: "Production Architecture Capstones",
+      subtitle: "Sliding window logs, token buckets, hash rings, and TTL caches",
+      minOrder: 21,
+      maxOrder: 24,
     },
   ],
 };

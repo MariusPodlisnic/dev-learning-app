@@ -151,10 +151,121 @@ def solve(value):
   );
 }
 
+const TWO_SUM_SANITIZED_PATCH = {
+  title: "Two Sum",
+  category: "HASH MAPS",
+  difficulty: "Easy",
+  tree_row: 1,
+  is_free: true,
+  description:
+    "Find the indices of two numbers in an array that add up to a specific target in O(n) time.",
+  content:
+    "Given an array of integers `nums` and an integer `target`, find the two indices whose values add up to `target`.\n\nA brute-force double loop checks every pair in **O(n²)** time. Instead, walk through `nums` once with a dictionary `seen = {}` that maps each visited value to its index:\n\n```python\nseen = {}\nfor i, num in enumerate(nums):\n    needed = target - num\n    if needed in seen:\n        return [seen[needed], i]\n    seen[num] = i\n```\n\nChecking `if needed in seen:` takes **O(1)** instant hash-table lookup time!",
+  assignment:
+    "Implement `twoSum(self, nums, target)` inside the `Solution` class to return `[index1, index2]` of the two numbers that add up to `target`.",
+  expected_output: "[0, 1]",
+  complexities: { time: "O(n)", space: "O(n)" },
+  examples: [
+    {
+      input: "nums = [2, 7, 11, 15], target = 9",
+      output: "[0, 1]",
+      explanation: "nums[0] + nums[1] == 2 + 7 == 9, so return [0, 1].",
+    },
+    {
+      input: "nums = [3, 2, 4], target = 6",
+      output: "[1, 2]",
+      explanation: "nums[1] + nums[2] == 2 + 4 == 6, so return [1, 2].",
+    },
+  ],
+  constraints: [
+    "Store visited numbers and their indices in a dictionary `seen = {}`",
+    "Compute `needed = target - num` before inserting `seen[num] = i` so the same index isn't reused",
+    "Return `[seen[needed], i]` as soon as a match is found",
+  ],
+  visual_type: "hashmap",
+  visual_data: [
+    {
+      label: "i=0 | num=2",
+      value: "need 7 -> store seen[2] = 0",
+      address: "0x7F9E0",
+    },
+    {
+      label: "i=1 | num=7",
+      value: "need 2 -> HIT seen[2] = 0!",
+      address: "0x7F9E4",
+    },
+    {
+      label: "result",
+      value: "return [0, 1] ✓ (2 + 7 = 9)",
+      address: "O(n) / O(1)",
+    },
+  ],
+  hints: [
+    "Create an empty dictionary `seen = {}` before your `for i, num in enumerate(nums):` loop.",
+    "Inside the loop, calculate `needed = target - num` and check `if needed in seen:`.",
+    "If found, `return [seen[needed], i]`. Otherwise record `seen[num] = i`.",
+  ],
+  initial_code: `class Solution:
+    def twoSum(self, nums, target):
+        seen = {}
+        # Loop with enumerate(nums), check needed = target - num
+        pass`,
+  hidden_tests: `import json
+def __run_tests__():
+    try:
+        sol = Solution()
+        cases = [
+            (([2, 7, 11, 15], 9), [0, 1]),
+            (([3, 2, 4], 6), [1, 2]),
+            (([3, 3], 6), [0, 1]),
+        ]
+        results = []
+        all_passed = True
+        for i, ((nums, target), exp) in enumerate(cases):
+            actual = sol.twoSum(nums[:], target)
+            passed = actual == exp
+            if not passed:
+                all_passed = False
+            results.append({
+                "id": i + 1,
+                "input": f"nums={nums}, target={target}",
+                "expected": str(exp),
+                "actual": str(actual),
+                "passed": passed,
+            })
+        return json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+};
+
+const ORPHANED_DUPLICATE_LESSON_IDS = new Set([
+  "ff06e344-6648-49a3-80a6-22b34f2faee3",
+]);
+
 export function mergeCurriculumLessons<
   T extends { id: string; track: string; lesson_order: number; title: string },
 >(dbLessons: T[]): T[] {
-  const merged = [...dbLessons];
+  const seenTrackOrders = new Set<string>();
+  const merged: T[] = [];
+
+  for (const row of dbLessons) {
+    if (ORPHANED_DUPLICATE_LESSON_IDS.has(row.id)) continue;
+    const key = `${row.track}:${row.lesson_order}`;
+    if (seenTrackOrders.has(key)) continue;
+    seenTrackOrders.add(key);
+
+    if (row.track === "algorithms" && row.lesson_order === 1) {
+      merged.push({
+        ...row,
+        ...TWO_SUM_SANITIZED_PATCH,
+      } as T);
+      continue;
+    }
+
+    merged.push(row);
+  }
+
   for (const exp of EXPANSION_LESSONS) {
     const alreadyExists = merged.some(
       (item) =>
