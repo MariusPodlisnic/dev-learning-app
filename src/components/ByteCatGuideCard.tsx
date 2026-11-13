@@ -1,8 +1,9 @@
 import { Image } from "expo-image";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Animated,
   AppState,
+  Easing,
   Platform,
   Pressable,
   StyleSheet,
@@ -145,10 +146,30 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
   },
 ];
 
+const TRACK_TIPS: Record<string, string> = {
+  python_basics:
+    "Start with variables & loops—every tiny script builds muscle memory.",
+  algorithms:
+    "Look for the pattern first (pointers, window, or hash) before coding.",
+  system_design:
+    "Think about bottlenecks: caches, queues, and safe fallbacks keep apps fast.",
+};
+
+const PET_REACTIONS = [
+  "PURR MODE ★",
+  "PAWS READY 🐾",
+  "CODING FOCUS ⚡",
+  "HIGH FIVE! ✨",
+];
+
 interface ByteCatGuideCardProps {
   completedCount: number;
   totalCount: number;
+  activeTrack?: string;
   activeTrackLabel: string;
+  activeTrackAccent?: string;
+  totalXp?: number;
+  streakCount?: number;
   nextLessonTitle?: string;
   onPressNextLesson?: () => void;
 }
@@ -156,21 +177,63 @@ interface ByteCatGuideCardProps {
 export default function ByteCatGuideCard({
   completedCount,
   totalCount,
+  activeTrack = "python_basics",
   activeTrackLabel,
+  activeTrackAccent = StudioColors.yellow,
+  totalXp = 0,
+  streakCount = 0,
   nextLessonTitle,
   onPressNextLesson,
 }: ByteCatGuideCardProps) {
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
-  const bounceAnim = useRef(new Animated.Value(1)).current;
-  const appStateRef = useRef<string>(AppState.currentState || "active");
+  const [petCount, setPetCount] = useState<number>(0);
+  const [avatarHovered, setAvatarHovered] = useState<boolean>(false);
+  const [bounceAnim] = useState(() => new Animated.Value(1));
+  const [hoverAnim] = useState(() => new Animated.Value(1));
+  const [floatAnim] = useState(() => new Animated.Value(0));
+  const [appStateValue, setAppStateValue] = useState<string>(
+    AppState.currentState || "active",
+  );
+
+  useEffect(() => {
+    const idleLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: -4,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+    idleLoop.start();
+    return () => idleLoop.stop();
+  }, [floatAnim]);
+
+  useEffect(() => {
+    Animated.spring(hoverAnim, {
+      toValue: avatarHovered ? 1.04 : 1,
+      friction: 6,
+      tension: 150,
+      useNativeDriver: false,
+    }).start();
+  }, [avatarHovered, hoverAnim]);
+
+  const avatarScale = Animated.multiply(bounceAnim, hoverAnim);
 
   const triggerBounce = useCallback(() => {
-    bounceAnim.setValue(0.95);
+    bounceAnim.setValue(0.92);
     Animated.spring(bounceAnim, {
       toValue: 1,
       friction: 4,
-      tension: 140,
-      useNativeDriver: Platform.OS !== "web",
+      tension: 150,
+      useNativeDriver: false,
     }).start();
   }, [bounceAnim]);
 
@@ -179,6 +242,7 @@ export default function ByteCatGuideCard({
       if (playAudio) {
         playKeyClick();
         triggerBounce();
+        setPetCount((c) => c + 1);
       }
       setQuoteIndex((prev) => {
         // Pick a new quote index different from the current one
@@ -197,18 +261,21 @@ export default function ByteCatGuideCard({
 
   // On app open / mount: load previous quote index and advance by 1+ so every reopen shows a new quote
   useEffect(() => {
-    const saved = readLocalJson<{ lastIndex?: number }>(
-      STORAGE_BYTECAT_QUOTE_KEY,
-      {},
-    );
-    const prevIdx =
-      typeof saved.lastIndex === "number" ? saved.lastIndex : -1;
-    const nextIdx = (prevIdx + 1) % BYTE_CAT_QUOTES.length;
-    setQuoteIndex(nextIdx);
-    writeLocalJson(STORAGE_BYTECAT_QUOTE_KEY, {
-      lastIndex: nextIdx,
-      updatedAt: Date.now(),
-    });
+    const timer = setTimeout(() => {
+      const saved = readLocalJson<{ lastIndex?: number }>(
+        STORAGE_BYTECAT_QUOTE_KEY,
+        {},
+      );
+      const prevIdx =
+        typeof saved.lastIndex === "number" ? saved.lastIndex : -1;
+      const nextIdx = (prevIdx + 1) % BYTE_CAT_QUOTES.length;
+      setQuoteIndex(nextIdx);
+      writeLocalJson(STORAGE_BYTECAT_QUOTE_KEY, {
+        lastIndex: nextIdx,
+        updatedAt: Date.now(),
+      });
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Also advance to a fresh quote whenever the user reopens/foregrounds the app or tab
@@ -230,131 +297,203 @@ export default function ByteCatGuideCard({
 
     const sub = AppState.addEventListener("change", (nextAppState) => {
       if (
-        appStateRef.current.match(/inactive|background/) &&
+        appStateValue.match(/inactive|background/) &&
         nextAppState === "active"
       ) {
         advanceToFreshQuote(false);
       }
-      appStateRef.current = nextAppState;
+      setAppStateValue(nextAppState);
     });
 
     return () => {
       sub.remove();
     };
-  }, [advanceToFreshQuote]);
+  }, [advanceToFreshQuote, appStateValue]);
 
   const currentQuote =
     BYTE_CAT_QUOTES[quoteIndex] || BYTE_CAT_QUOTES[0];
+  const trackPct =
+    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const mascotRank =
+    completedCount >= 10
+      ? "ARCHITECT CAT"
+      : completedCount >= 5
+        ? "CODE STALKER"
+        : completedCount >= 1
+          ? "PAW CODER"
+          : "NEW COMPANION";
+  const petReactionLabel =
+    petCount > 0
+      ? PET_REACTIONS[(petCount - 1) % PET_REACTIONS.length]
+      : "TAP CAT FOR TIP";
+  const trackTip =
+    TRACK_TIPS[activeTrack] || TRACK_TIPS.python_basics;
 
   const guideStatusText =
     totalCount > 0 && completedCount === totalCount
-      ? `Purr-fect! You cleared all ${totalCount} modules in ${activeTrackLabel}!`
+      ? `Purr-fect! All ${totalCount} ${activeTrackLabel} lessons cleared!`
       : completedCount === 0
-        ? `Welcome back! Ready to start ${activeTrackLabel}?`
-        : `${completedCount}/${totalCount} modules cleared in ${activeTrackLabel}—keep the combo going!`;
+        ? `Ready to guide you through ${activeTrackLabel}!`
+        : `${completedCount}/${totalCount} solved (${trackPct}%) in ${activeTrackLabel}`;
 
   return (
     <View style={styles.card}>
-      {/* Left Column: Byte-Cat Framed Character Portrait */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.avatarColumn,
-          pressed && { transform: [{ scale: 0.98 }] },
+      {/* Top Companion Ribbon */}
+      <View
+        style={[
+          styles.companionTopBar,
+          { backgroundColor: activeTrackAccent },
         ]}
-        onPress={() => advanceToFreshQuote(true)}
       >
-        <Animated.View
-          style={[
-            styles.avatarFrame,
-            { transform: [{ scale: bounceAnim }] },
-          ]}
-        >
-          <Image
-            source={BYTE_CAT_IMAGE}
-            style={styles.avatarImage}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-          />
+        <View style={styles.companionBarLeft}>
           <View style={styles.liveDotBadge}>
             <View style={styles.liveDot} />
-            <Text style={styles.liveDotText}>GUIDE</Text>
+            <Text style={styles.liveDotText}>CO-PILOT ONLINE</Text>
           </View>
-        </Animated.View>
-
-        <View style={styles.nameplatePill}>
-          <Text style={styles.nameplateText}>BYTE-CAT v1.0</Text>
+          <View style={styles.rankBadge}>
+            <Text style={styles.rankBadgeText}>★ {mascotRank}</Text>
+          </View>
         </View>
-      </Pressable>
-
-      {/* Speech Bubble Pointer Triangle (Desktop/Tablet) */}
-      <View style={styles.speechTailOuter}>
-        <View style={styles.speechTailInner} />
+        <View style={styles.companionBarRight}>
+          {streakCount > 0 && (
+            <View style={styles.telemetryChip}>
+              <Text style={styles.telemetryChipText}>🔥 {streakCount}D</Text>
+            </View>
+          )}
+          <View style={styles.telemetryChip}>
+            <Text style={styles.telemetryChipText}>⚡ {totalXp} XP</Text>
+          </View>
+        </View>
       </View>
 
-      {/* Right Column: Speech Bubble with Inspirational Quote & Guide Tip */}
-      <View style={styles.speechBubble}>
-        {/* Top Header Bar inside Speech Bubble */}
-        <View style={styles.bubbleTopRow}>
-          <View style={styles.bubbleBadgeGroup}>
-            <View
+      <View style={styles.cardBodyRow}>
+        {/* Left Column: Larger Animated Byte-Cat Stage */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.avatarColumn,
+            pressed && { transform: [{ scale: 0.97 }] },
+          ]}
+          onHoverIn={() => setAvatarHovered(true)}
+          onHoverOut={() => setAvatarHovered(false)}
+          onPress={() => advanceToFreshQuote(true)}
+        >
+          <View
+            style={[
+              styles.avatarStageHalo,
+              { backgroundColor: currentQuote.accentBg },
+            ]}
+          >
+            <Animated.View
               style={[
-                styles.moodSticker,
-                { backgroundColor: currentQuote.accentBg },
+                styles.avatarFrame,
+                {
+                  transform: [
+                    { translateY: floatAnim },
+                    { scale: avatarScale },
+                  ],
+                },
               ]}
             >
-              <Text style={styles.moodStickerText}>
-                {currentQuote.moodBadge}
-              </Text>
-            </View>
-            <Text style={styles.quoteCounterText}>
-              QUOTE #{String(currentQuote.id).padStart(2, "0")}/
-              {String(BYTE_CAT_QUOTES.length).padStart(2, "0")}
-            </Text>
+              <Image
+                source={BYTE_CAT_IMAGE}
+                style={styles.avatarImage}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+              />
+            </Animated.View>
           </View>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.nextQuoteBtn,
-              pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-            ]}
-            onPress={() => advanceToFreshQuote(true)}
-          >
-            <Text style={styles.nextQuoteBtnText}>MEOW QUOTE ↻</Text>
-          </Pressable>
-        </View>
+          <View style={styles.nameplatePill}>
+            <Text style={styles.nameplateText}>BYTE-CAT</Text>
+          </View>
+          <View style={styles.petReactionPill}>
+            <Text style={styles.petReactionText}>{petReactionLabel}</Text>
+          </View>
+        </Pressable>
 
-        {/* Main Inspirational Quote */}
-        <View style={styles.quoteBodyWrap}>
-          <Text style={styles.quoteText}>
-            &ldquo;{currentQuote.quote}&rdquo;
-          </Text>
-          <Text style={styles.quoteAuthor}>— {currentQuote.author}</Text>
-        </View>
+        {/* Right Column: Interactive Companion Briefing & Quote Bubble */}
+        <View style={styles.speechBubble}>
+          {/* Top Header Bar inside Speech Bubble */}
+          <View style={styles.bubbleTopRow}>
+            <View style={styles.bubbleBadgeGroup}>
+              <View
+                style={[
+                  styles.moodSticker,
+                  { backgroundColor: currentQuote.accentBg },
+                ]}
+              >
+                <Text style={styles.moodStickerText}>
+                  {currentQuote.moodBadge}
+                </Text>
+              </View>
+              <Text style={styles.quoteCounterText}>
+                #{String(currentQuote.id).padStart(2, "0")}/
+                {String(BYTE_CAT_QUOTES.length).padStart(2, "0")}
+              </Text>
+            </View>
 
-        {/* Byte-Cat's Personal Companion Note */}
-        <View style={styles.catNoteBox}>
-          <Text style={styles.catNotePrefix}>🐾 BYTE-CAT SAYS:</Text>
-          <Text style={styles.catNoteText}>{currentQuote.catNote}</Text>
-        </View>
-
-        {/* Dynamic Guide Footer: Track Status + Quick Jump to Next Mission */}
-        <View style={styles.guideFooterRow}>
-          <Text style={styles.guideStatusText} numberOfLines={1}>
-            ● {guideStatusText}
-          </Text>
-          {nextLessonTitle && onPressNextLesson && (
             <Pressable
               style={({ pressed }) => [
-                styles.jumpMissionChip,
+                styles.nextQuoteBtn,
                 pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
               ]}
-              onPress={onPressNextLesson}
+              onPress={() => advanceToFreshQuote(true)}
             >
-              <Text style={styles.jumpMissionChipText} numberOfLines={1}>
-                🎯 NEXT: {nextLessonTitle.toUpperCase()} →
-              </Text>
+              <Text style={styles.nextQuoteBtnText}>NEW WISDOM ↻</Text>
             </Pressable>
-          )}
+          </View>
+
+          {/* Main Inspirational Quote */}
+          <View style={styles.quoteBodyWrap}>
+            <Text style={styles.quoteText}>
+              &ldquo;{currentQuote.quote}&rdquo;
+            </Text>
+            <Text style={styles.quoteAuthor}>— {currentQuote.author}</Text>
+          </View>
+
+          {/* Byte-Cat's Track Tip + Personal Note */}
+          <View style={styles.catNoteBox}>
+            <View style={styles.catNoteHeaderRow}>
+              <Text style={styles.catNotePrefix}>🐾 BYTE-CAT BRIEFING</Text>
+              <Text style={styles.catNoteTrackTag}>{activeTrackLabel}</Text>
+            </View>
+            <Text style={styles.catNoteText}>{trackTip}</Text>
+            <Text style={styles.catNoteSubText}>{currentQuote.catNote}</Text>
+          </View>
+
+          {/* Progress Strip + Quick Jump to Next Mission */}
+          <View style={styles.guideFooterRow}>
+            <View style={styles.guideProgressWrap}>
+              <Text style={styles.guideStatusText} numberOfLines={1}>
+                ● {guideStatusText}
+              </Text>
+              <View style={styles.miniTrackMeterBg}>
+                <View
+                  style={[
+                    styles.miniTrackMeterFill,
+                    {
+                      width: `${Math.max(trackPct, 4)}%`,
+                      backgroundColor: activeTrackAccent,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+
+            {nextLessonTitle && onPressNextLesson && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.jumpMissionChip,
+                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                ]}
+                onPress={onPressNextLesson}
+              >
+                <Text style={styles.jumpMissionChipText} numberOfLines={1}>
+                  ▶ {nextLessonTitle.toUpperCase()} →
+                </Text>
+              </Pressable>
+            )}
+          </View>
         </View>
       </View>
     </View>
@@ -363,48 +502,104 @@ export default function ByteCatGuideCard({
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFDF8",
+    backgroundColor: StudioColors.surface,
     borderRadius: 18,
     borderWidth: 2.5,
     borderColor: StudioColors.border,
-    padding: 16,
-    marginBottom: 18,
-    gap: 12,
-    flexWrap: "wrap",
+    marginBottom: 20,
+    overflow: "hidden",
     ...HardShadow,
+  },
+  companionTopBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: StudioColors.ink,
+  },
+  companionBarLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  companionBarRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  rankBadge: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  rankBadgeText: {
+    color: StudioColors.textPrimary,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  telemetryChip: {
+    backgroundColor: StudioColors.ink,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  telemetryChipText: {
+    color: StudioColors.yellow,
+    fontSize: 9.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  cardBodyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 16,
+    flexWrap: "wrap",
   },
   avatarColumn: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 6,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
-  avatarFrame: {
-    width: 112,
-    height: 112,
-    borderRadius: 16,
-    borderWidth: 2.5,
-    borderColor: StudioColors.border,
-    backgroundColor: "#F4F0E6",
-    overflow: "hidden",
-    position: "relative",
+  avatarStageHalo: {
+    padding: 7,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
     ...HardShadowSm,
   },
+  avatarFrame: {
+    width: 122,
+    height: 122,
+    borderRadius: 16,
+    borderWidth: 2.5,
+    borderColor: StudioColors.ink,
+    backgroundColor: StudioColors.surfaceElevated,
+    overflow: "hidden",
+    position: "relative",
+  },
   avatarImage: {
-    width: 108,
-    height: 108,
+    width: 118,
+    height: 118,
   },
   liveDotBadge: {
-    position: "absolute",
-    top: 6,
-    left: 6,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
     backgroundColor: StudioColors.ink,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
     borderRadius: 6,
   },
   liveDot: {
@@ -415,7 +610,7 @@ const styles = StyleSheet.create({
   },
   liveDotText: {
     color: "#FFFFFF",
-    fontSize: 8,
+    fontSize: 8.5,
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.6,
@@ -423,38 +618,37 @@ const styles = StyleSheet.create({
   nameplatePill: {
     backgroundColor: StudioColors.yellow,
     borderWidth: 2,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     borderRadius: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 2.5,
+    marginTop: 2,
   },
   nameplateText: {
     color: StudioColors.ink,
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.7,
   },
-  speechTailOuter: {
-    width: 10,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: -6,
-  },
-  speechTailInner: {
-    width: 12,
-    height: 12,
-    backgroundColor: "#F4F0E6",
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
+  petReactionPill: {
+    backgroundColor: StudioColors.surfaceElevated,
+    borderWidth: 1.5,
     borderColor: StudioColors.border,
-    transform: [{ rotate: "45deg" }],
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  petReactionText: {
+    color: StudioColors.textSecondary,
+    fontSize: 8.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
   },
   speechBubble: {
     flex: 1,
     minWidth: 250,
-    backgroundColor: "#F4F0E6",
+    backgroundColor: StudioColors.surfaceElevated,
     borderRadius: 14,
     borderWidth: 2,
     borderColor: StudioColors.border,
@@ -479,7 +673,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 7,
     borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
   },
   moodStickerText: {
     color: StudioColors.ink,
@@ -503,6 +697,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: StudioColors.border,
     ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   nextQuoteBtnText: {
     color: StudioColors.textPrimary,
@@ -516,7 +711,7 @@ const styles = StyleSheet.create({
   },
   quoteText: {
     color: StudioColors.textPrimary,
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: "900",
     lineHeight: 22,
     letterSpacing: -0.2,
@@ -532,49 +727,86 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1.5,
     borderColor: StudioColors.border,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    gap: 3,
+  },
+  catNoteHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    flexWrap: "wrap",
   },
   catNotePrefix: {
-    color: StudioColors.ink,
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.6,
   },
+  catNoteTrackTag: {
+    color: StudioColors.textMuted,
+    fontSize: 9.5,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+    textTransform: "uppercase",
+  },
   catNoteText: {
-    color: StudioColors.textSecondary,
+    color: StudioColors.textPrimary,
     fontSize: 12.5,
-    fontWeight: "700",
+    fontWeight: "800",
     lineHeight: 18,
+  },
+  catNoteSubText: {
+    color: StudioColors.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 17,
   },
   guideFooterRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 10,
     paddingTop: 2,
   },
+  guideProgressWrap: {
+    flex: 1,
+    minWidth: 170,
+    gap: 4,
+  },
   guideStatusText: {
-    color: StudioColors.textMuted,
-    fontSize: 11,
+    color: StudioColors.textSecondary,
+    fontSize: 10.5,
     fontWeight: "800",
     fontFamily: MonoFont,
-    flexShrink: 1,
+  },
+  miniTrackMeterBg: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
+    overflow: "hidden",
+  },
+  miniTrackMeterFill: {
+    height: "100%",
   },
   jumpMissionChip: {
     backgroundColor: StudioColors.lime,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   jumpMissionChipText: {
     color: StudioColors.ink,
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.5,

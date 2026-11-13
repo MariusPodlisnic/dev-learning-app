@@ -840,24 +840,6 @@ export default function HomeScreen() {
     }
   }
 
-  async function handleClaimDailyWarmup(dateKey: string, bonusXp: number) {
-    if (dailyCompletedDate === dateKey) return;
-    setDailyCompletedDate(dateKey);
-    const { newXp, newStreak } = recordActiveDevSession(bonusXp);
-
-    if (session) {
-      try {
-        await supabase.from("profiles").upsert({
-          id: session.user.id,
-          email: session.user.email,
-          xp_points: newXp,
-          streak_count: newStreak,
-          last_completed_at: new Date().toISOString(),
-        });
-      } catch (_e) {}
-    }
-  }
-
   function openTrackCertificate(
     trackKey: string,
     overrideXp: number = xpPoints,
@@ -1039,8 +1021,6 @@ export default function HomeScreen() {
           activeTrack={activeTrack}
           onSelectTrack={handleSwitchTrack}
           onSelectLesson={handleSelectLesson}
-          dailyCompletedDate={dailyCompletedDate}
-          onClaimDailyWarmup={handleClaimDailyWarmup}
           claimedChapters={claimedChapters}
           onClaimChapterBonus={handleClaimChapterBonus}
           isAuthenticated={Boolean(session)}

@@ -1,12 +1,17 @@
 import { Link } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  Animated,
+  Easing,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import {
@@ -31,7 +36,6 @@ import {
 } from "../types/lesson";
 import { playCrtChannelSwitch, playKeyClick } from "../utils/soundEffects";
 import ByteCatGuideCard from "./ByteCatGuideCard";
-import DailyWarmupCard from "./DailyWarmupCard";
 import StreakAtRiskBanner from "./StreakAtRiskBanner";
 
 export interface Lesson {
@@ -60,8 +64,6 @@ interface RoadmapTreeProps {
   activeTrack: string;
   onSelectTrack: (track: string) => void;
   onSelectLesson: (lesson: Lesson) => void;
-  dailyCompletedDate?: string | null;
-  onClaimDailyWarmup?: (dateKey: string, bonusXp: number) => void;
   claimedChapters?: Record<string, boolean>;
   onClaimChapterBonus?: (chapterKey: string, bonusXp: number) => void;
   isAuthenticated?: boolean;
@@ -78,9 +80,51 @@ interface RoadmapTreeProps {
 
 const TRACK_KEYS = ["python_basics", "algorithms", "system_design"] as const;
 
-const CARD_WIDTH = 276;
+const TRACK_PITCH_META: Record<
+  string,
+  {
+    emoji: string;
+    badge: string;
+    shortName: string;
+    hook: string;
+  }
+> = {
+  python_basics: {
+    emoji: "🐍",
+    badge: "START HERE",
+    shortName: "Python Foundations",
+    hook: "Variables, loops, lists & real functions from scratch",
+  },
+  algorithms: {
+    emoji: "⚡",
+    badge: "PATTERNS & INTERVIEWS",
+    shortName: "Algorithms",
+    hook: "Master Two Pointers, Sliding Window, Sorting & Graphs",
+  },
+  system_design: {
+    emoji: "🏗️",
+    badge: "REAL-WORLD SCALE",
+    shortName: "System Design",
+    hook: "Design fast caches, load balancers, queues & retries",
+  },
+};
+
+const CARD_WIDTH = 292;
 const CARD_GAP = 28;
 const BRANCH_SPAN = CARD_WIDTH + CARD_GAP;
+
+function getShortLessonSummary(lesson: Lesson): string {
+  const raw = (lesson.description || "").replace(/`/g, "").replace(/\s+/g, " ").trim();
+  if (!raw) return "";
+  if (raw.length <= 135) return raw;
+  const firstSentenceMatch = raw.match(/^(.{25,}?[.!?])(?:\s|$)/);
+  if (firstSentenceMatch && firstSentenceMatch[1].length <= 135) {
+    return firstSentenceMatch[1];
+  }
+  const clipped = raw.slice(0, 128);
+  const lastSpace = clipped.lastIndexOf(" ");
+  return `${(lastSpace > 60 ? clipped.slice(0, lastSpace) : clipped).trim()}.`;
+}
 
 function getDifficultyColor(difficulty?: string) {
   const norm = (difficulty || "").toLowerCase();
@@ -108,6 +152,7 @@ function getDifficultyColor(difficulty?: string) {
 function TreeConnector({
   fromCount,
   toCount,
+  accent,
   isCompleted,
 }: {
   fromCount: number;
@@ -115,24 +160,32 @@ function TreeConnector({
   accent: string;
   isCompleted: boolean;
 }) {
-  const lineColor = StudioColors.border;
+  const lineColor = isCompleted ? StudioColors.mint : accent;
+  const borderFrame = StudioColors.ink;
   const dotBg = isCompleted ? StudioColors.mint : StudioColors.surface;
 
   if (fromCount === 1 && toCount === 1) {
     return (
       <View style={styles.connectorContainer}>
         <View
-          style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+          style={[
+            styles.vLine,
+            { height: 22, backgroundColor: lineColor, borderColor: borderFrame },
+          ]}
         />
         <View
           style={[
             styles.junctionDot,
-            { borderColor: lineColor, backgroundColor: dotBg },
+            { borderColor: borderFrame, backgroundColor: dotBg },
           ]}
         />
         <View
-          style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+          style={[
+            styles.vLine,
+            { height: 20, backgroundColor: lineColor, borderColor: borderFrame },
+          ]}
         />
+        <Text style={[styles.connectorArrowTip, { color: lineColor }]}>▼</Text>
       </View>
     );
   }
@@ -141,30 +194,45 @@ function TreeConnector({
     return (
       <View style={styles.connectorContainer}>
         <View
-          style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
+          style={[
+            styles.vLine,
+            { height: 18, backgroundColor: lineColor, borderColor: borderFrame },
+          ]}
         />
         <View
           style={[
             styles.junctionDot,
-            { borderColor: lineColor, backgroundColor: dotBg },
+            { borderColor: borderFrame, backgroundColor: dotBg },
           ]}
         />
         <View
           style={[
             styles.hLine,
-            { width: BRANCH_SPAN, backgroundColor: lineColor },
+            {
+              width: BRANCH_SPAN,
+              backgroundColor: lineColor,
+              borderColor: borderFrame,
+            },
           ]}
         />
         <View style={[styles.legsRow, { width: BRANCH_SPAN }]}>
           <View style={styles.legCol}>
             <View
-              style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+              style={[
+                styles.vLine,
+                { height: 18, backgroundColor: lineColor, borderColor: borderFrame },
+              ]}
             />
+            <Text style={[styles.connectorArrowTip, { color: lineColor }]}>▼</Text>
           </View>
           <View style={styles.legCol}>
             <View
-              style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+              style={[
+                styles.vLine,
+                { height: 18, backgroundColor: lineColor, borderColor: borderFrame },
+              ]}
             />
+            <Text style={[styles.connectorArrowTip, { color: lineColor }]}>▼</Text>
           </View>
         </View>
       </View>
@@ -177,31 +245,45 @@ function TreeConnector({
         <View style={[styles.legsRow, { width: BRANCH_SPAN }]}>
           <View style={styles.legCol}>
             <View
-              style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
+              style={[
+                styles.vLine,
+                { height: 18, backgroundColor: lineColor, borderColor: borderFrame },
+              ]}
             />
             <View
               style={[
                 styles.junctionDot,
-                { borderColor: lineColor, backgroundColor: dotBg },
+                { borderColor: borderFrame, backgroundColor: dotBg },
               ]}
             />
             <View
-              style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
+              style={[
+                styles.vLine,
+                { height: 16, backgroundColor: lineColor, borderColor: borderFrame },
+              ]}
             />
+            <Text style={[styles.connectorArrowTip, { color: lineColor }]}>▼</Text>
           </View>
           <View style={styles.legCol}>
             <View
-              style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
+              style={[
+                styles.vLine,
+                { height: 18, backgroundColor: lineColor, borderColor: borderFrame },
+              ]}
             />
             <View
               style={[
                 styles.junctionDot,
-                { borderColor: lineColor, backgroundColor: dotBg },
+                { borderColor: borderFrame, backgroundColor: dotBg },
               ]}
             />
             <View
-              style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
+              style={[
+                styles.vLine,
+                { height: 16, backgroundColor: lineColor, borderColor: borderFrame },
+              ]}
             />
+            <Text style={[styles.connectorArrowTip, { color: lineColor }]}>▼</Text>
           </View>
         </View>
       </View>
@@ -213,27 +295,41 @@ function TreeConnector({
       <View style={styles.connectorContainer}>
         <View style={[styles.legsRow, { width: BRANCH_SPAN }]}>
           <View
-            style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+            style={[
+              styles.vLine,
+              { height: 18, backgroundColor: lineColor, borderColor: borderFrame },
+            ]}
           />
           <View
-            style={[styles.vLine, { height: 20, backgroundColor: lineColor }]}
+            style={[
+              styles.vLine,
+              { height: 18, backgroundColor: lineColor, borderColor: borderFrame },
+            ]}
           />
         </View>
         <View
           style={[
             styles.hLine,
-            { width: BRANCH_SPAN, backgroundColor: lineColor },
+            {
+              width: BRANCH_SPAN,
+              backgroundColor: lineColor,
+              borderColor: borderFrame,
+            },
           ]}
         />
         <View
           style={[
             styles.junctionDot,
-            { borderColor: lineColor, backgroundColor: dotBg },
+            { borderColor: borderFrame, backgroundColor: dotBg },
           ]}
         />
         <View
-          style={[styles.vLine, { height: 18, backgroundColor: lineColor }]}
+          style={[
+            styles.vLine,
+            { height: 16, backgroundColor: lineColor, borderColor: borderFrame },
+          ]}
         />
+        <Text style={[styles.connectorArrowTip, { color: lineColor }]}>▼</Text>
       </View>
     );
   }
@@ -241,9 +337,284 @@ function TreeConnector({
   return (
     <View style={styles.connectorContainer}>
       <View
-        style={[styles.vLine, { height: 34, backgroundColor: lineColor }]}
+        style={[
+          styles.vLine,
+          { height: 28, backgroundColor: lineColor, borderColor: borderFrame },
+        ]}
       />
+      <Text style={[styles.connectorArrowTip, { color: lineColor }]}>▼</Text>
     </View>
+  );
+}
+
+function ScrollRevealRow({
+  rowIndex,
+  treeOffsetY,
+  scrollThresholdY,
+  children,
+}: {
+  rowIndex: number;
+  treeOffsetY: number;
+  scrollThresholdY: number;
+  children: React.ReactNode;
+}) {
+  const [rowY, setRowY] = useState<number | null>(null);
+  const [opacityAnim] = useState(() => new Animated.Value(0));
+  const [slideAnim] = useState(() => new Animated.Value(rowIndex === 0 ? 14 : 26));
+  const [scaleAnim] = useState(() => new Animated.Value(0.97));
+
+  const shouldReveal =
+    rowIndex === 0 ||
+    (rowY !== null && treeOffsetY + rowY <= scrollThresholdY - 24);
+
+  useEffect(() => {
+    if (!shouldReveal) return;
+    Animated.parallel([
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 420,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 460,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 460,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [shouldReveal, opacityAnim, slideAnim, scaleAnim]);
+
+  return (
+    <Animated.View
+      onLayout={(e) => {
+        const nextY = e.nativeEvent.layout.y;
+        setRowY((prev) => (prev === null || Math.abs(prev - nextY) > 8 ? nextY : prev));
+      }}
+      style={[
+        styles.rowWrapper,
+        {
+          opacity: opacityAnim,
+          transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+        },
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+function InteractiveLessonNode({
+  isDone,
+  isNextUp,
+  isLocked,
+  accentColor,
+  onPress,
+  children,
+}: {
+  isDone: boolean;
+  isNextUp: boolean;
+  isLocked: boolean;
+  accentColor: string;
+  onPress: () => void;
+  children: React.ReactNode;
+}) {
+  const [hovered, setHovered] = useState<boolean>(false);
+  const [pressed, setPressed] = useState<boolean>(false);
+  const [liftAnim] = useState(() => new Animated.Value(0));
+  const [scaleAnim] = useState(() => new Animated.Value(1));
+
+  useEffect(() => {
+    const targetLift = pressed ? 1 : hovered ? -6 : 0;
+    const targetScale = pressed ? 0.985 : hovered ? 1.028 : 1;
+    Animated.parallel([
+      Animated.spring(liftAnim, {
+        toValue: targetLift,
+        friction: 6,
+        tension: 170,
+        useNativeDriver: false,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: targetScale,
+        friction: 6,
+        tension: 170,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [hovered, pressed, liftAnim, scaleAnim]);
+
+  return (
+    <Animated.View
+      style={{
+        transform: [{ translateY: liftAnim }, { scale: scaleAnim }],
+        zIndex: hovered ? 10 : 1,
+      }}
+    >
+      <Pressable
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => {
+          setHovered(false);
+          setPressed(false);
+        }}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        onPress={onPress}
+        style={[
+          styles.nodeCard,
+          isDone && styles.nodeCardDone,
+          isNextUp && styles.nodeCardNextUp,
+          isLocked && styles.nodeCardLocked,
+          hovered && [
+            styles.nodeCardHovered,
+            { borderColor: isNextUp ? StudioColors.lime : accentColor },
+          ],
+        ]}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function TrackPathCard({
+  isSelected,
+  isTrackLocked,
+  stickerBg,
+  emoji,
+  badge,
+  shortName,
+  hook,
+  doneCount,
+  totalCount,
+  onPress,
+}: {
+  isSelected: boolean;
+  isTrackLocked: boolean;
+  stickerBg: string;
+  emoji: string;
+  badge: string;
+  shortName: string;
+  hook: string;
+  doneCount: number;
+  totalCount: number;
+  onPress: () => void;
+}) {
+  const [hovered, setHovered] = useState<boolean>(false);
+  const [liftAnim] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.spring(liftAnim, {
+      toValue: hovered ? -4 : 0,
+      friction: 6,
+      tension: 170,
+      useNativeDriver: false,
+    }).start();
+  }, [hovered, liftAnim]);
+
+  const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+  return (
+    <Animated.View
+      style={[
+        styles.trackCardAnimWrap,
+        { transform: [{ translateY: liftAnim }] },
+      ]}
+    >
+      <Pressable
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
+        style={({ pressed }) => [
+          styles.trackPathCard,
+          isSelected && [
+            styles.trackPathCardActive,
+            { backgroundColor: stickerBg },
+          ],
+          isTrackLocked && !isSelected && styles.trackTabPillLocked,
+          hovered && !isSelected && styles.trackPathCardHover,
+          pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+        ]}
+        onPress={onPress}
+      >
+        <View style={styles.trackPathTopRow}>
+          <View
+            style={[
+              styles.trackEmojiBadge,
+              {
+                backgroundColor: isSelected ? StudioColors.ink : stickerBg,
+              },
+            ]}
+          >
+            <Text style={styles.trackEmojiText}>{emoji}</Text>
+            <Text
+              style={[
+                styles.trackTagMini,
+                isSelected && { color: stickerBg },
+              ]}
+            >
+              {badge}
+            </Text>
+          </View>
+
+          {isTrackLocked ? (
+            <View style={styles.trackProBadge}>
+              <Text style={styles.trackProBadgeText}>🔒 PRO · 1 FREE</Text>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.trackCountBadge,
+                isSelected && { borderColor: StudioColors.ink },
+              ]}
+            >
+              <Text style={styles.trackCountText}>
+                {doneCount}/{totalCount}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <Text
+          style={[
+            styles.trackPathTitle,
+            isSelected && { color: StudioColors.ink },
+          ]}
+        >
+          {shortName}
+        </Text>
+
+        <Text
+          style={[
+            styles.trackPathHook,
+            isSelected && { color: StudioColors.ink, opacity: 0.85 },
+          ]}
+        >
+          {hook}
+        </Text>
+
+        <View
+          style={[
+            styles.trackPathMeterBg,
+            isSelected && { borderColor: StudioColors.ink },
+          ]}
+        >
+          <View
+            style={[
+              styles.trackPathMeterFill,
+              {
+                width: `${Math.max(pct, 5)}%`,
+                backgroundColor: isSelected ? StudioColors.ink : stickerBg,
+              },
+            ]}
+          />
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -254,8 +625,6 @@ export default function RoadmapTree({
   activeTrack,
   onSelectTrack,
   onSelectLesson,
-  dailyCompletedDate = null,
-  onClaimDailyWarmup,
   claimedChapters = {},
   onClaimChapterBonus,
   isAuthenticated = false,
@@ -269,21 +638,77 @@ export default function RoadmapTree({
   onOpenTrackCertificate,
   onOpenChapterCertificate,
 }: RoadmapTreeProps) {
+  const { height: windowHeight } = useWindowDimensions();
+  const viewportHeight = windowHeight > 0 ? windowHeight : 820;
+
   const [statusFilter, setStatusFilter] = useState<"all" | "unsolved" | "solved">("all");
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [crtChannel, setCrtChannel] = useState<0 | 1 | 2>(0);
   const [quickstartDismissed, setQuickstartDismissed] = useState<boolean>(false);
   const [cloudNudgeDismissed, setCloudNudgeDismissed] = useState<boolean>(false);
+  const [treeOffsetY, setTreeOffsetY] = useState<number>(620);
+  const [maxScrollBottomY, setMaxScrollBottomY] = useState<number>(viewportHeight);
+  const [contentHeight, setContentHeight] = useState<number>(2000);
+  const [scrollViewHeight, setScrollViewHeight] = useState<number>(viewportHeight);
+  const [scrollAnim] = useState(() => new Animated.Value(0));
+
+  const effectiveViewportHeight = Math.max(scrollViewHeight, viewportHeight);
+  const scrollThresholdY = Math.max(maxScrollBottomY, effectiveViewportHeight);
+  const maxScrollableDistance = Math.max(200, contentHeight - effectiveViewportHeight);
 
   useEffect(() => {
-    setQuickstartDismissed(
-      readLocalJson<boolean>(STORAGE_QUICKSTART_DISMISSED_KEY, false),
-    );
-    setCloudNudgeDismissed(
-      readLocalJson<boolean>(STORAGE_CLOUD_NUDGE_DISMISSED_KEY, false),
-    );
+    const timer = setTimeout(() => {
+      setQuickstartDismissed(
+        readLocalJson<boolean>(STORAGE_QUICKSTART_DISMISSED_KEY, false),
+      );
+      setCloudNudgeDismissed(
+        readLocalJson<boolean>(STORAGE_CLOUD_NUDGE_DISMISSED_KEY, false),
+      );
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    const onWinScroll = () => {
+      const y = window.scrollY || 0;
+      scrollAnim.setValue(y);
+      const nextBottom = y + window.innerHeight;
+      setMaxScrollBottomY((prev) => (nextBottom > prev + 24 ? nextBottom : prev));
+    };
+    window.addEventListener("scroll", onWinScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onWinScroll);
+  }, [scrollAnim]);
+
+  function handleScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const y = e.nativeEvent.contentOffset.y;
+    scrollAnim.setValue(y);
+    const viewH = e.nativeEvent.layoutMeasurement?.height || effectiveViewportHeight;
+    const nextBottom = y + viewH;
+    setMaxScrollBottomY((prev) => (nextBottom > prev + 24 ? nextBottom : prev));
+  }
+
+  const crtParallaxY = scrollAnim.interpolate({
+    inputRange: [0, 260],
+    outputRange: [0, -14],
+    extrapolate: "clamp",
+  });
+  const crtScrollScale = scrollAnim.interpolate({
+    inputRange: [0, 280],
+    outputRange: [1, 0.96],
+    extrapolate: "clamp",
+  });
+  const crtScrollOpacity = scrollAnim.interpolate({
+    inputRange: [0, 320],
+    outputRange: [1, 0.88],
+    extrapolate: "clamp",
+  });
+  const scrollBarWidth = scrollAnim.interpolate({
+    inputRange: [0, maxScrollableDistance],
+    outputRange: ["0%", "100%"],
+    extrapolate: "clamp",
+  });
 
   const trackLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = trackLessons.filter(
@@ -364,11 +789,28 @@ export default function RoadmapTree({
     .sort((a, b) => a - b);
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.rootWrap}>
+      {/* Subtle Top Scroll Depth Progress Rail */}
+      <View style={styles.topScrollRailBg}>
+        <Animated.View
+          style={[
+            styles.topScrollRailFill,
+            {
+              width: scrollBarWidth,
+              backgroundColor: currentTrackMeta.stickerBg,
+            },
+          ]}
+        />
+      </View>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        onLayout={(e) => setScrollViewHeight(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_w, h) => setContentHeight(h)}
+      >
       {/* Top Neo-Brutalist Track Header & Selector */}
       <View style={styles.headerSection}>
         <View style={styles.editorialTopRow}>
@@ -388,16 +830,22 @@ export default function RoadmapTree({
           </View>
 
           {/* Right-Side Interactive 3-Channel Retro CRT & Code Cartridge */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.heroIllustrationWrap,
-              pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-            ]}
-            onPress={() => {
-              playCrtChannelSwitch();
-              setCrtChannel((prev) => ((prev + 1) % 3) as 0 | 1 | 2);
+          <Animated.View
+            style={{
+              transform: [{ translateY: crtParallaxY }, { scale: crtScrollScale }],
+              opacity: crtScrollOpacity,
             }}
           >
+            <Pressable
+              style={({ pressed }) => [
+                styles.heroIllustrationWrap,
+                pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+              ]}
+              onPress={() => {
+                playCrtChannelSwitch();
+                setCrtChannel((prev) => ((prev + 1) % 3) as 0 | 1 | 2);
+              }}
+            >
             {/* Inserted ROM Cartridge on Top */}
             <View
               style={[
@@ -534,14 +982,19 @@ export default function RoadmapTree({
             <View style={styles.heroArtStickerBottomRight}>
               <Text style={styles.heroArtStickerText}>⚡ XP+50</Text>
             </View>
-          </Pressable>
+            </Pressable>
+          </Animated.View>
         </View>
 
-        {/* Byte-Cat Main Menu Guide & Rotating Inspirational Quote */}
+        {/* Byte-Cat Companion Hub & Interactive Briefing */}
         <ByteCatGuideCard
           completedCount={completedCount}
           totalCount={trackLessons.length}
+          activeTrack={activeTrack}
           activeTrackLabel={currentTrackMeta.label}
+          activeTrackAccent={currentTrackMeta.stickerBg}
+          totalXp={totalXp}
+          streakCount={streakCount}
           nextLessonTitle={nextUpLesson?.title}
           onPressNextLesson={
             nextUpLesson ? () => onSelectLesson(nextUpLesson) : undefined
@@ -681,71 +1134,38 @@ export default function RoadmapTree({
           </View>
         ) : null}
 
-        {/* Tactile Color-Blocked Track Selector */}
-        <View style={styles.trackTabsBar}>
-          {TRACK_KEYS.map((trackKey) => {
-            const meta = TrackThemes[trackKey];
-            const isSelected = activeTrack === trackKey;
-            const isTrackLocked = meta.isPro && !isPremium;
-            const tLessons = lessons.filter((l) => l.track === trackKey);
-            const tDone = tLessons.filter((l) => completedLessons[l.id]).length;
+        {/* Suggestive 3-Path Track Switcher */}
+        <View style={styles.trackSwitcherSection}>
+          <Text style={styles.trackSectionKicker}>
+            CHOOSE YOUR LEARNING PATH
+          </Text>
+          <View style={styles.trackTabsBar}>
+            {TRACK_KEYS.map((trackKey) => {
+              const meta = TrackThemes[trackKey];
+              const pitch =
+                TRACK_PITCH_META[trackKey] || TRACK_PITCH_META.python_basics;
+              const isSelected = activeTrack === trackKey;
+              const isTrackLocked = meta.isPro && !isPremium;
+              const tLessons = lessons.filter((l) => l.track === trackKey);
+              const tDone = tLessons.filter((l) => completedLessons[l.id]).length;
 
-            return (
-              <Pressable
-                key={trackKey}
-                style={({ pressed }) => [
-                  styles.trackTabPill,
-                  isSelected && [
-                    styles.trackTabPillActive,
-                    {
-                      backgroundColor: meta.stickerBg,
-                    },
-                  ],
-                  isTrackLocked && styles.trackTabPillLocked,
-                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-                ]}
-                onPress={() => onSelectTrack(trackKey)}
-              >
-                <View
-                  style={[
-                    styles.trackCodeBadge,
-                    isSelected && {
-                      backgroundColor: StudioColors.ink,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.trackCodeText,
-                      isSelected && { color: meta.stickerBg },
-                    ]}
-                  >
-                    {isTrackLocked ? "🔒" : meta.tag}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.trackTabTitle,
-                    isSelected && { color: StudioColors.ink, fontWeight: "900" },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {meta.label}
-                </Text>
-                {isTrackLocked ? (
-                  <View style={styles.trackProBadge}>
-                    <Text style={styles.trackProBadgeText}>PRO · 1 FREE</Text>
-                  </View>
-                ) : (
-                  <View style={styles.trackCountBadge}>
-                    <Text style={styles.trackCountText}>
-                      {tDone}/{tLessons.length}
-                    </Text>
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
+              return (
+                <TrackPathCard
+                  key={trackKey}
+                  isSelected={isSelected}
+                  isTrackLocked={isTrackLocked}
+                  stickerBg={meta.stickerBg}
+                  emoji={pitch.emoji}
+                  badge={pitch.badge}
+                  shortName={pitch.shortName}
+                  hook={pitch.hook}
+                  doneCount={tDone}
+                  totalCount={tLessons.length}
+                  onPress={() => onSelectTrack(trackKey)}
+                />
+              );
+            })}
+          </View>
         </View>
 
         {/* Track Mastery & Up Next Banner */}
@@ -864,18 +1284,6 @@ export default function RoadmapTree({
           }}
         />
 
-        {/* Daily 60-Second Warm-Up Challenge Card */}
-        {onClaimDailyWarmup && (
-          <DailyWarmupCard
-            lessons={lessons}
-            isPremium={isPremium}
-            dailyCompletedDate={dailyCompletedDate}
-            streakCount={streakCount}
-            onClaimDailyWarmup={onClaimDailyWarmup}
-            onSelectLesson={onSelectLesson}
-          />
-        )}
-
         {/* Filter & Search Control Bar */}
         <View style={styles.filterToolbarCard}>
           <View style={styles.filterPillsRow}>
@@ -979,7 +1387,24 @@ export default function RoadmapTree({
       </View>
 
       {/* Skill Tree Canvas */}
-      <View style={styles.treeCanvas}>
+      <View
+        style={styles.treeCanvas}
+        onLayout={(e) => setTreeOffsetY(e.nativeEvent.layout.y)}
+      >
+        <View style={styles.treeLegendBar}>
+          <View style={styles.treeLegendItem}>
+            <View style={[styles.treeLegendDot, { backgroundColor: StudioColors.lime }]} />
+            <Text style={styles.treeLegendText}>UP NEXT</Text>
+          </View>
+          <View style={styles.treeLegendItem}>
+            <View style={[styles.treeLegendDot, { backgroundColor: StudioColors.mint }]} />
+            <Text style={styles.treeLegendText}>SOLVED ✓</Text>
+          </View>
+          <View style={styles.treeLegendItem}>
+            <View style={[styles.treeLegendDot, { backgroundColor: StudioColors.pink }]} />
+            <Text style={styles.treeLegendText}>PRO</Text>
+          </View>
+        </View>
         {sortedRows.length === 0 ? (
           <View style={styles.emptyFilterCard}>
             <Text style={styles.emptyFilterTitle}>
@@ -1036,7 +1461,12 @@ export default function RoadmapTree({
             );
 
             return (
-              <View key={rowNum} style={styles.rowWrapper}>
+              <ScrollRevealRow
+                key={`${activeTrack}-${rowNum}`}
+                rowIndex={idx}
+                treeOffsetY={treeOffsetY}
+                scrollThresholdY={scrollThresholdY}
+              >
                 {isFirstRowOfChapter && (
                   <View
                     style={[
@@ -1069,10 +1499,16 @@ export default function RoadmapTree({
                               styles.chapterBonusTagPill,
                               isChapterCleared && {
                                 backgroundColor: StudioColors.mint,
+                                borderColor: StudioColors.ink,
                               },
                             ]}
                           >
-                            <Text style={styles.chapterBonusTagText}>
+                            <Text
+                              style={[
+                                styles.chapterBonusTagText,
+                                isChapterCleared && { color: StudioColors.ink },
+                              ]}
+                            >
                               {isChapterCleared
                                 ? "🏆 MILESTONE UNLOCKED"
                                 : "🎁 +100 XP BONUS AT 4/4"}
@@ -1135,10 +1571,16 @@ export default function RoadmapTree({
                               styles.chapterProgressBadge,
                               isChapterCleared && {
                                 backgroundColor: StudioColors.yellow,
+                                borderColor: StudioColors.ink,
                               },
                             ]}
                           >
-                            <Text style={styles.chapterProgressBadgeText}>
+                            <Text
+                              style={[
+                                styles.chapterProgressBadgeText,
+                                isChapterCleared && { color: StudioColors.ink },
+                              ]}
+                            >
                               {isChapterCleared
                                 ? isChapterBonusClaimed
                                   ? "🏆 STAMPED · +100 XP ✓"
@@ -1186,16 +1628,15 @@ export default function RoadmapTree({
                   const isNextUp =
                     !isDone && !isLocked && nextUpLesson?.id === node.id;
                   const diffStyle = getDifficultyColor(node.difficulty);
+                  const shortSummary = getShortLessonSummary(node);
 
                   return (
-                    <Pressable
+                    <InteractiveLessonNode
                       key={node.id}
-                      style={[
-                        styles.nodeCard,
-                        isDone && styles.nodeCardDone,
-                        isNextUp && styles.nodeCardNextUp,
-                        isLocked && styles.nodeCardLocked,
-                      ]}
+                      isDone={isDone}
+                      isNextUp={isNextUp}
+                      isLocked={isLocked}
+                      accentColor={currentTrackMeta.stickerBg}
                       onPress={() => onSelectLesson(node)}
                     >
                       {/* Top Color-Blocked Ribbon */}
@@ -1270,15 +1711,11 @@ export default function RoadmapTree({
                         )}
                       </View>
 
-                      {/* Main Title & Description */}
-                      <Text style={styles.nodeTitle} numberOfLines={2}>
-                        {node.title}
-                      </Text>
+                      {/* Main Title & Full Short Lesson Summary */}
+                      <Text style={styles.nodeTitle}>{node.title}</Text>
 
-                      {node.description ? (
-                        <Text style={styles.nodeDesc} numberOfLines={2}>
-                          {node.description}
-                        </Text>
+                      {shortSummary ? (
+                        <Text style={styles.nodeDesc}>{shortSummary}</Text>
                       ) : null}
 
                       {/* Footer Metadata Pills */}
@@ -1323,7 +1760,7 @@ export default function RoadmapTree({
                           </Text>
                         </View>
                       </View>
-                    </Pressable>
+                    </InteractiveLessonNode>
                   );
                 })}
               </View>
@@ -1332,11 +1769,11 @@ export default function RoadmapTree({
                 <TreeConnector
                   fromCount={rowNodes.length}
                   toCount={nextRowNodes.length}
-                  accent={currentTrackMeta.accent}
+                  accent={currentTrackMeta.stickerBg}
                   isCompleted={rowCleared}
                 />
               )}
-            </View>
+            </ScrollRevealRow>
           );
           })
         )}
@@ -1351,11 +1788,25 @@ export default function RoadmapTree({
           </Pressable>
         </Link>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootWrap: {
+    flex: 1,
+    position: "relative",
+  },
+  topScrollRailBg: {
+    height: 3,
+    width: "100%",
+    backgroundColor: StudioColors.borderSubtle,
+    zIndex: 20,
+  },
+  topScrollRailFill: {
+    height: "100%",
+  },
   container: {
     flex: 1,
     backgroundColor: "transparent",
@@ -1580,50 +2031,96 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     maxWidth: 560,
   },
+  trackSwitcherSection: {
+    gap: 8,
+    marginBottom: 18,
+  },
+  trackSectionKicker: {
+    color: StudioColors.textMuted,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 1.1,
+  },
   trackTabsBar: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-    marginBottom: 20,
   },
-  trackTabPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 8,
+  trackCardAnimWrap: {
+    flex: 1,
+    minWidth: 220,
+  },
+  trackPathCard: {
     backgroundColor: StudioColors.surface,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: StudioColors.border,
+    padding: 13,
+    gap: 7,
     ...HardShadowSm,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
-  trackTabPillActive: {
+  trackPathCardActive: {
+    borderWidth: 2.5,
     borderColor: StudioColors.ink,
     ...HardShadow,
   },
-  trackTabPillLocked: {
-    opacity: 0.9,
+  trackPathCardHover: {
+    ...HardShadow,
   },
-  trackCodeBadge: {
-    backgroundColor: StudioColors.yellow,
+  trackPathTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  trackEmojiBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     borderWidth: 1.5,
     borderColor: StudioColors.ink,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
   },
-  trackCodeText: {
+  trackEmojiText: {
+    fontSize: 12,
+  },
+  trackTagMini: {
     color: StudioColors.ink,
-    fontSize: 10,
+    fontSize: 8.5,
     fontWeight: "900",
     fontFamily: MonoFont,
+    letterSpacing: 0.4,
   },
-  trackTabTitle: {
+  trackPathTitle: {
     color: StudioColors.textPrimary,
-    fontSize: 13,
-    fontWeight: "800",
+    fontSize: 15,
+    fontWeight: "900",
+    letterSpacing: -0.2,
+  },
+  trackPathHook: {
+    color: StudioColors.textSecondary,
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontWeight: "600",
+  },
+  trackPathMeterBg: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    overflow: "hidden",
+    marginTop: 2,
+  },
+  trackPathMeterFill: {
+    height: "100%",
+  },
+  trackTabPillLocked: {
+    opacity: 0.92,
   },
   trackCountBadge: {
     backgroundColor: StudioColors.surface,
@@ -1810,6 +2307,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
   },
+  treeLegendBar: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginBottom: 6,
+    ...HardShadowSm,
+  },
+  treeLegendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  treeLegendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+  },
+  treeLegendText: {
+    color: StudioColors.textSecondary,
+    fontSize: 9.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
   rowWrapper: {
     alignItems: "center",
     width: "100%",
@@ -1836,10 +2367,11 @@ const styles = StyleSheet.create({
   },
   nodeCard: {
     width: CARD_WIDTH,
+    maxWidth: "100%",
     backgroundColor: StudioColors.surface,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 16,
-    paddingTop: 18,
+    paddingTop: 19,
     borderWidth: 2,
     borderColor: StudioColors.border,
     gap: 10,
@@ -1847,6 +2379,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...HardShadow,
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  nodeCardHovered: {
+    borderWidth: 2.5,
+    ...HardShadowHero,
   },
   nodeTopRibbon: {
     position: "absolute",
@@ -2030,19 +2566,31 @@ const styles = StyleSheet.create({
   },
   connectorContainer: {
     alignItems: "center",
-    marginVertical: 2,
+    marginVertical: 3,
   },
   vLine: {
-    width: 2.5,
+    width: 5,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderRadius: 2,
   },
   hLine: {
-    height: 2.5,
+    height: 5,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderRadius: 2,
   },
   junctionDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2.5,
+  },
+  connectorArrowTip: {
+    fontSize: 11,
+    fontWeight: "900",
+    lineHeight: 12,
+    marginTop: -2,
   },
   legsRow: {
     flexDirection: "row",
@@ -2152,7 +2700,7 @@ const styles = StyleSheet.create({
     ...HardShadow,
   },
   chapterBannerCardCleared: {
-    backgroundColor: "#FFFDF4",
+    backgroundColor: StudioColors.cardDoneBg,
   },
   chapterTopAccent: {
     position: "absolute",
@@ -2190,15 +2738,15 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   chapterBonusTagPill: {
-    backgroundColor: StudioColors.bg,
+    backgroundColor: StudioColors.surfaceElevated,
     borderWidth: 1.5,
-    borderColor: StudioColors.ink,
+    borderColor: StudioColors.border,
     paddingHorizontal: 7,
     paddingVertical: 1.5,
     borderRadius: 4,
   },
   chapterBonusTagText: {
-    color: StudioColors.ink,
+    color: StudioColors.textPrimary,
     fontSize: 8.5,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -2217,7 +2765,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: StudioColors.bg,
     borderWidth: 1.5,
-    borderColor: StudioColors.ink,
+    borderColor: StudioColors.border,
   },
   chapterRightCol: {
     alignItems: "flex-end",
@@ -2276,15 +2824,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   chapterProgressBadge: {
-    backgroundColor: StudioColors.bg,
+    backgroundColor: StudioColors.surfaceElevated,
     borderWidth: 1.5,
-    borderColor: StudioColors.ink,
+    borderColor: StudioColors.border,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
   },
   chapterProgressBadgeText: {
-    color: StudioColors.ink,
+    color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
