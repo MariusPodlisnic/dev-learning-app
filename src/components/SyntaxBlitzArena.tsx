@@ -14,6 +14,11 @@ import {
   MonoFont,
   StudioColors,
 } from "../constants/theme";
+import {
+  BLITZ_CARDS,
+  type BlitzCardItem,
+  type BlitzDeckKey,
+} from "../constants/curriculumData/syntaxBlitzCards";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import {
   playErrorBuzz,
@@ -22,316 +27,7 @@ import {
   playVictoryFanfare,
 } from "../utils/soundEffects";
 
-export type BlitzDeckKey =
-  | "python_basics"
-  | "algorithms"
-  | "system_design"
-  | "all";
-
-interface BlitzCardItem {
-  id: string;
-  deck: "python_basics" | "algorithms" | "system_design";
-  tag: string;
-  prompt: string;
-  codeTemplate: string;
-  options: string[];
-  correctIndex: number;
-  explanation: string;
-}
-
-const BLITZ_CARDS: BlitzCardItem[] = [
-  // Python Core Deck
-  {
-    id: "py-1",
-    deck: "python_basics",
-    tag: "VARIABLES",
-    prompt: "Store the number 250 inside a variable named xp:",
-    codeTemplate: "xp [ ___ ] 250\nprint(xp)",
-    options: ["=", "==", "->", ":"],
-    correctIndex: 0,
-    explanation:
-      "A single equals sign (=) assigns a value to a variable; == compares two values.",
-  },
-  {
-    id: "py-2",
-    deck: "python_basics",
-    tag: "CONDITIONALS",
-    prompt: "Check if score is at least 100 before unlocking the level:",
-    codeTemplate: "if score >= 100[ ___ ]\n    print('Unlocked!')",
-    options: [":", ";", "{", "then"],
-    correctIndex: 0,
-    explanation:
-      "Every if, elif, else, for, while, and def header in Python must end with a colon (:).",
-  },
-  {
-    id: "py-3",
-    deck: "python_basics",
-    tag: "LISTS",
-    prompt: "Grab the VERY FIRST item ('sword') from the inventory list:",
-    codeTemplate: "items = ['sword', 'shield', 'potion']\nprint(items[ ___ ])",
-    options: ["[0]", "[1]", "[-1]", "(0)"],
-    correctIndex: 0,
-    explanation:
-      "Python lists are zero-indexed, so index [0] always points to the first element.",
-  },
-  {
-    id: "py-4",
-    deck: "python_basics",
-    tag: "LISTS",
-    prompt: "Add 'gem' to the end of the loot list:",
-    codeTemplate: "loot = ['coin', 'key']\nloot.[ ___ ]('gem')",
-    options: ["append", "push", "add", "insert_end"],
-    correctIndex: 0,
-    explanation:
-      "list.append(item) attaches a new item to the very end of a Python list.",
-  },
-  {
-    id: "py-5",
-    deck: "python_basics",
-    tag: "FUNCTIONS",
-    prompt: "Send the calculated total back to whoever called the function:",
-    codeTemplate: "def double_xp(points):\n    [ ___ ] points * 2",
-    options: ["return", "print", "give", "send"],
-    correctIndex: 0,
-    explanation:
-      "return hands the result back to the caller so it can be saved or used in expressions.",
-  },
-  {
-    id: "py-6",
-    deck: "python_basics",
-    tag: "STRINGS",
-    prompt: "Remove accidental spaces from both ends of a username:",
-    codeTemplate: "raw = '  ada_lovelace  '\nclean = raw.[ ___ ]()",
-    options: ["strip", "trim", "clean", "pop"],
-    correctIndex: 0,
-    explanation:
-      "str.strip() removes leading and trailing whitespace from a string.",
-  },
-  {
-    id: "py-7",
-    deck: "python_basics",
-    tag: "DICTIONARIES",
-    prompt: "Safely look up 'mana' with a fallback of 0 if missing:",
-    codeTemplate: "stats = {'hp': 100}\nmana = stats.[ ___ ]('mana', 0)",
-    options: ["get", "find", "fetch", "lookup"],
-    correctIndex: 0,
-    explanation:
-      "dict.get(key, default) returns the default value instead of crashing with KeyError.",
-  },
-  {
-    id: "py-8",
-    deck: "python_basics",
-    tag: "SLICING",
-    prompt: "Reverse a list in one clean slice:",
-    codeTemplate: "nums = [1, 2, 3, 4]\nrev = nums[ ___ ]",
-    options: ["[::-1]", "[::-2]", "[1:-1]", "[:0]"],
-    correctIndex: 0,
-    explanation:
-      "A step of -1 in [::-1] walks through the list backward from end to start.",
-  },
-  {
-    id: "py-9",
-    deck: "python_basics",
-    tag: "SETS",
-    prompt: "Remove all duplicate IDs from a list in one call:",
-    codeTemplate: "ids = [4, 4, 9, 9, 1]\nunique_count = len([ ___ ](ids))",
-    options: ["set", "dict", "tuple", "list"],
-    correctIndex: 0,
-    explanation:
-      "Converting a list to a set(...) automatically drops every duplicate value.",
-  },
-  {
-    id: "py-10",
-    deck: "python_basics",
-    tag: "SORTING",
-    prompt: "Return a new list sorted from HIGHEST to LOWEST:",
-    codeTemplate: "scores = [40, 95, 70]\ntop = sorted(scores, [ ___ ]=True)",
-    options: ["reverse", "desc", "flip", "invert"],
-    correctIndex: 0,
-    explanation:
-      "Passing reverse=True to sorted() orders items from largest to smallest.",
-  },
-  {
-    id: "py-11",
-    deck: "python_basics",
-    tag: "LAMBDAS",
-    prompt: "Create an inline 1-line anonymous function that triples x:",
-    codeTemplate: "triple = [ ___ ] x: x * 3\nprint(triple(7))",
-    options: ["lambda", "def", "func", "arrow"],
-    correctIndex: 0,
-    explanation:
-      "lambda creates a quick one-line function without needing a full def block.",
-  },
-  {
-    id: "py-12",
-    deck: "python_basics",
-    tag: "ZIPPING",
-    prompt: "Pair a list of keys and a list of values into a dictionary:",
-    codeTemplate: "roster = dict([ ___ ](names, scores))",
-    options: ["zip", "pair", "merge", "join"],
-    correctIndex: 0,
-    explanation:
-      "zip(a, b) pairs items at matching positions so dict() can turn them into key-value pairs.",
-  },
-
-  // Algorithms & Big-O Deck
-  {
-    id: "algo-1",
-    deck: "algorithms",
-    tag: "HASH MAP O(1)",
-    prompt: "Calculate the complement needed to reach target in Two Sum:",
-    codeTemplate: "need = [ ___ ] - num\nif need in seen:",
-    options: ["target", "seen", "num * 2", "len(nums)"],
-    correctIndex: 0,
-    explanation:
-      "If num + need == target, then the partner number we are looking for is target - num.",
-  },
-  {
-    id: "algo-2",
-    deck: "algorithms",
-    tag: "TWO POINTERS",
-    prompt: "Check if a cleaned string reads the same forward and backward:",
-    codeTemplate: "is_palindrome = (clean == clean[ ___ ])",
-    options: ["[::-1]", "[0:1]", "[1:]", "[-1]"],
-    correctIndex: 0,
-    explanation:
-      "Comparing clean to its reversed slice clean[::-1] checks for a palindrome in one line.",
-  },
-  {
-    id: "algo-3",
-    deck: "algorithms",
-    tag: "BINARY SEARCH",
-    prompt: "Find the middle index between left and right using integer division:",
-    codeTemplate: "mid = (left + right) [ ___ ] 2",
-    options: ["//", "/", "%", "**"],
-    correctIndex: 0,
-    explanation:
-      "Floor division (//) returns a whole integer index so Python can use it inside nums[mid].",
-  },
-  {
-    id: "algo-4",
-    deck: "algorithms",
-    tag: "STACKS (LIFO)",
-    prompt: "Remove and return the top item from a stack list:",
-    codeTemplate: "top_bracket = stack.[ ___ ]()",
-    options: ["pop", "shift", "remove_first", "peek"],
-    correctIndex: 0,
-    explanation:
-      "list.pop() removes and returns the last (topmost) element in O(1) time.",
-  },
-  {
-    id: "algo-5",
-    deck: "algorithms",
-    tag: "ANAGRAM CHECK",
-    prompt: "Verify if two words contain the exact same letters and counts:",
-    codeTemplate: "is_anagram = [ ___ ](word_a) == sorted(word_b)",
-    options: ["sorted", "set", "len", "reversed"],
-    correctIndex: 0,
-    explanation:
-      "Sorting both strings puts identical letters in alphabetical order so they can be compared with ==.",
-  },
-  {
-    id: "algo-6",
-    deck: "algorithms",
-    tag: "DUPLICATE CHECK",
-    prompt: "Detect if any number appears more than once in nums:",
-    codeTemplate: "has_dup = len(nums) != len([ ___ ](nums))",
-    options: ["set", "list", "tuple", "sorted"],
-    correctIndex: 0,
-    explanation:
-      "Since set(nums) removes duplicates, a smaller set length means at least one duplicate existed.",
-  },
-  {
-    id: "algo-7",
-    deck: "algorithms",
-    tag: "MISSING NUMBER",
-    prompt: "Find the missing number in 0..n by subtracting actual sum from expected sum:",
-    codeTemplate: "missing = sum(range(len(nums) + 1)) - [ ___ ](nums)",
-    options: ["sum", "max", "len", "min"],
-    correctIndex: 0,
-    explanation:
-      "Subtracting sum(nums) from the full 0..n sum leaves only the missing number.",
-  },
-  {
-    id: "algo-8",
-    deck: "algorithms",
-    tag: "MAJORITY ELEMENT",
-    prompt: "Grab the majority element (> 50% frequency) after sorting nums:",
-    codeTemplate: "majority = sorted(nums)[len(nums) [ ___ ] 2]",
-    options: ["//", "%", "*", "-"],
-    correctIndex: 0,
-    explanation:
-      "An element appearing more than n/2 times is guaranteed to occupy the center index len(nums) // 2.",
-  },
-
-  // System Design Deck
-  {
-    id: "sys-1",
-    deck: "system_design",
-    tag: "LOAD BALANCER",
-    prompt: "Wrap request index i around len(servers) for Round-Robin routing:",
-    codeTemplate: "server = servers[i [ ___ ] len(servers)]",
-    options: ["%", "//", "/", "**"],
-    correctIndex: 0,
-    explanation:
-      "The modulo operator (%) wraps any counter neatly between 0 and len(servers) - 1.",
-  },
-  {
-    id: "sys-2",
-    deck: "system_design",
-    tag: "DATABASE SHARDING",
-    prompt: "Route user_id to one of num_shards database partitions:",
-    codeTemplate: "shard_id = user_id [ ___ ] num_shards",
-    options: ["%", "//", "+", "&"],
-    correctIndex: 0,
-    explanation:
-      "user_id % num_shards deterministically maps every user to the same shard between 0 and num_shards - 1.",
-  },
-  {
-    id: "sys-3",
-    deck: "system_design",
-    tag: "QUORUM CONSENSUS",
-    prompt: "Calculate the strict majority of nodes needed for a valid quorum:",
-    codeTemplate: "required_votes = (total_nodes // 2) [ ___ ] 1",
-    options: ["+", "-", "*", "%"],
-    correctIndex: 0,
-    explanation:
-      "Strict majority is half the cluster (floored) plus 1—for example, 3 out of 5 nodes.",
-  },
-  {
-    id: "sys-4",
-    deck: "system_design",
-    tag: "EXPONENTIAL BACKOFF",
-    prompt: "Double the retry wait time on each attempt (1, 2, 4, 8...):",
-    codeTemplate: "wait_seconds = 2 [ ___ ] retry_attempt",
-    options: ["**", "*", "//", "^"],
-    correctIndex: 0,
-    explanation:
-      "In Python, ** is the exponent operator (2 ** 3 == 8), whereas ^ is bitwise XOR.",
-  },
-  {
-    id: "sys-5",
-    deck: "system_design",
-    tag: "IDEMPOTENCY",
-    prompt: "Skip charging a customer if request_id was already processed:",
-    codeTemplate: "if request_id [ ___ ] processed_ids:\n    return 'DUPLICATE'",
-    options: ["in", "==", "is", "has"],
-    correctIndex: 0,
-    explanation:
-      "Checking `request_id in processed_ids` on a set takes O(1) time and prevents double charges.",
-  },
-  {
-    id: "sys-6",
-    deck: "system_design",
-    tag: "CACHE TTL",
-    prompt: "Check if a cached item is still fresh before its TTL expires:",
-    codeTemplate: "is_valid = (now - saved_at) [ ___ ] ttl_seconds",
-    options: ["<", ">", "==", "%"],
-    correctIndex: 0,
-    explanation:
-      "If elapsed time (now - saved_at) is less than (<) ttl_seconds, the cache entry is still fresh.",
-  },
-];
+export type { BlitzDeckKey };
 
 const BLITZ_HIGHSCORE_KEY = "devlearn_blitz_highscore_v1";
 
@@ -427,7 +123,9 @@ export default function SyntaxBlitzArena({
   });
 
   const scoreXpRef = useRef<number>(0);
-  scoreXpRef.current = scoreXp;
+  useEffect(() => {
+    scoreXpRef.current = scoreXp;
+  }, [scoreXp]);
 
   const filteredPool = useMemo(() => {
     if (selectedDeck === "all") {
@@ -652,6 +350,12 @@ export default function SyntaxBlitzArena({
         ).map((d) => {
           const isSelected = selectedDeck === d.key;
           const locked = d.isProDeck && !isPremium;
+          const cardCount =
+            d.key === "all"
+              ? isPremium
+                ? BLITZ_CARDS.length
+                : BLITZ_CARDS.filter((c) => c.deck === "python_basics").length
+              : BLITZ_CARDS.filter((c) => c.deck === d.key).length;
           return (
             <Pressable
               key={d.key}
@@ -677,7 +381,7 @@ export default function SyntaxBlitzArena({
                   isSelected && styles.deckPillTextActive,
                 ]}
               >
-                {d.label}
+                {d.label} ({cardCount})
               </Text>
               {locked && (
                 <View style={styles.proMiniTag}>

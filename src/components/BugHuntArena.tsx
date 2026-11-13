@@ -16,303 +16,14 @@ import {
   StudioColors,
   TrackThemes,
 } from "../constants/theme";
+import {
+  BUG_INCIDENTS,
+  type BugIncident,
+} from "../constants/curriculumData/bugHuntIncidents";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick } from "../utils/soundEffects";
 
-export interface BugIncident {
-  id: string;
-  codeId: string;
-  title: string;
-  track: "python_basics" | "algorithms" | "system_design";
-  difficulty: "Easy" | "Medium" | "Hard";
-  timeLimitSec: number;
-  baseXp: number;
-  symptom: string;
-  rootCauseHint: string;
-  buggyCode: string;
-  testHarness: string;
-  expectedSummary: string;
-}
-
-const BUG_INCIDENTS: BugIncident[] = [
-  {
-    id: "bug-101",
-    codeId: "MISSION 01",
-    title: "Skipped First Item in Cart",
-    track: "python_basics",
-    difficulty: "Easy",
-    timeLimitSec: 60,
-    baseXp: 75,
-    symptom:
-      "The loop starts at index 1 instead of 0, skipping the first price in the list.",
-    rootCauseHint:
-      "Change range(1, len(prices)) to range(len(prices)) so index 0 is included.",
-    buggyCode: `def calculate_cart_total(prices):
-    total = 0
-    # Fix the loop so index 0 is included:
-    for i in range(1, len(prices)):
-        total += prices[i]
-    return total
-
-print(calculate_cart_total([25, 15, 10]))`,
-    testHarness: `
-import json
-results = []
-cases = [
-    ([25, 15, 10], 50),
-    ([99], 99),
-    ([10, 20, 30, 40], 100),
-]
-all_passed = True
-for idx, (inp, exp) in enumerate(cases):
-    actual = calculate_cart_total(inp)
-    passed = actual == exp
-    if not passed:
-        all_passed = False
-    results.append({
-        "id": idx + 1,
-        "input": f"calculate_cart_total({inp})",
-        "expected": str(exp),
-        "actual": str(actual),
-        "passed": passed
-    })
-json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
-`,
-    expectedSummary: "calculate_cart_total([25, 15, 10]) → 50",
-  },
-  {
-    id: "bug-102",
-    codeId: "MISSION 02",
-    title: "Missing Dictionary Key Crash",
-    track: "python_basics",
-    difficulty: "Easy",
-    timeLimitSec: 60,
-    baseXp: 75,
-    symptom:
-      'Crashes with KeyError when "role" is missing. It should default to "guest".',
-    rootCauseHint:
-      'Replace user["role"] with user.get("role", "guest").',
-    buggyCode: `def get_user_badge(user):
-    # Default to "guest" when "role" is missing:
-    role = user["role"]
-    return f"{user['username']} ({role})"
-
-print(get_user_badge({"username": "alex"}))`,
-    testHarness: `
-import json
-results = []
-cases = [
-    ({"username": "alex"}, "alex (guest)"),
-    ({"username": "sam", "role": "admin"}, "sam (admin)"),
-    ({"username": "mia", "role": "editor"}, "mia (editor)"),
-]
-all_passed = True
-for idx, (inp, exp) in enumerate(cases):
-    try:
-        actual = get_user_badge(inp)
-    except Exception as e:
-        actual = f"KeyError: {e}"
-    passed = actual == exp
-    if not passed:
-        all_passed = False
-    results.append({
-        "id": idx + 1,
-        "input": f"get_user_badge({inp})",
-        "expected": str(exp),
-        "actual": str(actual),
-        "passed": passed
-    })
-json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
-`,
-    expectedSummary: 'get_user_badge({"username": "alex"}) → "alex (guest)"',
-  },
-  {
-    id: "bug-201",
-    codeId: "MISSION 03",
-    title: "Case-Sensitive Palindrome",
-    track: "algorithms",
-    difficulty: "Medium",
-    timeLimitSec: 75,
-    baseXp: 100,
-    symptom:
-      'Returns False for "Racecar" because uppercase "R" and lowercase "r" don\'t match.',
-    rootCauseHint:
-      "Add text = text.lower() at the top of the function before comparing.",
-    buggyCode: `def is_palindrome(text):
-    # Make the check ignore uppercase/lowercase:
-    left = 0
-    right = len(text) - 1
-    while left < right:
-        if text[left] != text[right]:
-            return False
-        left += 1
-        right -= 1
-    return True
-
-print(is_palindrome("Racecar"))`,
-    testHarness: `
-import json
-results = []
-cases = [
-    ("Racecar", True),
-    ("Level", True),
-    ("python", False),
-    ("Kayak", True),
-]
-all_passed = True
-for idx, (inp, exp) in enumerate(cases):
-    actual = is_palindrome(inp)
-    passed = actual == exp
-    if not passed:
-        all_passed = False
-    results.append({
-        "id": idx + 1,
-        "input": f'is_palindrome("{inp}")',
-        "expected": str(exp),
-        "actual": str(actual),
-        "passed": passed
-    })
-json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
-`,
-    expectedSummary: 'is_palindrome("Racecar") → True',
-  },
-  {
-    id: "bug-202",
-    codeId: "MISSION 04",
-    title: "Negative Numbers Max Bug",
-    track: "algorithms",
-    difficulty: "Medium",
-    timeLimitSec: 75,
-    baseXp: 100,
-    symptom:
-      "Returns 0 instead of -5 when all numbers in the list are negative.",
-    rootCauseHint:
-      "Start with best = nums[0] instead of best = 0.",
-    buggyCode: `def find_max_reading(nums):
-    # Fix so negative lists like [-12, -5, -20] return -5:
-    best = 0
-    for n in nums:
-        if n > best:
-            best = n
-    return best
-
-print(find_max_reading([-12, -5, -20]))`,
-    testHarness: `
-import json
-results = []
-cases = [
-    ([-12, -5, -20], -5),
-    ([14, 42, 8], 42),
-    ([-100, -50, -75], -50),
-]
-all_passed = True
-for idx, (inp, exp) in enumerate(cases):
-    actual = find_max_reading(inp)
-    passed = actual == exp
-    if not passed:
-        all_passed = False
-    results.append({
-        "id": idx + 1,
-        "input": f"find_max_reading({inp})",
-        "expected": str(exp),
-        "actual": str(actual),
-        "passed": passed
-    })
-json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
-`,
-    expectedSummary: "find_max_reading([-12, -5, -20]) → -5",
-  },
-  {
-    id: "bug-301",
-    codeId: "MISSION 05",
-    title: "Rate-Limiter Boundary Leak",
-    track: "system_design",
-    difficulty: "Hard",
-    timeLimitSec: 90,
-    baseXp: 120,
-    symptom:
-      "Allows 1 extra request through when current_count equals max_requests.",
-    rootCauseHint:
-      "Use < instead of <= so requests are blocked once current_count reaches max_requests.",
-    buggyCode: `def allow_request(current_count, max_requests):
-    # Block the request when current_count reaches max_requests:
-    if current_count <= max_requests:
-        return True
-    return False
-
-print(allow_request(100, 100))`,
-    testHarness: `
-import json
-results = []
-cases = [
-    ((100, 100), False),
-    ((99, 100), True),
-    ((0, 5), True),
-    ((5, 5), False),
-]
-all_passed = True
-for idx, (inp, exp) in enumerate(cases):
-    actual = allow_request(inp[0], inp[1])
-    passed = actual == exp
-    if not passed:
-        all_passed = False
-    results.append({
-        "id": idx + 1,
-        "input": f"allow_request({inp[0]}, {inp[1]})",
-        "expected": str(exp),
-        "actual": str(actual),
-        "passed": passed
-    })
-json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
-`,
-    expectedSummary: "allow_request(100, 100) → False",
-  },
-  {
-    id: "bug-302",
-    codeId: "MISSION 06",
-    title: "FIFO Cache Evicts Wrong Item",
-    track: "system_design",
-    difficulty: "Hard",
-    timeLimitSec: 90,
-    baseXp: 120,
-    symptom:
-      "When the cache is full, it removes the newest item at the end instead of the oldest item at index 0.",
-    rootCauseHint:
-      "Use cache.pop(0) to remove the oldest item from the front of the list.",
-    buggyCode: `def push_to_cache(cache, new_item, capacity):
-    if len(cache) >= capacity:
-        # Remove the oldest item (index 0), not the newest:
-        cache.pop(-1)
-    cache.append(new_item)
-    return cache
-
-print(push_to_cache(["a", "b", "c"], "d", 3))`,
-    testHarness: `
-import json
-results = []
-cases = [
-    ((["a", "b", "c"], "d", 3), ["b", "c", "d"]),
-    ((["k1", "k2"], "k3", 2), ["k2", "k3"]),
-    ((["only_one"], "second", 3), ["only_one", "second"]),
-]
-all_passed = True
-for idx, (inp, exp) in enumerate(cases):
-    actual = push_to_cache(list(inp[0]), inp[1], inp[2])
-    passed = actual == exp
-    if not passed:
-        all_passed = False
-    results.append({
-        "id": idx + 1,
-        "input": f"push_to_cache({inp[0]}, '{inp[1]}', {inp[2]})",
-        "expected": str(exp),
-        "actual": str(actual),
-        "passed": passed
-    })
-json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
-`,
-    expectedSummary: 'push_to_cache(["a", "b", "c"], "d", 3) → ["b", "c", "d"]',
-  },
-];
+export type { BugIncident };
 
 interface BugTestResult {
   id: number;
@@ -351,6 +62,9 @@ export default function BugHuntArena({
 }: BugHuntArenaProps) {
   // null = Mission Select Lobby; number = Active Game Mission
   const [activeMissionIdx, setActiveMissionIdx] = useState<number | null>(null);
+  const [trackFilter, setTrackFilter] = useState<
+    "all" | "python_basics" | "algorithms" | "system_design"
+  >("all");
   const currentIncident =
     activeMissionIdx !== null ? BUG_INCIDENTS[activeMissionIdx] : null;
 
@@ -386,20 +100,27 @@ export default function BugHuntArena({
   }
 
   useEffect(() => {
-    if (activeMissionIdx === null || patchStatus === "resolved") return;
-    if (secondsLeft <= 0) {
-      setPatchStatus("timeout");
-      return;
-    }
+    if (activeMissionIdx === null || patchStatus === "resolved" || patchStatus === "timeout") return;
     const timer = setInterval(() => {
-      setSecondsLeft((prev) => Math.max(0, prev - 1));
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          setPatchStatus("timeout");
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
     return () => clearInterval(timer);
-  }, [activeMissionIdx, secondsLeft, patchStatus]);
+  }, [activeMissionIdx, patchStatus]);
 
   const solvedCount = BUG_INCIDENTS.filter(
     (inc) => solvedIncidents[inc.id],
   ).length;
+
+  const visibleIncidents =
+    trackFilter === "all"
+      ? BUG_INCIDENTS
+      : BUG_INCIDENTS.filter((inc) => inc.track === trackFilter);
 
   // ============================================================================
   // PHASE 1: MISSION SELECT LOBBY (Timer does NOT run until user picks a card)
@@ -426,8 +147,52 @@ export default function BugHuntArena({
           </View>
         </View>
 
+        <View style={styles.filterRow}>
+          {(
+            [
+              {
+                key: "all",
+                label: `ALL (${BUG_INCIDENTS.length})`,
+              },
+              {
+                key: "python_basics",
+                label: `🐍 PYTHON CORE (${BUG_INCIDENTS.filter((i) => i.track === "python_basics").length})`,
+              },
+              {
+                key: "algorithms",
+                label: `⚡ ALGORITHMS (${BUG_INCIDENTS.filter((i) => i.track === "algorithms").length})${!isPremium ? " 🔒" : ""}`,
+              },
+              {
+                key: "system_design",
+                label: `🏛️ SYSTEM DESIGN (${BUG_INCIDENTS.filter((i) => i.track === "system_design").length})${!isPremium ? " 🔒" : ""}`,
+              },
+            ] as const
+          ).map((f) => {
+            const active = trackFilter === f.key;
+            return (
+              <Pressable
+                key={f.key}
+                style={[styles.filterPill, active && styles.filterPillActive]}
+                onPress={() => setTrackFilter(f.key)}
+              >
+                <Text
+                  style={[
+                    styles.filterPillText,
+                    active && styles.filterPillTextActive,
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         <View style={styles.missionGrid}>
-          {BUG_INCIDENTS.map((inc, idx) => {
+          {visibleIncidents.map((inc) => {
+            const origIdx = BUG_INCIDENTS.findIndex(
+              (item) => item.id === inc.id,
+            );
             const isSolved = Boolean(solvedIncidents[inc.id]);
             const tMeta = TrackThemes[inc.track] || TrackThemes.python_basics;
             const isLockedPro = Boolean(tMeta.isPro && !isPremium);
@@ -441,7 +206,7 @@ export default function BugHuntArena({
                   isLockedPro && styles.missionCardLocked,
                   pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
                 ]}
-                onPress={() => startMission(idx)}
+                onPress={() => startMission(origIdx)}
               >
                 <View
                   style={[
@@ -477,6 +242,9 @@ export default function BugHuntArena({
                   </View>
                 </View>
 
+                <Text style={styles.trackTag}>
+                  {tMeta.tag}
+                </Text>
                 <Text style={styles.missionTitle}>{inc.title}</Text>
                 <Text style={styles.missionDesc} numberOfLines={2}>
                   {inc.symptom}
@@ -893,6 +661,44 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.8,
+  },
+  filterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    justifyContent: "center",
+  },
+  filterPill: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  filterPillActive: {
+    backgroundColor: StudioColors.yellow,
+    borderColor: StudioColors.ink,
+  },
+  filterPillText: {
+    color: StudioColors.textPrimary,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  filterPillTextActive: {
+    color: StudioColors.ink,
+  },
+  trackTag: {
+    color: StudioColors.textMuted,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
   },
   missionGrid: {
     flexDirection: "row",
