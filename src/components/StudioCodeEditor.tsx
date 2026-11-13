@@ -238,10 +238,12 @@ export default function StudioCodeEditor({
 }: StudioCodeEditorProps) {
   const styles = getStyles();
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
+  const [copiedOutput, setCopiedOutput] = useState<boolean>(false);
   const [confirmReset, setConfirmReset] = useState<boolean>(false);
   const [consoleExpanded, setConsoleExpanded] = useState<boolean>(false);
   const [cursorPos, setCursorPos] = useState<number>(0);
   const [hoveredChip, setHoveredChip] = useState<string | null>(null);
+  const [hoveredTestIdx, setHoveredTestIdx] = useState<number | null>(null);
   const inputRef = useRef<any>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<{ start: number; end: number }>({
@@ -357,6 +359,35 @@ export default function StudioCodeEditor({
     } catch {
       setCopiedCode(false);
     }
+  }
+
+  async function handleCopyOutput() {
+    if (!output) return;
+    try {
+      if (
+        Platform.OS === "web" &&
+        typeof navigator !== "undefined" &&
+        navigator.clipboard
+      ) {
+        await navigator.clipboard.writeText(output);
+      }
+      playKeyClick();
+      setCopiedOutput(true);
+      setTimeout(() => setCopiedOutput(false), 1800);
+    } catch {
+      setCopiedOutput(false);
+    }
+  }
+
+  function jumpToLine(lineNum: number) {
+    const lines = (code || "").split("\n");
+    const clampedLine = Math.min(Math.max(1, lineNum), lines.length);
+    let offset = 0;
+    for (let i = 0; i < clampedLine - 1; i++) {
+      offset += lines[i].length + 1;
+    }
+    playKeyClick();
+    setCursorAt(offset);
   }
 
   function handleResetPress() {
@@ -804,9 +835,27 @@ export default function StudioCodeEditor({
 
           <View style={styles.bottomRightActions}>
             {bottomTab === "console" && output ? (
-              <Pressable style={styles.clearConsoleBtn} onPress={onClearOutput}>
-                <Text style={styles.clearConsoleText}>CLEAR</Text>
-              </Pressable>
+              <>
+                <Pressable
+                  style={styles.clearConsoleBtn}
+                  onPress={handleCopyOutput}
+                >
+                  <Text
+                    style={[
+                      styles.clearConsoleText,
+                      copiedOutput && { color: StudioColors.lime },
+                    ]}
+                  >
+                    {copiedOutput ? "✓ COPIED" : "COPY"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={styles.clearConsoleBtn}
+                  onPress={onClearOutput}
+                >
+                  <Text style={styles.clearConsoleText}>CLEAR</Text>
+                </Pressable>
+              </>
             ) : null}
             <Pressable
               style={styles.clearConsoleBtn}
@@ -838,11 +887,16 @@ export default function StudioCodeEditor({
                           </Text>
                         </View>
                         {beginnerHint.lineNumber !== null && (
-                          <View style={styles.byteCatLinePill}>
+                          <Pressable
+                            style={styles.byteCatLinePill}
+                            onPress={() =>
+                              jumpToLine(beginnerHint.lineNumber!)
+                            }
+                          >
                             <Text style={styles.byteCatLinePillText}>
-                              CHECK LINE {beginnerHint.lineNumber}
+                              JUMP TO LINE {beginnerHint.lineNumber} →
                             </Text>
-                          </View>
+                          </Pressable>
                         )}
                       </View>
                       <Text style={styles.byteCatErrorWhat}>
@@ -857,7 +911,51 @@ export default function StudioCodeEditor({
                     </View>
                   );
                 })()}
-                <Text style={styles.terminalText}>{output}</Text>
+                {(() => {
+                  const isRunningMsg =
+                    output.startsWith("Running code") ||
+                    output.startsWith("Running verification");
+                  const isErrorMsg =
+                    !isRunningMsg &&
+                    /(Error|Traceback|Exception|✕)/i.test(output);
+                  return (
+                    <View
+                      style={[
+                        styles.terminalCard,
+                        isErrorMsg && styles.terminalCardError,
+                        isRunningMsg && styles.terminalCardRunning,
+                      ]}
+                    >
+                      <View style={styles.terminalCardHeader}>
+                        <Text
+                          style={[
+                            styles.terminalStatusPill,
+                            isErrorMsg
+                              ? styles.terminalStatusError
+                              : isRunningMsg
+                                ? styles.terminalStatusRunning
+                                : styles.terminalStatusOk,
+                          ]}
+                        >
+                          {isErrorMsg
+                            ? "✕ ERROR"
+                            : isRunningMsg
+                              ? "◉ RUNNING"
+                              : "› STDOUT"}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.terminalText,
+                          isErrorMsg && styles.terminalTextError,
+                          isRunningMsg && styles.terminalTextRunning,
+                        ]}
+                      >
+                        {output}
+                      </Text>
+                    </View>
+                  );
+                })()}
               </View>
             ) : (
               <View style={styles.emptyConsoleBox}>
@@ -865,9 +963,20 @@ export default function StudioCodeEditor({
                   &gt;&gt;&gt; READY TO RUN
                 </Text>
                 <Text style={styles.emptyConsoleHint}>
-                  Click &quot;▶ TEST RUN&quot; to see your print() output, or
+                  Click &quot;▶ TEST RUN&quot; to preview your print() output, or
                   &quot;SUBMIT CODE (+50 XP)&quot; to grade your solution.
                 </Text>
+                {selectedLesson.expected_output ? (
+                  <View style={styles.targetPreviewPill}>
+                    <Text style={styles.targetPreviewLabel}>TARGET</Text>
+                    <Text
+                      style={styles.targetPreviewValue}
+                      numberOfLines={1}
+                    >
+                      {selectedLesson.expected_output.split("\n")[0]}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             )
           ) : testResults ? (
@@ -898,9 +1007,16 @@ export default function StudioCodeEditor({
                 {testResults.map((tr, idx) => (
                   <Pressable
                     key={idx}
+                    onHoverIn={() => setHoveredTestIdx(idx)}
+                    onHoverOut={() =>
+                      setHoveredTestIdx((prev) => (prev === idx ? null : prev))
+                    }
                     style={[
                       styles.testPill,
                       selectedTestIndex === idx && styles.activeTestPill,
+                      hoveredTestIdx === idx &&
+                        selectedTestIndex !== idx &&
+                        styles.testPillHovered,
                     ]}
                     onPress={() => onSelectTestIndex(idx)}
                   >
@@ -948,7 +1064,18 @@ export default function StudioCodeEditor({
                     </View>
 
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.testHeader}>YOUR OUTPUT</Text>
+                      <Text
+                        style={[
+                          styles.testHeader,
+                          testResults[selectedTestIndex].passed
+                            ? { color: StudioColors.lime }
+                            : { color: StudioColors.coral },
+                        ]}
+                      >
+                        {testResults[selectedTestIndex].passed
+                          ? "YOUR OUTPUT · MATCH ✓"
+                          : "YOUR OUTPUT · MISMATCH"}
+                      </Text>
                       <View
                         style={[
                           styles.testDataBox,
@@ -1406,6 +1533,70 @@ const getStyles = () =>
       fontSize: 12,
       lineHeight: 18,
     },
+    targetPreviewPill: {
+      marginTop: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      alignSelf: "flex-start",
+      backgroundColor: StudioColors.codeSurface,
+      borderWidth: 1,
+      borderColor: StudioColors.codeBorder,
+      borderRadius: 6,
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+      maxWidth: "100%",
+    },
+    targetPreviewLabel: {
+      color: StudioColors.yellow,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.6,
+    },
+    targetPreviewValue: {
+      color: StudioColors.codeText,
+      fontSize: 11,
+      fontFamily: MonoFont,
+      fontWeight: "700",
+      flexShrink: 1,
+    },
+    terminalCard: {
+      backgroundColor: "rgba(184, 255, 59, 0.04)",
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: "rgba(184, 255, 59, 0.25)",
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      gap: 6,
+    },
+    terminalCardError: {
+      backgroundColor: "rgba(255, 107, 107, 0.06)",
+      borderColor: "rgba(255, 107, 107, 0.4)",
+    },
+    terminalCardRunning: {
+      backgroundColor: "rgba(255, 222, 89, 0.05)",
+      borderColor: "rgba(255, 222, 89, 0.35)",
+    },
+    terminalCardHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    terminalStatusPill: {
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.7,
+    },
+    terminalStatusOk: {
+      color: StudioColors.lime,
+    },
+    terminalStatusError: {
+      color: StudioColors.coral,
+    },
+    terminalStatusRunning: {
+      color: StudioColors.yellow,
+    },
     testSummaryBanner: {
       paddingHorizontal: 12,
       paddingVertical: 8,
@@ -1433,6 +1624,12 @@ const getStyles = () =>
       fontSize: 13,
       lineHeight: 20,
     },
+    terminalTextError: {
+      color: "#FCA5A5",
+    },
+    terminalTextRunning: {
+      color: StudioColors.yellow,
+    },
     testCasePills: {
       flexDirection: "row",
       gap: 8,
@@ -1449,7 +1646,11 @@ const getStyles = () =>
       borderRadius: 5,
       borderWidth: 1,
       borderColor: StudioColors.codeBorder,
-      ...Platform.select({ web: { cursor: "pointer" } }),
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    testPillHovered: {
+      backgroundColor: "#262623",
+      borderColor: StudioColors.yellow,
     },
     activeTestPill: {
       backgroundColor: "#2E2E2A",
@@ -1525,9 +1726,10 @@ const getStyles = () =>
     },
     byteCatLinePill: {
       backgroundColor: StudioColors.coral,
-      paddingHorizontal: 7,
-      paddingVertical: 2.5,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
       borderRadius: 5,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     byteCatLinePillText: {
       color: StudioColors.ink,
