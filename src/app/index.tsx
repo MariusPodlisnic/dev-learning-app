@@ -162,7 +162,7 @@ export default function HomeScreen() {
   const isDevMode = typeof __DEV__ !== "undefined" && __DEV__;
   const [devProOverride, setDevProOverride] = useState<boolean | null>(null);
   const effectiveIsPremium = isDevMode ? (devProOverride ?? true) : isPremium;
-  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authDefaultMode, setAuthDefaultMode] = useState<"signup" | "signin">(
     "signin",
@@ -289,7 +289,7 @@ export default function HomeScreen() {
       ? (savedState.devProOverride ?? true)
       : false;
     const initialTheme: ThemeMode =
-      savedState.themeMode === "dark" ? "dark" : "light";
+      savedState.themeMode === "light" ? "light" : "dark";
     setThemeMode(initialTheme);
     applyColorTheme(initialTheme);
 

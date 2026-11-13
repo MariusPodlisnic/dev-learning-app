@@ -18,7 +18,7 @@ export default function Root({ children }: PropsWithChildren) {
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
 
-        <meta name="theme-color" content="#F4F0E6" />
+        <meta name="theme-color" content="#111217" />
         <meta name="application-name" content="DevLearn Arcade" />
         <meta
           name="keywords"

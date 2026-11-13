@@ -178,6 +178,7 @@ function TraceSignalPulse({
 type PulseViaNodeProps = {
   style: object;
   accentColor: string;
+  viaBorderColor?: string;
   delayMs: number;
   reduceMotion: boolean;
 };
@@ -185,6 +186,7 @@ type PulseViaNodeProps = {
 function PulseViaNode({
   style,
   accentColor,
+  viaBorderColor,
   delayMs,
   reduceMotion,
 }: PulseViaNodeProps) {
@@ -226,7 +228,13 @@ function PulseViaNode({
   });
 
   return (
-    <View style={[styles.viaNode, style]}>
+    <View
+      style={[
+        styles.viaNode,
+        viaBorderColor ? { borderColor: viaBorderColor } : null,
+        style,
+      ]}
+    >
       {!reduceMotion && (
         <Animated.View
           style={[
@@ -327,12 +335,14 @@ const FLOATING_GLYPHS: FloatingGlyphConfig[] = [
 function FloatingCodeGlyph({
   config,
   accentColor,
+  signalColor,
   textColor,
   isDark,
   reduceMotion,
 }: {
   config: FloatingGlyphConfig;
   accentColor: string;
+  signalColor: string;
   textColor: string;
   isDark: boolean;
   reduceMotion: boolean;
@@ -372,10 +382,10 @@ function FloatingCodeGlyph({
   const opacity = reduceMotion
     ? isDark
       ? 0.22
-      : 0.26
+      : 0.42
     : floatAnim.interpolate({
         inputRange: [0, 0.5, 1],
-        outputRange: isDark ? [0.12, 0.34, 0.14] : [0.16, 0.38, 0.18],
+        outputRange: isDark ? [0.12, 0.34, 0.14] : [0.28, 0.56, 0.3],
       });
 
   const posStyle =
@@ -383,14 +393,20 @@ function FloatingCodeGlyph({
       ? { left: config.insetX, top: config.topPct }
       : { right: config.insetX, top: config.topPct };
 
-  const pillBorder =
-    config.tint === "accent"
-      ? hexToRgba(accentColor, isDark ? 0.5 : 0.65)
-      : hexToRgba(textColor, isDark ? 0.22 : 0.18);
-  const pillBg =
-    config.tint === "accent"
-      ? hexToRgba(accentColor, isDark ? 0.1 : 0.18)
-      : hexToRgba(textColor, isDark ? 0.05 : 0.04);
+  const pillBorder = isDark
+    ? config.tint === "accent"
+      ? hexToRgba(accentColor, 0.5)
+      : hexToRgba(textColor, 0.22)
+    : config.tint === "accent"
+      ? hexToRgba(signalColor, 0.48)
+      : hexToRgba(textColor, 0.22);
+  const pillBg = isDark
+    ? config.tint === "accent"
+      ? hexToRgba(accentColor, 0.1)
+      : hexToRgba(textColor, 0.05)
+    : config.tint === "accent"
+      ? hexToRgba(accentColor, 0.18)
+      : "rgba(255, 255, 255, 0.55)";
 
   return (
     <Animated.View
@@ -408,13 +424,120 @@ function FloatingCodeGlyph({
       <Text
         style={[
           styles.glyphText,
-          { color: config.tint === "accent" && isDark ? accentColor : textColor },
+          {
+            color:
+              config.tint === "accent"
+                ? isDark
+                  ? accentColor
+                  : signalColor
+                : textColor,
+          },
         ]}
       >
         {config.label}
       </Text>
     </Animated.View>
   );
+}
+
+function resolveBackdropPalette(
+  accentColor: string,
+  isDark: boolean,
+  bloomIntensity: number,
+) {
+  const upper = accentColor.toUpperCase();
+
+  // Keep Dark ("black") mode unchanged as requested
+  if (isDark) {
+    const secondary =
+      upper === "#6EE7B7"
+        ? "#C4B5FD"
+        : upper === "#C4B5FD"
+          ? "#6EE7B7"
+          : "#6EE7B7";
+    return {
+      primaryBloom: accentColor,
+      secondaryBloom: secondary,
+      primarySignal: accentColor,
+      secondarySignal: secondary,
+      primaryGlowAlpha: 0.16 * bloomIntensity,
+      secondaryGlowAlpha: 0.13 * bloomIntensity,
+      dotColor: "rgba(244, 240, 230, 0.085)",
+      traceColor: StudioColors.borderSubtle,
+      pcbOpacity: 0.72,
+    };
+  }
+
+  // Light Mode ("Warm Cream Arcade"): rich, saturated studio tones with crisp contrast
+  if (upper === "#C4B5FD") {
+    // Algorithms track
+    return {
+      primaryBloom: "#8B5CF6",
+      secondaryBloom: "#EC4899",
+      primarySignal: "#7C3AED",
+      secondarySignal: "#DB2777",
+      primaryGlowAlpha: 0.24 * bloomIntensity,
+      secondaryGlowAlpha: 0.18 * bloomIntensity,
+      dotColor: "rgba(17, 17, 17, 0.11)",
+      traceColor: "#BDB39E",
+      pcbOpacity: 0.88,
+    };
+  }
+  if (upper === "#6EE7B7") {
+    // System Architecture track
+    return {
+      primaryBloom: "#10B981",
+      secondaryBloom: "#3B82F6",
+      primarySignal: "#059669",
+      secondarySignal: "#2563EB",
+      primaryGlowAlpha: 0.23 * bloomIntensity,
+      secondaryGlowAlpha: 0.18 * bloomIntensity,
+      dotColor: "rgba(17, 17, 17, 0.11)",
+      traceColor: "#BDB39E",
+      pcbOpacity: 0.88,
+    };
+  }
+  if (upper === "#FF6B6B") {
+    // Bug Hunt arena
+    return {
+      primaryBloom: "#F43F5E",
+      secondaryBloom: "#F59E0B",
+      primarySignal: "#E11D48",
+      secondarySignal: "#D97706",
+      primaryGlowAlpha: 0.24 * bloomIntensity,
+      secondaryGlowAlpha: 0.18 * bloomIntensity,
+      dotColor: "rgba(17, 17, 17, 0.11)",
+      traceColor: "#BDB39E",
+      pcbOpacity: 0.88,
+    };
+  }
+  if (upper === "#B8FF3B") {
+    // Syntax Blitz arena
+    return {
+      primaryBloom: "#22C55E",
+      secondaryBloom: "#0EA5E9",
+      primarySignal: "#16A34A",
+      secondarySignal: "#0284C7",
+      primaryGlowAlpha: 0.23 * bloomIntensity,
+      secondaryGlowAlpha: 0.18 * bloomIntensity,
+      dotColor: "rgba(17, 17, 17, 0.11)",
+      traceColor: "#BDB39E",
+      pcbOpacity: 0.88,
+    };
+  }
+
+  // Python Foundations (#FFDE59) & default: warm golden amber + crisp studio sky blue
+  return {
+    primaryBloom: "#F59E0B",
+    secondaryBloom: "#0EA5E9",
+    primarySignal: "#EA580C",
+    secondarySignal: "#0284C7",
+    primaryGlowAlpha: 0.25 * bloomIntensity,
+    secondaryGlowAlpha: 0.19 * bloomIntensity,
+    dotColor: "rgba(17, 17, 17, 0.11)",
+    traceColor: "#BDB39E",
+    pcbOpacity: 0.88,
+  };
 }
 
 const emptySubscribe = () => () => {};
@@ -429,7 +552,7 @@ const getServerHydrated = () => false;
  */
 export default function MinimalPcbBackground({
   accentColor = StudioColors.yellow,
-  themeMode = "light",
+  themeMode = "dark",
   variant = "roadmap",
 }: MinimalPcbBackgroundProps) {
   const isHydrated = useSyncExternalStore(
@@ -560,12 +683,11 @@ export default function MinimalPcbBackground({
     };
   }, [parallaxX, parallaxY, reduceMotion]);
 
-  const secondaryAccent = useMemo(() => {
-    const upper = accentColor.toUpperCase();
-    if (upper === "#6EE7B7") return "#C4B5FD"; // Mint -> Violet complement
-    if (upper === "#C4B5FD") return "#6EE7B7"; // Violet -> Mint complement
-    return "#6EE7B7"; // Yellow -> Mint complement
-  }, [accentColor]);
+  const bloomIntensity = variant === "studio" ? 0.55 : 1;
+  const backdrop = useMemo(
+    () => resolveBackdropPalette(accentColor, isDark, bloomIntensity),
+    [accentColor, isDark, bloomIntensity],
+  );
 
   const primaryOrbDriftY = glowPulse.interpolate({
     inputRange: [0, 1],
@@ -592,17 +714,18 @@ export default function MinimalPcbBackground({
     outputRange: [10, -10],
   });
 
-  const bloomIntensity = variant === "studio" ? 0.55 : 1;
-  const primaryGlowAlpha = (isDark ? 0.16 : 0.24) * bloomIntensity;
-  const secondaryGlowAlpha = (isDark ? 0.13 : 0.19) * bloomIntensity;
+  const webLightPaperWashStyle =
+    Platform.OS === "web" && !isDark
+      ? ({
+          backgroundImage:
+            "linear-gradient(145deg, rgba(255, 252, 245, 0.72) 0%, rgba(244, 240, 230, 0.08) 50%, rgba(230, 222, 202, 0.52) 100%)",
+        } as any)
+      : null;
 
-  const dotColor = isDark
-    ? "rgba(244, 240, 230, 0.085)"
-    : "rgba(17, 17, 17, 0.075)";
   const webDotMatrixStyle =
     Platform.OS === "web"
       ? ({
-          backgroundImage: `radial-gradient(${dotColor} 1.25px, transparent 1.25px)`,
+          backgroundImage: `radial-gradient(${backdrop.dotColor} 1.25px, transparent 1.25px)`,
           backgroundSize: "26px 26px",
         } as any)
       : null;
@@ -611,28 +734,42 @@ export default function MinimalPcbBackground({
     Platform.OS === "web"
       ? ({
           backgroundImage: `radial-gradient(circle, ${hexToRgba(
-            accentColor,
-            primaryGlowAlpha,
-          )} 0%, ${hexToRgba(accentColor, primaryGlowAlpha * 0.32)} 42%, transparent 72%)`,
+            backdrop.primaryBloom,
+            backdrop.primaryGlowAlpha,
+          )} 0%, ${hexToRgba(backdrop.primaryBloom, backdrop.primaryGlowAlpha * 0.34)} 44%, transparent 72%)`,
         } as any)
       : {
-          backgroundColor: hexToRgba(accentColor, primaryGlowAlpha * 0.48),
+          backgroundColor: hexToRgba(
+            backdrop.primaryBloom,
+            backdrop.primaryGlowAlpha * 0.48,
+          ),
         };
 
   const secondaryBloomWebStyle =
     Platform.OS === "web"
       ? ({
           backgroundImage: `radial-gradient(circle, ${hexToRgba(
-            secondaryAccent,
-            secondaryGlowAlpha,
-          )} 0%, ${hexToRgba(secondaryAccent, secondaryGlowAlpha * 0.3)} 42%, transparent 72%)`,
+            backdrop.secondaryBloom,
+            backdrop.secondaryGlowAlpha,
+          )} 0%, ${hexToRgba(backdrop.secondaryBloom, backdrop.secondaryGlowAlpha * 0.32)} 44%, transparent 72%)`,
         } as any)
       : {
-          backgroundColor: hexToRgba(secondaryAccent, secondaryGlowAlpha * 0.45),
+          backgroundColor: hexToRgba(
+            backdrop.secondaryBloom,
+            backdrop.secondaryGlowAlpha * 0.45,
+          ),
         };
+
+  const lineColorStyle = { backgroundColor: backdrop.traceColor };
+  const viaBorderStyle = { borderColor: backdrop.traceColor };
 
   return (
     <View style={styles.overlay} pointerEvents="none">
+      {/* 0. Warm Tactile Light-Mode Paper Gradient Wash */}
+      {webLightPaperWashStyle ? (
+        <View style={[styles.fullLayer, webLightPaperWashStyle]} />
+      ) : null}
+
       {/* 1. Architectural Dot-Matrix Surface Grid */}
       {webDotMatrixStyle ? (
         <View style={[styles.dotMatrixLayer, webDotMatrixStyle]} />
@@ -705,7 +842,8 @@ export default function MinimalPcbBackground({
             <FloatingCodeGlyph
               key={glyph.id}
               config={glyph}
-              accentColor={accentColor}
+              accentColor={backdrop.primaryBloom}
+              signalColor={backdrop.primarySignal}
               textColor={palette.textPrimary}
               isDark={isDark}
               reduceMotion={reduceMotion}
@@ -716,28 +854,46 @@ export default function MinimalPcbBackground({
 
       {/* 4. Left & Right PCB Margin Circuit Rails + Live Signal Packets */}
       <View
-        style={[styles.pcbContainer, isCompact && styles.pcbContainerCompact]}
+        style={[
+          styles.pcbContainer,
+          { opacity: isCompact ? 0.28 : backdrop.pcbOpacity },
+        ]}
       >
         {/* Left Outer Margin PCB Traces */}
         <View style={styles.leftRail}>
           {/* Trace 1: Outer long vertical bus with elbow & vias */}
-          <View style={[styles.vLine, { left: 22, top: 48, height: 260 }]} />
+          <View
+            style={[
+              styles.vLine,
+              lineColorStyle,
+              { left: 22, top: 48, height: 260 },
+            ]}
+          />
           <PulseViaNode
             style={{ left: 18.5, top: 42 }}
-            accentColor={accentColor}
+            accentColor={backdrop.primarySignal}
+            viaBorderColor={backdrop.traceColor}
             delayMs={200}
             reduceMotion={reduceMotion}
           />
           <View
             style={[
               styles.diagSegmentDownRight,
+              lineColorStyle,
               { left: 22, top: 306, width: 26 },
             ]}
           />
-          <View style={[styles.vLine, { left: 40, top: 324, height: 180 }]} />
+          <View
+            style={[
+              styles.vLine,
+              lineColorStyle,
+              { left: 40, top: 324, height: 180 },
+            ]}
+          />
           <PulseViaNode
             style={{ left: 36.5, top: 504 }}
-            accentColor={accentColor}
+            accentColor={backdrop.primarySignal}
+            viaBorderColor={backdrop.traceColor}
             delayMs={2400}
             reduceMotion={reduceMotion}
           />
@@ -752,21 +908,38 @@ export default function MinimalPcbBackground({
             durationMs={3400}
             delayMs={300}
             pauseMs={1600}
-            color={accentColor}
+            color={backdrop.primarySignal}
             reduceMotion={reduceMotion}
           />
 
           {/* Trace 2: Inner secondary trace with elbow */}
-          <View style={[styles.vLine, { left: 54, top: 96, height: 130 }]} />
-          <View style={[styles.viaNode, { left: 50.5, top: 90 }]} />
+          <View
+            style={[
+              styles.vLine,
+              lineColorStyle,
+              { left: 54, top: 96, height: 130 },
+            ]}
+          />
+          <View
+            style={[styles.viaNode, viaBorderStyle, { left: 50.5, top: 90 }]}
+          />
           <View
             style={[
               styles.diagSegmentDownRight,
+              lineColorStyle,
               { left: 54, top: 224, width: 22 },
             ]}
           />
-          <View style={[styles.vLine, { left: 70, top: 240, height: 95 }]} />
-          <View style={[styles.viaNode, { left: 66.5, top: 335 }]} />
+          <View
+            style={[
+              styles.vLine,
+              lineColorStyle,
+              { left: 70, top: 240, height: 95 },
+            ]}
+          />
+          <View
+            style={[styles.viaNode, viaBorderStyle, { left: 66.5, top: 335 }]}
+          />
           <TraceSignalPulse
             side="left"
             xOffset={54}
@@ -778,14 +951,24 @@ export default function MinimalPcbBackground({
             durationMs={2600}
             delayMs={1800}
             pauseMs={2200}
-            color={secondaryAccent}
+            color={backdrop.secondarySignal}
             reduceMotion={reduceMotion}
           />
 
           {/* Trace 3: Lower margin return bus */}
-          <View style={[styles.vLine, { left: 24, top: 560, height: 150 }]} />
-          <View style={[styles.viaNode, { left: 20.5, top: 554 }]} />
-          <View style={[styles.viaNode, { left: 20.5, top: 710 }]} />
+          <View
+            style={[
+              styles.vLine,
+              lineColorStyle,
+              { left: 24, top: 560, height: 150 },
+            ]}
+          />
+          <View
+            style={[styles.viaNode, viaBorderStyle, { left: 20.5, top: 554 }]}
+          />
+          <View
+            style={[styles.viaNode, viaBorderStyle, { left: 20.5, top: 710 }]}
+          />
           <TraceSignalPulse
             side="left"
             xOffset={24}
@@ -794,7 +977,7 @@ export default function MinimalPcbBackground({
             durationMs={2200}
             delayMs={1100}
             pauseMs={2400}
-            color={accentColor}
+            color={backdrop.primarySignal}
             reduceMotion={reduceMotion}
           />
         </View>
@@ -802,23 +985,38 @@ export default function MinimalPcbBackground({
         {/* Right Outer Margin PCB Traces (Mirrored) */}
         <View style={styles.rightRail}>
           {/* Trace 1: Outer long vertical bus with elbow & vias */}
-          <View style={[styles.vLine, { right: 22, top: 48, height: 260 }]} />
+          <View
+            style={[
+              styles.vLine,
+              lineColorStyle,
+              { right: 22, top: 48, height: 260 },
+            ]}
+          />
           <PulseViaNode
             style={{ right: 18.5, top: 42 }}
-            accentColor={secondaryAccent}
+            accentColor={backdrop.secondarySignal}
+            viaBorderColor={backdrop.traceColor}
             delayMs={1400}
             reduceMotion={reduceMotion}
           />
           <View
             style={[
               styles.diagSegmentDownLeft,
+              lineColorStyle,
               { right: 22, top: 306, width: 26 },
             ]}
           />
-          <View style={[styles.vLine, { right: 40, top: 324, height: 180 }]} />
+          <View
+            style={[
+              styles.vLine,
+              lineColorStyle,
+              { right: 40, top: 324, height: 180 },
+            ]}
+          />
           <PulseViaNode
             style={{ right: 36.5, top: 504 }}
-            accentColor={accentColor}
+            accentColor={backdrop.primarySignal}
+            viaBorderColor={backdrop.traceColor}
             delayMs={3400}
             reduceMotion={reduceMotion}
           />
@@ -833,21 +1031,38 @@ export default function MinimalPcbBackground({
             durationMs={3600}
             delayMs={1500}
             pauseMs={1700}
-            color={secondaryAccent}
+            color={backdrop.secondarySignal}
             reduceMotion={reduceMotion}
           />
 
           {/* Trace 2: Inner secondary trace with elbow */}
-          <View style={[styles.vLine, { right: 54, top: 96, height: 130 }]} />
-          <View style={[styles.viaNode, { right: 50.5, top: 90 }]} />
+          <View
+            style={[
+              styles.vLine,
+              lineColorStyle,
+              { right: 54, top: 96, height: 130 },
+            ]}
+          />
+          <View
+            style={[styles.viaNode, viaBorderStyle, { right: 50.5, top: 90 }]}
+          />
           <View
             style={[
               styles.diagSegmentDownLeft,
+              lineColorStyle,
               { right: 54, top: 224, width: 22 },
             ]}
           />
-          <View style={[styles.vLine, { right: 70, top: 240, height: 95 }]} />
-          <View style={[styles.viaNode, { right: 66.5, top: 335 }]} />
+          <View
+            style={[
+              styles.vLine,
+              lineColorStyle,
+              { right: 70, top: 240, height: 95 },
+            ]}
+          />
+          <View
+            style={[styles.viaNode, viaBorderStyle, { right: 66.5, top: 335 }]}
+          />
           <TraceSignalPulse
             side="right"
             xOffset={54}
@@ -859,14 +1074,24 @@ export default function MinimalPcbBackground({
             durationMs={2500}
             delayMs={700}
             pauseMs={2300}
-            color={accentColor}
+            color={backdrop.primarySignal}
             reduceMotion={reduceMotion}
           />
 
           {/* Trace 3: Lower margin return bus */}
-          <View style={[styles.vLine, { right: 24, top: 560, height: 150 }]} />
-          <View style={[styles.viaNode, { right: 20.5, top: 554 }]} />
-          <View style={[styles.viaNode, { right: 20.5, top: 710 }]} />
+          <View
+            style={[
+              styles.vLine,
+              lineColorStyle,
+              { right: 24, top: 560, height: 150 },
+            ]}
+          />
+          <View
+            style={[styles.viaNode, viaBorderStyle, { right: 20.5, top: 554 }]}
+          />
+          <View
+            style={[styles.viaNode, viaBorderStyle, { right: 20.5, top: 710 }]}
+          />
           <TraceSignalPulse
             side="right"
             xOffset={24}
@@ -875,7 +1100,7 @@ export default function MinimalPcbBackground({
             durationMs={2300}
             delayMs={2400}
             pauseMs={2100}
-            color={secondaryAccent}
+            color={backdrop.secondarySignal}
             reduceMotion={reduceMotion}
           />
         </View>
@@ -951,9 +1176,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     opacity: 0.72,
-  },
-  pcbContainerCompact: {
-    opacity: 0.28,
   },
   leftRail: {
     position: "absolute",

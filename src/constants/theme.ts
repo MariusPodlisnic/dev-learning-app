@@ -104,14 +104,14 @@ export function applyColorTheme(mode: ThemeMode) {
 const isWeb = Platform.OS === 'web';
 
 export const StudioColors = {
-  // Dynamic Theme Surfaces (automatically switch between Warm Cream & Midnight Obsidian)
-  bg: isWeb ? 'var(--dl-bg, #F4F0E6)' : '#F4F0E6',
-  surface: isWeb ? 'var(--dl-surface, #FFFFFF)' : '#FFFFFF',
-  surfaceElevated: isWeb ? 'var(--dl-surface-elevated, #EDE7D9)' : '#EDE7D9',
-  surfaceHover: isWeb ? 'var(--dl-surface-hover, #E4DEC9)' : '#E4DEC9',
-  surfaceGlass: 'rgba(255, 255, 255, 0.95)',
-  cardDoneBg: isWeb ? 'var(--dl-card-done-bg, #F4FFF8)' : '#F4FFF8',
-  cardLockedBg: isWeb ? 'var(--dl-card-locked-bg, #E6E0D0)' : '#E6E0D0',
+  // Dynamic Theme Surfaces (default to Midnight Obsidian Dark, switchable to Warm Cream)
+  bg: isWeb ? 'var(--dl-bg, #111217)' : '#111217',
+  surface: isWeb ? 'var(--dl-surface, #1B1D24)' : '#1B1D24',
+  surfaceElevated: isWeb ? 'var(--dl-surface-elevated, #252833)' : '#252833',
+  surfaceHover: isWeb ? 'var(--dl-surface-hover, #2E3240)' : '#2E3240',
+  surfaceGlass: 'rgba(27, 29, 36, 0.95)',
+  cardDoneBg: isWeb ? 'var(--dl-card-done-bg, #162621)' : '#162621',
+  cardLockedBg: isWeb ? 'var(--dl-card-locked-bg, #16171D)' : '#16171D',
 
   // Constant Jet Black Ink (for text/borders on bright neon stickers & buttons)
   ink: '#111111',
@@ -124,16 +124,16 @@ export const StudioColors = {
   codeMuted: '#8E8B82',
 
   // Crisp Neo-Brutalist Borders
-  border: isWeb ? 'var(--dl-border, #111111)' : '#111111',
-  borderSubtle: isWeb ? 'var(--dl-border-subtle, #D5CFC0)' : '#D5CFC0',
-  borderStrong: isWeb ? 'var(--dl-border, #111111)' : '#111111',
-  inkShadow: isWeb ? 'var(--dl-ink-shadow, #111111)' : '#111111',
+  border: isWeb ? 'var(--dl-border, #484D62)' : '#484D62',
+  borderSubtle: isWeb ? 'var(--dl-border-subtle, #2C2F3E)' : '#2C2F3E',
+  borderStrong: isWeb ? 'var(--dl-border, #484D62)' : '#484D62',
+  inkShadow: isWeb ? 'var(--dl-ink-shadow, #000000)' : '#000000',
 
   // High-Contrast Typography on Surfaces
-  textPrimary: isWeb ? 'var(--dl-text-primary, #111111)' : '#111111',
-  textSecondary: isWeb ? 'var(--dl-text-secondary, #38352F)' : '#38352F',
-  textMuted: isWeb ? 'var(--dl-text-muted, #686359)' : '#686359',
-  textDim: isWeb ? 'var(--dl-text-dim, #8C8579)' : '#8C8579',
+  textPrimary: isWeb ? 'var(--dl-text-primary, #F4F0E6)' : '#F4F0E6',
+  textSecondary: isWeb ? 'var(--dl-text-secondary, #B9B5AC)' : '#B9B5AC',
+  textMuted: isWeb ? 'var(--dl-text-muted, #8B877E)' : '#8B877E',
+  textDim: isWeb ? 'var(--dl-text-dim, #68655E)' : '#68655E',
 
   // Tactile Sticker & Button Accents
   lime: '#B8FF3B',
@@ -267,19 +267,19 @@ export const SerifFont =
 
 export const HardShadowHero =
   Platform.select({
-    web: { boxShadow: '5px 5px 0px var(--dl-ink-shadow, #111111)' } as any,
+    web: { boxShadow: '5px 5px 0px var(--dl-ink-shadow, #000000)' } as any,
     default: {},
   }) || {};
 
 export const HardShadow =
   Platform.select({
-    web: { boxShadow: '4px 4px 0px var(--dl-ink-shadow, #111111)' } as any,
+    web: { boxShadow: '4px 4px 0px var(--dl-ink-shadow, #000000)' } as any,
     default: {},
   }) || {};
 
 export const HardShadowSm =
   Platform.select({
-    web: { boxShadow: '2px 2px 0px var(--dl-ink-shadow, #111111)' } as any,
+    web: { boxShadow: '2px 2px 0px var(--dl-ink-shadow, #000000)' } as any,
     default: {},
   }) || {};
 
