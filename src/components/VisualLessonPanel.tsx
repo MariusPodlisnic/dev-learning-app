@@ -4,361 +4,497 @@ import {
   HardShadow,
   HardShadowSm,
   MonoFont,
-  SerifFont,
   StudioColors,
 } from "../constants/theme";
+import { Lesson, TestCaseResult } from "../types/lesson";
+import { playKeyClick } from "../utils/soundEffects";
 
-interface MemoryItem {
+interface TraceItem {
   label: string;
   value: string;
-  type: string;
-  address: string;
+  type?: string;
+  address?: string;
 }
 
 interface VisualLessonPanelProps {
   type: string;
   data: any;
+  lesson?: Lesson;
+  testResults?: TestCaseResult[] | null;
+}
+
+function getTraceMeta(type: string) {
+  if (type === "memory") {
+    return {
+      badge: "VARIABLE MAP",
+      title: "HOW VALUES ARE STORED",
+      guide:
+        "Each row shows a variable or expression on the left and the value it holds on the right. Tap any row or use Step Next ▶.",
+      leftHeader: "NAME / INPUT",
+      rightHeader: "STORED VALUE",
+    };
+  }
+  if (type === "hashmap") {
+    return {
+      badge: "KEY → VALUE TRACE",
+      title: "LOOKUP & MAPPING TRACE",
+      guide:
+        "Follow each step in order to see how items are checked, grouped, or stored for instant O(1) lookup.",
+      leftHeader: "KEY / INPUT",
+      rightHeader: "UPDATE / RESULT",
+    };
+  }
+  return {
+    badge: "STEP-BY-STEP TRACE",
+    title: "EXECUTION WALKTHROUGH",
+    guide:
+      "Follow how the logic progresses from Step 1 to the final answer. Past steps show ✓ so you can track what already ran.",
+    leftHeader: "STEP INPUT",
+    rightHeader: "WHAT HAPPENS",
+  };
+}
+
+function isHexAddress(addr?: string): boolean {
+  return Boolean(addr && /^0x[0-9a-f]+$/i.test(addr.trim()));
+}
+
+function buildBeginnerTakeaway(
+  type: string,
+  item: TraceItem,
+  stepNum: number,
+): string {
+  if (type === "memory") {
+    if (isHexAddress(item.address)) {
+      return `Python stores ${item.value}${item.type ? ` (${item.type})` : ""} at memory slot ${item.address} and binds "${item.label}" to it.`;
+    }
+    return `Here "${item.label}" evaluates to ${item.value}${item.type ? ` (${item.type})` : ""}.`;
+  }
+  if (type === "hashmap") {
+    return `Checking "${item.label}" updates the state: ${item.value}.`;
+  }
+  return `At step ${stepNum} (${item.label}), the program computes: ${item.value}.`;
 }
 
 export default function VisualLessonPanel({
   type,
   data,
+  lesson,
+  testResults,
 }: VisualLessonPanelProps) {
-  const [activeIndex, setActiveIndex] = useState<number>(0);
-  const [selectedMemoryIndex, setSelectedMemoryIndex] = useState<number>(0);
+  const [stepIndex, setStepIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [fastSpeed, setFastSpeed] = useState<boolean>(false);
 
-  useEffect(() => {
-    setActiveIndex(0);
-    setSelectedMemoryIndex(0);
-    setIsPlaying(false);
-  }, [data, type]);
-
-  const itemCount = Array.isArray(data) ? data.length : 0;
+  const hasTraceData = Array.isArray(data) && data.length > 0;
+  const safeData: TraceItem[] = hasTraceData ? data : [];
+  const itemCount = safeData.length;
+  const safeStepIndex = itemCount > 0 ? Math.min(stepIndex, itemCount - 1) : 0;
+  const currentItem = safeData[safeStepIndex];
+  const meta = getTraceMeta(type);
 
   useEffect(() => {
     if (!isPlaying || itemCount <= 1) return;
-    const intervalMs = fastSpeed ? 900 : 1600;
+    const intervalMs = fastSpeed ? 900 : 1700;
     const timer = setInterval(() => {
-      if (type === "memory") {
-        setSelectedMemoryIndex((prev) => (prev + 1) % itemCount);
-      } else {
-        setActiveIndex((prev) => (prev + 1) % itemCount);
-      }
+      setStepIndex((prev) => (prev + 1) % itemCount);
     }, intervalMs);
-
     return () => clearInterval(timer);
-  }, [isPlaying, fastSpeed, itemCount, type]);
+  }, [isPlaying, fastSpeed, itemCount]);
 
-  if (!data || !Array.isArray(data) || data.length === 0) {
+  function handleSelectStep(idx: number) {
+    playKeyClick();
+    setIsPlaying(false);
+    setStepIndex(idx);
+  }
+
+  function handleNextStep() {
+    if (!hasTraceData) return;
+    playKeyClick();
+    setIsPlaying(false);
+    setStepIndex((prev) => (prev + 1) % safeData.length);
+  }
+
+  function handlePrevStep() {
+    if (!hasTraceData) return;
+    playKeyClick();
+    setIsPlaying(false);
+    setStepIndex((prev) => (prev - 1 + safeData.length) % safeData.length);
+  }
+
+  const runtimeTraceCard =
+    testResults && testResults.length > 0 ? (
+      <View style={styles.runtimeCard}>
+        <View style={styles.runtimeHeader}>
+          <Text style={styles.runtimeTitle}>🧪 LIVE RUNTIME TEST TRACE</Text>
+          <Text style={styles.runtimeSummary}>
+            {testResults.filter((t) => t.passed).length}/{testResults.length}{" "}
+            PASSED
+          </Text>
+        </View>
+        {testResults.slice(0, 4).map((t) => (
+          <View key={t.id} style={styles.runtimeRow}>
+            <Text
+              style={[
+                styles.runtimeStatus,
+                {
+                  backgroundColor: t.passed
+                    ? StudioColors.mint
+                    : StudioColors.coral,
+                },
+              ]}
+            >
+              {t.passed ? "PASS" : "FAIL"}
+            </Text>
+            <View style={styles.runtimeInfo}>
+              <Text style={styles.runtimeInput} numberOfLines={1}>
+                {t.input}
+              </Text>
+              <Text style={styles.runtimeOutput} numberOfLines={1}>
+                actual: {t.actual} · expected: {t.expected}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    ) : null;
+
+  if (!hasTraceData) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>[MEM // 00]</Text>
-        <Text style={styles.emptyTitle}>Interactive Memory Visualizer</Text>
-        <Text style={styles.emptyDesc}>
-          Run your code in the studio editor to inspect output and verify how
-          variables and data structures behave at runtime.
-        </Text>
+      <View>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>[TRACE // 00]</Text>
+          <Text style={styles.emptyTitle}>Step-by-Step Trace Inspector</Text>
+          <Text style={styles.emptyDesc}>
+            Run your code in the editor to inspect actual outputs vs expected
+            results for every test case.
+          </Text>
+        </View>
+        {runtimeTraceCard}
       </View>
     );
   }
 
-  const safeMemoryIndex =
-    selectedMemoryIndex < data.length ? selectedMemoryIndex : 0;
-  const safeActiveIndex = activeIndex < data.length ? activeIndex : 0;
-  const currentStepIndex =
-    type === "memory" ? safeMemoryIndex : safeActiveIndex;
-
-  function handleSelectStep(idx: number) {
-    setIsPlaying(false);
-    if (type === "memory") {
-      setSelectedMemoryIndex(idx);
-    } else {
-      setActiveIndex(idx);
-    }
-  }
-
-  function handleNextStep() {
-    setIsPlaying(false);
-    if (type === "memory") {
-      setSelectedMemoryIndex((prev) => (prev + 1) % data.length);
-    } else {
-      setActiveIndex((prev) => (prev + 1) % data.length);
-    }
-  }
-
-  function handlePrevStep() {
-    setIsPlaying(false);
-    if (type === "memory") {
-      setSelectedMemoryIndex((prev) => (prev - 1 + data.length) % data.length);
-    } else {
-      setActiveIndex((prev) => (prev - 1 + data.length) % data.length);
-    }
-  }
-
   return (
-    <View style={styles.container}>
-      {/* Top Visualizer Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View
-            style={[
-              styles.liveDot,
-              isPlaying && { backgroundColor: StudioColors.amber },
-            ]}
-          />
-          <Text style={styles.title}>MEMORY & EXECUTION INSPECTOR</Text>
-          {isPlaying && (
-            <View style={styles.playingPill}>
-              <Text style={styles.playingPillText}>LIVE TRACE</Text>
+    <View>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View
+              style={[
+                styles.liveDot,
+                isPlaying && { backgroundColor: StudioColors.amber },
+              ]}
+            />
+            <View style={styles.headerTitleGroup}>
+              <Text style={styles.title}>{meta.title}</Text>
+              {lesson?.title ? (
+                <Text style={styles.lessonContext} numberOfLines={1}>
+                  {lesson.title}
+                </Text>
+              ) : null}
             </View>
-          )}
-        </View>
-        <View style={styles.modeBadge}>
-          <Text style={styles.modeBadgeText}>
-            {type === "memory"
-              ? "RAM STACK / HEAP"
-              : type === "hashmap"
-                ? "HASH TABLE O(1)"
-                : "ARRAY POINTER"}
-          </Text>
-        </View>
-      </View>
-
-      {/* Unified Controls Bar across all visual modes */}
-      <View style={styles.controlsBar}>
-        <View style={styles.controlsLeft}>
-          <Text style={styles.arrayLabel}>
-            {type === "memory"
-              ? `ACTIVE BINDING: ${data[safeMemoryIndex]?.label || ""}`
-              : type === "hashmap"
-                ? "KEY-VALUE BUCKETS"
-                : `POINTER AT INDEX [${safeActiveIndex}]`}
-          </Text>
-          <View style={styles.stepDotsRow}>
-            {data.map((_: any, i: number) => (
-              <Pressable
-                key={i}
-                style={[
-                  styles.stepDot,
-                  i === currentStepIndex && styles.stepDotActive,
-                ]}
-                onPress={() => handleSelectStep(i)}
-              />
-            ))}
+          </View>
+          <View style={styles.modeBadge}>
+            <Text style={styles.modeBadgeText}>{meta.badge}</Text>
           </View>
         </View>
 
-        <View style={styles.stepperBtns}>
-          {data.length > 1 && (
-            <>
-              <Pressable
-                style={[
-                  styles.speedBtn,
-                  fastSpeed && styles.speedBtnActive,
-                ]}
-                onPress={() => setFastSpeed((prev) => !prev)}
-              >
-                <Text
-                  style={[
-                    styles.speedBtnText,
-                    fastSpeed && styles.speedBtnTextActive,
-                  ]}
-                >
-                  {fastSpeed ? "2x" : "1x"}
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.stepBtn,
-                  isPlaying && styles.autoPlayBtnActive,
-                ]}
-                onPress={() => setIsPlaying((prev) => !prev)}
-              >
-                <Text
-                  style={[
-                    styles.stepBtnText,
-                    isPlaying && styles.autoPlayBtnTextActive,
-                  ]}
-                >
-                  {isPlaying ? "⏸ Pause" : "▶ Auto-Play"}
-                </Text>
-              </Pressable>
-            </>
-          )}
-          <Pressable style={styles.stepBtn} onPress={handlePrevStep}>
-            <Text style={styles.stepBtnText}>◀ Prev</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.stepBtn, styles.stepBtnPrimary]}
-            onPress={handleNextStep}
-          >
-            <Text style={styles.stepBtnTextPrimary}>Step Next ▶</Text>
-          </Pressable>
+        {/* Beginner Friendly Guide Banner */}
+        <View style={styles.beginnerBanner}>
+          <Text style={styles.beginnerBannerLabel}>HOW TO READ THIS TRACE</Text>
+          <Text style={styles.beginnerBannerText}>{meta.guide}</Text>
         </View>
-      </View>
 
-      {/* MEMORY MODE (Stack -> Heap) */}
-      {type === "memory" && (
-        <View style={styles.diagramContainer}>
-          <View style={styles.columnLabelsRow}>
-            <Text style={styles.columnHeaderLabel}>STACK FRAME (NAMES)</Text>
-            <Text style={styles.columnHeaderLabel}>REFERENCE</Text>
-            <Text style={styles.columnHeaderLabel}>HEAP OBJECTS (RAM)</Text>
-          </View>
-
-          {data.map((item: MemoryItem, idx: number) => {
-            const isSelected = safeMemoryIndex === idx;
-            return (
-              <Pressable
-                key={idx}
-                style={[styles.memoryRow, isSelected && styles.memoryRowActive]}
-                onPress={() => handleSelectStep(idx)}
-              >
-                <View
-                  style={[styles.stackBox, isSelected && styles.stackBoxActive]}
-                >
-                  <Text style={styles.stackLabel}>IDENTIFIER</Text>
-                  <Text style={styles.varName} numberOfLines={1}>
-                    {item.label}
-                  </Text>
-                </View>
-
-                <View style={styles.dataBus}>
-                  <View
-                    style={[styles.busDot, isSelected && styles.busDotActive]}
-                  />
-                  <View
-                    style={[styles.busLine, isSelected && styles.busLineActive]}
-                  />
-                  <Text
-                    style={[styles.busIcon, isSelected && styles.busIconActive]}
+        {/* Step Controls & Numbered Timeline */}
+        <View style={styles.controlsBar}>
+          <View style={styles.controlsLeft}>
+            <Text style={styles.stepCounterLabel}>
+              STEP {safeStepIndex + 1} OF {safeData.length}
+            </Text>
+            <View style={styles.stepPillsRow}>
+              {safeData.map((_, i) => {
+                const isCurrent = i === safeStepIndex;
+                const isPast = i < safeStepIndex;
+                return (
+                  <Pressable
+                    key={i}
+                    style={[
+                      styles.stepNumPill,
+                      isPast && styles.stepNumPillPast,
+                      isCurrent && styles.stepNumPillActive,
+                    ]}
+                    onPress={() => handleSelectStep(i)}
                   >
-                    ▸
-                  </Text>
-                </View>
-
-                <View
-                  style={[styles.heapBox, isSelected && styles.heapBoxActive]}
-                >
-                  <View style={styles.heapHeader}>
-                    <Text style={styles.heapAddress}>{item.address}</Text>
-                    <View style={styles.heapTypePill}>
-                      <Text style={styles.heapType}>{item.type}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.heapValue} numberOfLines={1}>
-                    {item.value}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-
-          {data[safeMemoryIndex] && (
-            <View style={styles.explainerCard}>
-              <View style={styles.explainerHeaderRow}>
-                <Text style={styles.explainerBadge}>INSPECTING SLOT</Text>
-                <Text style={styles.explainerStepCount}>
-                  Object {safeMemoryIndex + 1} of {data.length}
-                </Text>
-              </View>
-              <Text style={styles.explainerTitle}>
-                How Python stores `{data[safeMemoryIndex].label}` in RAM
-              </Text>
-              <Text style={styles.explainerText}>
-                Python allocates a heap object at address{" "}
-                <Text style={styles.highlightAddress}>
-                  {data[safeMemoryIndex].address}
-                </Text>{" "}
-                holding the{" "}
-                <Text style={styles.highlightType}>
-                  {data[safeMemoryIndex].type}
-                </Text>{" "}
-                value{" "}
-                <Text style={styles.highlightValue}>
-                  {data[safeMemoryIndex].value}
-                </Text>
-                , and binds the stack identifier{" "}
-                <Text style={styles.highlight}>
-                  {data[safeMemoryIndex].label}
-                </Text>{" "}
-                to point to that address.
-              </Text>
+                    <Text
+                      style={[
+                        styles.stepNumPillText,
+                        (isCurrent || isPast) && styles.stepNumPillTextOnBright,
+                      ]}
+                    >
+                      {i + 1}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
-          )}
-        </View>
-      )}
+          </View>
 
-      {/* ARRAY OR HASHMAP STEPPER MODE */}
-      {(type === "array" || type === "hashmap") && (
-        <View style={styles.diagramContainer}>
-          <View style={styles.arrayGrid}>
-            {data.map((item: any, idx: number) => {
-              const isCurrent = idx === safeActiveIndex;
+          <View style={styles.stepperBtns}>
+            {safeData.length > 1 && (
+              <>
+                <Pressable
+                  style={[styles.speedBtn, fastSpeed && styles.speedBtnActive]}
+                  onPress={() => setFastSpeed((prev) => !prev)}
+                >
+                  <Text
+                    style={[
+                      styles.speedBtnText,
+                      fastSpeed && styles.speedBtnTextActive,
+                    ]}
+                  >
+                    {fastSpeed ? "2x" : "1x"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.stepBtn,
+                    isPlaying && styles.autoPlayBtnActive,
+                  ]}
+                  onPress={() => setIsPlaying((prev) => !prev)}
+                >
+                  <Text
+                    style={[
+                      styles.stepBtnText,
+                      isPlaying && styles.autoPlayBtnTextActive,
+                    ]}
+                  >
+                    {isPlaying ? "⏸ Pause" : "▶ Play"}
+                  </Text>
+                </Pressable>
+              </>
+            )}
+            <Pressable style={styles.stepBtn} onPress={handlePrevStep}>
+              <Text style={styles.stepBtnText}>◀ Prev</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.stepBtn, styles.stepBtnPrimary]}
+              onPress={handleNextStep}
+            >
+              <Text style={styles.stepBtnTextPrimary}>Step Next ▶</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Visual Representation */}
+        {type === "memory" ? (
+          <View style={styles.diagramContainer}>
+            <View style={styles.columnLabelsRow}>
+              <Text style={styles.columnHeaderLabel}>{meta.leftHeader}</Text>
+              <Text style={styles.columnHeaderLabel}>STORES →</Text>
+              <Text style={styles.columnHeaderLabel}>{meta.rightHeader}</Text>
+            </View>
+
+            {safeData.map((item, idx) => {
+              const isSelected = safeStepIndex === idx;
               return (
                 <Pressable
                   key={idx}
-                  style={[
-                    styles.arrayCell,
-                    isCurrent && styles.activeArrayCell,
-                  ]}
+                  style={[styles.memoryRow, isSelected && styles.memoryRowActive]}
                   onPress={() => handleSelectStep(idx)}
                 >
-                  <View style={styles.cellHeader}>
-                    <Text
-                      style={[
-                        styles.cellIndex,
-                        isCurrent && { color: StudioColors.amber },
-                      ]}
-                    >
-                      {type === "hashmap" ? item.label : `IDX [${idx}]`}
-                    </Text>
-                    {item.address ? (
-                      <Text style={styles.cellAddress}>{item.address}</Text>
-                    ) : null}
-                  </View>
-                  <Text
+                  <View
                     style={[
-                      styles.cellValue,
-                      isCurrent && styles.activeCellValue,
+                      styles.stackBox,
+                      isSelected && styles.stackBoxActive,
                     ]}
                   >
-                    {item.value}
-                  </Text>
-                  {isCurrent && (
-                    <View style={styles.pointerTag}>
-                      <Text style={styles.pointerTagText}>▲ POINTER</Text>
-                    </View>
-                  )}
+                    <Text
+                      style={[
+                        styles.stackLabel,
+                        isSelected && styles.onBrightMutedText,
+                      ]}
+                    >
+                      STEP {idx + 1}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.varName,
+                        isSelected && styles.onBrightInkText,
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {item.label}
+                    </Text>
+                  </View>
+
+                  <View style={styles.dataBus}>
+                    <View style={styles.busDot} />
+                    <View
+                      style={[styles.busLine, isSelected && styles.busLineActive]}
+                    />
+                    <Text style={styles.busIcon}>▸</Text>
+                  </View>
+
+                  <View
+                    style={[styles.heapBox, isSelected && styles.heapBoxActive]}
+                  >
+                    {(item.address || item.type) && (
+                      <View style={styles.heapHeader}>
+                        <Text
+                          style={[
+                            styles.heapAddress,
+                            isSelected && styles.onBrightMutedText,
+                          ]}
+                        >
+                          {item.address || ""}
+                        </Text>
+                        {item.type ? (
+                          <View style={styles.heapTypePill}>
+                            <Text style={styles.heapType}>{item.type}</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    )}
+                    <Text
+                      style={[
+                        styles.heapValue,
+                        isSelected && styles.onBrightInkText,
+                      ]}
+                    >
+                      {item.value}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}
           </View>
+        ) : (
+          <View style={styles.stepsStack}>
+            {safeData.map((item, idx) => {
+              const isCurrent = idx === safeStepIndex;
+              const isPast = idx < safeStepIndex;
+              return (
+                <Pressable
+                  key={idx}
+                  style={[
+                    styles.traceStepCard,
+                    isPast && styles.traceStepCardPast,
+                    isCurrent && styles.traceStepCardActive,
+                  ]}
+                  onPress={() => handleSelectStep(idx)}
+                >
+                  <View style={styles.traceStepTop}>
+                    <View style={styles.traceStepBadgeGroup}>
+                      <View
+                        style={[
+                          styles.traceStepNumBadge,
+                          isPast && styles.traceStepNumPast,
+                          isCurrent && styles.traceStepNumCurrent,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.traceStepNumText,
+                            (isCurrent || isPast) && styles.onBrightInkText,
+                          ]}
+                        >
+                          {isPast ? "✓" : `${idx + 1}`}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.traceStepLabel,
+                          isCurrent && styles.onBrightInkText,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </View>
 
+                    <View style={styles.traceStepRightMeta}>
+                      {item.address ? (
+                        <View
+                          style={[
+                            styles.metaContextPill,
+                            isCurrent && styles.metaContextPillOnBright,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.metaContextText,
+                              isCurrent && styles.onBrightInkText,
+                            ]}
+                          >
+                            {item.address}
+                          </Text>
+                        </View>
+                      ) : null}
+                      {isCurrent && (
+                        <View style={styles.currentTag}>
+                          <Text style={styles.currentTagText}>ACTIVE</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.traceStepValue,
+                      isCurrent && styles.onBrightInkText,
+                    ]}
+                  >
+                    → {item.value}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Clear Beginner Breakdown Card for Active Step */}
+        {currentItem && (
           <View style={styles.explainerCard}>
             <View style={styles.explainerHeaderRow}>
               <Text style={styles.explainerBadge}>
-                {type === "hashmap" ? "HASH LOOKUP" : "ITERATION TRACE"}
+                STEP {safeStepIndex + 1} EXPLAINED
               </Text>
-              <Text style={styles.explainerStepCount}>
-                Step {safeActiveIndex + 1} of {data.length}
-              </Text>
+              <View style={styles.explainerMetaRow}>
+                {currentItem.type ? (
+                  <Text style={styles.explainerMetaPill}>
+                    type: {currentItem.type}
+                  </Text>
+                ) : null}
+                {currentItem.address ? (
+                  <Text style={styles.explainerMetaPill}>
+                    {isHexAddress(currentItem.address) ? "slot" : "state"}:{" "}
+                    {currentItem.address}
+                  </Text>
+                ) : null}
+              </View>
             </View>
-            <Text style={styles.explainerTitle}>
-              {type === "hashmap"
-                ? `Key Lookup: ${data[safeActiveIndex]?.label}`
-                : `Loop Iteration #${safeActiveIndex + 1}`}
-            </Text>
+
+            <View style={styles.explainerGrid}>
+              <View style={styles.explainerCell}>
+                <Text style={styles.explainerCellLabel}>{meta.leftHeader}</Text>
+                <Text style={styles.explainerCellVal}>{currentItem.label}</Text>
+              </View>
+              <View style={styles.explainerCell}>
+                <Text style={styles.explainerCellLabel}>
+                  {meta.rightHeader}
+                </Text>
+                <Text style={styles.explainerCellVal}>{currentItem.value}</Text>
+              </View>
+            </View>
+
             <Text style={styles.explainerText}>
-              {type === "hashmap"
-                ? `Hashing key ${data[safeActiveIndex]?.label} jumps directly to memory slot ${data[safeActiveIndex]?.address || `bucket[${safeActiveIndex}]`} in O(1) constant time and retrieves ${data[safeActiveIndex]?.value}.`
-                : `At index [${safeActiveIndex}], the active pointer reads ${data[safeActiveIndex]?.value}. Use "Step Next ▶" or tap any cell to trace the pointer across contiguous memory.`}
+              {buildBeginnerTakeaway(type, currentItem, safeStepIndex + 1)}
             </Text>
           </View>
-        </View>
-      )}
+        )}
+      </View>
+
+      {runtimeTraceCard}
     </View>
   );
 }
@@ -369,8 +505,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: StudioColors.border,
-    padding: 18,
-    marginBottom: 20,
+    padding: 16,
+    marginBottom: 16,
+    gap: 12,
     ...HardShadow,
   },
   emptyContainer: {
@@ -378,19 +515,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: StudioColors.border,
-    padding: 28,
+    padding: 24,
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
     ...HardShadowSm,
   },
   emptyIcon: {
     backgroundColor: StudioColors.yellow,
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     fontFamily: MonoFont,
     fontSize: 12,
     fontWeight: "900",
@@ -398,7 +535,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: StudioColors.textPrimary,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "900",
     marginBottom: 6,
   },
@@ -414,10 +551,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
     borderBottomWidth: 1.5,
     borderBottomColor: StudioColors.border,
-    paddingBottom: 12,
+    paddingBottom: 10,
     flexWrap: "wrap",
     gap: 8,
   },
@@ -425,6 +561,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flex: 1,
+    minWidth: 180,
+  },
+  headerTitleGroup: {
+    flex: 1,
+    gap: 2,
   },
   liveDot: {
     width: 10,
@@ -438,23 +580,13 @@ const styles = StyleSheet.create({
     color: StudioColors.textPrimary,
     fontSize: 11,
     fontWeight: "900",
-    letterSpacing: 1.1,
+    letterSpacing: 1,
     fontFamily: MonoFont,
   },
-  playingPill: {
-    backgroundColor: StudioColors.yellow,
-    borderWidth: 1.5,
-    borderColor: StudioColors.ink,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 5,
-  },
-  playingPillText: {
-    color: StudioColors.ink,
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 0.8,
-    fontFamily: MonoFont,
+  lessonContext: {
+    color: StudioColors.textSecondary,
+    fontSize: 12,
+    fontWeight: "700",
   },
   modeBadge: {
     backgroundColor: StudioColors.violet,
@@ -466,153 +598,39 @@ const styles = StyleSheet.create({
   },
   modeBadgeText: {
     color: StudioColors.ink,
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: "900",
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
     fontFamily: MonoFont,
   },
-  columnLabelsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
-    marginBottom: 2,
+  beginnerBanner: {
+    backgroundColor: StudioColors.bg,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: StudioColors.borderSubtle,
+    borderLeftWidth: 4,
+    borderLeftColor: StudioColors.mint,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    gap: 3,
   },
-  columnHeaderLabel: {
+  beginnerBannerLabel: {
     color: StudioColors.textMuted,
     fontSize: 9,
     fontWeight: "900",
-    letterSpacing: 1,
     fontFamily: MonoFont,
+    letterSpacing: 0.8,
   },
-  diagramContainer: {
-    gap: 12,
-  },
-  memoryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 8,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    backgroundColor: StudioColors.bg,
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  memoryRowActive: {
-    backgroundColor: StudioColors.surface,
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    ...HardShadowSm,
-  },
-  stackBox: {
-    backgroundColor: StudioColors.surface,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    width: 120,
-  },
-  stackBoxActive: {
-    borderColor: StudioColors.border,
-    backgroundColor: StudioColors.yellow,
-  },
-  stackLabel: {
+  beginnerBannerText: {
     color: StudioColors.textSecondary,
-    fontSize: 8,
-    fontWeight: "900",
-    letterSpacing: 1,
-    fontFamily: MonoFont,
-    marginBottom: 4,
-  },
-  varName: {
-    color: StudioColors.textPrimary,
-    fontSize: 13,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  dataBus: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    paddingHorizontal: 8,
-  },
-  busDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: StudioColors.border,
-  },
-  busDotActive: {
-    backgroundColor: StudioColors.border,
-  },
-  busLine: {
-    flex: 1,
-    height: 2,
-    backgroundColor: StudioColors.border,
-  },
-  busLineActive: {
-    backgroundColor: StudioColors.border,
-    height: 3,
-  },
-  busIcon: {
-    color: StudioColors.textPrimary,
-    fontSize: 14,
-    fontWeight: "900",
-    marginLeft: -3,
-  },
-  busIconActive: {
-    color: StudioColors.textPrimary,
-  },
-  heapBox: {
-    backgroundColor: StudioColors.surface,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    width: 155,
-  },
-  heapBoxActive: {
-    borderColor: StudioColors.border,
-    backgroundColor: StudioColors.mint,
-  },
-  heapHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  heapAddress: {
-    color: StudioColors.textSecondary,
-    fontSize: 9,
-    fontFamily: MonoFont,
-    fontWeight: "800",
-  },
-  heapTypePill: {
-    backgroundColor: StudioColors.surface,
-    borderWidth: 1,
-    borderColor: StudioColors.border,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  heapType: {
-    color: StudioColors.textPrimary,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  heapValue: {
-    color: StudioColors.textPrimary,
-    fontSize: 14,
-    fontWeight: "900",
-    fontFamily: MonoFont,
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 17,
   },
   controlsBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
     flexWrap: "wrap",
     gap: 10,
     backgroundColor: StudioColors.bg,
@@ -625,29 +643,47 @@ const styles = StyleSheet.create({
   controlsLeft: {
     gap: 6,
   },
-  arrayLabel: {
+  stepCounterLabel: {
     color: StudioColors.textPrimary,
     fontSize: 10,
     fontWeight: "900",
-    letterSpacing: 1,
+    letterSpacing: 0.9,
     fontFamily: MonoFont,
   },
-  stepDotsRow: {
+  stepPillsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 5,
   },
-  stepDot: {
-    width: 14,
-    height: 6,
-    borderRadius: 3,
+  stepNumPill: {
+    minWidth: 24,
+    height: 24,
+    paddingHorizontal: 6,
+    borderRadius: 5,
     backgroundColor: StudioColors.surface,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: StudioColors.border,
-    ...Platform.select({ web: { cursor: "pointer" } }),
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
-  stepDotActive: {
-    backgroundColor: StudioColors.lime,
-    width: 24,
+  stepNumPillPast: {
+    backgroundColor: StudioColors.mint,
+    borderColor: StudioColors.ink,
+  },
+  stepNumPillActive: {
+    backgroundColor: StudioColors.yellow,
+    borderColor: StudioColors.ink,
+    ...HardShadowSm,
+  },
+  stepNumPillText: {
+    color: StudioColors.textPrimary,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  stepNumPillTextOnBright: {
+    color: StudioColors.ink,
   },
   stepperBtns: {
     flexDirection: "row",
@@ -665,7 +701,7 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   speedBtnActive: {
-    borderColor: StudioColors.border,
+    borderColor: StudioColors.ink,
     backgroundColor: StudioColors.yellow,
   },
   speedBtnText: {
@@ -675,11 +711,11 @@ const styles = StyleSheet.create({
     fontFamily: MonoFont,
   },
   speedBtnTextActive: {
-    color: StudioColors.textPrimary,
+    color: StudioColors.ink,
   },
   stepBtn: {
     backgroundColor: StudioColors.surface,
-    paddingHorizontal: 11,
+    paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1.5,
@@ -698,7 +734,7 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.lime,
     borderWidth: 2,
     borderColor: StudioColors.ink,
-    ...HardShadow,
+    ...HardShadowSm,
   },
   stepBtnText: {
     color: StudioColors.textPrimary,
@@ -712,136 +748,397 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontFamily: MonoFont,
   },
-  arrayGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginVertical: 10,
-  },
-  arrayCell: {
-    backgroundColor: StudioColors.bg,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    borderRadius: 10,
-    padding: 14,
-    minWidth: 108,
-    position: "relative",
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  activeArrayCell: {
-    borderWidth: 2,
-    borderColor: StudioColors.border,
-    backgroundColor: StudioColors.yellow,
-    ...HardShadowSm,
-  },
-  cellHeader: {
+  columnLabelsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-    gap: 6,
+    paddingHorizontal: 8,
+    marginBottom: 2,
   },
-  cellIndex: {
-    color: StudioColors.textSecondary,
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 0.8,
-    fontFamily: MonoFont,
-  },
-  cellAddress: {
+  columnHeaderLabel: {
     color: StudioColors.textMuted,
-    fontSize: 8,
-    fontWeight: "800",
-    fontFamily: MonoFont,
-  },
-  cellValue: {
-    color: StudioColors.textPrimary,
-    fontSize: 15,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  activeCellValue: {
-    color: StudioColors.ink,
-  },
-  pointerTag: {
-    position: "absolute",
-    bottom: -9,
-    alignSelf: "center",
-    backgroundColor: StudioColors.ink,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  pointerTagText: {
-    color: StudioColors.lime,
-    fontSize: 8,
-    fontWeight: "900",
-    letterSpacing: 0.5,
-    fontFamily: MonoFont,
-  },
-  explainerCard: {
-    backgroundColor: StudioColors.bg,
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    marginTop: 6,
-  },
-  explainerHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  explainerBadge: {
-    backgroundColor: StudioColors.yellow,
-    color: StudioColors.ink,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: StudioColors.ink,
     fontSize: 9,
     fontWeight: "900",
     letterSpacing: 0.9,
     fontFamily: MonoFont,
   },
-  explainerStepCount: {
-    color: StudioColors.textSecondary,
-    fontSize: 10,
+  diagramContainer: {
+    gap: 10,
+  },
+  memoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    backgroundColor: StudioColors.bg,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  memoryRowActive: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.yellow,
+    ...HardShadowSm,
+  },
+  stackBox: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    width: 122,
+  },
+  stackBoxActive: {
+    borderColor: StudioColors.ink,
+    backgroundColor: StudioColors.yellow,
+  },
+  stackLabel: {
+    color: StudioColors.textMuted,
+    fontSize: 8.5,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    fontFamily: MonoFont,
+    marginBottom: 3,
+  },
+  varName: {
+    color: StudioColors.textPrimary,
+    fontSize: 12.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  dataBus: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    paddingHorizontal: 6,
+  },
+  busDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: StudioColors.border,
+  },
+  busLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: StudioColors.border,
+  },
+  busLineActive: {
+    height: 3,
+    backgroundColor: StudioColors.yellow,
+  },
+  busIcon: {
+    color: StudioColors.textPrimary,
+    fontSize: 13,
+    fontWeight: "900",
+    marginLeft: -3,
+  },
+  heapBox: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    flex: 1.25,
+    minWidth: 135,
+  },
+  heapBoxActive: {
+    borderColor: StudioColors.ink,
+    backgroundColor: StudioColors.mint,
+  },
+  heapHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+    gap: 6,
+  },
+  heapAddress: {
+    color: StudioColors.textMuted,
+    fontSize: 9,
     fontFamily: MonoFont,
     fontWeight: "800",
   },
-  explainerTitle: {
+  heapTypePill: {
+    backgroundColor: StudioColors.ink,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  heapType: {
+    color: StudioColors.lime,
+    fontSize: 8.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  heapValue: {
     color: StudioColors.textPrimary,
     fontSize: 13,
     fontWeight: "900",
-    marginBottom: 4,
+    fontFamily: MonoFont,
+  },
+  onBrightInkText: {
+    color: StudioColors.ink,
+  },
+  onBrightMutedText: {
+    color: StudioColors.ink,
+    opacity: 0.7,
+  },
+  stepsStack: {
+    gap: 8,
+  },
+  traceStepCard: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderRadius: 9,
+    padding: 11,
+    gap: 5,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  traceStepCardPast: {
+    borderColor: StudioColors.mint,
+  },
+  traceStepCardActive: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    ...HardShadowSm,
+  },
+  traceStepTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  traceStepBadgeGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  traceStepNumBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    backgroundColor: StudioColors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  traceStepNumPast: {
+    backgroundColor: StudioColors.mint,
+    borderColor: StudioColors.ink,
+  },
+  traceStepNumCurrent: {
+    backgroundColor: StudioColors.lime,
+    borderColor: StudioColors.ink,
+  },
+  traceStepNumText: {
+    color: StudioColors.textPrimary,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  traceStepLabel: {
+    color: StudioColors.textPrimary,
+    fontSize: 12.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    flexShrink: 1,
+  },
+  traceStepRightMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  metaContextPill: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  metaContextPillOnBright: {
+    backgroundColor: "rgba(17, 17, 17, 0.1)",
+    borderColor: StudioColors.ink,
+  },
+  metaContextText: {
+    color: StudioColors.textSecondary,
+    fontSize: 9.5,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+  },
+  currentTag: {
+    backgroundColor: StudioColors.ink,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  currentTagText: {
+    color: StudioColors.lime,
+    fontSize: 8.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  traceStepValue: {
+    color: StudioColors.textSecondary,
+    fontSize: 13,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+    paddingLeft: 30,
+  },
+  explainerCard: {
+    backgroundColor: StudioColors.bg,
+    padding: 13,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    gap: 8,
+  },
+  explainerHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  explainerBadge: {
+    backgroundColor: StudioColors.yellow,
+    color: StudioColors.ink,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: StudioColors.ink,
+    fontSize: 9.5,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    fontFamily: MonoFont,
+  },
+  explainerMetaRow: {
+    flexDirection: "row",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  explainerMetaPill: {
+    color: StudioColors.textSecondary,
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    fontSize: 9.5,
+    fontFamily: MonoFont,
+    fontWeight: "800",
+  },
+  explainerGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  explainerCell: {
+    flex: 1,
+    minWidth: 140,
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1,
+    borderColor: StudioColors.borderSubtle,
+    borderRadius: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    gap: 2,
+  },
+  explainerCellLabel: {
+    color: StudioColors.textMuted,
+    fontSize: 8.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.7,
+  },
+  explainerCellVal: {
+    color: StudioColors.textPrimary,
+    fontSize: 12.5,
+    fontWeight: "800",
+    fontFamily: MonoFont,
   },
   explainerText: {
     color: StudioColors.textSecondary,
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: "600",
-    lineHeight: 20,
+    lineHeight: 19,
   },
-  highlight: {
+  runtimeCard: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+    ...HardShadow,
+  },
+  runtimeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  runtimeTitle: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: StudioColors.textMuted,
+    fontFamily: MonoFont,
+  },
+  runtimeSummary: {
+    fontSize: 11,
+    fontWeight: "900",
     color: StudioColors.textPrimary,
-    fontWeight: "900",
     fontFamily: MonoFont,
   },
-  highlightAddress: {
-    color: StudioColors.sky,
+  runtimeRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: StudioColors.border,
+  },
+  runtimeStatus: {
+    color: StudioColors.ink,
+    fontSize: 10,
     fontWeight: "900",
+    fontFamily: MonoFont,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: StudioColors.ink,
+    overflow: "hidden",
+    minWidth: 44,
+    textAlign: "center",
+  },
+  runtimeInfo: {
+    flex: 1,
+  },
+  runtimeInput: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: StudioColors.textPrimary,
     fontFamily: MonoFont,
   },
-  highlightType: {
-    color: StudioColors.indigo,
-    fontWeight: "900",
+  runtimeOutput: {
+    fontSize: 11,
+    color: StudioColors.textSecondary,
     fontFamily: MonoFont,
-  },
-  highlightValue: {
-    color: StudioColors.emerald,
-    fontWeight: "900",
-    fontFamily: MonoFont,
+    marginTop: 2,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { getLessonToolbox } from "../constants/curriculumData/lessonToolboxes";
 import {
@@ -19,15 +19,21 @@ export default function LessonToolboxCard({
 }: LessonToolboxCardProps) {
   const tools = getLessonToolbox(selectedLesson);
   const [activeToolIdx, setActiveToolIdx] = useState<number>(0);
-
-  useEffect(() => {
-    setActiveToolIdx(0);
-  }, [selectedLesson.id]);
+  const [activeVariationIdx, setActiveVariationIdx] = useState<number>(0);
+  const [showAllVariations, setShowAllVariations] = useState<boolean>(false);
 
   if (!tools || tools.length === 0) return null;
 
-  const safeIdx = activeToolIdx < tools.length ? activeToolIdx : 0;
-  const activeTool = tools[safeIdx];
+  const safeToolIdx = activeToolIdx < tools.length ? activeToolIdx : 0;
+  const activeTool = tools[safeToolIdx];
+  const variations = activeTool.variations || [];
+  const safeVarIdx =
+    activeVariationIdx < variations.length ? activeVariationIdx : 0;
+  const visibleVariations = showAllVariations
+    ? variations
+    : variations[safeVarIdx]
+      ? [variations[safeVarIdx]]
+      : [];
 
   return (
     <View style={styles.card}>
@@ -40,22 +46,39 @@ export default function LessonToolboxCard({
           </View>
           <View style={styles.countPill}>
             <Text style={styles.countPillText}>
-              {activeTool.variations.length} VARIATIONS
+              {variations.length} VARIATIONS
             </Text>
           </View>
         </View>
-      </View>
 
-      <Text style={styles.introSubtext}>
-        Explore the different ways to use the exact Python tools required for
-        this mission:
-      </Text>
+        {variations.length > 1 && (
+          <Pressable
+            style={[
+              styles.toggleAllBtn,
+              showAllVariations && styles.toggleAllBtnActive,
+            ]}
+            onPress={() => {
+              playKeyClick();
+              setShowAllVariations((prev) => !prev);
+            }}
+          >
+            <Text
+              style={[
+                styles.toggleAllText,
+                showAllVariations && styles.toggleAllTextActive,
+              ]}
+            >
+              {showAllVariations ? "FOCUSED VIEW" : "SHOW ALL"}
+            </Text>
+          </Pressable>
+        )}
+      </View>
 
       {/* Tool Selector Tabs if multiple tools exist for this lesson */}
       {tools.length > 1 && (
         <View style={styles.toolTabsRow}>
           {tools.map((tool, idx) => {
-            const isSelected = safeIdx === idx;
+            const isSelected = safeToolIdx === idx;
             return (
               <Pressable
                 key={idx}
@@ -66,6 +89,7 @@ export default function LessonToolboxCard({
                 onPress={() => {
                   playKeyClick();
                   setActiveToolIdx(idx);
+                  setActiveVariationIdx(0);
                 }}
               >
                 <Text
@@ -94,15 +118,48 @@ export default function LessonToolboxCard({
         <Text style={styles.toolPurposeText}>{activeTool.purpose}</Text>
 
         <View style={styles.anatomyBox}>
-          <Text style={styles.anatomyLabel}>SYNTAX PATTERN:</Text>
+          <Text style={styles.anatomyLabel}>SYNTAX:</Text>
           <Text style={styles.anatomyCode}>{activeTool.syntaxPattern}</Text>
         </View>
       </View>
 
-      {/* Structured Variations Breakdown */}
+      {/* Compact Variation Selector Pills (when in Focused View) */}
+      {!showAllVariations && variations.length > 1 && (
+        <View style={styles.variationPillsRow}>
+          {variations.map((v, idx) => {
+            const isActive = idx === safeVarIdx;
+            const shortLabel = v.label.replace(/^\d+\.\s*/, "");
+            return (
+              <Pressable
+                key={idx}
+                style={[
+                  styles.variationPill,
+                  isActive && styles.variationPillActive,
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  setActiveVariationIdx(idx);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.variationPillText,
+                    isActive && styles.variationPillTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {idx + 1}. {shortLabel}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Variations Display */}
       <View style={styles.variationsList}>
-        {activeTool.variations.map((v, vIdx) => (
-          <View key={vIdx} style={styles.variationCard}>
+        {visibleVariations.map((v, vIdx) => (
+          <View key={`${safeToolIdx}-${v.label}-${vIdx}`} style={styles.variationCard}>
             <View style={styles.variationHeader}>
               <Text style={styles.variationLabelText}>{v.label}</Text>
             </View>
@@ -135,9 +192,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 2,
     borderColor: StudioColors.border,
-    padding: 18,
-    marginBottom: 16,
-    gap: 12,
+    padding: 16,
+    marginTop: 14,
+    gap: 10,
     ...HardShadow,
   },
   topHeaderRow: {
@@ -182,11 +239,27 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontFamily: MonoFont,
   },
-  introSubtext: {
-    color: StudioColors.textSecondary,
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 19,
+  toggleAllBtn: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 5,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  toggleAllBtnActive: {
+    backgroundColor: StudioColors.yellow,
+    borderColor: StudioColors.ink,
+  },
+  toggleAllText: {
+    color: StudioColors.textPrimary,
+    fontSize: 9.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  toggleAllTextActive: {
+    color: StudioColors.ink,
   },
   toolTabsRow: {
     flexDirection: "row",
@@ -211,7 +284,7 @@ const styles = StyleSheet.create({
     ...HardShadowSm,
   },
   toolTabBtnText: {
-    color: StudioColors.textSecondary,
+    color: StudioColors.textPrimary,
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
@@ -236,11 +309,13 @@ const styles = StyleSheet.create({
   },
   toolTitleText: {
     color: StudioColors.textPrimary,
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: "900",
   },
   toolRoleBadge: {
     backgroundColor: StudioColors.ink,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 4,
@@ -266,7 +341,7 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.codeBg,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: StudioColors.ink,
+    borderColor: StudioColors.border,
     paddingHorizontal: 10,
     paddingVertical: 6,
     marginTop: 2,
@@ -283,6 +358,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     fontFamily: MonoFont,
+  },
+  variationPillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  variationPill: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderRadius: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    maxWidth: "100%",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  variationPillActive: {
+    backgroundColor: StudioColors.mint,
+    borderColor: StudioColors.ink,
+    ...HardShadowSm,
+  },
+  variationPillText: {
+    color: StudioColors.textPrimary,
+    fontSize: 10.5,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+  },
+  variationPillTextActive: {
+    color: StudioColors.ink,
+    fontWeight: "900",
   },
   variationsList: {
     gap: 10,

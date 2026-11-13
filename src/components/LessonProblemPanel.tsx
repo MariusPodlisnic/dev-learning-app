@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { LessonEnrichment } from "../constants/curriculum";
+import { getLessonToolbox } from "../constants/curriculumData/lessonToolboxes";
 import {
   HardShadow,
   HardShadowSm,
@@ -37,9 +38,6 @@ interface LessonProblemPanelProps {
   explainStyle: ExplainStyle;
   onChangeExplainStyle: (style: ExplainStyle) => void;
   lessonEnrichment: LessonEnrichment | null;
-  solvedQuizzes: Record<string, boolean>;
-  quizSelection: number | null;
-  onSelectQuizOption: (optionIdx: number) => void;
   onLoadGuidedSteps: (guidedCode: string) => void;
   testResults: TestCaseResult[] | null;
   isPremium: boolean;
@@ -55,9 +53,6 @@ export default function LessonProblemPanel({
   explainStyle,
   onChangeExplainStyle,
   lessonEnrichment,
-  solvedQuizzes,
-  quizSelection,
-  onSelectQuizOption,
   onLoadGuidedSteps,
   testResults,
   isPremium,
@@ -67,6 +62,16 @@ export default function LessonProblemPanel({
   const scrollRef = useRef<any>(null);
   const currentTrackTheme =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
+  const lessonTools = getLessonToolbox(selectedLesson);
+  const actionSteps =
+    selectedLesson.constraints && selectedLesson.constraints.length > 0
+      ? selectedLesson.constraints
+      : [
+          selectedLesson.assignment || selectedLesson.description,
+          selectedLesson.expected_output
+            ? `Match expected output: ${selectedLesson.expected_output}`
+            : "Test your logic in the editor and run all checks",
+        ];
 
   function scrollToTop() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -221,6 +226,101 @@ export default function LessonProblemPanel({
 
       {activeTab === "problem" ? (
         <View style={styles.problemCard}>
+          {/* Organized Action Plan: Suggests exactly what to do in this mission */}
+          <View style={styles.actionPlanCard}>
+            <View style={styles.actionPlanHeader}>
+              <View style={styles.actionPlanSticker}>
+                <Text style={styles.actionPlanStickerText}>
+                  🧭 WHAT TO DO IN THIS MISSION
+                </Text>
+              </View>
+              <Text style={styles.actionPlanCount}>
+                {actionSteps.length} STEP{actionSteps.length === 1 ? "" : "S"}
+              </Text>
+            </View>
+
+            <FormattedText
+              text={selectedLesson.assignment || selectedLesson.description}
+              style={styles.actionPlanGoal}
+            />
+
+            <View style={styles.actionStepsList}>
+              {actionSteps.map((stepText, idx) => {
+                const isDone = Boolean(testResults?.[idx]?.passed);
+                return (
+                  <View key={idx} style={styles.actionStepRow}>
+                    <View
+                      style={[
+                        styles.actionStepNum,
+                        isDone && styles.actionStepNumDone,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.actionStepNumText,
+                          isDone && { color: StudioColors.ink },
+                        ]}
+                      >
+                        {isDone ? "✓" : `0${idx + 1}`}
+                      </Text>
+                    </View>
+                    <FormattedText
+                      text={stepText}
+                      style={styles.actionStepText}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+
+            {selectedLesson.expected_output ? (
+              <View style={styles.actionTargetChip}>
+                <Text style={styles.actionTargetLabel}>TARGET OUTPUT:</Text>
+                <Text style={styles.actionTargetText} numberOfLines={1}>
+                  {selectedLesson.expected_output}
+                </Text>
+              </View>
+            ) : null}
+
+            {(lessonTools.length > 0 || lessonEnrichment?.guidedCode) && (
+              <View style={styles.actionFooterRow}>
+                {lessonTools.length > 0 && (
+                  <Pressable
+                    style={styles.actionToolChip}
+                    onPress={() => {
+                      playKeyClick();
+                      onChangeExplainStyle("guide");
+                    }}
+                  >
+                    <Text style={styles.actionToolChipText} numberOfLines={1}>
+                      🧰 Tools:{" "}
+                      {lessonTools
+                        .map((t) => t.toolName.split("—")[0].trim())
+                        .join(" · ")}{" "}
+                      →
+                    </Text>
+                  </Pressable>
+                )}
+
+                {lessonEnrichment?.guidedCode && (
+                  <Pressable
+                    style={styles.actionStarterBtn}
+                    onPress={() => {
+                      if (lessonEnrichment.guidedCode) {
+                        playKeyClick();
+                        onLoadGuidedSteps(lessonEnrichment.guidedCode);
+                      }
+                    }}
+                  >
+                    <Text style={styles.actionStarterBtnText}>
+                      🧩 Fill Guided Starter
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
+          </View>
+
           {/* 3-Style Explanation Card */}
           <View style={styles.conceptBox}>
             <View style={styles.conceptTopRow}>
@@ -296,99 +396,22 @@ export default function LessonProblemPanel({
                 </View>
               </View>
             ) : (
-              <FormattedText
-                text={selectedLesson.content}
-                style={styles.problemText}
-              />
+              <View>
+                <FormattedText
+                  text={selectedLesson.content}
+                  style={styles.problemText}
+                />
+                {/* Tools Needed & Variations live exclusively inside Full Guide */}
+                <LessonToolboxCard
+                  key={selectedLesson.id}
+                  selectedLesson={selectedLesson}
+                />
+              </View>
             )}
           </View>
 
-          {/* Structured Lesson Toolbox: Tools & Syntax Variations */}
-          <LessonToolboxCard selectedLesson={selectedLesson} />
-
-          {/* Interactive 1-Question Warm-Up Quiz */}
-          {lessonEnrichment && (
-            <View style={styles.quizCard}>
-              <View style={styles.quizHeaderRow}>
-                <View style={styles.quizSticker}>
-                  <Text style={styles.quizBadgeText}>QUICK WARM-UP CHECK</Text>
-                </View>
-                <View
-                  style={[
-                    styles.quizXpPill,
-                    solvedQuizzes[selectedLesson.id] && styles.quizXpPillDone,
-                  ]}
-                >
-                  <Text style={styles.quizXpPillText}>
-                    {solvedQuizzes[selectedLesson.id]
-                      ? "✓ +10 XP EARNED"
-                      : "+10 XP"}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.quizQuestion}>
-                {lessonEnrichment.quiz.question}
-              </Text>
-
-              <View style={styles.quizOptionsList}>
-                {lessonEnrichment.quiz.options.map((opt, idx) => {
-                  const isPicked = quizSelection === idx;
-                  const isCorrect = idx === lessonEnrichment.quiz.correctIndex;
-                  const showSuccess = isPicked && isCorrect;
-                  const showWrong = isPicked && !isCorrect;
-
-                  return (
-                    <Pressable
-                      key={idx}
-                      style={[
-                        styles.quizOptionBtn,
-                        showSuccess && styles.quizOptionCorrect,
-                        showWrong && styles.quizOptionWrong,
-                      ]}
-                      onPress={() => onSelectQuizOption(idx)}
-                    >
-                      <Text
-                        style={[
-                          styles.quizOptionText,
-                          (showSuccess || showWrong) && {
-                            color: "#111111",
-                            fontWeight: "800",
-                          },
-                        ]}
-                      >
-                        {showSuccess
-                          ? "[✓] "
-                          : showWrong
-                            ? "[✕] "
-                            : `[${String.fromCharCode(65 + idx)}] `}
-                        {opt}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              {quizSelection !== null && (
-                <View
-                  style={[
-                    styles.quizFeedbackBox,
-                    quizSelection === lessonEnrichment.quiz.correctIndex
-                      ? styles.quizFeedbackSuccess
-                      : styles.quizFeedbackRetry,
-                  ]}
-                >
-                  <Text style={styles.quizFeedbackText}>
-                    {quizSelection === lessonEnrichment.quiz.correctIndex
-                      ? `✓ Spot on! ${lessonEnrichment.quiz.explanation}`
-                      : "→ Not quite — tap another option to test your intuition!"}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Common Pitfall Warning Card */}
-          {lessonEnrichment?.commonPitfall && (
+          {/* Common Pitfall Warning Card (Full Guide & Cheat Sheet only to keep Analogy uncluttered) */}
+          {explainStyle !== "analogy" && lessonEnrichment?.commonPitfall && (
             <View style={styles.pitfallCard}>
               <View style={styles.pitfallHeaderRow}>
                 <View style={styles.pitfallSticker}>
@@ -432,10 +455,10 @@ export default function LessonProblemPanel({
           >
             <View>
               <Text style={styles.jumpToMissionSubLabel}>
-                FINISHED READING THE TOOLS?
+                READY TO CODE THIS MISSION?
               </Text>
               <Text style={styles.jumpToMissionMainText}>
-                🎯 OPEN YOUR CODING MISSION BRIEF →
+                🎯 OPEN MISSION BRIEF & EXAMPLES →
               </Text>
             </View>
             <View style={styles.xpRewardPill}>
@@ -576,8 +599,11 @@ export default function LessonProblemPanel({
         </View>
       ) : (
         <VisualLessonPanel
+          key={selectedLesson.id}
           type={selectedLesson.visual_type || "memory"}
           data={selectedLesson.visual_data}
+          lesson={selectedLesson}
+          testResults={testResults}
         />
       )}
       <HintAccordion hints={selectedLesson.hints || []} />
@@ -1023,102 +1049,155 @@ const getStyles = () =>
         },
       }),
     },
-    quizCard: {
+    actionPlanCard: {
       backgroundColor: StudioColors.surface,
       borderRadius: 10,
       borderWidth: 2,
       borderColor: StudioColors.border,
-      padding: 18,
-      marginBottom: 16,
+      padding: 16,
+      marginBottom: 14,
       gap: 10,
       ...HardShadow,
     },
-    quizHeaderRow: {
+    actionPlanHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
+      gap: 8,
     },
-    quizSticker: {
-      backgroundColor: StudioColors.yellow,
+    actionPlanSticker: {
+      backgroundColor: StudioColors.lime,
       borderWidth: 1.5,
       borderColor: StudioColors.ink,
       paddingHorizontal: 9,
       paddingVertical: 3,
       borderRadius: 4,
     },
-    quizBadgeText: {
+    actionPlanStickerText: {
       color: StudioColors.ink,
       fontSize: 10,
       fontWeight: "900",
       fontFamily: MonoFont,
-      letterSpacing: 0.8,
+      letterSpacing: 0.7,
     },
-    quizXpPill: {
-      backgroundColor: StudioColors.bg,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 4,
-      borderWidth: 1.5,
-      borderColor: StudioColors.border,
-    },
-    quizXpPillDone: {
-      backgroundColor: StudioColors.mint,
-      borderColor: StudioColors.ink,
-    },
-    quizXpPillText: {
-      color: StudioColors.textPrimary,
+    actionPlanCount: {
+      color: StudioColors.textMuted,
       fontSize: 10,
       fontWeight: "900",
       fontFamily: MonoFont,
     },
-    quizQuestion: {
+    actionPlanGoal: {
       color: StudioColors.textPrimary,
-      fontSize: 15,
-      fontWeight: "800",
-      lineHeight: 21,
-    },
-    quizOptionsList: {
-      gap: 8,
-    },
-    quizOptionBtn: {
-      backgroundColor: StudioColors.bg,
-      borderWidth: 1.5,
-      borderColor: StudioColors.border,
-      borderRadius: 6,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    quizOptionCorrect: {
-      borderColor: StudioColors.ink,
-      backgroundColor: StudioColors.lime,
-    },
-    quizOptionWrong: {
-      borderColor: StudioColors.ink,
-      backgroundColor: "#FECDD3",
-    },
-    quizOptionText: {
-      color: StudioColors.textPrimary,
-      fontSize: 13,
+      fontSize: 13.5,
       fontWeight: "700",
+      lineHeight: 20,
     },
-    quizFeedbackBox: {
-      padding: 10,
-      borderRadius: 6,
+    actionStepsList: {
+      gap: 6,
+    },
+    actionStepRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 8,
+      backgroundColor: StudioColors.bg,
       borderWidth: 1.5,
+      borderColor: StudioColors.borderSubtle,
+      borderRadius: 7,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    actionStepNum: {
+      backgroundColor: StudioColors.surface,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 4,
+      minWidth: 24,
+      alignItems: "center",
+      paddingVertical: 1,
+      marginTop: 1,
+    },
+    actionStepNumDone: {
+      backgroundColor: StudioColors.lime,
       borderColor: StudioColors.ink,
     },
-    quizFeedbackSuccess: {
-      backgroundColor: "#D1FAE5",
+    actionStepNumText: {
+      color: StudioColors.textPrimary,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
     },
-    quizFeedbackRetry: {
-      backgroundColor: "#FEF3C7",
+    actionStepText: {
+      flex: 1,
+      color: StudioColors.textSecondary,
+      fontSize: 12.5,
+      fontWeight: "600",
+      lineHeight: 18,
     },
-    quizFeedbackText: {
-      color: StudioColors.ink,
+    actionTargetChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: StudioColors.codeBg,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    actionTargetLabel: {
+      color: StudioColors.yellow,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.6,
+    },
+    actionTargetText: {
+      flex: 1,
+      color: StudioColors.codeText,
       fontSize: 12,
       fontWeight: "700",
-      lineHeight: 18,
+      fontFamily: MonoFont,
+    },
+    actionFooterRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginTop: 2,
+    },
+    actionToolChip: {
+      flex: 1,
+      minWidth: 150,
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      justifyContent: "center",
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    actionToolChipText: {
+      color: StudioColors.textPrimary,
+      fontSize: 11,
+      fontWeight: "800",
+      fontFamily: MonoFont,
+    },
+    actionStarterBtn: {
+      backgroundColor: StudioColors.violet,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+      borderRadius: 6,
+      paddingHorizontal: 11,
+      paddingVertical: 7,
+      justifyContent: "center",
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    actionStarterBtnText: {
+      color: StudioColors.ink,
+      fontSize: 11,
+      fontWeight: "900",
+      fontFamily: MonoFont,
     },
     problemText: {
       color: StudioColors.textSecondary,

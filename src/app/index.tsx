@@ -78,11 +78,7 @@ import {
   executePlaygroundPython,
   loadPyodideScript,
 } from "../utils/pyodideRunner";
-import {
-  playErrorBuzz,
-  playSuccessChime,
-  playVictoryFanfare,
-} from "../utils/soundEffects";
+import { playVictoryFanfare } from "../utils/soundEffects";
 
 export function generateMetadata(): Metadata {
   return {
@@ -116,10 +112,6 @@ export default function HomeScreen() {
     "problem",
   );
   const [explainStyle, setExplainStyle] = useState<ExplainStyle>("analogy");
-  const [quizSelection, setQuizSelection] = useState<number | null>(null);
-  const [solvedQuizzes, setSolvedQuizzes] = useState<Record<string, boolean>>(
-    {},
-  );
   const [bottomTab, setBottomTab] = useState<"console" | "tests">("console");
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState<boolean>(false);
@@ -598,7 +590,6 @@ export default function HomeScreen() {
     setHasSavedDraft(draft !== undefined && draft !== defaultCode);
     setOutput("");
     setTestResults(null);
-    setQuizSelection(null);
     setActiveTab("problem");
     setBottomTab("console");
     setMobileDrawerOpen(false);
@@ -945,20 +936,6 @@ export default function HomeScreen() {
     ? getLessonEnrichment(selectedLesson)
     : null;
 
-  function handleSelectQuizOption(optionIdx: number) {
-    if (!selectedLesson || !lessonEnrichment) return;
-    setQuizSelection(optionIdx);
-    if (optionIdx === lessonEnrichment.quiz.correctIndex) {
-      playSuccessChime();
-      if (!solvedQuizzes[selectedLesson.id]) {
-        setSolvedQuizzes((prev) => ({ ...prev, [selectedLesson.id]: true }));
-        setXpPoints((prev) => prev + 10);
-      }
-    } else {
-      playErrorBuzz();
-    }
-  }
-
   const currentLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = currentLessons.filter(
     (l) => completedLessons[l.id],
@@ -1237,9 +1214,6 @@ export default function HomeScreen() {
                     explainStyle={explainStyle}
                     onChangeExplainStyle={setExplainStyle}
                     lessonEnrichment={lessonEnrichment}
-                    solvedQuizzes={solvedQuizzes}
-                    quizSelection={quizSelection}
-                    onSelectQuizOption={handleSelectQuizOption}
                     onLoadGuidedSteps={(guidedCode) => {
                       updateCodeWithDraft(guidedCode, selectedLesson);
                       if (isCompactStudio) {
