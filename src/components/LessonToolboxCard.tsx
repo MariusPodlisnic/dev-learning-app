@@ -12,19 +12,31 @@ import { playKeyClick } from "../utils/soundEffects";
 
 interface LessonToolboxCardProps {
   selectedLesson: Lesson;
+  selectedToolIdx?: number;
+  onSelectToolIdx?: (idx: number) => void;
 }
 
 export default function LessonToolboxCard({
   selectedLesson,
+  selectedToolIdx,
+  onSelectToolIdx,
 }: LessonToolboxCardProps) {
   const tools = getLessonToolbox(selectedLesson);
-  const [activeToolIdx, setActiveToolIdx] = useState<number>(0);
-  const [activeVariationIdx, setActiveVariationIdx] = useState<number>(0);
+  const [internalToolIdx, setInternalToolIdx] = useState<number>(0);
+  const [variationSelection, setVariationSelection] = useState<{
+    toolIdx: number;
+    idx: number;
+  }>({ toolIdx: 0, idx: 0 });
   const [showAllVariations, setShowAllVariations] = useState<boolean>(false);
+
+  const activeToolIdx =
+    selectedToolIdx !== undefined ? selectedToolIdx : internalToolIdx;
 
   if (!tools || tools.length === 0) return null;
 
   const safeToolIdx = activeToolIdx < tools.length ? activeToolIdx : 0;
+  const activeVariationIdx =
+    variationSelection.toolIdx === safeToolIdx ? variationSelection.idx : 0;
   const activeTool = tools[safeToolIdx];
   const variations = activeTool.variations || [];
   const safeVarIdx =
@@ -88,8 +100,9 @@ export default function LessonToolboxCard({
                 ]}
                 onPress={() => {
                   playKeyClick();
-                  setActiveToolIdx(idx);
-                  setActiveVariationIdx(0);
+                  setInternalToolIdx(idx);
+                  onSelectToolIdx?.(idx);
+                  setVariationSelection({ toolIdx: idx, idx: 0 });
                 }}
               >
                 <Text
@@ -138,7 +151,7 @@ export default function LessonToolboxCard({
                 ]}
                 onPress={() => {
                   playKeyClick();
-                  setActiveVariationIdx(idx);
+                  setVariationSelection({ toolIdx: safeToolIdx, idx });
                 }}
               >
                 <Text

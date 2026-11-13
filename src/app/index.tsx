@@ -111,9 +111,9 @@ export default function HomeScreen() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
   const [activeTab, setActiveTab] = useState<"problem" | "mission" | "visual">(
-    "problem",
+    "mission",
   );
-  const [explainStyle, setExplainStyle] = useState<ExplainStyle>("analogy");
+  const [explainStyle, setExplainStyle] = useState<ExplainStyle>("guide");
   const [bottomTab, setBottomTab] = useState<"console" | "tests">("console");
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState<boolean>(false);
@@ -597,7 +597,7 @@ export default function HomeScreen() {
     setHasSavedDraft(draft !== undefined && draft !== defaultCode);
     setOutput("");
     setTestResults(null);
-    setActiveTab("problem");
+    setActiveTab("mission");
     setBottomTab("console");
     setMobileDrawerOpen(false);
     setViewMode("studio");
@@ -657,6 +657,7 @@ export default function HomeScreen() {
       setHasSavedDraft(draft !== undefined && draft !== defaultCode);
       setOutput("");
       setTestResults(null);
+      setActiveTab("mission");
     }
   }
 

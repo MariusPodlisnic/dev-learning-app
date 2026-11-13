@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -60,18 +60,24 @@ export default function LessonProblemPanel({
 }: LessonProblemPanelProps) {
   const styles = getStyles();
   const scrollRef = useRef<any>(null);
+  const [toolSelection, setToolSelection] = useState<{
+    lessonId: string;
+    idx: number;
+  }>({ lessonId: selectedLesson.id, idx: 0 });
+  const selectedToolIdx =
+    toolSelection.lessonId === selectedLesson.id ? toolSelection.idx : 0;
+  const problemCardYRef = useRef<number>(0);
+  const conceptBoxYRef = useRef<number>(0);
+  const guideInnerYRef = useRef<number>(0);
+  const toolboxYRef = useRef<number>(0);
+  const pendingToolScrollRef = useRef<boolean>(false);
   const currentTrackTheme =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
   const lessonTools = getLessonToolbox(selectedLesson);
-  const actionSteps =
-    selectedLesson.constraints && selectedLesson.constraints.length > 0
-      ? selectedLesson.constraints
-      : [
-          selectedLesson.assignment || selectedLesson.description,
-          selectedLesson.expected_output
-            ? `Match expected output: ${selectedLesson.expected_output}`
-            : "Test your logic in the editor and run all checks",
-        ];
+
+  function selectToolForLesson(idx: number) {
+    setToolSelection({ lessonId: selectedLesson.id, idx });
+  }
 
   function scrollToTop() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -80,14 +86,39 @@ export default function LessonProblemPanel({
     }, 0);
   }
 
+  function scrollToToolbox() {
+    const targetY = Math.max(
+      0,
+      problemCardYRef.current +
+        conceptBoxYRef.current +
+        guideInnerYRef.current +
+        toolboxYRef.current -
+        12,
+    );
+    scrollRef.current?.scrollTo({ y: targetY, animated: true });
+  }
+
+  function handleJumpToTool(idx: number) {
+    playKeyClick();
+    selectToolForLesson(idx);
+    if (explainStyle === "guide") {
+      scrollToToolbox();
+    } else {
+      pendingToolScrollRef.current = true;
+      onChangeExplainStyle("guide");
+    }
+  }
+
   function handleSwitchTab(tab: "problem" | "mission" | "visual") {
     playKeyClick();
+    pendingToolScrollRef.current = false;
     onChangeActiveTab(tab);
     scrollToTop();
   }
 
   useEffect(() => {
     scrollToTop();
+    pendingToolScrollRef.current = false;
   }, [activeTab, selectedLesson.id]);
 
   return (
@@ -129,67 +160,8 @@ export default function LessonProblemPanel({
       <Text style={styles.title}>{selectedLesson.title}</Text>
       <Text style={styles.subtitleDesc}>{selectedLesson.description}</Text>
 
-      {/* Always-Visible Active Mission HUD Strip */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.missionHudStrip,
-          activeTab === "mission" && styles.missionHudStripActive,
-          pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-        ]}
-        onPress={() =>
-          handleSwitchTab(activeTab === "mission" ? "problem" : "mission")
-        }
-      >
-        <View style={styles.missionHudLeft}>
-          <View style={styles.missionHudTopBadges}>
-            <View style={styles.missionHudTagPill}>
-              <Text style={styles.missionHudTagText}>
-                🎯 YOUR CODING MISSION
-              </Text>
-            </View>
-            <View style={styles.missionHudXpPill}>
-              <Text style={styles.missionHudXpText}>
-                {selectedLesson.constraints?.length
-                  ? `${selectedLesson.constraints.length} STEPS · +50 XP`
-                  : "+50 XP"}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.missionHudGoalText} numberOfLines={2}>
-            {(selectedLesson.assignment || selectedLesson.description).replace(
-              /`/g,
-              "",
-            )}
-          </Text>
-        </View>
-
-        <View style={styles.missionHudCtaBtn}>
-          <Text style={styles.missionHudCtaText}>
-            {activeTab === "mission"
-              ? "← READ TOOLS"
-              : "OPEN MISSION →"}
-          </Text>
-        </View>
-      </Pressable>
-
       {/* 3-Mode Focused Tab Switcher */}
       <View style={styles.tabBar}>
-        <Pressable
-          style={[
-            styles.tabItem,
-            activeTab === "problem" && styles.activeTabItem,
-          ]}
-          onPress={() => handleSwitchTab("problem")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "problem" && styles.activeTabText,
-            ]}
-          >
-            01. LEARN & TOOLS
-          </Text>
-        </Pressable>
         <Pressable
           style={[
             styles.tabItem,
@@ -203,7 +175,23 @@ export default function LessonProblemPanel({
               activeTab === "mission" && styles.activeTabText,
             ]}
           >
-            02. 🎯 MISSION BRIEF
+            01. 🎯 MISSION BRIEF
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.tabItem,
+            activeTab === "problem" && styles.activeTabItem,
+          ]}
+          onPress={() => handleSwitchTab("problem")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "problem" && styles.activeTabText,
+            ]}
+          >
+            02. LEARN & TOOLS
           </Text>
         </Pressable>
         <Pressable
@@ -225,104 +213,80 @@ export default function LessonProblemPanel({
       </View>
 
       {activeTab === "problem" ? (
-        <View style={styles.problemCard}>
-          {/* Organized Action Plan: Suggests exactly what to do in this mission */}
-          <View style={styles.actionPlanCard}>
-            <View style={styles.actionPlanHeader}>
-              <View style={styles.actionPlanSticker}>
-                <Text style={styles.actionPlanStickerText}>
-                  🧭 WHAT TO DO IN THIS MISSION
+        <View
+          style={styles.problemCard}
+          onLayout={(e) => {
+            problemCardYRef.current = e.nativeEvent.layout.y;
+          }}
+        >
+          {/* Slim Quick-Jump Tools Strip */}
+          {lessonTools.length > 0 && (
+            <View style={styles.toolsStripCard}>
+              <View style={styles.toolsStripHeaderRow}>
+                <Text style={styles.toolsStripLabel}>
+                  🧰 TOOLS USED IN THIS LESSON
                 </Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.toolsGuideHintBtn,
+                    explainStyle === "guide" && styles.toolsGuideHintBtnActive,
+                    pressed && {
+                      transform: [{ translateX: 1 }, { translateY: 1 }],
+                    },
+                  ]}
+                  onPress={() => handleJumpToTool(selectedToolIdx)}
+                >
+                  <Text
+                    style={[
+                      styles.toolsGuideHintText,
+                      explainStyle === "guide" &&
+                        styles.toolsGuideHintTextActive,
+                    ]}
+                  >
+                    {explainStyle === "guide" ? "TOOLBOX ↓" : "FULL GUIDE →"}
+                  </Text>
+                </Pressable>
               </View>
-              <Text style={styles.actionPlanCount}>
-                {actionSteps.length} STEP{actionSteps.length === 1 ? "" : "S"}
-              </Text>
-            </View>
 
-            <FormattedText
-              text={selectedLesson.assignment || selectedLesson.description}
-              style={styles.actionPlanGoal}
-            />
-
-            <View style={styles.actionStepsList}>
-              {actionSteps.map((stepText, idx) => {
-                const isDone = Boolean(testResults?.[idx]?.passed);
-                return (
-                  <View key={idx} style={styles.actionStepRow}>
-                    <View
-                      style={[
-                        styles.actionStepNum,
-                        isDone && styles.actionStepNumDone,
+              <View style={styles.toolsChipRow}>
+                {lessonTools.map((tool, idx) => {
+                  const shortName = tool.toolName.split("—")[0].trim();
+                  const isFocusedTool =
+                    explainStyle === "guide" && selectedToolIdx === idx;
+                  return (
+                    <Pressable
+                      key={idx}
+                      style={({ pressed }) => [
+                        styles.toolQuickChip,
+                        isFocusedTool && styles.toolQuickChipActive,
+                        pressed && {
+                          transform: [{ translateX: 1 }, { translateY: 1 }],
+                        },
                       ]}
+                      onPress={() => handleJumpToTool(idx)}
                     >
                       <Text
                         style={[
-                          styles.actionStepNumText,
-                          isDone && { color: StudioColors.ink },
+                          styles.toolQuickChipText,
+                          isFocusedTool && styles.toolQuickChipTextActive,
                         ]}
                       >
-                        {isDone ? "✓" : `0${idx + 1}`}
+                        {shortName}
                       </Text>
-                    </View>
-                    <FormattedText
-                      text={stepText}
-                      style={styles.actionStepText}
-                    />
-                  </View>
-                );
-              })}
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-
-            {selectedLesson.expected_output ? (
-              <View style={styles.actionTargetChip}>
-                <Text style={styles.actionTargetLabel}>TARGET OUTPUT:</Text>
-                <Text style={styles.actionTargetText} numberOfLines={1}>
-                  {selectedLesson.expected_output}
-                </Text>
-              </View>
-            ) : null}
-
-            {(lessonTools.length > 0 || lessonEnrichment?.guidedCode) && (
-              <View style={styles.actionFooterRow}>
-                {lessonTools.length > 0 && (
-                  <Pressable
-                    style={styles.actionToolChip}
-                    onPress={() => {
-                      playKeyClick();
-                      onChangeExplainStyle("guide");
-                    }}
-                  >
-                    <Text style={styles.actionToolChipText} numberOfLines={1}>
-                      🧰 Tools:{" "}
-                      {lessonTools
-                        .map((t) => t.toolName.split("—")[0].trim())
-                        .join(" · ")}{" "}
-                      →
-                    </Text>
-                  </Pressable>
-                )}
-
-                {lessonEnrichment?.guidedCode && (
-                  <Pressable
-                    style={styles.actionStarterBtn}
-                    onPress={() => {
-                      if (lessonEnrichment.guidedCode) {
-                        playKeyClick();
-                        onLoadGuidedSteps(lessonEnrichment.guidedCode);
-                      }
-                    }}
-                  >
-                    <Text style={styles.actionStarterBtnText}>
-                      🧩 Fill Guided Starter
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-            )}
-          </View>
+          )}
 
           {/* 3-Style Explanation Card */}
-          <View style={styles.conceptBox}>
+          <View
+            style={styles.conceptBox}
+            onLayout={(e) => {
+              conceptBoxYRef.current = e.nativeEvent.layout.y;
+            }}
+          >
             <View style={styles.conceptTopRow}>
               <View style={styles.sectionStickerBadge}>
                 <Text style={styles.sectionHeaderLabel}>LEARN THE CONCEPT</Text>
@@ -330,8 +294,8 @@ export default function LessonProblemPanel({
               <View style={styles.explainStyleSwitcher}>
                 {(
                   [
-                    { id: "analogy", label: "SIMPLE ANALOGY" },
                     { id: "guide", label: "FULL GUIDE" },
+                    { id: "analogy", label: "SIMPLE ANALOGY" },
                     { id: "cheatsheet", label: "CHEAT SHEET" },
                   ] as const
                 ).map((mode) => {
@@ -396,16 +360,36 @@ export default function LessonProblemPanel({
                 </View>
               </View>
             ) : (
-              <View>
+              <View
+                onLayout={(e) => {
+                  guideInnerYRef.current = e.nativeEvent.layout.y;
+                }}
+              >
                 <FormattedText
                   text={selectedLesson.content}
                   style={styles.problemText}
                 />
                 {/* Tools Needed & Variations live exclusively inside Full Guide */}
-                <LessonToolboxCard
-                  key={selectedLesson.id}
-                  selectedLesson={selectedLesson}
-                />
+                <View
+                  onLayout={(e) => {
+                    toolboxYRef.current = e.nativeEvent.layout.y;
+                    if (pendingToolScrollRef.current) {
+                      setTimeout(() => {
+                        if (pendingToolScrollRef.current) {
+                          pendingToolScrollRef.current = false;
+                          scrollToToolbox();
+                        }
+                      }, 40);
+                    }
+                  }}
+                >
+                  <LessonToolboxCard
+                    key={selectedLesson.id}
+                    selectedLesson={selectedLesson}
+                    selectedToolIdx={selectedToolIdx}
+                    onSelectToolIdx={selectToolForLesson}
+                  />
+                </View>
               </View>
             )}
           </View>
@@ -445,7 +429,7 @@ export default function LessonProblemPanel({
             </View>
           )}
 
-          {/* High-Contrast Jump to Mission CTA at Bottom of Learn Tab */}
+          {/* High-Contrast Return to Mission CTA at Bottom of Learn Tab */}
           <Pressable
             style={({ pressed }) => [
               styles.jumpToMissionBannerBtn,
@@ -455,10 +439,10 @@ export default function LessonProblemPanel({
           >
             <View>
               <Text style={styles.jumpToMissionSubLabel}>
-                READY TO CODE THIS MISSION?
+                DONE REVIEWING CONCEPTS & TOOLS?
               </Text>
               <Text style={styles.jumpToMissionMainText}>
-                🎯 OPEN MISSION BRIEF & EXAMPLES →
+                ← BACK TO MISSION BRIEF & EXAMPLES
               </Text>
             </View>
             <View style={styles.xpRewardPill}>
@@ -476,30 +460,8 @@ export default function LessonProblemPanel({
                   🎯 MISSION COMMAND DECK
                 </Text>
               </View>
-              <View style={styles.missionRightActions}>
-                {lessonEnrichment?.guidedCode && (
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.guidedTemplateBtn,
-                      pressed && {
-                        transform: [{ translateX: 1 }, { translateY: 1 }],
-                      },
-                    ]}
-                    onPress={() => {
-                      if (lessonEnrichment.guidedCode) {
-                        playKeyClick();
-                        onLoadGuidedSteps(lessonEnrichment.guidedCode);
-                      }
-                    }}
-                  >
-                    <Text style={styles.guidedTemplateBtnText}>
-                      🧩 LOAD GUIDED STEPS
-                    </Text>
-                  </Pressable>
-                )}
-                <View style={styles.xpRewardPill}>
-                  <Text style={styles.xpRewardPillText}>+50 XP</Text>
-                </View>
+              <View style={styles.xpRewardPill}>
+                <Text style={styles.xpRewardPillText}>+50 XP</Text>
               </View>
             </View>
 
@@ -713,86 +675,6 @@ const getStyles = () =>
       backgroundColor: StudioColors.lime,
       borderWidth: 1.5,
       borderColor: StudioColors.ink,
-    },
-    missionHudStrip: {
-      backgroundColor: StudioColors.surface,
-      borderRadius: 10,
-      borderWidth: 2,
-      borderColor: StudioColors.ink,
-      borderLeftWidth: 7,
-      borderLeftColor: StudioColors.lime,
-      padding: 12,
-      marginBottom: 14,
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      flexWrap: "wrap",
-      gap: 10,
-      ...HardShadowSm,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    missionHudStripActive: {
-      borderLeftColor: StudioColors.yellow,
-      backgroundColor: StudioColors.bg,
-    },
-    missionHudLeft: {
-      flex: 1,
-      minWidth: 200,
-      gap: 4,
-    },
-    missionHudTopBadges: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      flexWrap: "wrap",
-    },
-    missionHudTagPill: {
-      backgroundColor: StudioColors.lime,
-      borderWidth: 1.5,
-      borderColor: StudioColors.ink,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 4,
-    },
-    missionHudTagText: {
-      color: StudioColors.ink,
-      fontSize: 9,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.7,
-    },
-    missionHudXpPill: {
-      backgroundColor: StudioColors.yellow,
-      borderWidth: 1,
-      borderColor: StudioColors.ink,
-      paddingHorizontal: 7,
-      paddingVertical: 2,
-      borderRadius: 4,
-    },
-    missionHudXpText: {
-      color: StudioColors.ink,
-      fontSize: 9,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
-    missionHudGoalText: {
-      color: StudioColors.textPrimary,
-      fontSize: 13,
-      fontWeight: "800",
-      lineHeight: 18,
-    },
-    missionHudCtaBtn: {
-      backgroundColor: StudioColors.ink,
-      paddingHorizontal: 11,
-      paddingVertical: 7,
-      borderRadius: 6,
-    },
-    missionHudCtaText: {
-      color: StudioColors.lime,
-      fontSize: 10,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.6,
     },
     jumpToMissionBannerBtn: {
       backgroundColor: StudioColors.lime,
@@ -1049,155 +931,81 @@ const getStyles = () =>
         },
       }),
     },
-    actionPlanCard: {
+    toolsStripCard: {
       backgroundColor: StudioColors.surface,
       borderRadius: 10,
       borderWidth: 2,
       borderColor: StudioColors.border,
-      padding: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
       marginBottom: 14,
-      gap: 10,
-      ...HardShadow,
+      gap: 8,
+      ...HardShadowSm,
     },
-    actionPlanHeader: {
+    toolsStripHeaderRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       gap: 8,
     },
-    actionPlanSticker: {
-      backgroundColor: StudioColors.lime,
-      borderWidth: 1.5,
-      borderColor: StudioColors.ink,
-      paddingHorizontal: 9,
-      paddingVertical: 3,
-      borderRadius: 4,
-    },
-    actionPlanStickerText: {
-      color: StudioColors.ink,
-      fontSize: 10,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.7,
-    },
-    actionPlanCount: {
-      color: StudioColors.textMuted,
-      fontSize: 10,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
-    actionPlanGoal: {
-      color: StudioColors.textPrimary,
-      fontSize: 13.5,
-      fontWeight: "700",
-      lineHeight: 20,
-    },
-    actionStepsList: {
-      gap: 6,
-    },
-    actionStepRow: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 8,
-      backgroundColor: StudioColors.bg,
-      borderWidth: 1.5,
-      borderColor: StudioColors.borderSubtle,
-      borderRadius: 7,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-    },
-    actionStepNum: {
-      backgroundColor: StudioColors.surface,
-      borderWidth: 1.5,
-      borderColor: StudioColors.border,
-      borderRadius: 4,
-      minWidth: 24,
-      alignItems: "center",
-      paddingVertical: 1,
-      marginTop: 1,
-    },
-    actionStepNumDone: {
-      backgroundColor: StudioColors.lime,
-      borderColor: StudioColors.ink,
-    },
-    actionStepNumText: {
-      color: StudioColors.textPrimary,
-      fontSize: 10,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
-    actionStepText: {
-      flex: 1,
+    toolsStripLabel: {
       color: StudioColors.textSecondary,
-      fontSize: 12.5,
-      fontWeight: "600",
-      lineHeight: 18,
-    },
-    actionTargetChip: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      backgroundColor: StudioColors.codeBg,
-      borderRadius: 6,
-      borderWidth: 1.5,
-      borderColor: StudioColors.border,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-    },
-    actionTargetLabel: {
-      color: StudioColors.yellow,
-      fontSize: 9,
+      fontSize: 9.5,
       fontWeight: "900",
       fontFamily: MonoFont,
-      letterSpacing: 0.6,
+      letterSpacing: 0.8,
     },
-    actionTargetText: {
-      flex: 1,
-      color: StudioColors.codeText,
-      fontSize: 12,
-      fontWeight: "700",
-      fontFamily: MonoFont,
-    },
-    actionFooterRow: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-      marginTop: 2,
-    },
-    actionToolChip: {
-      flex: 1,
-      minWidth: 150,
+    toolsGuideHintBtn: {
       backgroundColor: StudioColors.bg,
       borderWidth: 1.5,
       borderColor: StudioColors.border,
-      borderRadius: 6,
-      paddingHorizontal: 10,
-      paddingVertical: 7,
-      justifyContent: "center",
+      borderRadius: 5,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
-    actionToolChipText: {
+    toolsGuideHintBtnActive: {
+      backgroundColor: StudioColors.mint,
+      borderColor: StudioColors.ink,
+    },
+    toolsGuideHintText: {
+      color: StudioColors.textPrimary,
+      fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.5,
+    },
+    toolsGuideHintTextActive: {
+      color: StudioColors.ink,
+    },
+    toolsChipRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 6,
+    },
+    toolQuickChip: {
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 6,
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    toolQuickChipActive: {
+      backgroundColor: StudioColors.yellow,
+      borderColor: StudioColors.ink,
+      ...HardShadowSm,
+    },
+    toolQuickChipText: {
       color: StudioColors.textPrimary,
       fontSize: 11,
       fontWeight: "800",
       fontFamily: MonoFont,
     },
-    actionStarterBtn: {
-      backgroundColor: StudioColors.violet,
-      borderWidth: 1.5,
-      borderColor: StudioColors.ink,
-      borderRadius: 6,
-      paddingHorizontal: 11,
-      paddingVertical: 7,
-      justifyContent: "center",
-      ...HardShadowSm,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    actionStarterBtnText: {
+    toolQuickChipTextActive: {
       color: StudioColors.ink,
-      fontSize: 11,
       fontWeight: "900",
-      fontFamily: MonoFont,
     },
     problemText: {
       color: StudioColors.textSecondary,
@@ -1326,28 +1134,6 @@ const getStyles = () =>
       flexWrap: "wrap",
       gap: 8,
       marginBottom: 12,
-    },
-    missionRightActions: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-    guidedTemplateBtn: {
-      backgroundColor: StudioColors.violet,
-      borderWidth: 1.5,
-      borderColor: StudioColors.ink,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 5,
-      ...HardShadowSm,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    guidedTemplateBtnText: {
-      color: StudioColors.ink,
-      fontSize: 10,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.4,
     },
     missionSticker: {
       backgroundColor: StudioColors.mint,
