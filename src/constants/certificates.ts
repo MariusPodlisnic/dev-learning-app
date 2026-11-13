@@ -87,25 +87,27 @@ export const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
     {
       id: 3,
       roman: "III",
-      title: "Fast Searches & Running Totals",
+      title: "Binary Search & Prefix Engines",
       subtitle:
-        "Minimum scan, middle index, list intersection, and prefix sums",
+        "Filtered min scans, lower-bound binary search, set intersections, and range sums",
       minOrder: 9,
       maxOrder: 12,
     },
     {
       id: 4,
       roman: "IV",
-      title: "Sorting & Filtering Patterns",
-      subtitle: "Max search, leaderboard sorting, modulo filters, and VIP lookup",
+      title: "Ranking, Partitions & Fast Lookups",
+      subtitle:
+        "Runner-up tracking, multi-key sorting, two-pointer parity, and O(1) badge checks",
       minOrder: 13,
       maxOrder: 16,
     },
     {
       id: 5,
       roman: "V",
-      title: "Practical Interview Classics",
-      subtitle: "Palindromes, unique set checks, abs() distance, and zip() maps",
+      title: "Strings, Duplicates & Inverted Indexes",
+      subtitle:
+        "Clean two-pointer palindromes, early duplicate exits, closest pairs, and role maps",
       minOrder: 17,
       maxOrder: 20,
     },
@@ -139,24 +141,27 @@ export const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
     {
       id: 3,
       roman: "III",
-      title: "Resilience & Global Routing",
-      subtitle: "Retry caps, 3-strike alerts, server failover, and CDN routing",
+      title: "Resilience & Traffic Routing",
+      subtitle:
+        "Exponential backoff + jitter, DLQ triage, priority failover, and latency-aware CDN",
       minOrder: 9,
       maxOrder: 12,
     },
     {
       id: 4,
       roman: "IV",
-      title: "Alarms, Flags & Autoscaling",
-      subtitle: "RAM alarms, feature flags, upload guards, and queue scaling",
+      title: "Observability, Rollouts & Scaling",
+      subtitle:
+        "Flap-guarded alarms, percentage rollout flags, gateway validation, and autoscaling",
       minOrder: 13,
       maxOrder: 16,
     },
     {
       id: 5,
       roman: "V",
-      title: "API Keys, Pagination & Batches",
-      subtitle: "Auth checks, page offsets, Redis cache keys, and batch chunks",
+      title: "Auth, Pagination & Cache-Aside",
+      subtitle:
+        "Scoped key expiry, cursor-safe pagination, cache-aside reads, and batch chunking",
       minOrder: 17,
       maxOrder: 20,
     },

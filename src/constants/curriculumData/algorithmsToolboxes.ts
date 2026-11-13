@@ -262,36 +262,31 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
   },
 
   // ============================================================================
-  // CHAPTER III: FAST SEARCHES & RUNNING TOTALS (Modules 09 - 12)
+  // CHAPTER III: BINARY SEARCH, SETS & PREFIX SUMS (Modules 09 - 12)
   // ============================================================================
   {
     matchTrack: "algorithms",
     matchOrder: 9,
     tools: [
       {
-        toolName: "min() — Linear Scan Minimum Finder",
-        badge: "BUILT-IN O(N)",
+        toolName: "Filtered Sentinel Scan (`best = None`) — Guarded Minimum",
+        badge: "LINEAR SCAN O(N)",
         purpose:
-          "Scans an iterable in a single O(n) pass to find and return the smallest item.",
-        syntaxPattern: "lowest = min(number_list)",
+          "Finds the lowest valid positive value in O(1) extra memory while ignoring `None` and `<= 0` sentinel entries.",
+        syntaxPattern:
+          "best = None\nfor x in items:\n    if x is not None and x > 0 and (best is None or x < best):\n        best = x",
         variations: [
           {
-            label: "1. Find lowest value in a list",
-            code: "prices = [320, 195, 240, 160, 410]\nprint(min(prices))",
+            label: "1. Skipping None and zero/negative glitches",
+            code: "prices = [320, 0, 195, None, 160]\nbest = None\nfor p in prices:\n    if p is not None and p > 0 and (best is None or p < best):\n        best = p\nprint(best if best is not None else -1)",
             output: "160",
-            note: "min() examines each number once in O(n) time and returns the minimum.",
+            note: "Safely avoids TypeError on None and ignores invalid <= 0 entries.",
           },
           {
-            label: "2. Find minimum between two scalar numbers",
-            code: "a, b = 45, 12\nprint(min(a, b))",
-            output: "12",
-            note: "You can pass multiple arguments directly: min(x, y).",
-          },
-          {
-            label: "3. Safe default when list might be empty",
-            code: "items = []\nprint(min(items, default=0))",
-            output: "0",
-            note: "Providing default=0 prevents a ValueError on empty lists.",
+            label: "2. All-invalid fallback to -1",
+            code: "prices = [0, None, -20]\nvalid = [p for p in prices if p is not None and p > 0]\nprint(min(valid) if valid else -1)",
+            output: "-1",
+            note: "Guarding empty valid results avoids ValueError from bare min([]).",
           },
         ],
       },
@@ -302,29 +297,24 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 10,
     tools: [
       {
-        toolName: "// 2 — Midpoint Index Floor Division",
-        badge: "INDEX MATH",
+        toolName: "Lower-Bound Binary Search (`lo < hi`) — Insertion Index",
+        badge: "BINARY SEARCH O(LOG N)",
         purpose:
-          "Divides sequence length by 2 and rounds down to return a valid integer index for the middle element.",
-        syntaxPattern: "mid = len(items) // 2\nmiddle_val = items[mid]",
+          "Locates the leftmost sorted index where `target` belongs (handling duplicates and end-of-array appends cleanly).",
+        syntaxPattern:
+          "lo, hi = 0, len(nums)\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if nums[mid] < target: lo = mid + 1\n    else: hi = mid",
         variations: [
           {
-            label: "1. Midpoint of odd-length list",
-            code: "items = [10, 20, 30, 40, 50]\nmid = len(items) // 2\nprint('mid index:', mid, 'val:', items[mid])",
-            output: "mid index: 2 val: 30",
-            note: "5 // 2 is 2. Index 2 points to the exact center item (30).",
+            label: "1. Lower-bound search with duplicates",
+            code: "nums, target = [1, 3, 3, 5], 3\nlo, hi = 0, len(nums)\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if nums[mid] < target: lo = mid + 1\n    else: hi = mid\nprint(lo)",
+            output: "1",
+            note: "Setting hi = mid on >= target guarantees landing on the leftmost 3.",
           },
           {
-            label: "2. Midpoint of even-length list",
-            code: "items = [10, 20, 30, 40]\nmid = len(items) // 2\nprint('mid index:', mid, 'val:', items[mid])",
-            output: "mid index: 2 val: 30",
-            note: "4 // 2 is 2. Selects the right-leaning center element of the even sequence.",
-          },
-          {
-            label: "3. Midpoint between two pointer indices",
-            code: "left, right = 4, 8\nmid = left + (right - left) // 2\nprint(mid)",
-            output: "6",
-            note: "Prevents numeric overflow when calculating middle between two offsets.",
+            label: "2. Standard library bisect_left equivalent",
+            code: "import bisect\nprint(bisect.bisect_left([10, 25, 42, 70, 99], 50))",
+            output: "3",
+            note: "Python's C-backed bisect_left implements this exact loop.",
           },
         ],
       },
@@ -335,23 +325,23 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 11,
     tools: [
       {
-        toolName: "[x for x in A if x in B] — List Intersection",
-        badge: "FILTERED COMPREHENSION",
+        toolName: "sorted(set(a) & set(b)) — Deduplicated Set Intersection",
+        badge: "HASH SET O(N + M)",
         purpose:
-          "Filters a list to only retain items that also exist inside another collection.",
-        syntaxPattern: "mutual = [item for item in list_a if item in list_b]",
+          "Computes unique overlapping items across two collections in linear average time and sorts the result canonically.",
+        syntaxPattern: "mutual = sorted(set(list_a) & set(list_b))",
         variations: [
           {
-            label: "1. Intersecting two lists in one line",
-            code: 'a = ["Sam", "Mia", "Leo"]\nb = ["Mia", "Zoe", "Sam"]\nmutual = [f for f in a if f in b]\nprint(mutual)',
-            output: "['Sam', 'Mia']",
-            note: "Evaluates 'f in b' for each item in a and keeps matches in order.",
+            label: "1. Deduplicated sorted mutual elements",
+            code: 'a = ["Sam", "Mia", "Leo", "Sam"]\nb = ["Mia", "Zoe", "Sam"]\nprint(sorted(set(a) & set(b)))',
+            output: "['Mia', 'Sam']",
+            note: "Eliminates duplicate 'Sam' and avoids slow O(n * m) nested list scans.",
           },
           {
-            label: "2. Accelerating with a set for O(1) lookups",
-            code: 'set_b = {"Mia", "Zoe", "Sam"}\nmutual = [f for f in ["Sam", "Mia"] if f in set_b]\nprint(mutual)',
+            label: "2. Preserving list_a order when needed",
+            code: 'b_set = {"Mia", "Zoe", "Sam"}\nseen = set()\nout = [x for x in ["Sam", "Mia", "Sam"] if x in b_set and not (x in seen or seen.add(x))]\nprint(out)',
             output: "['Sam', 'Mia']",
-            note: "Checking 'f in set_b' takes O(1) instant lookup time instead of O(n) list scan.",
+            note: "Hash the second list into a set and track seen items to keep arrival order.",
           },
         ],
       },
@@ -362,23 +352,24 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 12,
     tools: [
       {
-        toolName: "total += n & .append(total) — Running Total",
-        badge: "PREFIX SUM ACCUMULATOR",
+        toolName: "Prefix Sum Ruler (`prefix[r + 1] - prefix[l]`) — O(1) Queries",
+        badge: "PREFIX SUM O(N + Q)",
         purpose:
-          "Maintains a cumulative running sum and saves the subtotal at each step into a results list.",
-        syntaxPattern: "result = []\ntotal = 0\nfor n in numbers:\n    total += n\n    result.append(total)",
+          "Precomputes cumulative sums with a leading zero sentinel so any inclusive range `[left, right]` resolves in O(1).",
+        syntaxPattern:
+          "prefix = [0]\nfor n in nums:\n    prefix.append(prefix[-1] + n)\nslice_sum = prefix[right + 1] - prefix[left]",
         variations: [
           {
-            label: "1. Building running total step by step",
-            code: "nums = [10, 20, 15, 5]\nres = []\ntot = 0\nfor n in nums:\n    tot += n\n    res.append(tot)\nprint(res)",
-            output: "[10, 30, 45, 50]",
-            note: "Each element in res represents the total of all numbers up to that index.",
+            label: "1. Answering multiple inclusive range sums",
+            code: "nums = [10, 20, 15, 5]\nprefix = [0]\nfor n in nums:\n    prefix.append(prefix[-1] + n)\nprint([prefix[r + 1] - prefix[l] for l, r in [[0, 2], [1, 3]]])",
+            output: "[45, 40]",
+            note: "Leading 0 makes left=0 work without an extra if-branch.",
           },
           {
-            label: "2. Finding sum of range using prefix totals",
-            code: "prefix = [10, 30, 45, 50]\n# sum between idx 1 and 3: prefix[3] - prefix[0]\nrange_sum = prefix[3] - prefix[0]\nprint(range_sum)",
-            output: "40",
-            note: "Allows answering any range sum query in O(1) time without re-looping.",
+            label: "2. Handling negative values seamlessly",
+            code: "nums = [3, -2, 7, 1]\np = [0]\nfor n in nums: p.append(p[-1] + n)\nprint(p[3] - p[1])",
+            output: "5",
+            note: "Prefix differences work identically even with negative array values.",
           },
         ],
       },
@@ -386,30 +377,31 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
   },
 
   // ============================================================================
-  // CHAPTER IV: SORTING & FILTERING PATTERNS (Modules 13 - 16)
+  // CHAPTER IV: PODIUM TRACKING, TIE-BREAKERS & PARTITIONING (Modules 13 - 16)
   // ============================================================================
   {
     matchTrack: "algorithms",
     matchOrder: 13,
     tools: [
       {
-        toolName: "max() — Linear Scan Maximum Finder",
-        badge: "BUILT-IN O(N)",
+        toolName: "Two-Variable Podium Tracker (`first, second`) — Single Pass",
+        badge: "STREAMING O(N)",
         purpose:
-          "Finds and returns the greatest number or highest-ranking item in an iterable.",
-        syntaxPattern: "highest = max(number_list)",
+          "Tracks the top-2 distinct values in one pass and O(1) memory without sorting the array.",
+        syntaxPattern:
+          "first = second = None\nfor x in scores:\n    if first is None or x > first:\n        first, second = x, first\n    elif x < first and (second is None or x > second):\n        second = x",
         variations: [
           {
-            label: "1. Find highest value in list",
-            code: "scores = [120, 450, 310, 290]\nprint(max(scores))",
-            output: "450",
-            note: "max() inspects each element once in O(n) time.",
+            label: "1. Distinct top 2 with duplicate champion",
+            code: "scores = [120, 450, 450, 310]\nfirst = second = None\nfor s in scores:\n    if first is None or s > first:\n        first, second = s, first\n    elif s < first and (second is None or s > second):\n        second = s\nprint([first, second])",
+            output: "[450, 310]",
+            note: "s < first skips the second 450 so silver correctly stays 310.",
           },
           {
-            label: "2. Find max using a custom key function",
-            code: "words = ['cat', 'elephant', 'dog']\nprint(max(words, key=len))",
-            output: "elephant",
-            note: "key=len finds the string with the greatest character length.",
+            label: "2. Safe on negative scores & single distinct value",
+            code: "scores = [-10, -3, -20]\nfirst = second = None\nfor s in scores:\n    if first is None or s > first: first, second = s, first\n    elif s < first and (second is None or s > second): second = s\nprint([first, second])",
+            output: "[-3, -10]",
+            note: "Initializing with None instead of 0 handles all-negative inputs.",
           },
         ],
       },
@@ -420,23 +412,24 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 14,
     tools: [
       {
-        toolName: "sorted(..., reverse=True) — Descending Order Sort",
-        badge: "TIMSORT O(N LOG N)",
+        toolName: "Tuple Key `lambda p: (-p['score'], p['time'], p['name'])`",
+        badge: "MULTI-KEY TIMSORT",
         purpose:
-          "Sorts items from highest to lowest (descending order) without mutating the original list.",
-        syntaxPattern: "ranked = sorted(items, reverse=True)",
+          "Ranks objects across mixed descending (`-score`) and ascending (`time`, `name`) tie-breaker criteria in one sort pass.",
+        syntaxPattern:
+          "ranked = sorted(items, key=lambda p: (-p['score'], p['time'], p['name']))",
         variations: [
           {
-            label: "1. Sort numbers high to low",
-            code: "scores = [40, 95, 70, 85]\nprint(sorted(scores, reverse=True))",
-            output: "[95, 85, 70, 40]",
-            note: "reverse=True flips the default ascending order to descending order.",
+            label: "1. Score descending, fastest time ascending, A-Z tie-break",
+            code: 'players = [{"name":"Kai","score":95,"time":40},{"name":"Aria","score":95,"time":30}]\nprint([p["name"] for p in sorted(players, key=lambda p: (-p["score"], p["time"], p["name"]))])',
+            output: "['Aria', 'Kai']",
+            note: "Negating only -score preserves ascending order for time and name.",
           },
           {
-            label: "2. Sort strings alphabetically descending",
-            code: "letters = ['a', 'c', 'b']\nprint(sorted(letters, reverse=True))",
-            output: "['c', 'b', 'a']",
-            note: "Orders letters Z to A.",
+            label: "2. Projecting names after sorting dicts",
+            code: 'data = [{"n":"Zoe","s":10},{"n":"Amy","s":10}]\nprint([d["n"] for d in sorted(data, key=lambda d: (-d["s"], d["n"]))])',
+            output: "['Amy', 'Zoe']",
+            note: "Python compares tuple elements strictly left to right.",
           },
         ],
       },
@@ -447,23 +440,24 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 15,
     tools: [
       {
-        toolName: "n % 2 == 0 — Modulo Parity Check",
-        badge: "MODULO OPERATOR",
+        toolName: "Two-Pointer In-Place Swap (`l, r`) — O(1) Parity Partition",
+        badge: "TWO POINTERS O(1) SPACE",
         purpose:
-          "Checks whether a number has zero remainder when divided by 2 to distinguish even from odd.",
-        syntaxPattern: "is_even = (n % 2 == 0)\nevens = [n for n in nums if n % 2 == 0]",
+          "Partitions evens before odds directly inside the input list using converging `left`/`right` indices.",
+        syntaxPattern:
+          "l, r = 0, len(nums) - 1\nwhile l < r:\n    while l < r and nums[l] % 2 == 0: l += 1\n    while l < r and nums[r] % 2 == 1: r -= 1\n    if l < r: nums[l], nums[r] = nums[r], nums[l]; l += 1; r -= 1",
         variations: [
           {
-            label: "1. Test even vs odd parity",
-            code: "print(10 % 2 == 0, 15 % 2 == 0)",
-            output: "True False",
-            note: "Even numbers leave remainder 0; odd numbers leave remainder 1.",
+            label: "1. Converging in-place swap",
+            code: "nums = [3, 1, 2, 4]\nl, r = 0, len(nums) - 1\nwhile l < r:\n    while l < r and nums[l] % 2 == 0: l += 1\n    while l < r and nums[r] % 2 == 1: r -= 1\n    if l < r: nums[l], nums[r] = nums[r], nums[l]; l += 1; r -= 1\nprint(nums)",
+            output: "[4, 2, 1, 3]",
+            note: "All evens precede all odds in O(n) time and O(1) extra space.",
           },
           {
-            label: "2. Filter a list for only even numbers",
-            code: "nums = [10, 15, 22, 33, 40]\nevens = [n for n in nums if n % 2 == 0]\nprint(evens)",
-            output: "[10, 22, 40]",
-            note: "Keeps only items that satisfy the modulo condition.",
+            label: "2. Guarding inner while bounds with l < r",
+            code: "evens = [2, 4, 6]\nl, r = 0, len(evens) - 1\nwhile l < r and evens[l] % 2 == 0:\n    l += 1\nprint(l, r)",
+            output: "2 2",
+            note: "Checking l < r prevents walking off the end of an all-even array.",
           },
         ],
       },
@@ -474,23 +468,24 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 16,
     tools: [
       {
-        toolName: "item in collection — Early Exit Membership Scan",
-        badge: "MEMBERSHIP TEST",
+        toolName: "Allowlist Set + Seen Guard — Ordered O(n+m) Filter",
+        badge: "HASH SET GATEKEEPER",
         purpose:
-          "Scans a collection for a target value and returns True immediately as soon as a match is found.",
-        syntaxPattern: "is_present = target in collection",
+          "Checks large arrival streams against an allowlist in O(1) per lookup while preserving order and deduplicating repeats.",
+        syntaxPattern:
+          "vip_set, seen, out = set(vip_list), set(), []\nfor x in arrivals:\n    if x in vip_set and x not in seen:\n        seen.add(x); out.append(x)",
         variations: [
           {
-            label: "1. Check if name is in list",
-            code: 'vip = ["Aria", "Kai", "Nova"]\nprint("Kai" in vip, "Leo" in vip)',
-            output: "True False",
-            note: "Returns a clean boolean True or False.",
+            label: "1. Preserve first-arrival order & dedup repeats",
+            code: 'vips = set(["Aria", "Kai", "Nova"])\nseen, out = set(), []\nfor g in ["Leo", "Kai", "Aria", "Kai"]:\n    if g in vips and g not in seen:\n        seen.add(g); out.append(g)\nprint(out)',
+            output: "['Kai', 'Aria']",
+            note: "Second 'Kai' is dropped while first-seen order ['Kai', 'Aria'] stays intact.",
           },
           {
-            label: "2. Negative check with 'not in'",
-            code: 'banned = ["bad_bot", "spammer"]\nprint("good_user" not in banned)',
-            output: "True",
-            note: "'not in' returns True when the item is completely absent.",
+            label: "2. Why set intersection alone loses order",
+            code: 'print(len(set(["Kai", "Aria"]) & set(["Aria", "Kai"])))',
+            output: "2",
+            note: "Python sets have non-deterministic iteration order; iterate arrivals linearly instead.",
           },
         ],
       },
@@ -498,36 +493,31 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
   },
 
   // ============================================================================
-  // CHAPTER V: PRACTICAL INTERVIEW CLASSICS (Modules 17 - 20)
+  // CHAPTER V: TWO-POINTER STRINGS, SETS & INVERTED INDICES (Modules 17 - 20)
   // ============================================================================
   {
     matchTrack: "algorithms",
     matchOrder: 17,
     tools: [
       {
-        toolName: "seq[::-1] — Step Slice String & Array Inversion",
-        badge: "EXTENDED SLICING",
+        toolName: "Inward Two Pointers + `.isalnum()` — O(1) Palindrome Check",
+        badge: "TWO POINTERS O(1) SPACE",
         purpose:
-          "Uses extended slice syntax with step -1 to reverse any sequence in a single concise operation.",
-        syntaxPattern: "reversed_seq = seq[::-1]\nis_palindrome = (seq == seq[::-1])",
+          "Validates messy phrases case-insensitively while skipping punctuation and spaces without allocating a cleaned copy string.",
+        syntaxPattern:
+          "while l < r:\n    while l < r and not text[l].isalnum(): l += 1\n    while l < r and not text[r].isalnum(): r -= 1\n    if text[l].lower() != text[r].lower(): return False",
         variations: [
           {
-            label: "1. Reverse text string",
-            code: 'word = "radar"\nprint(word[::-1])',
-            output: "radar",
-            note: "Step -1 walks backward from the final element to index 0.",
+            label: "1. Checking alphanumeric characters and case folding",
+            code: 'for ch in ["A", ",", "9"]:\n    print(ch, ch.isalnum(), ch.lower())',
+            output: "A True a\n, False ,\n9 True 9",
+            note: ".isalnum() keeps letters & digits while ignoring spaces and punctuation.",
           },
           {
-            label: "2. Test palindrome equivalence",
-            code: 'word = "level"\nprint(word == word[::-1])',
+            label: "2. Punctuation-only phrase edge case",
+            code: 's = ".,!"\nl, r = 0, len(s) - 1\nwhile l < r and not s[l].isalnum(): l += 1\nprint(l >= r)',
             output: "True",
-            note: "If the reversed string matches the original, it is a palindrome.",
-          },
-          {
-            label: "3. Reverse a list of numbers",
-            code: "nums = [1, 2, 3]\nprint(nums[::-1])",
-            output: "[3, 2, 1]",
-            note: "Works identically on lists without modifying the source list.",
+            note: "When zero alphanumeric characters remain, pointers meet cleanly and return True.",
           },
         ],
       },
@@ -538,23 +528,24 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 18,
     tools: [
       {
-        toolName: "len(items) == len(set(items)) — Uniqueness Test",
-        badge: "HASH SET DEDUPLICATION",
+        toolName: "`seen = set()` Early Exit — First Repeated Item",
+        badge: "STREAMING SET O(N)",
         purpose:
-          "Compares total list length against unique set length to verify absence of duplicates in O(n) time.",
-        syntaxPattern: "all_unique = len(items) == len(set(items))",
+          "Scans left to right and halts on the very first collision instead of hashing the entire list into `len(set(items))`.",
+        syntaxPattern:
+          "seen = set()\nfor x in items:\n    if x in seen: return x\n    seen.add(x)\nreturn None",
         variations: [
           {
-            label: "1. Unique list test (returns True)",
-            code: 'names = ["aria", "kai"]\nprint(len(names) == len(set(names)))',
-            output: "True",
-            note: "Because every name is distinct, set() drops nothing and lengths match.",
+            label: "1. Return earliest completed duplicate",
+            code: 'seen = set()\nfor n in ["aria", "kai", "mia", "kai", "aria"]:\n    if n in seen:\n        print(n); break\n    seen.add(n)',
+            output: "kai",
+            note: "'kai' finishes its 2nd occurrence at index 3 before 'aria' repeats at index 4.",
           },
           {
-            label: "2. Duplicate list test (returns False)",
-            code: 'names = ["aria", "aria"]\nprint(len(names) == len(set(names)))',
-            output: "False",
-            note: "set() collapses duplicate 'aria', shrinking set length from 2 to 1.",
+            label: "2. Clean None return when all items unique",
+            code: 'def f(xs):\n    s = set()\n    for x in xs:\n        if x in s: return x\n        s.add(x)\n    return None\nprint(f(["aria", "kai"]))',
+            output: "None",
+            note: "Reaching the end without collisions returns None.",
           },
         ],
       },
@@ -565,23 +556,24 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 19,
     tools: [
       {
-        toolName: "abs(a - b) — Absolute Distance Magnitude",
-        badge: "BUILT-IN MATH",
+        toolName: "`sorted(nums)` Adjacent Pair Gap Scan — Closest Pair",
+        badge: "SORT + SCAN O(N LOG N)",
         purpose:
-          "Removes any negative sign from subtraction to measure the non-negative scalar distance between two points.",
-        syntaxPattern: "distance = abs(x1 - x2)",
+          "Sorts a non-mutating copy once so the minimum absolute difference is guaranteed to appear between adjacent elements.",
+        syntaxPattern:
+          "ordered = sorted(nums)\nbest = min(ordered[i + 1] - ordered[i] for i in range(len(ordered) - 1))",
         variations: [
           {
-            label: "1. Always-positive distance",
-            code: "a, b = 15, 25\nprint(abs(a - b), abs(b - a))",
-            output: "10 10",
-            note: "Order does not matter: abs(15 - 25) and abs(25 - 15) both produce 10.",
+            label: "1. Minimum gap across positive and negative numbers",
+            code: "ordered = sorted([-10, -3, 2, 11])\nprint(min(ordered[i + 1] - ordered[i] for i in range(len(ordered) - 1)))",
+            output: "5",
+            note: "Gap between -3 and 2 is 2 - (-3) = 5.",
           },
           {
-            label: "2. Manhattan distance calculation",
-            code: "x1, y1 = 2, 5\nx2, y2 = 6, 8\nmanhattan = abs(x1 - x2) + abs(y1 - y2)\nprint(manhattan)",
-            output: "7",
-            note: "Standard grid distance formula: abs(dx) + abs(dy).",
+            label: "2. Preserving caller's original list",
+            code: "raw = [42, 15, 25, 9]\nordered = sorted(raw)\nprint(raw[0], ordered[0])",
+            output: "42 9",
+            note: "sorted() avoids side effects on caller data unlike .sort().",
           },
         ],
       },
@@ -592,23 +584,24 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 20,
     tools: [
       {
-        toolName: "dict(zip(keys, values)) — Parallel List Zipper",
-        badge: "ITERATOR COMBINER",
+        toolName: "`zip()` + `dict.setdefault(k, [])` — Inverted Index",
+        badge: "GROUPING HASH MAP O(N)",
         purpose:
-          "Pairs corresponding elements from two equal-length lists into key-value pairs and builds a dictionary in O(n) time.",
-        syntaxPattern: "lookup = dict(zip(keys_list, values_list))",
+          "Groups parallel columns into `{key: [values...]}` buckets without overwriting repeated keys.",
+        syntaxPattern:
+          "index = {}\nfor name, role in zip(names, roles):\n    index.setdefault(role, []).append(name)",
         variations: [
           {
-            label: "1. Pair names and scores into dictionary",
-            code: 'names = ["Aria", "Kai"]\nscores = [100, 85]\nboard = dict(zip(names, scores))\nprint(board)',
-            output: "{'Aria': 100, 'Kai': 85}",
-            note: "zip() groups by index: (names[0], scores[0]), (names[1], scores[1]).",
+            label: "1. Grouping multiple users under shared roles",
+            code: 'index = {}\nfor n, r in zip(["Aria", "Kai", "Mia"], ["admin", "dev", "admin"]):\n    index.setdefault(r, []).append(n)\nprint(index)',
+            output: "{'admin': ['Aria', 'Mia'], 'dev': ['Kai']}",
+            note: "Preserves insertion order inside every role bucket.",
           },
           {
-            label: "2. Iterating through paired tuples",
-            code: 'for k, v in zip(["a", "b"], [1, 2]):\n    print(f"{k}->{v}")',
-            output: "a->1\nb->2",
-            note: "Unpacks corresponding items simultaneously in a for loop.",
+            label: "2. Why dict(zip(...)) loses earlier entries",
+            code: 'print(dict(zip(["admin", "dev", "admin"], ["Aria", "Kai", "Mia"])))',
+            output: "{'admin': 'Mia', 'dev': 'Kai'}",
+            note: "A flat dictionary overwrites 'Aria' when the second 'admin' arrives.",
           },
         ],
       },

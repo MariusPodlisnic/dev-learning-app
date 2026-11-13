@@ -255,15 +255,21 @@ export function mergeCurriculumLessons<
   }
 
   for (const exp of EXPANSION_LESSONS) {
-    const alreadyExists = merged.some(
+    const existingIdx = merged.findIndex(
       (item) =>
         item.id === exp.id ||
         (item.track === exp.track &&
           (item.lesson_order === exp.lesson_order ||
             item.title.toLowerCase() === exp.title.toLowerCase())),
     );
-    if (!alreadyExists) {
+    if (existingIdx === -1) {
       merged.push(exp as unknown as T);
+    } else if (exp.track !== "python_basics") {
+      // Prefer upgraded local Pro curriculum over older DB rows while keeping DB id for user_progress continuity.
+      merged[existingIdx] = {
+        ...exp,
+        id: merged[existingIdx].id,
+      } as unknown as T;
     }
   }
   return merged.sort((a, b) => a.lesson_order - b.lesson_order);

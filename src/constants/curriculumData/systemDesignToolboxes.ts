@@ -226,30 +226,31 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
   },
 
   // ============================================================================
-  // CHAPTER III: RESILIENCE & GLOBAL ROUTING (Modules 09 - 12)
+  // CHAPTER III: RESILIENCE, FAILOVER & GLOBAL EDGE (Modules 09 - 12)
   // ============================================================================
   {
     matchTrack: "system_design",
     matchOrder: 9,
     tools: [
       {
-        toolName: "min(delay_ms, max_ms) — Exponential Backoff Cap",
+        toolName: "base * (2 ** attempt) + jitter — Capped Exponential Backoff",
         badge: "RETRY RESILIENCE",
         purpose:
-          "Limits exponential reconnect wait times so an app never sleeps indefinitely when servers are down.",
-        syntaxPattern: "wait_ms = min(calculated_delay, max_delay_cap)",
+          "Doubles wait delays per retry attempt, mixes in jitter to stop thundering herds, and clamps at `max_ms`.",
+        syntaxPattern:
+          "delay = base_ms * (2 ** attempt) + jitter_ms\nwait_ms = max(0, min(delay, max_ms))",
         variations: [
           {
-            label: "1. Capping a high delay at max threshold",
-            code: "delay = 1600\nmax_cap = 1000\nactual_wait = min(delay, max_cap)\nprint(actual_wait)",
-            output: "1000",
-            note: "min(1600, 1000) caps the wait at 1000ms instead of 1600ms.",
+            label: "1. Attempt 2 backoff with 50ms jitter",
+            code: "print(max(0, min(100 * (2 ** 2) + 50, 1000)))",
+            output: "450",
+            note: "100 * 4 + 50 = 450ms, well under the 1000ms ceiling.",
           },
           {
-            label: "2. Allowing lower delays below cap",
-            code: "delay = 400\nmax_cap = 1000\nprint(min(delay, max_cap))",
-            output: "400",
-            note: "When delay is below cap, the smaller calculated delay is respected.",
+            label: "2. Attempt 4 clamped at max_ms",
+            code: "print(max(0, min(100 * (2 ** 4) + 50, 1000)))",
+            output: "1000",
+            note: "1650ms is capped cleanly at 1000ms.",
           },
         ],
       },
@@ -260,23 +261,24 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 10,
     tools: [
       {
-        toolName: "attempts >= 3 — Dead Letter Queue (DLQ) Rule",
-        badge: "WORKER QUEUES",
+        toolName: "retry / dlq Partition — Dead-Letter Queue (DLQ) Triage",
+        badge: "MESSAGE QUEUES",
         purpose:
-          "Routes repeatedly failing jobs to a Dead Letter Queue or on-call engineer after 3 strikes.",
-        syntaxPattern: "if attempts >= 3:\n    return \"ALERT_TEAM\"\nreturn \"RETRY\"",
+          "Quarantines poison-pill jobs that hit `attempts >= max_attempts` into `dlq` while preserving order in both lists.",
+        syntaxPattern:
+          "for job in jobs:\n    (dlq if job['attempts'] >= max_attempts else retry).append(job['id'])",
         variations: [
           {
-            label: "1. Trigger alert on 3rd failure",
-            code: 'attempts = 3\nstatus = "ALERT_TEAM" if attempts >= 3 else "RETRY"\nprint(status)',
-            output: "ALERT_TEAM",
-            note: ">= 3 catches the 3rd attempt immediately to prevent infinite retry loops.",
+            label: "1. Triage queue jobs in one O(n) pass",
+            code: 'jobs = [{"id":"j1","attempts":1},{"id":"j2","attempts":3}]\nretry, dlq = [], []\nfor j in jobs:\n    (dlq if j["attempts"] >= 3 else retry).append(j["id"])\nprint({"retry": retry, "dlq": dlq})',
+            output: "{'retry': ['j1'], 'dlq': ['j2']}",
+            note: ">= max_attempts isolates failing tasks immediately on their final try.",
           },
           {
-            label: "2. Authorizing a standard retry on 1st attempt",
-            code: 'attempts = 1\nstatus = "ALERT_TEAM" if attempts >= 3 else "RETRY"\nprint(status)',
-            output: "RETRY",
-            note: "Allows intermittent network hiccups to recover automatically.",
+            label: "2. Empty queue base case",
+            code: 'print({"retry": [], "dlq": []})',
+            output: "{'retry': [], 'dlq': []}",
+            note: "Always returns both bucket keys even when zero jobs arrive.",
           },
         ],
       },
@@ -287,23 +289,24 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 11,
     tools: [
       {
-        toolName: "if primary_online — Automatic Failover Switch",
+        toolName: "min(healthy, key=lambda s: s['load']) — Least-Load Failover",
         badge: "HIGH AVAILABILITY",
         purpose:
-          "Routes requests to primary nodes when healthy and automatically redirects to standby nodes on outage.",
-        syntaxPattern: "if primary_online:\n    return \"primary\"\nreturn \"backup\"",
+          "Filters out failed health checks BEFORE picking the least-loaded active server (or `'UNAVAILABLE'`).",
+        syntaxPattern:
+          "live = [s for s in servers if s['healthy']]\nreturn min(live, key=lambda s: s['load'])['name'] if live else 'UNAVAILABLE'",
         variations: [
           {
-            label: "1. Primary healthy -> routes to primary",
-            code: 'primary_online = True\nserver = "primary" if primary_online else "backup"\nprint(server)',
-            output: "primary",
-            note: "Sends live traffic to primary cluster while status is healthy.",
+            label: "1. Ignoring an offline server with low fake load",
+            code: 'fleet = [{"name":"us-1","healthy":False,"load":10},{"name":"eu-1","healthy":True,"load":20}]\nlive = [s for s in fleet if s["healthy"]]\nprint(min(live, key=lambda s: s["load"])["name"])',
+            output: "eu-1",
+            note: "Offline us-1 is excluded even though its load (10) looks smaller.",
           },
           {
-            label: "2. Primary down -> routes to standby backup",
-            code: 'primary_online = False\nserver = "primary" if primary_online else "backup"\nprint(server)',
-            output: "backup",
-            note: "Seamlessly diverts all traffic to hot standby without human intervention.",
+            label: "2. Graceful fleet-down sentinel",
+            code: 'live = []\nprint(min(live)["name"] if live else "UNAVAILABLE")',
+            output: "UNAVAILABLE",
+            note: "Explicitly returns 'UNAVAILABLE' instead of raising ValueError on empty pool.",
           },
         ],
       },
@@ -314,23 +317,24 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 12,
     tools: [
       {
-        toolName: "cdn_map.get(region, 'global-edge') — Edge Routing",
+        toolName: "Regional Edge Affinity + Global Latency Fallback",
         badge: "GLOBAL CDN",
         purpose:
-          "Routes user traffic to the geographically nearest Point of Presence (PoP) with safe fallback.",
-        syntaxPattern: "edge_server = cdn_map.get(user_region, \"global-edge\")",
+          "Selects the fastest healthy PoP inside `region`, failing over to the lowest-latency healthy PoP globally or `'origin'`.",
+        syntaxPattern:
+          "healthy = [e for e in edges if e['healthy']]\nlocal = [e for e in healthy if e['region'] == region]\npool = local if local else healthy\nreturn min(pool, key=lambda e: e['latency_ms'])['id'] if pool else 'origin'",
         variations: [
           {
-            label: "1. Regional cache hit",
-            code: 'cdn = {"eu": "eu-west", "asia": "tokyo-edge"}\nprint(cdn.get("eu", "global-edge"))',
-            output: "eu-west",
-            note: "Matched region returns localized low-latency caching server.",
+            label: "1. Regional edge down -> global lowest-latency edge",
+            code: 'pops = [{"id":"eu-1","region":"eu","latency_ms":15,"healthy":False},{"id":"uk-1","region":"uk","latency_ms":35,"healthy":True},{"id":"us-1","region":"us","latency_ms":85,"healthy":True}]\nh = [e for e in pops if e["healthy"]]\nloc = [e for e in h if e["region"] == "eu"]\nprint(min(loc or h, key=lambda e: e["latency_ms"])["id"])',
+            output: "uk-1",
+            note: "Empty loc falls back cleanly via (loc or h) to uk-1 (35ms < 85ms).",
           },
           {
-            label: "2. Unmapped region fallback",
-            code: 'cdn = {"eu": "eu-west"}\nprint(cdn.get("sa", "global-edge"))',
-            output: "global-edge",
-            note: "Falls back safely to global edge PoP if region is missing.",
+            label: "2. All PoPs offline -> origin fallback",
+            code: 'pops = [{"id":"eu-1","healthy":False}]\nprint("origin" if not [e for e in pops if e["healthy"]] else "edge")',
+            output: "origin",
+            note: "Origin serves as last-resort fallback when every edge node fails.",
           },
         ],
       },
@@ -338,30 +342,31 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
   },
 
   // ============================================================================
-  // CHAPTER IV: ALARMS, FLAGS & AUTOSCALING (Modules 13 - 16)
+  // CHAPTER IV: OBSERVABILITY, ROLLOUTS & AUTOSCALING (Modules 13 - 16)
   // ============================================================================
   {
     matchTrack: "system_design",
     matchOrder: 13,
     tools: [
       {
-        toolName: "usage >= 90 — Telemetry & Threshold Alarm",
+        toolName: "Consecutive Streak Counter — Flap-Guarded Alarm",
         badge: "OBSERVABILITY",
         purpose:
-          "Checks CPU, memory, or disk utilization metrics and fires warnings before catastrophic OOM crashes.",
-        syntaxPattern: "if usage >= 90:\n    return \"WARN\"\nreturn \"OK\"",
+          "Fires `'WARN'` only when `consecutive_needed` samples in a row breach `threshold`, resetting on any healthy dip.",
+        syntaxPattern:
+          "streak = 0\nfor s in samples:\n    streak = streak + 1 if s >= threshold else 0\n    if streak >= consecutive_needed: return 'WARN'",
         variations: [
           {
-            label: "1. High RAM usage warning (>= 90%)",
-            code: 'usage = 92\nstatus = "WARN" if usage >= 90 else "OK"\nprint(status)',
-            output: "WARN",
-            note: "Alarms fire so auto-scaler or engineer can allocate additional RAM.",
+            label: "1. Single isolated spike resets cleanly",
+            code: "streak = 0\nfor s in [95, 70, 88, 92]:\n    streak = streak + 1 if s >= 90 else 0\nprint('WARN' if streak >= 2 else 'OK')",
+            output: "OK",
+            note: "70 resets the counter so two separated spikes never page on-call.",
           },
           {
-            label: "2. Normal operational threshold",
-            code: 'usage = 65\nstatus = "WARN" if usage >= 90 else "OK"\nprint(status)',
-            output: "OK",
-            note: "Usage below 90% is healthy and requires no intervention.",
+            label: "2. Back-to-back breach triggers WARN",
+            code: "streak, status = 0, 'OK'\nfor s in [95, 70, 92, 94]:\n    streak = streak + 1 if s >= 90 else 0\n    if streak >= 2: status = 'WARN'; break\nprint(status)",
+            output: "WARN",
+            note: "Exits as soon as 2 consecutive samples stay >= 90.",
           },
         ],
       },
@@ -372,23 +377,24 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 14,
     tools: [
       {
-        toolName: "flags.get(feature, False) — Feature Flag Toggle",
-        badge: "RELEASE ENGINEERING",
+        toolName: "Kill-Switch + `user_id % 100 < rollout_pct` — Canary Flag",
+        badge: "FEATURE FLAGS",
         purpose:
-          "Checks whether experimental or beta features are enabled in a config dictionary with False as default.",
-        syntaxPattern: "is_enabled = flags.get(feature_name, False)",
+          "Combines an instant emergency `enabled` kill-switch with deterministic percentage bucketing for staged rollouts.",
+        syntaxPattern:
+          "cfg = flags.get(feature)\nreturn bool(cfg and cfg.get('enabled') and (user_id % 100) < cfg.get('rollout_pct', 0))",
         variations: [
           {
-            label: "1. Explicitly enabled feature flag",
-            code: 'flags = {"dark_mode": True}\nprint(flags.get("dark_mode", False))',
-            output: "True",
-            note: "Config dictionary contains feature with value True.",
+            label: "1. Bucket 10 inside 25% rollout vs bucket 40 outside",
+            code: 'cfg = {"enabled": True, "rollout_pct": 25}\nprint(110 % 100 < cfg["rollout_pct"], 140 % 100 < cfg["rollout_pct"])',
+            output: "True False",
+            note: "Buckets 0..24 are enabled (< 25); buckets 25..99 stay on control.",
           },
           {
-            label: "2. Missing feature flag safe fallback",
-            code: 'flags = {}\nprint(flags.get("beta_ai", False))',
+            label: "2. Emergency kill-switch overrides 100% rollout",
+            code: 'cfg = {"enabled": False, "rollout_pct": 100}\nprint(bool(cfg["enabled"] and (42 % 100) < cfg["rollout_pct"]))',
             output: "False",
-            note: "Missing flags default to False so unreleased features remain safely disabled.",
+            note: "Toggling enabled=False disables the feature instantly for everyone.",
           },
         ],
       },
@@ -399,23 +405,24 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 15,
     tools: [
       {
-        toolName: "size_mb <= max_mb — Payload Boundary Guard",
+        toolName: "Ordered Size + MIME Allowlist Validator — Gateway Guard",
         badge: "API GATEWAY",
         purpose:
-          "Enforces maximum HTTP request size limits to protect servers from memory exhaustion.",
-        syntaxPattern: "can_accept = (size_mb <= max_mb)",
+          "Validates empty uploads (`<= 0`), max payload size, and allowed MIME types before returning `{ok, reason}`.",
+        syntaxPattern:
+          "if size_mb <= 0: return {'ok': False, 'reason': 'EMPTY_FILE'}\nif size_mb > max_mb: return {'ok': False, 'reason': 'TOO_LARGE'}\nif content_type not in allowed_types: return {'ok': False, 'reason': 'BAD_TYPE'}",
         variations: [
           {
-            label: "1. Valid upload within limit",
-            code: "size_mb, max_mb = 10, 25\nprint(size_mb <= max_mb)",
-            output: "True",
-            note: "10 MB is within 25 MB limit and is allowed.",
+            label: "1. Structured gateway rejection reasons",
+            code: 'def check(sz, mx, mime, ok):\n    if sz <= 0: return "EMPTY_FILE"\n    if sz > mx: return "TOO_LARGE"\n    if mime not in ok: return "BAD_TYPE"\n    return "OK"\nprint(check(0, 25, "image/png", ["image/png"]), check(30, 25, "image/png", ["image/png"]))',
+            output: "EMPTY_FILE TOO_LARGE",
+            note: "Returns actionable machine-readable status codes for clients.",
           },
           {
-            label: "2. Oversized payload rejection",
-            code: "size_mb, max_mb = 40, 25\nprint(size_mb <= max_mb)",
+            label: "2. Rejecting disallowed executable uploads",
+            code: 'print("application/x-msdownload" in ["image/png", "image/jpeg"])',
             output: "False",
-            note: "Returns False to immediately return HTTP 413 Payload Too Large.",
+            note: "Strict allowlist blocks arbitrary binaries even when small.",
           },
         ],
       },
@@ -426,23 +433,24 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 16,
     tools: [
       {
-        toolName: "len(queue) > threshold — Auto-Scaling Trigger",
+        toolName: "Ceiling Division + `[1, max_workers]` Clamp — Autoscaler",
         badge: "AUTOSCALING",
         purpose:
-          "Monitors pending queue backlog length to automatically trigger provisioning of additional worker pods.",
-        syntaxPattern: "needs_scale_up = len(queue) > 5",
+          "Computes worker replica count via integer ceiling division and bounds between a 1-worker floor and `max_workers` ceiling.",
+        syntaxPattern:
+          "needed = (queue_len + target_per_worker - 1) // target_per_worker\nworkers = max(1, min(needed, max_workers))",
         variations: [
           {
-            label: "1. Overloaded queue triggers scaling",
-            code: 'jobs = ["j1", "j2", "j3", "j4", "j5", "j6"]\nprint(len(jobs) > 5)',
-            output: "True",
-            note: "6 jobs exceeds threshold of 5, signaling autoscaler to add an extra worker node.",
+            label: "1. Scaling up for remainder backlog (12 jobs @ 5/worker)",
+            code: "print((12 + 5 - 1) // 5)",
+            output: "3",
+            note: "Rounds up so the last 2 jobs do not stall waiting on 2 full workers.",
           },
           {
-            label: "2. Light queue requires no extra worker",
-            code: 'jobs = ["j1", "j2"]\nprint(len(jobs) > 5)',
-            output: "False",
-            note: "Existing workers can process current backlog without autoscaling.",
+            label: "2. Standby floor (1) and ceiling clamp (max_workers)",
+            code: "print(max(1, min((0 + 4) // 5, 10)), max(1, min((100 + 4) // 5, 8)))",
+            output: "1 8",
+            note: "Keeps 1 warm worker idle at zero backlog and caps max pods at 8.",
           },
         ],
       },
@@ -450,30 +458,31 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
   },
 
   // ============================================================================
-  // CHAPTER V: API KEYS, PAGINATION & BATCHES (Modules 17 - 20)
+  // CHAPTER V: AUTH, PAGINATION, REDIS CACHE & BATCHING (Modules 17 - 20)
   // ============================================================================
   {
     matchTrack: "system_design",
     matchOrder: 17,
     tools: [
       {
-        toolName: "api_key in valid_keys — Token Authorization Guard",
+        toolName: "4-Gate Token Check (Exists, Active, TTL, Scope) — API Auth",
         badge: "API SECURITY",
         purpose:
-          "Validates incoming bearer tokens or API keys against an active allowlist before granting access.",
-        syntaxPattern: "is_authorized = api_key in valid_keys",
+          "Authorizes requests only when the token exists, `active` is True, `now_ts < expires_at`, and `required_scope` is granted.",
+        syntaxPattern:
+          "rec = key_store.get(api_key)\nreturn bool(rec and rec.get('active') and now_ts < rec.get('expires_at', 0) and required_scope in rec.get('scopes', []))",
         variations: [
           {
-            label: "1. Validated active API key",
-            code: 'active_keys = ["key_live_1", "key_live_2"]\nprint("key_live_1" in active_keys)',
-            output: "True",
-            note: "Incoming key is recognized in the authorized active set.",
+            label: "1. Enforcing TTL boundary (now_ts < expires_at)",
+            code: 'rec = {"active": True, "expires_at": 100, "scopes": ["write"]}\nprint(rec["active"] and 50 < rec["expires_at"], rec["active"] and 100 < rec["expires_at"])',
+            output: "True False",
+            note: "At exact timestamp t=100, the token is already expired.",
           },
           {
-            label: "2. Unauthorized request rejection",
-            code: 'active_keys = ["key_live_1"]\nprint("key_expired" in active_keys)',
-            output: "False",
-            note: "Returns False to reject request immediately with HTTP 401 Unauthorized.",
+            label: "2. RBAC scope verification",
+            code: 'scopes = ["read", "write"]\nprint("write" in scopes, "admin" in scopes)',
+            output: "True False",
+            note: "Prevents read/write keys from invoking admin endpoints.",
           },
         ],
       },
@@ -484,23 +493,24 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 18,
     tools: [
       {
-        toolName: "(page - 1) * page_size — SQL Offset Formula",
+        toolName: "Pagination Envelope (`items`, `has_next`, `total_pages`)",
         badge: "DATABASE PAGINATION",
         purpose:
-          "Calculates how many records to skip in SQL queries (LIMIT / OFFSET) for 1-based page indexing.",
-        syntaxPattern: "offset = (page - 1) * page_size",
+          "Computes ceiling `total_pages`, slices `(page - 1) * page_size`, and derives `has_next` consistently.",
+        syntaxPattern:
+          "total_pages = (len(items) + page_size - 1) // page_size\nstart = (page - 1) * page_size\nitems_slice = items[start : start + page_size]",
         variations: [
           {
-            label: "1. Page 1 offset (skips 0 items)",
-            code: "page = 1\npage_size = 10\noffset = (page - 1) * page_size\nprint(offset)",
-            output: "0",
-            note: "Page 1 skips 0 rows: returns items 0 to 9.",
+            label: "1. Middle page with remaining items",
+            code: 'items = ["a","b","c","d","e"]\ntp = (len(items) + 1) // 2\nprint({"items": items[2:4], "has_next": 2 < tp, "total_pages": tp})',
+            output: "{'items': ['c', 'd'], 'has_next': True, 'total_pages': 3}",
+            note: "Page 2 of 3 returns ['c', 'd'] with has_next=True.",
           },
           {
-            label: "2. Page 3 offset (skips 20 items)",
-            code: "page = 3\npage_size = 10\noffset = (page - 1) * page_size\nprint(offset)",
-            output: "20",
-            note: "Page 3 skips the first 2 full pages of 10 items (skips 20): returns items 20 to 29.",
+            label: "2. Exact last page check (has_next=False)",
+            code: 'items = ["a","b","c","d"]\ntp = (len(items) + 1) // 2\nprint(2 < tp)',
+            output: "False",
+            note: "When page == total_pages, has_next must be False.",
           },
         ],
       },
@@ -511,23 +521,24 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 19,
     tools: [
       {
-        toolName: "f'user:{id}:profile' — Cache Key Namespacing",
-        badge: "REDIS NAMESPACING",
+        toolName: "Cache-Aside Read-Through (`f'user:{id}:profile'`)",
+        badge: "REDIS PATTERNS",
         purpose:
-          "Constructs deterministic, colon-separated key names for Redis or Memcached to prevent key collision.",
-        syntaxPattern: "cache_key = f\"user:{user_id}:profile\"",
+          "Reads Redis first, falls back to DB on miss and warms `cache[key]`, while never caching absent `None` rows.",
+        syntaxPattern:
+          "key = f'user:{user_id}:profile'\nif key in cache: return {'source': 'cache', 'data': cache[key]}\nif user_id in db:\n    cache[key] = db[user_id]\n    return {'source': 'db', 'data': db[user_id]}",
         variations: [
           {
-            label: "1. Standard user cache key formatting",
-            code: 'uid = 42\nkey = f"user:{uid}:profile"\nprint(key)',
-            output: "user:42:profile",
-            note: "Colons (:) organize hierarchical folders in Redis graphical inspectors.",
+            label: "1. Cold DB read warms cache for read #2",
+            code: 'c, d = {}, {42: "Aria"}\nk = "user:42:profile"\nif k not in c and 42 in d: c[k] = d[42]\nprint(c)',
+            output: "{'user:42:profile': 'Aria'}",
+            note: "Populates cache only when user_id exists in database.",
           },
           {
-            label: "2. Multi-parameter cache key",
-            code: 'org_id, item_id = 9, 101\nprint(f"org:{org_id}:item:{item_id}")',
-            output: "org:9:item:101",
-            note: "Uniquely distinguishes items across multi-tenant cloud partitions.",
+            label: "2. Avoiding cache pollution on misses",
+            code: 'c, d = {}, {42: "Aria"}\nprint(99 in d, len(c))',
+            output: "False 0",
+            note: "Nonexistent user IDs return 'miss' without filling RAM.",
           },
         ],
       },
@@ -538,23 +549,24 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 20,
     tools: [
       {
-        toolName: "total // batch_size — Batch Sizing Math",
+        toolName: "`[ids[i : i + sz] for i in range(0, len(ids), sz)]` — Chunker",
         badge: "BATCH WORKERS",
         purpose:
-          "Computes the number of full batches required to process large datasets using integer floor division (//).",
-        syntaxPattern: "full_batches = total_items // batch_size",
+          "Splits arbitrary lists into fixed-size sublists (preserving partial trailing batches) while guarding `batch_size <= 0`.",
+        syntaxPattern:
+          "if batch_size <= 0: return []\nreturn [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]",
         variations: [
           {
-            label: "1. Full batch count calculation",
-            code: "total_users = 250\nbatch_size = 100\nfull_batches = total_users // batch_size\nprint(full_batches)",
-            output: "2",
-            note: "250 // 100 is 2. Represents 2 full batches of 100 (plus 50 remaining in final batch).",
+            label: "1. Splitting into batches including trailing partial chunk",
+            code: "ids = [1, 2, 3, 4, 5]\nprint([ids[i:i+2] for i in range(0, len(ids), 2)])",
+            output: "[[1, 2], [3, 4], [5]]",
+            note: "Python slice bounds clamp automatically at len(ids) for the final chunk.",
           },
           {
-            label: "2. Exact multiple batch calculation",
-            code: "total_items = 500\nprint(total_items // 100)",
-            output: "5",
-            note: "500 divides into exactly 5 batches of 100 with 0 remainder.",
+            label: "2. Invalid batch_size <= 0 guard",
+            code: "def chunk(xs, b):\n    return [] if b <= 0 else [xs[i:i+b] for i in range(0, len(xs), b)]\nprint(chunk([1, 2], 0))",
+            output: "[]",
+            note: "Prevents ValueError from range(..., step=0).",
           },
         ],
       },

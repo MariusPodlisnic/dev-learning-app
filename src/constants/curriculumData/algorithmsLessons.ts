@@ -1,7 +1,7 @@
 export const ALGORITHMS_EXPANSION_LESSONS = [
   {
     id: "exp-alg-09",
-    title: "Minimum Search: Cheapest Flight Finder",
+    title: "Filtered Linear Scan: Cheapest Valid Flight",
     track: "algorithms",
     category: "LINEAR SCAN O(N)",
     difficulty: "Easy",
@@ -9,642 +9,704 @@ export const ALGORITHMS_EXPANSION_LESSONS = [
     lesson_order: 9,
     is_free: false,
     description:
-      "Find the lowest ticket price in a list of flight deals in a single O(n) pass using min().",
+      "Scan flight quotes in one O(n) pass while filtering out sold-out or invalid entries (<= 0 or None).",
     content:
-      "When comparing flight prices like `[320, 195, 240, 160, 410]`, how does a travel app find the cheapest deal?\n\nIt performs a single pass through the numbers to find the **minimum value** (`min(prices)`):\n\n```python\nprices = [320, 195, 240, 160, 410]\nlowest = min(prices)\nprint(lowest)  # 160\n```",
+      "Real flight APIs often include `None` or `0` placeholders for sold-out flights alongside valid fares like `[320, 0, 195, None, 160]`.\n\nIf you call `min(prices)` blindly, Python either crashes on `None` (`TypeError`) or picks `0`! Instead, maintain a running minimum:\n\n```python\nbest = None\nfor p in prices:\n    if p is not None and p > 0:\n        if best is None or p < best:\n            best = p\nreturn best if best is not None else -1\n```",
     assignment:
-      "Complete `find_cheapest_flight(prices)` so it returns the smallest number in `prices`.",
+      "Complete `find_cheapest_flight(prices)` to return the lowest valid price (`p is not None and p > 0`), or `-1` if no valid price exists.",
     constraints: [
-      "Return the smallest number in `prices` using `min(prices)`",
-      "Keep the `print(...)` line so it outputs `160`",
+      "Ignore `None` and prices `<= 0` without raising `TypeError`",
+      "Return `-1` when `prices` is empty or contains no valid fares",
+      "Run in O(n) single pass and O(1) extra space",
     ],
     examples: [
       {
-        input: "prices = [320, 195, 240, 160, 410]",
+        input: "prices = [320, 0, 195, None, 160, 410]",
         output: "160",
-        explanation: "160 is the lowest price in the list.",
+        explanation: "0 and None are skipped; 160 is the lowest valid fare.",
+      },
+      {
+        input: "prices = [0, None, -50]",
+        output: "-1",
+        explanation: "No valid fare > 0 exists, so return -1.",
       },
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def find_cheapest_flight(prices):
-    # 👉 Write 1 line: return min(prices)
-    return 0
+    best = None
+    # 👉 Scan prices once, skipping None or <= 0, and return -1 if none valid:
+    return -1
 
-print(find_cheapest_flight([320, 195, 240, 160, 410]))`,
+print(find_cheapest_flight([320, 0, 195, None, 160, 410]))`,
     expected_output: "160",
     hidden_tests: `import json
 results = []
 try:
-    r1 = find_cheapest_flight([320, 195, 240, 160, 410])
-    results.append({"id": 1, "input": "[320, 195, 240, 160, 410]", "expected": "160", "actual": str(r1), "passed": r1 == 160})
-    r2 = find_cheapest_flight([99, 120, 85])
-    results.append({"id": 2, "input": "[99, 120, 85]", "expected": "85", "actual": str(r2), "passed": r2 == 85})
+    r1 = find_cheapest_flight([320, 0, 195, None, 160, 410])
+    results.append({"id": 1, "input": "[320, 0, 195, None, 160, 410]", "expected": "160", "actual": str(r1), "passed": r1 == 160})
+    r2 = find_cheapest_flight([0, None, -20])
+    results.append({"id": 2, "input": "[0, None, -20]", "expected": "-1", "actual": str(r2), "passed": r2 == -1})
+    r3 = find_cheapest_flight([])
+    results.append({"id": 3, "input": "[]", "expected": "-1", "actual": str(r3), "passed": r3 == -1})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "array",
     visual_data: [
-      { label: "$320", value: "best = 320", address: "step 1" },
-      { label: "$195", value: "new best = 195", address: "step 2" },
-      { label: "$240", value: "keep 195", address: "step 3" },
-      { label: "$160", value: "MIN FOUND = 160 ✓", address: "step 4" },
+      { label: "$320", value: "valid -> best = 320", address: "step 1" },
+      { label: "0 / None", value: "skip invalid fare", address: "step 2" },
+      { label: "$195", value: "195 < 320 -> best = 195", address: "step 3" },
+      { label: "$160", value: "MIN VALID = 160 ✓", address: "step 4" },
     ],
-    hints: ["Replace `return 0` with `return min(prices)`."],
+    hints: [
+      "Check `if p is not None and p > 0:` inside `for p in prices:`.",
+      "Update `best = p` whenever `best is None or p < best`.",
+    ],
   },
   {
     id: "exp-alg-10",
-    title: "Binary Search Step 1: Finding the Middle",
+    title: "Binary Search: Lower-Bound Insertion Index",
     track: "algorithms",
     category: "DIVIDE & CONQUER",
-    difficulty: "Easy",
+    difficulty: "Medium",
     tree_row: 8,
     lesson_order: 10,
     is_free: false,
     description:
-      "Jump straight to the middle element of a sorted list in O(1) time using integer division (// 2).",
+      "Implement O(log n) binary search to find a target's index, or the sorted index where it should be inserted.",
     content:
-      "The secret behind **Binary Search** is jumping straight to the **middle index** of a sorted list instead of starting at index 0.\n\nWe calculate `mid = len(items) // 2` (using `//` so we get a whole number index) and return `items[mid]`:\n\n```python\nitems = [10, 25, 42, 70, 99]\nmid = len(items) // 2   # 5 // 2 = 2\nprint(items[mid])       # 42\n```",
+      "In real search engines and sorted indexes, binary search doesn't just return `-1` on a miss — **lower-bound search** returns the exact index where `target` belongs to keep the list sorted!\n\n```python\nlow, high = 0, len(nums) - 1\nwhile low <= high:\n    mid = (low + high) // 2\n    if nums[mid] < target:\n        low = mid + 1\n    else:\n        high = mid - 1\nreturn low\n```",
     assignment:
-      "We already calculated `mid = len(items) // 2` for you. Complete the function so it returns the element at index `mid` (`items[mid]`).",
+      "Complete `find_insert_pos(nums, target)` to return the index of the first element `>= target` in sorted `nums` (which is `len(nums)` if `target` is larger than all elements).",
     constraints: [
-      "Use `items[mid]` to read the middle value",
-      "Return `items[mid]`",
+      "Run in O(log n) time using `low` and `high` pointers",
+      "Return the leftmost valid index even when duplicates exist",
     ],
     examples: [
       {
-        input: "items = [10, 25, 42, 70, 99]",
-        output: "42",
-        explanation: "Length is 5, 5 // 2 is index 2, and items[2] is 42.",
+        input: "nums = [10, 25, 42, 70, 99], target = 50",
+        output: "3",
+        explanation: "50 belongs right before 70 at index 3.",
+      },
+      {
+        input: "nums = [1, 3, 3, 5], target = 3",
+        output: "1",
+        explanation: "First occurrence of 3 is at index 1.",
       },
     ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def get_middle_item(items):
-    mid = len(items) // 2
-    # 👉 Write 1 line: return items[mid]
+    complexities: { time: "O(log n)", space: "O(1)" },
+    initial_code: `def find_insert_pos(nums, target):
+    low, high = 0, len(nums) - 1
+    # 👉 Halve the search space with while low <= high and return low:
     return 0
 
-print(get_middle_item([10, 25, 42, 70, 99]))`,
-    expected_output: "42",
+print(find_insert_pos([10, 25, 42, 70, 99], 50))`,
+    expected_output: "3",
     hidden_tests: `import json
 results = []
 try:
-    r1 = get_middle_item([10, 25, 42, 70, 99])
-    results.append({"id": 1, "input": "[10, 25, 42, 70, 99]", "expected": "42", "actual": str(r1), "passed": r1 == 42})
-    r2 = get_middle_item([5, 15, 25])
-    results.append({"id": 2, "input": "[5, 15, 25]", "expected": "15", "actual": str(r2), "passed": r2 == 15})
+    r1 = find_insert_pos([10, 25, 42, 70, 99], 50)
+    results.append({"id": 1, "input": "[10,25,42,70,99], 50", "expected": "3", "actual": str(r1), "passed": r1 == 3})
+    r2 = find_insert_pos([1, 3, 3, 5], 3)
+    results.append({"id": 2, "input": "[1,3,3,5], 3 (leftmost duplicate)", "expected": "1", "actual": str(r2), "passed": r2 == 1})
+    r3 = find_insert_pos([10, 20], 99)
+    results.append({"id": 3, "input": "[10,20], 99 (append end)", "expected": "2", "actual": str(r3), "passed": r3 == 2})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "array",
     visual_data: [
-      { label: "idx 0: 10", value: "left half", address: "0" },
-      { label: "idx 1: 25", value: "left half", address: "1" },
-      {
-        label: "idx 2: 42",
-        value: "MIDDLE (5 // 2 = 2) 🎯",
-        address: "mid = 2",
-      },
-      { label: "idx 3: 70", value: "right half", address: "3" },
-      { label: "idx 4: 99", value: "right half", address: "4" },
+      { label: "low=0, high=4", value: "mid=2 (42 < 50 -> low=3)", address: "step 1" },
+      { label: "low=3, high=4", value: "mid=3 (70 >= 50 -> high=2)", address: "step 2" },
+      { label: "low > high", value: "INSERT AT INDEX 3 ✓", address: "O(log n)" },
     ],
-    hints: ["Replace `return 0` with `return items[mid]`."],
+    hints: [
+      "Loop `while low <= high:` and compute `mid = (low + high) // 2`.",
+      "If `nums[mid] < target`: `low = mid + 1`, else `high = mid - 1`. Finally `return low`.",
+    ],
   },
   {
     id: "exp-alg-11",
-    title: "List Intersection: Mutual Friends Finder",
+    title: "Set Intersection: Sorted Mutual Friends",
     track: "algorithms",
-    category: "SEARCH & FILTER",
+    category: "HASH SET INTERSECTION",
     difficulty: "Easy",
     tree_row: 9,
     lesson_order: 11,
     is_free: false,
     description:
-      "Find mutual friends who appear in both Alice's friend list and Bob's friend list.",
+      "Compute deduplicated, sorted mutual friends between two social graphs in O(n + m) set time.",
     content:
-      "How do social apps show **Mutual Friends** between two people? We check each friend `f` in `friends_a` and keep them if **`f in friends_b`** is True!\n\n```python\nmutual = [f for f in friends_a if f in friends_b]\n```",
+      "Checking `f in friends_b` on a plain list costs **O(n × m)** time and can produce duplicate names if either list has repeats.\n\nConvert to sets (`set(friends_a) & set(friends_b)`) so intersection runs in linear hash-set time, then sort alphabetically with `sorted(...)`!",
     assignment:
-      "Complete `find_mutual_friends(friends_a, friends_b)` so it returns a list of names that appear in both lists.",
+      "Complete `find_mutual_friends(friends_a, friends_b)` so it returns a sorted, duplicate-free list of names present in both inputs.",
     constraints: [
-      "Keep each friend `f` from `friends_a` if `f in friends_b`",
-      "Return the list of mutual friends",
+      "Eliminate duplicate names in the output",
+      "Return the mutual names sorted alphabetically",
     ],
     examples: [
       {
-        input:
-          'friends_a = ["Sam", "Mia", "Leo"], friends_b = ["Mia", "Zoe", "Sam"]',
-        output: "['Sam', 'Mia']",
-        explanation: "Sam and Mia are on both friend lists.",
+        input: 'friends_a = ["Sam", "Mia", "Leo", "Sam"], friends_b = ["Mia", "Zoe", "Sam"]',
+        output: "['Mia', 'Sam']",
+        explanation: "Both lists contain Mia and Sam; sorted without duplicates.",
       },
     ],
-    complexities: { time: "O(n)", space: "O(n)" },
+    complexities: { time: "O(n + m + k log k)", space: "O(n + m)" },
     initial_code: `def find_mutual_friends(friends_a, friends_b):
-    # 👉 Write 1 line: return [f for f in friends_a if f in friends_b]
+    # 👉 Intersect sets of friends_a and friends_b and return them sorted:
     return []
 
-print(find_mutual_friends(["Sam", "Mia", "Leo"], ["Mia", "Zoe", "Sam"]))`,
-    expected_output: "['Sam', 'Mia']",
+print(find_mutual_friends(["Sam", "Mia", "Leo", "Sam"], ["Mia", "Zoe", "Sam"]))`,
+    expected_output: "['Mia', 'Sam']",
     hidden_tests: `import json
 results = []
 try:
-    r1 = find_mutual_friends(["Sam", "Mia", "Leo"], ["Mia", "Zoe", "Sam"])
-    results.append({"id": 1, "input": "['Sam','Mia','Leo'] & ['Mia','Zoe','Sam']", "expected": "['Sam', 'Mia']", "actual": str(r1), "passed": r1 == ["Sam", "Mia"]})
-    r2 = find_mutual_friends(["Kai"], ["Leo"])
-    results.append({"id": 2, "input": "No mutual friends", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    r1 = find_mutual_friends(["Sam", "Mia", "Leo", "Sam"], ["Mia", "Zoe", "Sam"])
+    results.append({"id": 1, "input": "duplicate Sam + unsorted", "expected": "['Mia', 'Sam']", "actual": str(r1), "passed": r1 == ["Mia", "Sam"]})
+    r2 = find_mutual_friends(["Ava"], ["Zoe"])
+    results.append({"id": 2, "input": "disjoint lists", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    r3 = find_mutual_friends(["Kai", "Aria"], ["Aria", "Kai"])
+    results.append({"id": 3, "input": "all mutual", "expected": "['Aria', 'Kai']", "actual": str(r3), "passed": r3 == ["Aria", "Kai"]})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "hashmap",
     visual_data: [
-      { label: '"Sam"', value: "IN BOTH -> KEEP ✓", address: "match" },
-      { label: '"Mia"', value: "IN BOTH -> KEEP ✓", address: "match" },
-      { label: '"Leo"', value: "not in friends_b", address: "skip" },
+      { label: "set(A)", value: "{'Leo', 'Mia', 'Sam'}", address: "O(n)" },
+      { label: "set(B)", value: "{'Mia', 'Sam', 'Zoe'}", address: "O(m)" },
+      { label: "sorted(A & B)", value: "['Mia', 'Sam'] ✓", address: "deduped" },
     ],
     hints: [
-      "Replace `return []` with `return [f for f in friends_a if f in friends_b]`.",
+      "Use `&` between two sets: `set(friends_a) & set(friends_b)`.",
+      "Wrap the result in `sorted(...)` to return an alphabetically ordered list.",
     ],
   },
   {
     id: "exp-alg-12",
-    title: "Running Total: Daily Step Tracker",
+    title: "Prefix Sum Engine: O(1) Range Queries",
     track: "algorithms",
     category: "PREFIX SUMS",
-    difficulty: "Easy",
+    difficulty: "Medium",
     tree_row: 10,
     lesson_order: 12,
     is_free: false,
     description:
-      "Build a running total list that records the cumulative sum after each number.",
+      "Precompute a cumulative prefix array so multiple (left, right) inclusive range sum queries each answer in O(1) time.",
     content:
-      "A **Running Total (Prefix Sum)** keeps adding each day's points to `total` and saves the progress after each step:\n\n```python\nresult = []\ntotal = 0\nfor n in numbers:\n    total += n\n    result.append(total)\n```",
+      "Suppose an analytics dashboard asks for total daily revenue between days `[left, right]` across 10,000 queries.\n\nInstead of slicing `sum(numbers[l:r+1])` on every query, build `prefix` of length `n + 1` where `prefix[0] = 0` and `prefix[i + 1] = prefix[i] + numbers[i]`.\n\nThen any inclusive range `(left, right)` equals **`prefix[right + 1] - prefix[left]`** in O(1)!",
     assignment:
-      "We already wrote the loop and `total += n` for you! Add the 1 missing line inside the loop (`result.append(total)`) so each running total is saved.",
+      "Complete `range_sums(numbers, queries)` where `queries` is a list of `[left, right]` inclusive index pairs, returning a list with the sum for each query.",
     constraints: [
-      "Append `total` to `result` inside the loop using `result.append(total)`",
-      "Return `result` at the end",
+      "Precompute `prefix` once in O(n) before processing `queries`",
+      "Each query `[left, right]` is inclusive (`0 <= left <= right < len(numbers)`)",
     ],
     examples: [
       {
-        input: "numbers = [10, 20, 15, 5]",
-        output: "[10, 30, 45, 50]",
-        explanation: "10 -> 10+20=30 -> 30+15=45 -> 45+5=50.",
+        input: "numbers = [10, 20, 15, 5], queries = [[0, 2], [1, 3]]",
+        output: "[45, 40]",
+        explanation: "indices 0..2 sum to 10+20+15=45; indices 1..3 sum to 20+15+5=40.",
       },
     ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def running_totals(numbers):
-    result = []
-    total = 0
-    for n in numbers:
-        total += n
-        # 👉 Write 1 line: append 'total' to 'result'
-        
-    return result
+    complexities: { time: "O(n + q)", space: "O(n)" },
+    initial_code: `def range_sums(numbers, queries):
+    prefix = [0]
+    # 👉 1. Build cumulative prefix sums
+    # 👉 2. Answer each [left, right] in O(1) via prefix[right + 1] - prefix[left]
+    return []
 
-print(running_totals([10, 20, 15, 5]))`,
-    expected_output: "[10, 30, 45, 50]",
+print(range_sums([10, 20, 15, 5], [[0, 2], [1, 3]]))`,
+    expected_output: "[45, 40]",
     hidden_tests: `import json
 results = []
 try:
-    r1 = running_totals([10, 20, 15, 5])
-    results.append({"id": 1, "input": "[10, 20, 15, 5]", "expected": "[10, 30, 45, 50]", "actual": str(r1), "passed": r1 == [10, 30, 45, 50]})
-    r2 = running_totals([5, 5, 5])
-    results.append({"id": 2, "input": "[5, 5, 5]", "expected": "[5, 10, 15]", "actual": str(r2), "passed": r2 == [5, 10, 15]})
+    r1 = range_sums([10, 20, 15, 5], [[0, 2], [1, 3]])
+    results.append({"id": 1, "input": "[10,20,15,5], [[0,2],[1,3]]", "expected": "[45, 40]", "actual": str(r1), "passed": r1 == [45, 40]})
+    r2 = range_sums([3, -2, 7, 1], [[0, 0], [0, 3], [1, 2]])
+    results.append({"id": 2, "input": "[3,-2,7,1], 3 queries", "expected": "[3, 9, 5]", "actual": str(r2), "passed": r2 == [3, 9, 5]})
+    r3 = range_sums([5], [[0, 0]])
+    results.append({"id": 3, "input": "[5], [[0,0]]", "expected": "[5]", "actual": str(r3), "passed": r3 == [5]})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "array",
     visual_data: [
-      { label: "+10", value: "total = 10", address: "[10]" },
-      { label: "+20", value: "total = 30", address: "[10, 30]" },
-      { label: "+15", value: "total = 45", address: "[10, 30, 45]" },
-      { label: "+5", value: "total = 50 ✓", address: "[10, 30, 45, 50]" },
+      { label: "prefix[0..2]", value: "[0, 10, 30, 45, 50]", address: "build O(n)" },
+      { label: "query [0, 2]", value: "prefix[3] - prefix[0] = 45", address: "O(1)" },
+      { label: "query [1, 3]", value: "prefix[4] - prefix[1] = 40 ✓", address: "O(1)" },
     ],
     hints: [
-      "Right under `total += n`, write `result.append(total)` (indented by 8 spaces to match `total += n`).",
+      "Build prefix with `for n in numbers: prefix.append(prefix[-1] + n)`.",
+      "Answer queries with `return [prefix[r + 1] - prefix[l] for l, r in queries]`.",
     ],
   },
   {
     id: "exp-alg-13",
-    title: "Maximum Search: Arcade High Score",
+    title: "Single-Pass Runner-Up: Top-2 Distinct Scores",
     track: "algorithms",
     category: "LINEAR SCAN O(N)",
-    difficulty: "Easy",
+    difficulty: "Medium",
     tree_row: 11,
     lesson_order: 13,
     is_free: false,
     description:
-      "Find the highest score in a list of player scores in O(n) time using Python's max() function.",
+      "Track the first and second highest distinct scores in a single O(n) pass without sorting.",
     content:
-      "To crown the arcade champion, we scan the score list once in $O(n)$ time and pick the **largest number** using **`max(scores)`**:\n\n```python\nscores = [120, 450, 310, 290]\nbest = max(scores)\nprint(best)  # 450\n```",
+      "Sorting to get the top 2 scores takes **O(n log n)** time and fails if duplicates tie for #1 (`[95, 95, 80]` -> runner-up should be `80`, not `95`!).\n\nMaintain `first = None` and `second = None` in one pass:\n- If `s > first`: demote `second = first`, promote `first = s`\n- Else if `s < first` and (`second is None` or `s > second`): `second = s`",
     assignment:
-      "Complete `find_high_score(scores)` so it returns the largest number in `scores` using `max(scores)`.",
+      "Complete `find_top_two_scores(scores)` to return `[first, second]` of the two largest distinct scores (or `[first, None]` if fewer than 2 distinct scores exist).",
     constraints: [
-      "Use `max(scores)` to find the largest score",
-      "Return the result",
+      "Handle duplicate top scores properly (e.g. `[100, 100, 80]` -> `[100, 80]`)",
+      "Solve in a single O(n) loop with O(1) space",
     ],
     examples: [
       {
-        input: "scores = [120, 450, 310, 290]",
-        output: "450",
-        explanation: "450 is the highest score in the list.",
+        input: "scores = [120, 450, 450, 310, 290]",
+        output: "[450, 310]",
+        explanation: "450 is highest; ignoring duplicate 450, 310 is the second highest.",
       },
     ],
     complexities: { time: "O(n)", space: "O(1)" },
-    initial_code: `def find_high_score(scores):
-    # 👉 Write 1 line: return max(scores)
-    return 0
+    initial_code: `def find_top_two_scores(scores):
+    first = None
+    second = None
+    # 👉 Update first and second highest distinct values in one pass:
+    return [first, second]
 
-print(find_high_score([120, 450, 310, 290]))`,
-    expected_output: "450",
+print(find_top_two_scores([120, 450, 450, 310, 290]))`,
+    expected_output: "[450, 310]",
     hidden_tests: `import json
 results = []
 try:
-    r1 = find_high_score([120, 450, 310, 290])
-    results.append({"id": 1, "input": "[120, 450, 310, 290]", "expected": "450", "actual": str(r1), "passed": r1 == 450})
-    r2 = find_high_score([10, 99, 45])
-    results.append({"id": 2, "input": "[10, 99, 45]", "expected": "99", "actual": str(r2), "passed": r2 == 99})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
-    visual_data: [
-      { label: "120", value: "best = 120", address: "step 1" },
-      { label: "450", value: "NEW MAX = 450 🏆", address: "step 2" },
-      { label: "310", value: "keep 450", address: "step 3" },
-      { label: "290", value: "keep 450", address: "step 4" },
-    ],
-    hints: ["Replace `return 0` with `return max(scores)`."],
-  },
-  {
-    id: "exp-alg-14",
-    title: "Descending Sort: Leaderboard Ranker",
-    track: "algorithms",
-    category: "SORTING O(N LOG N)",
-    difficulty: "Easy",
-    tree_row: 11,
-    lesson_order: 14,
-    is_free: false,
-    description:
-      "Sort player scores from highest to lowest in one line using sorted(scores, reverse=True).",
-    content:
-      "By default, `sorted(scores)` orders numbers from smallest to largest. Passing **`reverse=True`** flips the order so the **highest scores come first**:\n\n```python\nscores = [40, 95, 70, 85]\nranked = sorted(scores, reverse=True)\nprint(ranked)  # [95, 85, 70, 40]\n```",
-    assignment:
-      "Complete `rank_leaderboard(scores)` so it returns `scores` sorted from highest to lowest using `sorted(scores, reverse=True)`.",
-    constraints: [
-      "Use `sorted(scores, reverse=True)`",
-      "Return the sorted list",
-    ],
-    examples: [
-      {
-        input: "scores = [40, 95, 70, 85]",
-        output: "[95, 85, 70, 40]",
-        explanation: "Sorted in descending order from 95 down to 40.",
-      },
-    ],
-    complexities: { time: "O(n log n)", space: "O(n)" },
-    initial_code: `def rank_leaderboard(scores):
-    # 👉 Write 1 line: return sorted(scores, reverse=True)
-    return []
-
-print(rank_leaderboard([40, 95, 70, 85]))`,
-    expected_output: "[95, 85, 70, 40]",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = rank_leaderboard([40, 95, 70, 85])
-    results.append({"id": 1, "input": "[40, 95, 70, 85]", "expected": "[95, 85, 70, 40]", "actual": str(r1), "passed": r1 == [95, 85, 70, 40]})
-    r2 = rank_leaderboard([10, 30, 20])
-    results.append({"id": 2, "input": "[10, 30, 20]", "expected": "[30, 20, 10]", "actual": str(r2), "passed": r2 == [30, 20, 10]})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
-    visual_data: [
-      { label: "1st: 95", value: "GOLD 🥇", address: "idx 0" },
-      { label: "2nd: 85", value: "SILVER 🥈", address: "idx 1" },
-      { label: "3rd: 70", value: "BRONZE 🥉", address: "idx 2" },
-      { label: "4th: 40", value: "runner-up", address: "idx 3" },
-    ],
-    hints: [
-      "Replace `return []` with `return sorted(scores, reverse=True)`.",
-    ],
-  },
-  {
-    id: "exp-alg-15",
-    title: "Parity Filter: Even Team Splitter",
-    track: "algorithms",
-    category: "MODULO & FILTER",
-    difficulty: "Easy",
-    tree_row: 12,
-    lesson_order: 15,
-    is_free: false,
-    description:
-      "Filter a list of player IDs to keep only even numbers using n % 2 == 0.",
-    content:
-      "How do we check if a number `n` is **even**? Divide by 2 and check if the remainder is 0: **`n % 2 == 0`**.\n\nWe can keep all even numbers in 1 clean line:\n\n```python\nevens = [n for n in nums if n % 2 == 0]\n```",
-    assignment:
-      "Complete `get_even_ids(nums)` so it returns a list of only the even numbers in `nums`.",
-    constraints: [
-      "Use `n % 2 == 0` to check for even numbers",
-      "Return `[n for n in nums if n % 2 == 0]`",
-    ],
-    examples: [
-      {
-        input: "nums = [10, 15, 22, 33, 40]",
-        output: "[10, 22, 40]",
-        explanation: "10, 22, and 40 are divisible by 2 with remainder 0.",
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def get_even_ids(nums):
-    # 👉 Write 1 line: return [n for n in nums if n % 2 == 0]
-    return []
-
-print(get_even_ids([10, 15, 22, 33, 40]))`,
-    expected_output: "[10, 22, 40]",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = get_even_ids([10, 15, 22, 33, 40])
-    results.append({"id": 1, "input": "[10, 15, 22, 33, 40]", "expected": "[10, 22, 40]", "actual": str(r1), "passed": r1 == [10, 22, 40]})
-    r2 = get_even_ids([1, 3, 5, 8])
-    results.append({"id": 2, "input": "[1, 3, 5, 8]", "expected": "[8]", "actual": str(r2), "passed": r2 == [8]})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
-    visual_data: [
-      { label: "10 % 2 == 0", value: "KEEP (Even) ✓", address: "10" },
-      { label: "15 % 2 == 1", value: "skip (Odd)", address: "15" },
-      { label: "22 % 2 == 0", value: "KEEP (Even) ✓", address: "22" },
-      { label: "40 % 2 == 0", value: "KEEP (Even) ✓", address: "40" },
-    ],
-    hints: [
-      "Replace `return []` with `return [n for n in nums if n % 2 == 0]`.",
-    ],
-  },
-  {
-    id: "exp-alg-16",
-    title: "Early Exit Search: VIP Pass Scanner",
-    track: "algorithms",
-    category: "MEMBERSHIP SEARCH",
-    difficulty: "Easy",
-    tree_row: 13,
-    lesson_order: 16,
-    is_free: false,
-    description:
-      "Check if a player's name is inside the VIP list in one line using Python's 'in' operator.",
-    content:
-      "To check if `name` exists inside `vip_list`, Python's **`in`** operator scans the list and stops immediately as soon as it finds a match:\n\n```python\ndef has_vip_pass(vip_list, name):\n    return name in vip_list\n```",
-    assignment:
-      "Complete `has_vip_pass(vip_list, name)` so it returns `True` if `name` is in `vip_list`, and `False` otherwise.",
-    constraints: [
-      "Use `name in vip_list`",
-      "Return the boolean result",
-    ],
-    examples: [
-      {
-        input: 'has_vip_pass(["Aria", "Kai", "Nova"], "Kai") and has_vip_pass(["Aria", "Kai"], "Leo")',
-        output: "True False",
-        explanation: '"Kai" is in the list (True); "Leo" is not (False).',
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(1)" },
-    initial_code: `def has_vip_pass(vip_list, name):
-    # 👉 Write 1 line: return name in vip_list
-    return False
-
-print(has_vip_pass(["Aria", "Kai", "Nova"], "Kai"), has_vip_pass(["Aria", "Kai"], "Leo"))`,
-    expected_output: "True False",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = has_vip_pass(["Aria", "Kai", "Nova"], "Kai")
-    results.append({"id": 1, "input": "Check 'Kai' in ['Aria', 'Kai', 'Nova']", "expected": "True", "actual": str(r1), "passed": r1 is True})
-    r2 = has_vip_pass(["Aria", "Kai"], "Leo")
-    results.append({"id": 2, "input": "Check 'Leo' in ['Aria', 'Kai']", "expected": "False", "actual": str(r2), "passed": r2 is False})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "hashmap",
-    visual_data: [
-      { label: '"Kai"', value: "FOUND -> True 🎟️", address: "early exit" },
-      { label: '"Leo"', value: "NOT FOUND -> False", address: "end of list" },
-    ],
-    hints: ["Replace `return False` with `return name in vip_list`."],
-  },
-  {
-    id: "exp-alg-17",
-    title: "String Reversal: Palindrome Checker",
-    track: "algorithms",
-    category: "STRING ALGORITHMS",
-    difficulty: "Easy",
-    tree_row: 14,
-    lesson_order: 17,
-    is_free: false,
-    description:
-      "Check if a word reads the same forwards and backwards using Python's reverse slice word[::-1].",
-    content:
-      'A **Palindrome** is a word like `"level"` or `"radar"` that spells the exact same thing backwards.\n\nIn Python, **`word[::-1]`** reverses a string in 1 step! So we just check **`word == word[::-1]`**:\n\n```python\nword = "level"\nprint(word == word[::-1])  # True\n```',
-    assignment:
-      "Complete `is_palindrome(word)` so it returns `True` if `word` equals its reversed self (`word[::-1]`), and `False` otherwise.",
-    constraints: [
-      "Use `word == word[::-1]`",
-      "Return the boolean result",
-    ],
-    examples: [
-      {
-        input: 'is_palindrome("level") and is_palindrome("code")',
-        output: "True False",
-        explanation:
-          '"level" reversed is "level" (True); "code" reversed is "edoc" (False).',
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def is_palindrome(word):
-    # 👉 Write 1 line: return word == word[::-1]
-    return False
-
-print(is_palindrome("level"), is_palindrome("code"))`,
-    expected_output: "True False",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = is_palindrome("level")
-    results.append({"id": 1, "input": "'level'", "expected": "True", "actual": str(r1), "passed": r1 is True})
-    r2 = is_palindrome("code")
-    results.append({"id": 2, "input": "'code'", "expected": "False", "actual": str(r2), "passed": r2 is False})
-    r3 = is_palindrome("racecar")
-    results.append({"id": 3, "input": "'racecar'", "expected": "True", "actual": str(r3), "passed": r3 is True})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
-    visual_data: [
-      { label: 'word: "level"', value: 'reversed: "level"', address: "MATCH ✓" },
-      { label: 'word: "code"', value: 'reversed: "edoc"', address: "False" },
-    ],
-    hints: ["Replace `return False` with `return word == word[::-1]`."],
-  },
-  {
-    id: "exp-alg-18",
-    title: "Duplicate Detector: Unique Username Check",
-    track: "algorithms",
-    category: "HASH SET O(N)",
-    difficulty: "Easy",
-    tree_row: 14,
-    lesson_order: 18,
-    is_free: false,
-    description:
-      "Check if all usernames in a list are unique by comparing len(names) == len(set(names)).",
-    content:
-      'How do you check in 1 line whether a list has **no duplicates**?\n\nSince `set(names)` removes duplicates, if **`len(names) == len(set(names))`**, then every single item was already unique!\n\n```python\nnames = ["aria", "kai", "nova"]\nprint(len(names) == len(set(names)))  # True (all unique)\n```',
-    assignment:
-      "Complete `all_unique(names)` so it returns `True` if `len(names) == len(set(names))`, or `False` if there are duplicates.",
-    constraints: [
-      "Compare `len(names) == len(set(names))`",
-      "Return the boolean result",
-    ],
-    examples: [
-      {
-        input: 'all_unique(["aria", "kai"]) and all_unique(["aria", "aria"])',
-        output: "True False",
-        explanation:
-          '["aria", "kai"] has 2 unique items (True); ["aria", "aria"] shrinks to 1 in a set (False).',
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def all_unique(names):
-    # 👉 Write 1 line: return len(names) == len(set(names))
-    return False
-
-print(all_unique(["aria", "kai"]), all_unique(["aria", "aria"]))`,
-    expected_output: "True False",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = all_unique(["aria", "kai"])
-    results.append({"id": 1, "input": "['aria', 'kai']", "expected": "True", "actual": str(r1), "passed": r1 is True})
-    r2 = all_unique(["aria", "aria"])
-    results.append({"id": 2, "input": "['aria', 'aria']", "expected": "False", "actual": str(r2), "passed": r2 is False})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "hashmap",
-    visual_data: [
-      {
-        label: '["aria", "kai"]',
-        value: "len 2 == set len 2 -> True ✓",
-        address: "unique",
-      },
-      {
-        label: '["aria", "aria"]',
-        value: "len 2 != set len 1 -> False",
-        address: "duplicate!",
-      },
-    ],
-    hints: [
-      "Replace `return False` with `return len(names) == len(set(names))`.",
-    ],
-  },
-  {
-    id: "exp-alg-19",
-    title: "Absolute Difference: Temperature Swing",
-    track: "algorithms",
-    category: "MATH & DISTANCE",
-    difficulty: "Easy",
-    tree_row: 15,
-    lesson_order: 19,
-    is_free: false,
-    description:
-      "Find the positive distance between two numbers using Python's built-in abs(a - b).",
-    content:
-      "What is the distance between `15°C` and `25°C`? It's `10`—never `-10`!\n\nIn algorithms, **`abs(a - b)`** (absolute value) removes any minus sign so you always get a positive distance:\n\n```python\nprint(abs(15 - 25))  # 10\nprint(abs(25 - 15))  # 10\n```",
-    assignment:
-      "Complete `temp_swing(a, b)` so it returns the positive difference between `a` and `b` using `abs(a - b)`.",
-    constraints: [
-      "Use `abs(a - b)`",
-      "Return the positive difference",
-    ],
-    examples: [
-      {
-        input: "a = 15, b = 25",
-        output: "10",
-        explanation: "15 - 25 is -10, and abs(-10) is 10.",
-      },
-    ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def temp_swing(a, b):
-    # 👉 Write 1 line: return abs(a - b)
-    return 0
-
-print(temp_swing(15, 25))`,
-    expected_output: "10",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = temp_swing(15, 25)
-    results.append({"id": 1, "input": "a=15, b=25", "expected": "10", "actual": str(r1), "passed": r1 == 10})
-    r2 = temp_swing(30, 12)
-    results.append({"id": 2, "input": "a=30, b=12", "expected": "18", "actual": str(r2), "passed": r2 == 18})
+    r1 = find_top_two_scores([120, 450, 450, 310, 290])
+    results.append({"id": 1, "input": "[120,450,450,310,290]", "expected": "[450, 310]", "actual": str(r1), "passed": r1 == [450, 310]})
+    r2 = find_top_two_scores([50, 50, 50])
+    results.append({"id": 2, "input": "[50,50,50] (no 2nd distinct)", "expected": "[50, None]", "actual": str(r2), "passed": r2 == [50, None]})
+    r3 = find_top_two_scores([-10, -3, -20])
+    results.append({"id": 3, "input": "[-10,-3,-20] (all negative)", "expected": "[-3, -10]", "actual": str(r3), "passed": r3 == [-3, -10]})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "memory",
     visual_data: [
-      { label: "a - b", value: "-10", type: "int", address: "0x10" },
-      { label: "abs(a - b)", value: "10 ✓", type: "int", address: "0x14" },
+      { label: "first", value: "450 (GOLD 🥇)", type: "int", address: "max_1" },
+      { label: "second", value: "310 (SILVER 🥈)", type: "int", address: "max_2" },
     ],
-    hints: ["Replace `return 0` with `return abs(a - b)`."],
+    hints: [
+      "When `first is None or s > first`: set `second = first`, then `first = s`.",
+      "Otherwise if `s != first and (second is None or s > second)`: set `second = s`.",
+    ],
   },
   {
-    id: "exp-alg-20",
-    title: "Pairing Lists: Scoreboard Zipper",
+    id: "exp-alg-14",
+    title: "Multi-Key Leaderboard Tie-Breaker",
     track: "algorithms",
-    category: "HASH MAP BUILDER",
-    difficulty: "Easy",
-    tree_row: 16,
-    lesson_order: 20,
+    category: "CUSTOM SORTING",
+    difficulty: "Medium",
+    tree_row: 11,
+    lesson_order: 14,
     is_free: false,
     description:
-      "Pair a list of player names with a list of scores into a dictionary using dict(zip(names, scores)).",
+      "Rank players by highest score first, breaking ties by fastest completion time, then alphabetically by name.",
     content:
-      'Have two matching lists—one of `names` and one of `scores`? **`zip(names, scores)`** pairs them up like a zipper, and **`dict(...)`** turns those pairs into a dictionary in 1 line!\n\n```python\nnames = ["Aria", "Kai"]\nscores = [100, 85]\nboard = dict(zip(names, scores))\n# {\'Aria\': 100, \'Kai\': 85}\n```',
+      "Real leaderboards rarely sort by a single number — tied scores are broken by speed and name!\n\nIn Python, pass a **tuple key** to `sorted()`:\n```python\nsorted(players, key=lambda p: (-p['score'], p['time'], p['name']))\n```\nNegating `-p['score']` sorts highest scores first while keeping smaller `time` and alphabetical `name` ascending!",
     assignment:
-      "Complete `build_scoreboard(names, scores)` so it returns a dictionary pairing each name to its score using `dict(zip(names, scores))`.",
+      "Complete `rank_leaderboard(players)` where each player is `{\"name\": str, \"score\": int, \"time\": int}`, returning a list of player names in ranked order.",
     constraints: [
-      "Use `dict(zip(names, scores))`",
-      "Return the resulting dictionary",
+      "Primary: higher `score` first",
+      "Tie-breaker 1: lower `time` first; Tie-breaker 2: alphabetical `name`",
+      "Return only the list of ranked player names",
     ],
     examples: [
       {
-        input: 'names = ["Aria", "Kai"], scores = [100, 85]',
-        output: "{'Aria': 100, 'Kai': 85}",
-        explanation: "Pairs index 0 ('Aria': 100) and index 1 ('Kai': 85).",
+        input: '[{"name":"Kai","score":95,"time":40}, {"name":"Aria","score":95,"time":30}, {"name":"Leo","score":70,"time":20}]',
+        output: "['Aria', 'Kai', 'Leo']",
+        explanation: "Aria and Kai tie at 95, so Aria wins via lower time (30 < 40).",
       },
     ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def build_scoreboard(names, scores):
-    # 👉 Write 1 line: return dict(zip(names, scores))
-    return {}
+    complexities: { time: "O(n log n)", space: "O(n)" },
+    initial_code: `def rank_leaderboard(players):
+    # 👉 Sort by (-score, time, name) and return list of player names:
+    return []
 
-print(build_scoreboard(["Aria", "Kai"], [100, 85]))`,
-    expected_output: "{'Aria': 100, 'Kai': 85}",
+sample = [
+    {"name": "Kai", "score": 95, "time": 40},
+    {"name": "Aria", "score": 95, "time": 30},
+    {"name": "Leo", "score": 70, "time": 20},
+]
+print(rank_leaderboard(sample))`,
+    expected_output: "['Aria', 'Kai', 'Leo']",
     hidden_tests: `import json
 results = []
 try:
-    r1 = build_scoreboard(["Aria", "Kai"], [100, 85])
-    results.append({"id": 1, "input": "['Aria', 'Kai'] & [100, 85]", "expected": "{'Aria': 100, 'Kai': 85}", "actual": str(r1), "passed": r1 == {"Aria": 100, "Kai": 85}})
-    r2 = build_scoreboard(["Mia"], [50])
-    results.append({"id": 2, "input": "['Mia'] & [50]", "expected": "{'Mia': 50}", "actual": str(r2), "passed": r2 == {"Mia": 50}})
+    s1 = [{"name":"Kai","score":95,"time":40},{"name":"Aria","score":95,"time":30},{"name":"Leo","score":70,"time":20}]
+    r1 = rank_leaderboard(s1)
+    results.append({"id": 1, "input": "score tie -> time tiebreaker", "expected": "['Aria', 'Kai', 'Leo']", "actual": str(r1), "passed": r1 == ["Aria", "Kai", "Leo"]})
+    s2 = [{"name":"Zoe","score":80,"time":10},{"name":"Amy","score":80,"time":10}]
+    r2 = rank_leaderboard(s2)
+    results.append({"id": 2, "input": "full tie -> alphabetical", "expected": "['Amy', 'Zoe']", "actual": str(r2), "passed": r2 == ["Amy", "Zoe"]})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "1st: Aria", value: "score=95, time=30s 🥇", address: "(-95, 30, 'Aria')" },
+      { label: "2nd: Kai", value: "score=95, time=40s 🥈", address: "(-95, 40, 'Kai')" },
+      { label: "3rd: Leo", value: "score=70, time=20s 🥉", address: "(-70, 20, 'Leo')" },
+    ],
+    hints: [
+      "Use `ordered = sorted(players, key=lambda p: (-p['score'], p['time'], p['name']))`.",
+      "Extract names with `return [p['name'] for p in ordered]`.",
+    ],
+  },
+  {
+    id: "exp-alg-15",
+    title: "Two-Pointer In-Place Parity Partition",
+    track: "algorithms",
+    category: "TWO POINTERS",
+    difficulty: "Medium",
+    tree_row: 12,
+    lesson_order: 15,
+    is_free: false,
+    description:
+      "Partition player IDs in O(n) time and O(1) extra space so all even IDs appear before all odd IDs.",
+    content:
+      "Instead of allocating new filtered lists (`O(n)` memory), **two-pointer partitioning** rearranges an array in-place using `left = 0` and `right = len(nums) - 1`:\n\n- While `left < right`:\n  - Advance `left` past any even number (`nums[left] % 2 == 0`)\n  - Retreat `right` past any odd number (`nums[right] % 2 == 1`)\n  - Swap `nums[left], nums[right]` whenever an odd sits on the left and an even sits on the right!",
+    assignment:
+      "Complete `partition_by_parity(nums)` so it rearranges `nums` in-place (all even numbers first, all odd numbers second) and returns `nums`.",
+    constraints: [
+      "Modify `nums` in O(1) extra space (no new list allocation)",
+      "All even integers must precede all odd integers",
+    ],
+    examples: [
+      {
+        input: "nums = [3, 1, 2, 4]",
+        output: "[4, 2, 1, 3] (or any valid even-then-odd order)",
+        explanation: "4 and 2 are even (front); 1 and 3 are odd (back).",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def partition_by_parity(nums):
+    left, right = 0, len(nums) - 1
+    # 👉 Swap misplaced odd/even elements inward while left < right:
+    return nums
+
+res = partition_by_parity([3, 1, 2, 4])
+print(all(x % 2 == 0 for x in res[:2]) and all(x % 2 == 1 for x in res[2:]))`,
+    expected_output: "True",
+    hidden_tests: `import json
+def is_valid_parity(arr):
+    seen_odd = False
+    for x in arr:
+        if x % 2 == 1:
+            seen_odd = True
+        elif seen_odd:
+            return False
+    return True
+
+results = []
+try:
+    r1 = partition_by_parity([3, 1, 2, 4])
+    results.append({"id": 1, "input": "[3, 1, 2, 4]", "expected": "evens then odds, sorted match [1,2,3,4]", "actual": str(r1), "passed": is_valid_parity(r1) and sorted(r1) == [1, 2, 3, 4]})
+    r2 = partition_by_parity([2, 4, 6])
+    results.append({"id": 2, "input": "[2, 4, 6] (all even)", "expected": "[2, 4, 6]", "actual": str(r2), "passed": is_valid_parity(r2) and sorted(r2) == [2, 4, 6]})
+    r3 = partition_by_parity([])
+    results.append({"id": 3, "input": "[]", "expected": "[]", "actual": str(r3), "passed": r3 == []})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "L=0 (3 odd)", value: "R=3 (4 even) -> SWAP", address: "step 1" },
+      { label: "L=1 (1 odd)", value: "R=2 (2 even) -> SWAP", address: "step 2" },
+      { label: "L >= R", value: "[4, 2, 1, 3] ✓", address: "O(1) space" },
+    ],
+    hints: [
+      "Inside `while left < right:`, if `nums[left] % 2 > nums[right] % 2`: swap `nums[left], nums[right] = nums[right], nums[left]`.",
+      "Advance `if nums[left] % 2 == 0: left += 1` and `if nums[right] % 2 == 1: right -= 1`.",
+    ],
+  },
+  {
+    id: "exp-alg-16",
+    title: "O(1) Batch Gatekeeper: VIP Badge Filter",
+    track: "algorithms",
+    category: "HASH SET LOOKUP",
+    difficulty: "Easy",
+    tree_row: 13,
+    lesson_order: 16,
+    is_free: false,
+    description:
+      "Validate thousands of arriving badges against a VIP allowlist in O(n + m) time using a set while preserving arrival order.",
+    content:
+      "When 50,000 concert guests scan badges against a 10,000-name VIP list, checking `name in vip_list` on a `list` takes **O(n × m)** (~500 million comparisons!).\n\nConvert `vip_list` to a `set` **once** before the loop (`allowed = set(vip_list)`), then filter `arrivals` in O(1) per guest while keeping deduplicated arrival order!",
+    assignment:
+      "Complete `filter_valid_badges(vip_list, arrivals)` to return unique valid VIP names from `arrivals` in the exact order they first arrived.",
+    constraints: [
+      "Build `allowed = set(vip_list)` once for O(1) lookups",
+      "Preserve first-arrival order and ignore duplicate scans",
+    ],
+    examples: [
+      {
+        input: 'vip_list = ["Aria", "Kai", "Nova"], arrivals = ["Leo", "Kai", "Aria", "Kai"]',
+        output: "['Kai', 'Aria']",
+        explanation: "Leo isn't VIP; Kai and Aria are admitted in arrival order without duplicating Kai.",
+      },
+    ],
+    complexities: { time: "O(n + m)", space: "O(n + m)" },
+    initial_code: `def filter_valid_badges(vip_list, arrivals):
+    allowed = set(vip_list)
+    seen = set()
+    # 👉 Admit unique arriving VIPs in order:
+    return []
+
+print(filter_valid_badges(["Aria", "Kai", "Nova"], ["Leo", "Kai", "Aria", "Kai"]))`,
+    expected_output: "['Kai', 'Aria']",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = filter_valid_badges(["Aria", "Kai", "Nova"], ["Leo", "Kai", "Aria", "Kai"])
+    results.append({"id": 1, "input": "arrivals with duplicate Kai", "expected": "['Kai', 'Aria']", "actual": str(r1), "passed": r1 == ["Kai", "Aria"]})
+    r2 = filter_valid_badges(["Mia"], ["Zoe", "Bob"])
+    results.append({"id": 2, "input": "no matching VIPs", "expected": "[]", "actual": str(r2), "passed": r2 == []})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "hashmap",
     visual_data: [
-      { label: '"Aria" + 100', value: "'Aria': 100", address: "pair 0" },
-      { label: '"Kai" + 85', value: "'Kai': 85", address: "pair 1" },
+      { label: "Leo", value: "not in allowed -> REJECT", address: "O(1)" },
+      { label: "Kai (#1)", value: "in allowed -> ADMIT ✓", address: "added to seen" },
+      { label: "Kai (#2)", value: "already in seen -> SKIP", address: "deduped" },
     ],
-    hints: ["Replace `return {}` with `return dict(zip(names, scores))`."],
+    hints: [
+      "Loop `for name in arrivals:` and check `if name in allowed and name not in seen:`.",
+      "Append `name` to `admitted` and add `name` to `seen`.",
+    ],
+  },
+  {
+    id: "exp-alg-17",
+    title: "Two-Pointer Palindrome Sanitizer",
+    track: "algorithms",
+    category: "STRING TWO POINTERS",
+    difficulty: "Medium",
+    tree_row: 14,
+    lesson_order: 17,
+    is_free: false,
+    description:
+      "Validate messy phrases as palindromes in O(n) time and O(1) space by skipping punctuation and ignoring case.",
+    content:
+      "Real palindrome interview problems include spaces, commas, and uppercase letters like `\"A man, a plan, a canal: Panama\"`.\n\nInstead of copying filtered strings, skip non-alphanumeric chars inline with two pointers (`left`, `right`) and `.isalnum()`:\n- Advance `left` while `left < right and not text[left].isalnum()`\n- Retreat `right` while `left < right and not text[right].isalnum()`\n- Compare `text[left].lower() != text[right].lower()`!",
+    assignment:
+      "Complete `is_palindrome(text)` so it ignores punctuation, spaces, and letter case using converging pointers.",
+    constraints: [
+      "Ignore non-alphanumeric characters (`.isalnum()`)",
+      "Compare letters case-insensitively (`.lower()`)",
+    ],
+    examples: [
+      {
+        input: 'text = "A man, a plan, a canal: Panama"',
+        output: "True",
+        explanation: "Cleaned letters form 'amanaplanacanalpanama', a palindrome.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def is_palindrome(text):
+    left, right = 0, len(text) - 1
+    # 👉 Skip non-alphanumeric characters and compare text[left].lower() vs text[right].lower():
+    return True
+
+print(is_palindrome("A man, a plan, a canal: Panama"), is_palindrome("race a car"))`,
+    expected_output: "True False",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = is_palindrome("A man, a plan, a canal: Panama")
+    results.append({"id": 1, "input": "Panama phrase", "expected": "True", "actual": str(r1), "passed": r1 is True})
+    r2 = is_palindrome("race a car")
+    results.append({"id": 2, "input": "race a car", "expected": "False", "actual": str(r2), "passed": r2 is False})
+    r3 = is_palindrome(".,!")
+    results.append({"id": 3, "input": ".,! (only punctuation)", "expected": "True", "actual": str(r3), "passed": r3 is True})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "L='A', R='a'", value: "'a' == 'a' -> step inward", address: "match" },
+      { label: "L=' ', R='m'", value: "skip space -> L='m'", address: "isalnum()" },
+      { label: "L >= R", value: "PALINDROME = True ✓", address: "O(1) space" },
+    ],
+    hints: [
+      "Use inner `while left < right and not text[left].isalnum(): left += 1` (and mirror for `right`).",
+      "If `text[left].lower() != text[right].lower(): return False`.",
+    ],
+  },
+  {
+    id: "exp-alg-18",
+    title: "Early-Exit First Duplicate Detector",
+    track: "algorithms",
+    category: "HASH SET TRACKING",
+    difficulty: "Easy",
+    tree_row: 14,
+    lesson_order: 18,
+    is_free: false,
+    description:
+      "Stream usernames through a hash set and return the very first duplicate immediately on collision.",
+    content:
+      "Comparing `len(names) == len(set(names))` reads the entire dataset even if items #0 and #1 are identical.\n\nMaintaining a `seen = set()` as you iterate lets you **short-circuit and return the exact colliding username** the instant it appears a second time (or `None` if all usernames are unique)!",
+    assignment:
+      "Complete `first_duplicate(names)` so it returns the first username that repeats while scanning left to right, or `None` if every username is unique.",
+    constraints: [
+      "Return the duplicate with the smallest second-occurrence index",
+      "Return `None` when no duplicates exist",
+    ],
+    examples: [
+      {
+        input: 'names = ["aria", "kai", "mia", "kai", "aria"]',
+        output: "kai",
+        explanation: "'kai' repeats at index 3 before 'aria' repeats at index 4.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def first_duplicate(names):
+    seen = set()
+    # 👉 Return the first name already in seen, or None at the end:
+    return None
+
+print(first_duplicate(["aria", "kai", "mia", "kai", "aria"]), first_duplicate(["aria", "kai"]))`,
+    expected_output: "kai None",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = first_duplicate(["aria", "kai", "mia", "kai", "aria"])
+    results.append({"id": 1, "input": "['aria','kai','mia','kai','aria']", "expected": "kai", "actual": str(r1), "passed": r1 == "kai"})
+    r2 = first_duplicate(["aria", "kai"])
+    results.append({"id": 2, "input": "all unique", "expected": "None", "actual": str(r2), "passed": r2 is None})
+    r3 = first_duplicate([])
+    results.append({"id": 3, "input": "[]", "expected": "None", "actual": str(r3), "passed": r3 is None})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "idx 0..2", value: "seen = {'aria', 'kai', 'mia'}", address: "O(1) insert" },
+      { label: "idx 3: 'kai'", value: "COLLISION -> return 'kai' ✓", address: "early exit" },
+    ],
+    hints: [
+      "Loop `for name in names:`: if `name in seen: return name`, else `seen.add(name)`.",
+      "Return `None` after the loop ends.",
+    ],
+  },
+  {
+    id: "exp-alg-19",
+    title: "Closest Pair Minimum Absolute Difference",
+    track: "algorithms",
+    category: "SORT & ADJACENT SCAN",
+    difficulty: "Medium",
+    tree_row: 15,
+    lesson_order: 19,
+    is_free: false,
+    description:
+      "Sort values and scan adjacent pairs in O(n log n) time to find the smallest absolute gap between any two numbers.",
+    content:
+      "Finding the closest two timestamps or prices in an unsorted list would take **O(n²)** if you compared every pair.\n\nOnce you sort a copy of the list (`ordered = sorted(nums)`), the closest pair MUST sit right next to each other! Scan `ordered[i + 1] - ordered[i]` for `i in range(len(ordered) - 1)`.",
+    assignment:
+      "Complete `min_abs_diff(nums)` to return the smallest `abs(b - a)` between any two distinct positions in `nums` (or `0` if fewer than 2 numbers).",
+    constraints: [
+      "Do not mutate the caller's `nums` list",
+      "Handle negative numbers and duplicate values (which give gap `0`)",
+    ],
+    examples: [
+      {
+        input: "nums = [42, 15, 25, 9]",
+        output: "6",
+        explanation: "Sorted: [9, 15, 25, 42]. Smallest gap is |15 - 9| = 6.",
+      },
+    ],
+    complexities: { time: "O(n log n)", space: "O(n)" },
+    initial_code: `def min_abs_diff(nums):
+    if len(nums) < 2:
+        return 0
+    ordered = sorted(nums)
+    # 👉 Scan adjacent elements in ordered to track the smallest abs difference:
+    return 0
+
+print(min_abs_diff([42, 15, 25, 9]))`,
+    expected_output: "6",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = min_abs_diff([42, 15, 25, 9])
+    results.append({"id": 1, "input": "[42, 15, 25, 9]", "expected": "6", "actual": str(r1), "passed": r1 == 6})
+    r2 = min_abs_diff([-10, -3, 2, 11])
+    results.append({"id": 2, "input": "[-10, -3, 2, 11]", "expected": "5", "actual": str(r2), "passed": r2 == 5})
+    r3 = min_abs_diff([8, 2, 8])
+    results.append({"id": 3, "input": "[8, 2, 8] (duplicate)", "expected": "0", "actual": str(r3), "passed": r3 == 0})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "sorted", value: "[9, 15, 25, 42]", address: "O(n log n)" },
+      { label: "|15 - 9|", value: "gap = 6 (MIN) ✓", address: "pair 0-1" },
+      { label: "|25 - 15|", value: "gap = 10", address: "pair 1-2" },
+    ],
+    hints: [
+      "Initialize `best = abs(ordered[1] - ordered[0])`.",
+      "Loop `for i in range(1, len(ordered) - 1): best = min(best, abs(ordered[i + 1] - ordered[i]))`.",
+    ],
+  },
+  {
+    id: "exp-alg-20",
+    title: "Inverted Index Builder: Grouping by Role",
+    track: "algorithms",
+    category: "ZIP & INVERTED INDEX",
+    difficulty: "Medium",
+    tree_row: 16,
+    lesson_order: 20,
+    is_free: false,
+    description:
+      "Pair parallel lists with zip() and invert them into role -> [members] buckets in one pass.",
+    content:
+      "Unlike `dict(zip(names, roles))` (which maps 1 name -> 1 role), real permission services need the **inverted index**: given a role like `\"admin\"`, list every user who holds it!\n\nCombine `zip(names, roles)` with `setdefault`:\n```python\nindex = {}\nfor name, role in zip(names, roles):\n    index.setdefault(role, []).append(name)\n```",
+    assignment:
+      "Complete `build_role_index(names, roles)` so it pairs each name and role with `zip()` and returns a dictionary mapping each role to a list of matching names in order.",
+    constraints: [
+      "Use `zip(names, roles)` to pair parallel lists cleanly",
+      "Preserve original order of names inside each role's list",
+    ],
+    examples: [
+      {
+        input: 'names = ["Aria", "Kai", "Mia"], roles = ["admin", "dev", "admin"]',
+        output: "{'admin': ['Aria', 'Mia'], 'dev': ['Kai']}",
+        explanation: "Both Aria and Mia are grouped under 'admin'.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def build_role_index(names, roles):
+    index = {}
+    # 👉 Zip names and roles and append each name into index[role]:
+    return index
+
+print(build_role_index(["Aria", "Kai", "Mia"], ["admin", "dev", "admin"]))`,
+    expected_output: "{'admin': ['Aria', 'Mia'], 'dev': ['Kai']}",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = build_role_index(["Aria", "Kai", "Mia"], ["admin", "dev", "admin"])
+    results.append({"id": 1, "input": "3 users across 2 roles", "expected": "{'admin': ['Aria', 'Mia'], 'dev': ['Kai']}", "actual": str(r1), "passed": r1 == {"admin": ["Aria", "Mia"], "dev": ["Kai"]}})
+    r2 = build_role_index([], [])
+    results.append({"id": 2, "input": "empty lists", "expected": "{}", "actual": str(r2), "passed": r2 == {}})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "('Aria', 'admin')", value: "admin -> ['Aria']", address: "zip 0" },
+      { label: "('Kai', 'dev')", value: "dev -> ['Kai']", address: "zip 1" },
+      { label: "('Mia', 'admin')", value: "admin -> ['Aria', 'Mia'] ✓", address: "zip 2" },
+    ],
+    hints: [
+      "Loop `for name, role in zip(names, roles):`.",
+      "Call `index.setdefault(role, []).append(name)` inside the loop.",
+    ],
   },
   {
     id: "exp-alg-21",

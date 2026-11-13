@@ -332,565 +332,801 @@ print(has_quorum([True, True, False, True, False]))`,
   {
     matchTrack: "system_design",
     matchOrder: 9,
-    matchKeywords: ["backoff", "retry", "wait", "cap"],
+    matchKeywords: ["backoff", "jitter", "exponential", "retry", "thundering herd"],
     realWorldUse:
-      "Used by mobile apps when reconnecting to Wi-Fi so they don't spam the server.",
-    analogyTitle: "Capping the Maximum Wait Time with min()",
+      "Used by AWS SDKs, gRPC clients, and Stripe webhooks to space out retries exponentially with jitter so recovering servers aren't crushed by synchronized spikes.",
+    analogyTitle: "Exponential Backoff + Capped Jitter Shield",
     analogyText:
-      "When an app retries a failed request, it doubles the wait time (`delay`), but uses **`min(delay, max_wait)`** so the user never waits longer than `max_wait`!",
-    cheatSheet: `def cap_retry_wait(delay, max_wait):
-    # Never wait longer than max_wait:
-    return min(delay, max_wait)
-
-print(cap_retry_wait(1600, 1000))  # 1000`,
+      "Each failed retry doubles the wait (`base_ms * (2 ** attempt)`), mixes in `jitter_ms` so millions of clients don't wake up at the exact same millisecond, and clamps with `min(..., max_ms)` so wait times stay bounded.",
+    cheatSheet: `def compute_backoff(attempt, base_ms, max_ms, jitter_ms):
+    delay = base_ms * (2 ** attempt) + jitter_ms
+    return max(0, min(delay, max_ms))`,
     commonPitfall: {
-      title: "Using max() instead of min() when capping a limit",
+      title: "Skipping the 2 ** attempt exponent or forgetting the max_ms ceiling",
       wrongCode:
-        "return max(delay, max_wait)  # Forces wait to AT LEAST max_wait!",
+        "return base_ms * attempt + jitter_ms  # Linear, and attempt=0 yields 0!",
       rightCode:
-        "return min(delay, max_wait)  # Caps wait AT MOST max_wait!",
+        "delay = base_ms * (2 ** attempt) + jitter_ms\nreturn max(0, min(delay, max_ms))",
       explanation:
-        "To cap a number at a ceiling, `min(value, ceiling)` picks the smaller of the two!",
+        "Exponential backoff uses `2 ** attempt` (so attempt `0` starts at `1 * base_ms`), then caps with `min(delay, max_ms)`.",
     },
-    guidedCode: `def get_retry_wait(delay_ms, max_ms):
-    # 👉 Return whichever is smaller: delay_ms or max_ms using min()
-    return min(delay_ms, max_ms)
+    guidedCode: `def compute_backoff(attempt, base_ms, max_ms, jitter_ms):
+    # 👉 Step 1: Compute base_ms * (2 ** attempt) + jitter_ms
+    delay = base_ms * (2 ** attempt) + jitter_ms
+    # 👉 Step 2: Clamp safely between 0 and max_ms
+    return max(0, min(delay, max_ms))
 
-print(get_retry_wait(400, 1000), get_retry_wait(1600, 1000))`,
-    solutionCode: `def get_retry_wait(delay_ms, max_ms):
-    return min(delay_ms, max_ms)
+print(compute_backoff(2, 100, 1000, 50), compute_backoff(4, 100, 1000, 50))`,
+    solutionCode: `def compute_backoff(attempt, base_ms, max_ms, jitter_ms):
+    delay = base_ms * (2 ** attempt) + jitter_ms
+    return max(0, min(delay, max_ms))
 
-print(get_retry_wait(400, 1000), get_retry_wait(1600, 1000))`,
+print(compute_backoff(2, 100, 1000, 50), compute_backoff(4, 100, 1000, 50))`,
     proInsights: {
       timeComplexity: "O(1)",
       spaceComplexity: "O(1)",
       tradeoff:
-        "Capping exponential backoff prevents users from waiting hours on transient outages while still giving overloaded servers breathing room.",
+        "Adding jitter breaks synchronized retry waves ('thundering herd') across thousands of clients at the tiny cost of slight per-client wait variance.",
       followUp:
-        "Why do AWS and Google add random 'jitter' on top of capped exponential backoff?",
+        "Compare 'Full Jitter' (`random(0, cap)`) vs 'Decorrelated Jitter' used in AWS architecture guidelines.",
     },
     quiz: {
-      question: "What does `min(1600, 1000)` return?",
-      options: ["1000 (caps the value at 1000)", "1600", "2600"],
+      question:
+        "Why do production SDKs add random jitter on top of exponential backoff?",
+      options: [
+        "To spread out client retries so a recovering service isn't hit by a synchronized thundering herd",
+        "To guarantee every retry takes the exact same number of milliseconds",
+        "To disable the `max_ms` ceiling during outages",
+      ],
       correctIndex: 0,
       explanation:
-        "`min()` returns the smaller number, keeping the delay capped at `1000`!",
+        "Without jitter, thousands of clients disconnected at `t=0` retry together at 1s, 2s, 4s, causing repeated coordinated overload!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 10,
-    matchKeywords: ["dead", "dlq", "stuck", "alert", "job"],
+    matchKeywords: ["dlq", "dead-letter", "triage", "queue", "poison pill"],
     realWorldUse:
-      "Used in background uploaders (like YouTube video processing) to stop retrying a corrupted file after 3 tries.",
-    analogyTitle: "Three Strikes and Move to Support",
+      "Used by Amazon SQS, Kafka workers, and Celery to isolate crashing 'poison-pill' messages into a Dead-Letter Queue (DLQ) without starving healthy jobs.",
+    analogyTitle: "Quarantining Poison Pills in Two Queue Buckets",
     analogyText:
-      'If a job\'s `attempts >= 3`, stop retrying and return **`"ALERT_TEAM"`**. Otherwise, return **`"RETRY"`**!',
-    cheatSheet: `def check_job_status(attempts):
-    if attempts >= 3:
-        return "ALERT_TEAM"
-    return "RETRY"`,
+      "Loop through queued job records in order: any job whose `attempts >= max_attempts` moves into `dlq` for manual debugging, while recoverable jobs stay in `retry`.",
+    cheatSheet: `retry, dlq = [], []
+for job in jobs:
+    if job["attempts"] >= max_attempts:
+        dlq.append(job["id"])
+    else:
+        retry.append(job["id"])
+return {"retry": retry, "dlq": dlq}`,
     commonPitfall: {
-      title: "Checking attempts > 3 instead of attempts >= 3",
-      wrongCode: "if attempts > 3:  # Misses when attempts is 3!",
-      rightCode: "if attempts >= 3: # Triggers as soon as attempts hits 3!",
+      title: "Using strict '>' instead of '>=' or dropping job order",
+      wrongCode:
+        "if job['attempts'] > max_attempts:  # Allows an extra attempt beyond max!",
+      rightCode:
+        "if job['attempts'] >= max_attempts:\n    dlq.append(job['id'])",
       explanation:
-        "`>= 3` means '3 or more', catching the 3rd failed attempt right away.",
+        "Once `attempts` hits `max_attempts` (`>=`), the job has exhausted its retry budget and must be quarantined immediately.",
     },
-    guidedCode: `def check_job_status(attempts):
-    if attempts >= 3:
-        # 👉 Return "ALERT_TEAM" when attempts is 3 or more:
-        return "ALERT_TEAM"
-    return "RETRY"
+    guidedCode: `def triage_jobs(jobs, max_attempts):
+    retry = []
+    dlq = []
+    # 👉 Route each job['id'] to dlq if attempts >= max_attempts, else retry:
+    for job in jobs:
+        if job["attempts"] >= max_attempts:
+            dlq.append(job["id"])
+        else:
+            retry.append(job["id"])
+    return {"retry": retry, "dlq": dlq}
 
-print(check_job_status(1), check_job_status(3))`,
-    solutionCode: `def check_job_status(attempts):
-    if attempts >= 3:
-        return "ALERT_TEAM"
-    return "RETRY"
+sample = [{"id": "j1", "attempts": 1}, {"id": "j2", "attempts": 3}]
+print(triage_jobs(sample, 3))`,
+    solutionCode: `def triage_jobs(jobs, max_attempts):
+    retry = []
+    dlq = []
+    for job in jobs:
+        if job["attempts"] >= max_attempts:
+            dlq.append(job["id"])
+        else:
+            retry.append(job["id"])
+    return {"retry": retry, "dlq": dlq}
 
-print(check_job_status(1), check_job_status(3))`,
+sample = [{"id": "j1", "attempts": 1}, {"id": "j2", "attempts": 3}]
+print(triage_jobs(sample, 3))`,
     proInsights: {
-      timeComplexity: "O(1)",
-      spaceComplexity: "O(1)",
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
       tradeoff:
-        "Moving poison-pill jobs to a Dead-Letter Queue (DLQ) after max retries keeps worker queues unblocked for healthy jobs.",
+        "Routing failed jobs to a DLQ keeps worker throughput healthy for valid tasks while preserving failing payloads for post-fix replay.",
       followUp:
-        "How do you safely replay DLQ messages once you fix the bug in the consumer code?",
+        "Before replaying DLQ messages back to the main queue, how should you prevent idempotent side effects (like double-charging a card)?",
     },
     quiz: {
-      question: "If `attempts = 3`, what does `if attempts >= 3:` evaluate to?",
-      options: ["True", "False", "Error"],
+      question:
+        "What is the primary operational reason for moving a job to a Dead-Letter Queue (DLQ)?",
+      options: [
+        "To isolate unprocessable 'poison-pill' messages so they don't loop forever and starve healthy workers",
+        "To permanently delete user accounts after 3 login failures",
+        "To compress database backups faster",
+      ],
       correctIndex: 0,
-      explanation: "Since 3 is equal to 3, `3 >= 3` is `True`!",
+      explanation:
+        "Quarantining repeatedly failing jobs protects worker capacity while letting engineers inspect and replay them later.",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 11,
-    matchKeywords: ["failover", "backup", "primary", "switch"],
+    matchKeywords: ["failover", "least load", "healthy", "load balancer"],
     realWorldUse:
-      "Used by hospitals, banks, and cloud servers to switch to a backup server the instant the main server goes offline.",
-    analogyTitle: "Backup Generator When the Power Goes Out",
+      "Used by Envoy, NGINX, and AWS Application Load Balancers to filter out failed health-check targets and send traffic to the least-loaded live node.",
+    analogyTitle: "Health Filter + Least-Load Routing",
     analogyText:
-      'If `primary_online` is `True`, route traffic to **`"primary"`**. Otherwise, automatically switch to **`"backup"`**!',
-    cheatSheet: `def choose_server(primary_online):
-    if primary_online:
-        return "primary"
-    return "backup"`,
+      "First drop every node with `healthy == False` (`us-1` might report `load: 10` simply because nobody can reach it!). Then pick `min(healthy_nodes, key=lambda s: s['load'])['name']`, or `'UNAVAILABLE'` if all nodes failed.",
+    cheatSheet: `live = [s for s in servers if s["healthy"]]
+if not live:
+    return "UNAVAILABLE"
+return min(live, key=lambda s: s["load"])["name"]`,
     commonPitfall: {
-      title: "Returning True/False instead of the server name string",
-      wrongCode: "return primary_online",
-      rightCode: 'if primary_online:\n    return "primary"\nreturn "backup"',
+      title: "Picking lowest load BEFORE filtering out unhealthy servers",
+      wrongCode:
+        "return min(servers, key=lambda s: s['load'])['name']  # Routes to dead node with load=0!",
+      rightCode:
+        "live = [s for s in servers if s['healthy']]\nreturn min(live, key=lambda s: s['load'])['name'] if live else 'UNAVAILABLE'",
       explanation:
-        'The router needs the name of the server (`"primary"` or `"backup"`) as a string.',
+        "Crashed servers often report near-zero load precisely because they stopped serving traffic—always filter `healthy` first!",
     },
-    guidedCode: `def choose_server(primary_online):
-    if primary_online:
-        return "primary"
-    # 👉 Otherwise return "backup":
-    return "backup"
+    guidedCode: `def pick_healthy_server(servers):
+    # 👉 Step 1: Keep only nodes passing health checks
+    healthy = [s for s in servers if s.get("healthy")]
+    # 👉 Step 2: Fail cleanly if the entire fleet is down
+    if not healthy:
+        return "UNAVAILABLE"
+    # 👉 Step 3: Route to the healthy node with the smallest active load
+    best = min(healthy, key=lambda s: s["load"])
+    return best["name"]
 
-print(choose_server(True), choose_server(False))`,
-    solutionCode: `def choose_server(primary_online):
-    if primary_online:
-        return "primary"
-    return "backup"
+fleet = [
+    {"name": "us-1", "healthy": False, "load": 10},
+    {"name": "us-2", "healthy": True, "load": 45},
+    {"name": "eu-1", "healthy": True, "load": 20},
+]
+print(pick_healthy_server(fleet))`,
+    solutionCode: `def pick_healthy_server(servers):
+    healthy = [s for s in servers if s.get("healthy")]
+    if not healthy:
+        return "UNAVAILABLE"
+    return min(healthy, key=lambda s: s["load"])["name"]
 
-print(choose_server(True), choose_server(False))`,
+fleet = [
+    {"name": "us-1", "healthy": False, "load": 10},
+    {"name": "us-2", "healthy": True, "load": 45},
+    {"name": "eu-1", "healthy": True, "load": 20},
+]
+print(pick_healthy_server(fleet))`,
     proInsights: {
-      timeComplexity: "O(1)",
-      spaceComplexity: "O(1)",
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n) (or O(1) with single-pass loop)",
       tradeoff:
-        "Active-passive failover minimizes data-sync conflicts compared to multi-master writes, at the cost of idle standby capacity.",
+        "Least-load routing beats Round Robin when requests vary wildly in duration, though in massive clusters ('Power of Two Choices') sampling 2 random nodes avoids scanning thousands of backends.",
       followUp:
-        "What is 'replication lag', and how can it cause a newly promoted backup DB to miss the last few milliseconds of writes?",
+        "Why can global least-load routing cause a sudden 'herd stampede' onto a freshly restarted empty server unless slow-start warmup is used?",
     },
     quiz: {
-      question: "What is 'Automatic Failover' in System Design?",
+      question:
+        "Why must load balancers filter `healthy == True` BEFORE picking the node with lowest load?",
       options: [
-        "Automatically switching to a healthy backup server when the primary server goes down",
-        "Turning off all computers at night",
-        "Deleting user accounts",
+        "Offline servers report 0 active requests and would otherwise attract 100% of traffic",
+        "Python's `min()` throws an error on booleans inside dictionaries",
+        "Unhealthy servers always have load > 100",
       ],
       correctIndex: 0,
       explanation:
-        "Failover keeps an app online 24/7 by seamlessly switching to a standby server!",
+        "A crashed backend stops accepting connections, making its reported load look artificially tiny ('fail-fast blackhole')!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 12,
-    matchKeywords: ["cdn", "region", "closest", "video", "edge"],
+    matchKeywords: ["cdn", "latency", "edge", "region", "failover"],
     realWorldUse:
-      "Used by Netflix and YouTube CDNs (Content Delivery Networks) to stream video from a server near your country.",
-    analogyTitle: "Ordering From the Closest Local Warehouse",
+      "Used by Cloudflare, Fastly, and CloudFront to route viewers to a healthy regional PoP first, failing over to the lowest-latency healthy PoP globally (or `'origin'`) during outages.",
+    analogyTitle: "Regional Affinity + Global Latency Fallback",
     analogyText:
-      'Given a dictionary of regional servers `cdn_map`, use **`cdn_map.get(region, "global-edge")`** to return the user\'s local server, or `"global-edge"` if their region isn\'t in the dictionary!',
-    cheatSheet: `cdn_map = {"eu": "paris-01", "us": "virginia-01"}
-
-# Look up region, or fall back to "global-edge":
-server = cdn_map.get(region, "global-edge")`,
+      "Filter `edges` down to `healthy` nodes (`if not healthy: return 'origin'`). Prefer the lowest-latency healthy edge inside `region` if one exists; otherwise fail over to the lowest-latency healthy edge anywhere!",
+    cheatSheet: `healthy = [e for e in edges if e["healthy"]]
+if not healthy:
+    return "origin"
+local = [e for e in healthy if e["region"] == region]
+pool = local if local else healthy
+return min(pool, key=lambda e: e["latency_ms"])["id"]`,
     commonPitfall: {
-      title: "Using cdn_map[region] which crashes if the region is missing",
-      wrongCode: "return cdn_map[region]  # KeyError on unknown region!",
-      rightCode: 'return cdn_map.get(region, "global-edge")',
+      title: "Crashing on missing regions or returning offline regional edges",
+      wrongCode:
+        "return [e for e in edges if e['region'] == region][0]['id']  # Ignores health & crashes!",
+      rightCode:
+        "healthy = [e for e in edges if e['healthy']]\nlocal = [e for e in healthy if e['region'] == region]\npool = local if local else healthy\nreturn min(pool, key=lambda e: e['latency_ms'])['id'] if pool else 'origin'",
       explanation:
-        "`.get(key, fallback)` safely returns the fallback string instead of crashing when a key isn't found!",
+        "Never route users to a downed regional PoP—fall back cleanly to the closest healthy PoP or `'origin'`.",
     },
-    guidedCode: `def pick_cdn_server(cdn_map, region):
-    # 👉 Use cdn_map.get(region, "global-edge") to return the server safely:
-    return cdn_map.get(region, "global-edge")
+    guidedCode: `def pick_cdn_server(edges, region):
+    # 👉 Step 1: Filter to healthy edges (return "origin" if none)
+    healthy = [e for e in edges if e.get("healthy")]
+    if not healthy:
+        return "origin"
+    # 👉 Step 2: Prefer lowest-latency edge matching region, else lowest-latency overall
+    regional = [e for e in healthy if e.get("region") == region]
+    candidates = regional if regional else healthy
+    return min(candidates, key=lambda e: e["latency_ms"])["id"]
 
-servers = {"eu": "eu-west", "asia": "tokyo-edge"}
-print(pick_cdn_server(servers, "eu"), pick_cdn_server(servers, "sa"))`,
-    solutionCode: `def pick_cdn_server(cdn_map, region):
-    return cdn_map.get(region, "global-edge")
+pops = [
+    {"id": "eu-1", "region": "eu", "latency_ms": 15, "healthy": False},
+    {"id": "us-1", "region": "us", "latency_ms": 85, "healthy": True},
+    {"id": "uk-1", "region": "uk", "latency_ms": 35, "healthy": True},
+]
+print(pick_cdn_server(pops, "eu"))`,
+    solutionCode: `def pick_cdn_server(edges, region):
+    healthy = [e for e in edges if e.get("healthy")]
+    if not healthy:
+        return "origin"
+    regional = [e for e in healthy if e.get("region") == region]
+    candidates = regional if regional else healthy
+    return min(candidates, key=lambda e: e["latency_ms"])["id"]
 
-servers = {"eu": "eu-west", "asia": "tokyo-edge"}
-print(pick_cdn_server(servers, "eu"), pick_cdn_server(servers, "sa"))`,
+pops = [
+    {"id": "eu-1", "region": "eu", "latency_ms": 15, "healthy": False},
+    {"id": "us-1", "region": "us", "latency_ms": 85, "healthy": True},
+    {"id": "uk-1", "region": "uk", "latency_ms": 35, "healthy": True},
+]
+print(pick_cdn_server(pops, "eu"))`,
     proInsights: {
-      timeComplexity: "O(1)",
-      spaceComplexity: "O(1)",
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
       tradeoff:
-        "Geo-routing with a safe global edge fallback avoids single-region lookup failures while cutting round-trip latency for covered regions.",
+        "Preferring regional edges preserves data locality and cache warmth inside the user's continent while still providing automatic cross-region resilience.",
       followUp:
-        "Why do CDNs use Anycast BGP routing alongside DNS geo-lookups to handle sudden regional PoP outages?",
+        "If `region` is completely down, routing 100% of `eu` traffic to `uk-1` can overload `uk-1`; how would weighted multi-edge spillover prevent cascading regional failures?",
     },
     quiz: {
-      question: 'What does `{"eu": "paris"}.get("mars", "global")` return?',
-      options: [
-        '"global" (the safe fallback value)',
-        "KeyError crash",
-        '"paris"',
-      ],
+      question:
+        "In `pick_cdn_server`, when `eu-1` (`eu`) is unhealthy while `uk-1` (35ms) and `us-1` (85ms) are healthy, which PoP gets chosen?",
+      options: ['"uk-1"', '"eu-1"', '"origin"'],
       correctIndex: 0,
       explanation:
-        'Since `"mars"` is not in the dictionary, `.get()` returns the fallback value `"global"`!',
+        "With no healthy `eu` PoP available, the router selects the lowest-latency healthy fallback globally (`uk-1` at 35ms).",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 13,
-    matchKeywords: ["alarm", "memory usage", "warn", "monitor", "ram"],
+    matchKeywords: ["alarm", "flapping", "consecutive", "ram", "streak"],
     realWorldUse:
-      "Used by Datadog and AWS CloudWatch to alert engineers before a server runs out of RAM.",
-    analogyTitle: "Low-Battery Warning at 90% RAM Usage",
+      "Used by Datadog, Prometheus Alertmanager (`for: 2m`), and AWS CloudWatch (`datapoints to alarm`) to ignore brief 1-sample spikes and prevent pager fatigue.",
+    analogyTitle: "Anti-Flapping Consecutive Breach Counter",
     analogyText:
-      'Just like your phone warns you when battery is low, cloud monitors check `if usage >= 90:` and return **`"WARN"`** (or **`"OK"`** when usage is under 90%).',
-    cheatSheet: `def check_ram_alarm(usage):
-    if usage >= 90:
-        return "WARN"
-    return "OK"`,
+      "A single spike shouldn't wake engineers at 3 AM! Maintain `streak = 0`: increment `streak += 1` whenever `s >= threshold` (triggering `'WARN'` the moment `streak >= consecutive_needed`), and reset `streak = 0` on any healthy reading.",
+    cheatSheet: `streak = 0
+for s in samples:
+    if s >= threshold:
+        streak += 1
+        if streak >= consecutive_needed:
+            return "WARN"
+    else:
+        streak = 0
+return "OK"`,
     commonPitfall: {
-      title: "Returning 'OK' inside the >= 90 block instead of 'WARN'",
-      wrongCode: 'if usage >= 90:\n    return "OK"',
-      rightCode: 'if usage >= 90:\n    return "WARN"',
+      title: "Counting total high samples instead of resetting streak on healthy dips",
+      wrongCode:
+        "count = sum(1 for s in samples if s >= threshold)  # Counts non-consecutive spikes!",
+      rightCode:
+        "if s >= threshold:\n    streak += 1\nelse:\n    streak = 0",
       explanation:
-        'When RAM usage reaches `90` or higher, the monitor should return `"WARN"`.',
+        "`[95, 70, 88, 92]` has 2 high samples overall, but NOT 2 consecutive breaches—resetting `streak = 0` prevents false alarms!",
     },
-    guidedCode: `def check_ram_alarm(usage):
-    if usage >= 90:
-        # 👉 Return "WARN" when usage is 90 or higher:
-        return "WARN"
+    guidedCode: `def evaluate_ram_alarm(samples, threshold, consecutive_needed):
+    streak = 0
+    for s in samples:
+        # 👉 Step 1: Increment consecutive breach streak if s >= threshold
+        if s >= threshold:
+            streak += 1
+            # 👉 Step 2: Trigger WARN once consecutive_needed is met
+            if streak >= consecutive_needed:
+                return "WARN"
+        else:
+            # 👉 Step 3: Reset streak immediately on a healthy sample
+            streak = 0
     return "OK"
 
-print(check_ram_alarm(65), check_ram_alarm(92))`,
-    solutionCode: `def check_ram_alarm(usage):
-    if usage >= 90:
-        return "WARN"
+print(evaluate_ram_alarm([95, 70, 88, 92], 90, 2), evaluate_ram_alarm([95, 70, 92, 94], 90, 2))`,
+    solutionCode: `def evaluate_ram_alarm(samples, threshold, consecutive_needed):
+    streak = 0
+    for s in samples:
+        if s >= threshold:
+            streak += 1
+            if streak >= consecutive_needed:
+                return "WARN"
+        else:
+            streak = 0
     return "OK"
 
-print(check_ram_alarm(65), check_ram_alarm(92))`,
+print(evaluate_ram_alarm([95, 70, 88, 92], 90, 2), evaluate_ram_alarm([95, 70, 92, 94], 90, 2))`,
     proInsights: {
-      timeComplexity: "O(1)",
+      timeComplexity: "O(n)",
       spaceComplexity: "O(1)",
       tradeoff:
-        "Threshold alerts are simple and predictable; pairing them with hysteresis (e.g. warn at >=90%, recover only below 80%) stops alert flapping.",
+        "Requiring `k` consecutive violations filters out transient GC pauses in O(1) memory while adding at most `k - 1` polling intervals of detection latency.",
       followUp:
-        "Why is tracking the *rate of change* (memory leak slope) often better than a static 90% threshold?",
+        "How does 'M of N evaluation' (e.g. warn if 3 out of the last 5 minutes breached) balance strict streaks vs noisy networks?",
     },
     quiz: {
-      question: 'What should `check_ram_alarm(95)` return if the threshold is `>= 90`?',
-      options: ['"WARN"', '"OK"', "95"],
+      question:
+        "With `threshold = 90` and `consecutive_needed = 2`, what does `evaluate_ram_alarm([95, 70, 88, 92], 90, 2)` return?",
+      options: ['"OK"', '"WARN"', '"95"'],
       correctIndex: 0,
-      explanation: 'Since `95 >= 90` is True, it returns `"WARN"`!',
+      explanation:
+        "The `70` and `88` reset the breach streak between `95` and `92`, so no 2 consecutive samples breached 90!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 14,
-    matchKeywords: ["feature", "flag", "rollout", "toggle", "beta"],
+    matchKeywords: ["feature flag", "rollout", "percentage", "kill switch", "modulo"],
     realWorldUse:
-      "Used by Instagram, Spotify, and GitHub to turn new features ON or OFF without shipping a new app update.",
-    analogyTitle: "Remote Light Switches (Feature Flags)",
+      "Used by LaunchDarkly, Statsig, and Instagram to roll out risky features to 10% -> 25% -> 100% of users consistently across reloads without flipping randomly.",
+    analogyTitle: "Kill-Switch Guard + Deterministic Modulo Bucket",
     analogyText:
-      "A **Feature Flag** dictionary (`{\"dark_mode\": True}`) lets engineers toggle features remotely. Use **`flags.get(feature, False)`** so any unknown feature safely defaults to `False` (OFF)!",
-    cheatSheet: `flags = {"dark_mode": True, "ai_chat": False}
-
-# Check if a feature is enabled, defaulting to False:
-enabled = flags.get(feature_name, False)`,
+      "First check `cfg = flags.get(feature)`: if missing or `not cfg.get('enabled')`, immediately return `False` (the emergency kill switch!). Otherwise bucket the user deterministically with `user_id % 100 < cfg.get('rollout_pct', 0)`.",
+    cheatSheet: `cfg = flags.get(feature)
+if not cfg or not cfg.get("enabled"):
+    return False
+return (user_id % 100) < cfg.get("rollout_pct", 0)`,
     commonPitfall: {
-      title: "Defaulting to True for unknown features instead of False",
-      wrongCode: "return flags.get(feature, True)   # Turns ON untested features!",
-      rightCode: "return flags.get(feature, False)  # Safely defaults to OFF!",
+      title: "Using <= rollout_pct (gives 26% instead of 25%) or ignoring kill-switch",
+      wrongCode:
+        "return user_id % 100 <= cfg['rollout_pct']  # Buckets 0..25 = 26 out of 100!",
+      rightCode:
+        "if not cfg or not cfg.get('enabled'): return False\nreturn (user_id % 100) < cfg.get('rollout_pct', 0)",
       explanation:
-        "In production systems, unconfigured feature flags should always default to `False` (OFF).",
+        "Buckets run `0..99`, so `< 25` selects buckets `0..24` (exact 25%) and `rollout_pct = 0` cleanly selects nobody!",
     },
-    guidedCode: `def is_feature_enabled(flags, feature):
-    # 👉 Return flags.get(feature, False):
-    return flags.get(feature, False)
+    guidedCode: `def is_feature_enabled(flags, feature, user_id):
+    # 👉 Step 1: Check feature existence & enabled kill-switch
+    cfg = flags.get(feature)
+    if not cfg or not cfg.get("enabled"):
+        return False
+    # 👉 Step 2: Bucket user deterministically in 0..99 and compare < rollout_pct
+    return (user_id % 100) < cfg.get("rollout_pct", 0)
 
-print(is_feature_enabled({"dark_mode": True}, "dark_mode"), is_feature_enabled({}, "beta"))`,
-    solutionCode: `def is_feature_enabled(flags, feature):
-    return flags.get(feature, False)
+cfg = {"ai_search": {"enabled": True, "rollout_pct": 25}, "old_ui": {"enabled": False, "rollout_pct": 100}}
+print(is_feature_enabled(cfg, "ai_search", 110), is_feature_enabled(cfg, "ai_search", 140))`,
+    solutionCode: `def is_feature_enabled(flags, feature, user_id):
+    cfg = flags.get(feature)
+    if not cfg or not cfg.get("enabled"):
+        return False
+    return (user_id % 100) < cfg.get("rollout_pct", 0)
 
-print(is_feature_enabled({"dark_mode": True}, "dark_mode"), is_feature_enabled({}, "beta"))`,
+cfg = {"ai_search": {"enabled": True, "rollout_pct": 25}, "old_ui": {"enabled": False, "rollout_pct": 100}}
+print(is_feature_enabled(cfg, "ai_search", 110), is_feature_enabled(cfg, "ai_search", 140))`,
     proInsights: {
       timeComplexity: "O(1)",
       spaceComplexity: "O(1)",
       tradeoff:
-        "Decoupling feature rollouts from binary deployments lets teams kill-switch broken code in seconds without waiting for App Store review.",
+        "Deterministic hashing (`% 100`) ensures the same user gets a sticky experience across API servers without storing per-user flags in a database.",
       followUp:
-        "How would you roll out a flag to 10% of users consistently using `hash(user_id) % 100 < 10`?",
+        "Why do real feature flag SDKs hash `(feature_name + ':' + str(user_id))` before `% 100` instead of bare `user_id % 100`? So independent experiments don't always hit the exact same 10% of users!",
     },
     quiz: {
-      question: "Why do Feature Flag lookups default to `False` when a flag name is missing?",
+      question:
+        "With `rollout_pct = 25` and `enabled = True`, should `user_id = 125` (bucket `25`) get the feature?",
       options: [
-        "So unfinished or unknown features stay safely turned OFF by default",
-        "Because Python dictionaries cannot store True",
-        "To delete the dictionary",
+        "No (`False`) — buckets `0..24` already cover 25%, so `25 < 25` is `False`",
+        "Yes (`True`) — `25 <= 25`",
+        "Only on Mondays",
       ],
       correctIndex: 0,
       explanation:
-        "Defaulting to `False` prevents unfinished features from accidentally turning on!",
+        "Because 0-indexed buckets `0..24` are already 25 buckets, strict `< rollout_pct` guarantees `0%` turns off all users and `25%` matches exactly 25 out of 100.",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 15,
-    matchKeywords: ["payload", "upload", "size", "limit", "gateway"],
+    matchKeywords: ["payload", "upload", "mime", "validation", "gateway"],
     realWorldUse:
-      "Used by Discord and Gmail to check that an uploaded file is under the maximum size limit (e.g., `<= 25` MB).",
-    analogyTitle: "Carry-On Luggage Size Check at the Airport",
+      "Used by Discord, Stripe, and S3 upload gateways to reject empty payloads, oversized files, and banned executables (`.exe`) before touching backend storage.",
+    analogyTitle: "Multi-Rule Border Check at the API Gateway",
     analogyText:
-      "Before a server accepts a file upload, it checks **`size_mb <= max_mb`**. If the file is within the limit, it returns `True`; otherwise `False`!",
-    cheatSheet: `def can_upload_file(size_mb, max_mb):
-    # Allow upload only if size_mb is at or under max_mb:
-    return size_mb <= max_mb`,
+      "Check constraints in priority order: first reject empty payloads (`size_mb <= 0` -> `'EMPTY_FILE'`), then oversized uploads (`size_mb > max_mb` -> `'TOO_LARGE'`), then unsupported MIME types (`content_type not in allowed_types` -> `'BAD_TYPE'`).",
+    cheatSheet: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
+    if size_mb <= 0:
+        return {"ok": False, "reason": "EMPTY_FILE"}
+    if size_mb > max_mb:
+        return {"ok": False, "reason": "TOO_LARGE"}
+    if content_type not in allowed_types:
+        return {"ok": False, "reason": "BAD_TYPE"}
+    return {"ok": True, "reason": "OK"}`,
     commonPitfall: {
-      title: "Using >= instead of <= (which only allows huge files!)",
-      wrongCode: "return size_mb >= max_mb",
-      rightCode: "return size_mb <= max_mb",
+      title: "Only checking size_mb <= max_mb and letting 0-byte or malicious .exe files pass",
+      wrongCode:
+        "return size_mb <= max_mb  # Accepts 0 MB files & application/x-msdownload!",
+      rightCode:
+        "if size_mb <= 0: return {'ok': False, 'reason': 'EMPTY_FILE'}\n# then TOO_LARGE and BAD_TYPE checks",
       explanation:
-        "`size_mb <= max_mb` checks that the file size is less than or equal to the allowed limit.",
+        "Gateways validate size bounds AND MIME allowlists explicitly, returning structured failure reasons so clients know what to fix.",
     },
-    guidedCode: `def can_upload_file(size_mb, max_mb):
-    # 👉 Return True if size_mb <= max_mb:
-    return size_mb <= max_mb
+    guidedCode: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
+    # 👉 Step 1: Reject empty/zero-byte payloads
+    if size_mb <= 0:
+        return {"ok": False, "reason": "EMPTY_FILE"}
+    # 👉 Step 2: Reject payloads exceeding max_mb
+    if size_mb > max_mb:
+        return {"ok": False, "reason": "TOO_LARGE"}
+    # 👉 Step 3: Enforce MIME allowlist before returning OK
+    if content_type not in allowed_types:
+        return {"ok": False, "reason": "BAD_TYPE"}
+    return {"ok": True, "reason": "OK"}
 
-print(can_upload_file(10, 25), can_upload_file(40, 25))`,
-    solutionCode: `def can_upload_file(size_mb, max_mb):
-    return size_mb <= max_mb
+print(validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"]))`,
+    solutionCode: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
+    if size_mb <= 0:
+        return {"ok": False, "reason": "EMPTY_FILE"}
+    if size_mb > max_mb:
+        return {"ok": False, "reason": "TOO_LARGE"}
+    if content_type not in allowed_types:
+        return {"ok": False, "reason": "BAD_TYPE"}
+    return {"ok": True, "reason": "OK"}
 
-print(can_upload_file(10, 25), can_upload_file(40, 25))`,
+print(validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"]))`,
     proInsights: {
-      timeComplexity: "O(1)",
+      timeComplexity: "O(1) with small allowlist (or set)",
       spaceComplexity: "O(1)",
       tradeoff:
-        "Checking `Content-Length` at the API gateway rejects oversized payloads before buffering multi-gigabyte streams into application RAM.",
+        "Failing fast at the gateway saves bandwidth and worker RAM, though `Content-Type` headers alone can be spoofed—verify file magic bytes asynchronously.",
       followUp:
-        "How do pre-signed S3 upload URLs bypass your API server entirely for large video/image uploads?",
+        "How do pre-signed S3 upload policies enforce `content-length-range` directly at object storage without routing bytes through your API?",
     },
     quiz: {
-      question: "If `max_mb = 25`, what does `can_upload_file(25, 25)` return with `size_mb <= max_mb`?",
-      options: ["True (25 MB is within the 25 MB limit)", "False", "Error"],
+      question:
+        'Why should `size_mb <= 0` be rejected with `"EMPTY_FILE"` instead of just checking `size_mb <= max_mb`?',
+      options: [
+        "0-byte uploads are valid under `<= max_mb` (`0 <= 25`), which causes empty broken files in storage",
+        "Negative sizes automatically convert to MB in Python",
+        "`<=` throws a `TypeError` when comparing zero",
+      ],
       correctIndex: 0,
-      explanation: "`25 <= 25` is `True`!",
+      explanation:
+        "Both bounds matter (`0 < size_mb <= max_mb`) so broken empty files and oversized uploads are caught cleanly!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 16,
-    matchKeywords: ["queue", "autoscaling", "worker", "busy", "backlog"],
+    matchKeywords: ["autoscaler", "ceiling division", "workers", "clamp", "queue"],
     realWorldUse:
-      "Used by AWS Auto Scaling to spin up an extra worker server whenever more than 5 jobs are waiting in line.",
-    analogyTitle: "Opening a Second Checkout Lane at the Grocery Store",
+      "Used by Kubernetes HPA (Horizontal Pod Autoscaler) and AWS ECS target tracking to compute exact replica counts from backlog depth.",
+    analogyTitle: "Ceiling Division + Min/Max Safety Guardrails",
     analogyText:
-      "When the line of waiting customers (`len(queue)`) grows past `5`, the store opens a new checkout lane! In Python, that's simply **`return len(queue) > 5`**.",
-    cheatSheet: `def needs_extra_worker(queue):
-    # Spin up a new worker if more than 5 jobs are waiting:
-    return len(queue) > 5`,
+      "12 queued jobs divided by 5 jobs per worker needs **3** workers (not `12 // 5 = 2`)! Use integer ceiling division `(queue_len + target_per_worker - 1) // target_per_worker`, then clamp between a floor of `1` standby worker and `max_workers`.",
+    cheatSheet: `if queue_len <= 0:
+    return 1
+needed = (queue_len + target_per_worker - 1) // target_per_worker
+return max(1, min(needed, max_workers))`,
     commonPitfall: {
-      title: "Comparing the list itself (queue > 5) instead of its length (len(queue) > 5)",
-      wrongCode: "return queue > 5       # TypeError: list vs int!",
-      rightCode: "return len(queue) > 5  # Compares number of items > 5!",
+      title: "Using floor division (drops remainder) or returning 0 workers when empty",
+      wrongCode:
+        "return queue_len // target_per_worker  # 12 // 5 -> 2 workers (backlog stalls)!",
+      rightCode:
+        "needed = (queue_len + target_per_worker - 1) // target_per_worker\nreturn max(1, min(needed, max_workers))",
       explanation:
-        "Use `len(queue)` to count how many jobs are in the list before comparing with `> 5`.",
+        "Floor division leaves jobs stranded without enough capacity, and `max(1, ...)` keeps at least 1 warm standby worker running.",
     },
-    guidedCode: `def needs_extra_worker(queue):
-    # 👉 Return True if len(queue) > 5:
-    return len(queue) > 5
+    guidedCode: `def scale_workers(queue_len, target_per_worker, max_workers):
+    # 👉 Step 1: Always keep at least 1 standby worker
+    if queue_len <= 0:
+        return 1
+    # 👉 Step 2: Ceiling division to cover any remainder jobs
+    needed = (queue_len + target_per_worker - 1) // target_per_worker
+    # 👉 Step 3: Clamp between 1 and max_workers ceiling
+    return max(1, min(needed, max_workers))
 
-print(needs_extra_worker(["j1", "j2"]), needs_extra_worker(["j1", "j2", "j3", "j4", "j5", "j6"]))`,
-    solutionCode: `def needs_extra_worker(queue):
-    return len(queue) > 5
+print(scale_workers(12, 5, 10), scale_workers(0, 5, 10), scale_workers(100, 5, 8))`,
+    solutionCode: `def scale_workers(queue_len, target_per_worker, max_workers):
+    if queue_len <= 0:
+        return 1
+    needed = (queue_len + target_per_worker - 1) // target_per_worker
+    return max(1, min(needed, max_workers))
 
-print(needs_extra_worker(["j1", "j2"]), needs_extra_worker(["j1", "j2", "j3", "j4", "j5", "j6"]))`,
+print(scale_workers(12, 5, 10), scale_workers(0, 5, 10), scale_workers(100, 5, 8))`,
     proInsights: {
       timeComplexity: "O(1)",
       spaceComplexity: "O(1)",
       tradeoff:
-        "Autoscaling on queue depth reacts directly to backlog pressure; add a cooldown window so cold-starting workers don't overshoot and thrash.",
+        "Integer ceiling division avoids floating-point precision drift of `math.ceil()`, while `max_workers` protects downstream databases from connection-pool exhaustion.",
       followUp:
-        "When is 'oldest message age in queue' a better autoscaling metric than raw queue length?",
+        "Why do production autoscalers scale UP aggressively on backlog spikes but enforce a 3-5 minute stabilization window before scaling DOWN?",
     },
     quiz: {
-      question: "How do you check if a `queue` list has more than 5 items waiting?",
-      options: ["len(queue) > 5", "queue > 5", "queue.count() > 5"],
+      question:
+        "With `queue_len = 12`, `target_per_worker = 5`, and `max_workers = 10`, what does `(12 + 5 - 1) // 5` compute?",
+      options: ["3 workers", "2 workers", "12 workers"],
       correctIndex: 0,
-      explanation: "`len(queue)` returns the number of items in `queue`, and `> 5` checks if it exceeds 5!",
+      explanation:
+        "`(12 + 4) // 5 = 16 // 5 = 3`, rounding up cleanly without `math.ceil()`!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 17,
-    matchKeywords: ["api key", "auth", "header", "valid_keys"],
+    matchKeywords: ["api key", "auth", "expiry", "rbac", "scopes"],
     realWorldUse:
-      "Used by Stripe, OpenAI, and GitHub APIs to verify that a request includes an active API key before running.",
-    analogyTitle: "Checking the VIP Wristband at the Door",
+      "Used by Stripe, GitHub Personal Access Tokens, and OpenAI gateways to enforce key existence, revocation (`active`), TTL expiration, and RBAC permission scopes in one check.",
+    analogyTitle: "Four-Lock Zero-Trust Gateway Check",
     analogyText:
-      "An API Gateway keeps a list of active `valid_keys`. When a request arrives with `api_key`, **`api_key in valid_keys`** checks if that wristband is on the list!",
-    cheatSheet: `def is_valid_api_key(valid_keys, api_key):
-    return api_key in valid_keys`,
+      "A valid key ID isn't enough! Look up `rec = key_store.get(api_key)` and verify all 4 gates: exists (`rec`), not revoked (`rec['active']`), not expired (`now_ts < rec['expires_at']`), and has permission (`required_scope in rec['scopes']`).",
+    cheatSheet: `rec = key_store.get(api_key)
+if not rec:
+    return False
+return bool(
+    rec.get("active")
+    and now_ts < rec.get("expires_at", 0)
+    and required_scope in rec.get("scopes", [])
+)`,
     commonPitfall: {
-      title: "Comparing api_key == valid_keys instead of using 'in'",
-      wrongCode: "return api_key == valid_keys  # Compares string to entire list!",
-      rightCode: "return api_key in valid_keys  # Checks membership inside list!",
+      title: "Checking `now_ts <= expires_at` or ignoring revoked keys",
+      wrongCode:
+        "return api_key in key_store  # Allows expired and revoked keys!",
+      rightCode:
+        "return bool(rec and rec['active'] and now_ts < rec['expires_at'] and required_scope in rec['scopes'])",
       explanation:
-        "Use `in` to check whether a single key string exists inside the `valid_keys` collection.",
+        "Tokens expire the exact second `now_ts == expires_at` (`<`), and compromised tokens with `active=False` must fail immediately.",
     },
-    guidedCode: `def is_valid_api_key(valid_keys, api_key):
-    # 👉 Check if api_key is inside valid_keys:
-    return api_key in valid_keys
+    guidedCode: `def authorize_request(key_store, api_key, required_scope, now_ts):
+    # 👉 Step 1: Reject unknown keys safely via .get()
+    rec = key_store.get(api_key)
+    if not rec:
+        return False
+    # 👉 Step 2: Check active status, strict TTL expiry, and RBAC scope
+    return bool(
+        rec.get("active")
+        and now_ts < rec.get("expires_at", 0)
+        and required_scope in rec.get("scopes", [])
+    )
 
-keys = ["k_live_1", "k_live_2"]
-print(is_valid_api_key(keys, "k_live_1"), is_valid_api_key(keys, "k_bad"))`,
-    solutionCode: `def is_valid_api_key(valid_keys, api_key):
-    return api_key in valid_keys
+keys = {
+    "k1": {"active": True, "expires_at": 100, "scopes": ["read", "write"]},
+    "k2": {"active": False, "expires_at": 200, "scopes": ["read"]},
+}
+print(authorize_request(keys, "k1", "write", 50), authorize_request(keys, "k1", "write", 100))`,
+    solutionCode: `def authorize_request(key_store, api_key, required_scope, now_ts):
+    rec = key_store.get(api_key)
+    if not rec:
+        return False
+    return bool(
+        rec.get("active")
+        and now_ts < rec.get("expires_at", 0)
+        and required_scope in rec.get("scopes", [])
+    )
 
-keys = ["k_live_1", "k_live_2"]
-print(is_valid_api_key(keys, "k_live_1"), is_valid_api_key(keys, "k_bad"))`,
+keys = {
+    "k1": {"active": True, "expires_at": 100, "scopes": ["read", "write"]},
+    "k2": {"active": False, "expires_at": 200, "scopes": ["read"]},
+}
+print(authorize_request(keys, "k1", "write", 50), authorize_request(keys, "k1", "write", 100))`,
     proInsights: {
-      timeComplexity: "O(1) with set / O(n) with list",
+      timeComplexity: "O(1) lookup + O(s) scopes",
       spaceComplexity: "O(1)",
       tradeoff:
-        "Storing active keys in a `set` or Redis hash table keeps gateway auth checks O(1); in production, store SHA-256 hashes of keys rather than plaintext.",
+        "Short-lived scoped keys limit blast radius if leaked; stateless JWTs skip DB lookups but cannot be immediately revoked without a Redis denylist.",
       followUp:
-        "Why should API key verification use constant-time comparison (`hmac.compare_digest`) when validating HMAC signatures?",
+        "Why should production key stores hash API secrets with SHA-256 or HMAC rather than indexing plaintext tokens?",
     },
     quiz: {
-      question: "Which expression checks if `token` is inside `allowed_tokens`?",
-      options: [
-        "token in allowed_tokens",
-        "token == allowed_tokens",
-        "allowed_tokens.has(token)",
-      ],
+      question:
+        "If `expires_at = 100` and `now_ts = 100`, what should `authorize_request` return under strict TTL `now_ts < expires_at`?",
+      options: ["False (expired at t=100)", "True", "None"],
       correctIndex: 0,
       explanation:
-        "`token in allowed_tokens` returns `True` if `token` is a member of `allowed_tokens`!",
+        "Strict inequality `now_ts < expires_at` ensures a key with expiry timestamp `100` stops working as soon as the clock hits `100`.",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 18,
-    matchKeywords: ["pagination", "offset", "page", "skip"],
+    matchKeywords: ["pagination", "slice", "has_next", "total_pages", "offset"],
     realWorldUse:
-      "Used in Google Search, Amazon product listings, and SQL `OFFSET` queries to load one page of results at a time.",
-    analogyTitle: "Skipping Previous Pages with (page - 1) * page_size",
+      "Used in REST and GraphQL API responses (`GitHub`, `Stripe`, `Shopify`) so frontends know both the current page slice and whether a 'Next Page' button should render.",
+    analogyTitle: "Complete Pagination Envelope (`items`, `has_next`, `total_pages`)",
     analogyText:
-      "On **Page 1**, you skip `0` items (`(1 - 1) * 10 = 0`). On **Page 3**, you skip the first `2` full pages (`(3 - 1) * 10 = 20`)!",
-    cheatSheet: `def get_page_offset(page, page_size):
-    return (page - 1) * page_size`,
+      "Compute `total_pages = (len(items) + page_size - 1) // page_size` (0 if empty). Slice `items[start : start + page_size]` where `start = (page - 1) * page_size`, and set `has_next = page < total_pages`!",
+    cheatSheet: `if not items or page_size <= 0:
+    return {"items": [], "has_next": False, "total_pages": 0}
+total_pages = (len(items) + page_size - 1) // page_size
+start = (page - 1) * page_size
+return {
+    "items": items[start : start + page_size],
+    "has_next": page < total_pages,
+    "total_pages": total_pages,
+}`,
     commonPitfall: {
-      title: "Forgetting parentheses around (page - 1)",
-      wrongCode: "return page - 1 * page_size    # Multiplies 1 * page_size first!",
-      rightCode: "return (page - 1) * page_size  # Subtracts 1 first, then multiplies!",
+      title: "Setting has_next = True on the final exact-fit page or miscomputing total_pages",
+      wrongCode:
+        "total_pages = len(items) // page_size  # Drops partial last page on 5 items / size 2!",
+      rightCode:
+        "total_pages = (len(items) + page_size - 1) // page_size\nhas_next = page < total_pages",
       explanation:
-        "Wrap `(page - 1)` in parentheses so Python subtracts 1 before multiplying by `page_size`.",
+        "5 items with `page_size=2` takes `3` total pages (`[a,b]`, `[c,d]`, `[e]`), and `has_next` is `False` whenever `page >= total_pages`.",
     },
-    guidedCode: `def get_page_offset(page, page_size):
-    # 👉 Calculate how many items to skip: (page - 1) * page_size
-    return (page - 1) * page_size
+    guidedCode: `def paginate_items(items, page, page_size):
+    # 👉 Step 1: Handle empty list safely with 0 total_pages
+    if not items or page_size <= 0:
+        return {"items": [], "has_next": False, "total_pages": 0}
+    # 👉 Step 2: Compute ceiling total_pages and page slice bounds
+    total_pages = (len(items) + page_size - 1) // page_size
+    start = (page - 1) * page_size
+    # 👉 Step 3: Return envelope with has_next metadata
+    return {
+        "items": items[start : start + page_size],
+        "has_next": page < total_pages,
+        "total_pages": total_pages,
+    }
 
-print(get_page_offset(1, 10), get_page_offset(3, 10))`,
-    solutionCode: `def get_page_offset(page, page_size):
-    return (page - 1) * page_size
+print(paginate_items(["a", "b", "c", "d", "e"], 2, 2))`,
+    solutionCode: `def paginate_items(items, page, page_size):
+    if not items or page_size <= 0:
+        return {"items": [], "has_next": False, "total_pages": 0}
+    total_pages = (len(items) + page_size - 1) // page_size
+    start = (page - 1) * page_size
+    return {
+        "items": items[start : start + page_size],
+        "has_next": page < total_pages,
+        "total_pages": total_pages,
+    }
 
-print(get_page_offset(1, 10), get_page_offset(3, 10))`,
+print(paginate_items(["a", "b", "c", "d", "e"], 2, 2))`,
     proInsights: {
-      timeComplexity: "O(1) math (O(offset) DB scan)",
-      spaceComplexity: "O(1)",
+      timeComplexity: "O(page_size) slice",
+      spaceComplexity: "O(page_size)",
       tradeoff:
-        "Offset pagination allows jumping to any page number, but deep SQL offsets (`OFFSET 100000`) scan and discard 100k rows; switch to cursor/keyset pagination (`WHERE id > last_seen_id`) for infinite feeds.",
+        "Offset pagination lets users jump straight to page 7, but on live DB tables inserts between requests shift rows—making cursor (`keyset`) pagination better for activity feeds.",
       followUp:
-        "What duplicate-row bug happens in offset pagination when a new post is inserted while a user scrolls from Page 1 to Page 2?",
+        "In SQL/API pagination, how can fetching `limit + 1` rows tell you `has_next` without running an expensive `SELECT COUNT(*)`?",
     },
     quiz: {
-      question: "If `page_size = 20`, how many items should be skipped on `page = 1`?",
-      options: ["0", "20", "1"],
+      question:
+        "Given 4 items with `page = 2` and `page_size = 2`, what is `has_next`?",
+      options: ["False (page 2 of 2 is the last page)", "True", "None"],
       correctIndex: 0,
       explanation:
-        "Page 1 starts at the very first item, so `(1 - 1) * 20 = 0` items are skipped!",
+        "`total_pages` is `2`, so on `page = 2`, `2 < 2` is `False` — there is no Page 3!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 19,
-    matchKeywords: ["cache key", "profile", "redis"],
+    matchKeywords: ["cache-aside", "read-through", "redis", "cache warming"],
     realWorldUse:
-      'Used in Redis and Memcached to name cache entries consistently across microservices (e.g. `"user:42:profile"`).',
-    analogyTitle: "Standardized Labeled Folders in Redis",
+      "The #1 Redis caching architecture in production backends (Instagram, Airbnb, Slack): hit RAM first, populate Redis on DB read, and avoid caching missing rows unnecessarily.",
+    analogyTitle: "Cache-Aside Read-Through Pattern",
     analogyText:
-      'Naming cache keys with colons like **`f"user:{user_id}:profile"`** makes every user\'s cached profile easy to find and never collide with other keys!',
-    cheatSheet: `def make_cache_key(user_id):
-    return f"user:{user_id}:profile"`,
+      "Format `key = f'user:{user_id}:profile'`. If `key in cache`, return `{'source': 'cache', ...}` instantly! Else query `db`: if found, warm `cache[key] = db[user_id]` before returning `'db'`; if missing in both, return `'miss'` without polluting `cache`.",
+    cheatSheet: `key = f"user:{user_id}:profile"
+if key in cache:
+    return {"source": "cache", "data": cache[key]}
+if user_id in db:
+    cache[key] = db[user_id]
+    return {"source": "db", "data": db[user_id]}
+return {"source": "miss", "data": None}`,
     commonPitfall: {
-      title: "Forgetting the 'f' prefix on the cache key string",
-      wrongCode: 'return "user:{user_id}:profile"',
-      rightCode: 'return f"user:{user_id}:profile"',
+      title: "Forgetting to warm cache[key] on a DB hit or caching None misses",
+      wrongCode:
+        "if user_id in db: return {'source': 'db', 'data': db[user_id]}  # Never warms cache!",
+      rightCode:
+        "if user_id in db:\n    cache[key] = db[user_id]\n    return {'source': 'db', 'data': db[user_id]}",
       explanation:
-        "Include `f` before the quote so `{user_id}` is replaced with the actual ID number.",
+        "Without writing `cache[key] = db[user_id]`, the second call hits the slow DB all over again; and skipping nonexistent IDs keeps Redis clean.",
     },
-    guidedCode: `def make_cache_key(user_id):
-    # 👉 Return the Redis key f"user:{user_id}:profile":
-    return f"user:{user_id}:profile"
+    guidedCode: `def fetch_user_profile(cache, db, user_id):
+    key = f"user:{user_id}:profile"
+    # 👉 Step 1: Return cache hit immediately if key exists in cache
+    if key in cache:
+        return {"source": "cache", "data": cache[key]}
+    # 👉 Step 2: Query DB, warm cache[key] on hit, and return result
+    if user_id in db:
+        cache[key] = db[user_id]
+        return {"source": "db", "data": db[user_id]}
+    # 👉 Step 3: Return miss without caching absent keys
+    return {"source": "miss", "data": None}
 
-print(make_cache_key(42))`,
-    solutionCode: `def make_cache_key(user_id):
-    return f"user:{user_id}:profile"
+c = {}
+d = {42: "Aria"}
+print(fetch_user_profile(c, d, 42), fetch_user_profile(c, d, 42))`,
+    solutionCode: `def fetch_user_profile(cache, db, user_id):
+    key = f"user:{user_id}:profile"
+    if key in cache:
+        return {"source": "cache", "data": cache[key]}
+    if user_id in db:
+        cache[key] = db[user_id]
+        return {"source": "db", "data": db[user_id]}
+    return {"source": "miss", "data": None}
 
-print(make_cache_key(42))`,
+c = {}
+d = {42: "Aria"}
+print(fetch_user_profile(c, d, 42), fetch_user_profile(c, d, 42))`,
     proInsights: {
-      timeComplexity: "O(1)",
-      spaceComplexity: "O(1)",
+      timeComplexity: "O(1) cache lookup",
+      spaceComplexity: "O(1) per cached entry",
       tradeoff:
-        "Colon-namespaced keys (`entity:id:field`) prevent cross-service key collisions and make Redis wildcard inspection (`SCAN user:42:*`) effortless.",
+        "Cache-Aside keeps only actually requested rows hot in RAM; pair every cached key with a TTL and cache invalidation on writes so stale profiles don't linger forever.",
       followUp:
-        "How does adding a schema version (`v2:user:42:profile`) let you deploy breaking cache changes without flushing the whole Redis cluster?",
+        "What is 'Cache Penetration' (attackers requesting thousands of missing IDs like `-1`) and when DO engineers short-TTL cache a null sentinel or Bloom filter?",
     },
     quiz: {
-      question: 'If `user_id = 7`, what does `f"user:{user_id}:profile"` return?',
+      question:
+        "In Cache-Aside, what happens on the FIRST request for `user_id = 42` if `cache` starts empty and `db[42] = 'Aria'`?",
       options: [
-        '"user:7:profile"',
-        '"user:{user_id}:profile"',
-        '"user:profile:7"',
+        "It reads `'Aria'` from `db`, writes `cache['user:42:profile'] = 'Aria'`, and returns `source: 'db'`",
+        "It returns `source: 'cache'` right away",
+        "It deletes user 42 from `db`",
       ],
       correctIndex: 0,
-      explanation: "`{user_id}` is replaced with `7` inside the f-string!",
+      explanation:
+        "Read #1 populates the cache (`source: 'db'`) so Read #2 and beyond become fast RAM hits (`source: 'cache'`)!",
     },
   },
   {
     matchTrack: "system_design",
     matchOrder: 20,
-    matchKeywords: ["batch", "chunk", "notification"],
+    matchKeywords: ["batch", "chunk", "slice", "step", "notifications"],
     realWorldUse:
-      "Used in email and push-notification workers that send messages in fixed batches of 100 at a time.",
-    analogyTitle: "Filling Full Boxes with Integer Division (//)",
+      "Used by Firebase Cloud Messaging, SendGrid bulk mailers, and SQL `INSERT` chunkers to split huge user lists into safe fixed-size payload batches.",
+    analogyTitle: "Stepped Slicing with `range(0, len(user_ids), batch_size)`",
     analogyText:
-      "If you have `250` apples and each box holds `100`, how many **full boxes** can you pack? **`250 // 100`** drops the decimal and gives `2`!",
-    cheatSheet: `def count_full_batches(total_users, batch_size):
-    return total_users // batch_size`,
+      "First guard `batch_size <= 0` (otherwise `range(..., 0)` throws `ValueError`!). Then step `i` by `batch_size` and slice `user_ids[i : i + batch_size]`—Python automatically clamps the final slice so partial trailing batches stay intact!",
+    cheatSheet: `if batch_size <= 0:
+    return []
+return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]`,
     commonPitfall: {
-      title: "Using single slash '/' (2.5) instead of double slash '//' (2)",
-      wrongCode: "return total_users / batch_size   # Returns float 2.5!",
-      rightCode: "return total_users // batch_size  # Returns whole int 2!",
+      title: "Crashing on batch_size <= 0 or dropping the partial final batch",
+      wrongCode:
+        "return [user_ids[i:i+batch_size] for i in range(0, len(user_ids), batch_size)]  # Crashes when batch_size == 0!",
+      rightCode:
+        "if batch_size <= 0:\n    return []\nreturn [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]",
       explanation:
-        "Double slash `//` performs integer division, returning a clean whole number of full batches.",
+        "Stepping `range()` by `0` raises `ValueError`; guarding `batch_size <= 0` first keeps the chunker crash-proof while preserving trailing batches.",
     },
-    guidedCode: `def count_full_batches(total_users, batch_size):
-    # 👉 Return full batches using integer division //:
-    return total_users // batch_size
+    guidedCode: `def build_batches(user_ids, batch_size):
+    # 👉 Step 1: Guard against zero or negative batch sizes
+    if batch_size <= 0:
+        return []
+    # 👉 Step 2: Slice user_ids in fixed steps of batch_size
+    return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]
 
-print(count_full_batches(250, 100))`,
-    solutionCode: `def count_full_batches(total_users, batch_size):
-    return total_users // batch_size
+print(build_batches([1, 2, 3, 4, 5], 2))`,
+    solutionCode: `def build_batches(user_ids, batch_size):
+    if batch_size <= 0:
+        return []
+    return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]
 
-print(count_full_batches(250, 100))`,
+print(build_batches([1, 2, 3, 4, 5], 2))`,
     proInsights: {
-      timeComplexity: "O(1)",
-      spaceComplexity: "O(1)",
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
       tradeoff:
-        "Batching API calls reduces network round-trips and DB transactions by 100x; use ceiling division `(total_users + batch_size - 1) // batch_size` when counting partial trailing batches too.",
+        "Stepped slicing preserves every trailing item without losing partial batches; if streaming millions of IDs, `yield` slices via a generator (or `itertools.batched` in Python 3.12+) to hold only 1 batch in memory at a time.",
       followUp:
-        "If one item in a 100-item batch fails validation, should the worker fail the whole batch or isolate the bad record?",
+        "Why should downstream batch receivers make each batch request idempotent (using a `batch_id`) in case a partial network timeout retries an entire 100-item chunk?",
     },
     quiz: {
-      question: "What does `350 // 100` evaluate to in Python?",
-      options: ["3", "3.5", "50"],
+      question:
+        "What does `[1, 2, 3, 4, 5][4 : 4 + 2]` evaluate to in Python when `4 + 2` goes past the end of the list?",
+      options: [
+        "`[5]` — Python slice endpoints clamp safely without `IndexError`",
+        "`IndexError: list index out of range`",
+        "`[5, None]`",
+      ],
       correctIndex: 0,
       explanation:
-        "`//` divides and rounds down to the nearest whole integer (`3`)!",
+        "Python slices automatically stop at `len(list)`, making stepped slicing `[i : i + batch_size]` naturally handle trailing partial batches!",
     },
   },
   {

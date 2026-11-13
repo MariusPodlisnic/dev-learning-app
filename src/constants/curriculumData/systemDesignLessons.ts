@@ -1,372 +1,369 @@
 export const SYSTEM_DESIGN_EXPANSION_LESSONS = [
   {
     id: "exp-sys-09",
-    title: "Retry Cap: Maximum Wait Time Shield",
+    title: "Exponential Backoff + Jitter Shield",
     track: "system_design",
     category: "RESILIENCE PATTERNS",
-    difficulty: "Easy",
+    difficulty: "Medium",
     tree_row: 8,
     lesson_order: 9,
     is_free: false,
     description:
-      "Use min(delay_ms, max_ms) so a reconnecting app never waits longer than the maximum cap.",
+      "Compute exponential retry wait time (base * 2^attempt) plus jitter while capping safely at max_ms.",
     content:
-      "When an app loses connection, it waits between retries (`delay_ms`). To keep the app responsive, we cap the wait time at `max_ms` using **`min(delay_ms, max_ms)`**:\n\n```python\ndef get_retry_wait(delay_ms, max_ms):\n    return min(delay_ms, max_ms)\n```",
+      "When a downstream microservice temporarily drops requests, retrying immediately causes a **thundering herd**.\n\n**Capped Exponential Backoff + Jitter** doubles the wait each attempt and adds randomized jitter, while strictly capping at `max_ms`:\n\n```python\ndelay = base_ms * (2 ** attempt) + jitter_ms\nreturn min(max_ms, delay)\n```",
     assignment:
-      "Complete `get_retry_wait(delay_ms, max_ms)` so it returns whichever value is smaller using `min(delay_ms, max_ms)`.",
+      "Complete `compute_backoff(attempt, base_ms, max_ms, jitter_ms)` to compute `base_ms * (2 ** attempt) + jitter_ms` capped cleanly at `max_ms` (and never below `0`).",
     constraints: [
-      "Use `min(delay_ms, max_ms)` to cap the retry wait time",
-      "Return the result",
+      "Treat `attempt = 0` as `base_ms * 1 + jitter_ms`",
+      "Clamp the final delay to `[0, max_ms]`",
     ],
     examples: [
       {
-        input: "get_retry_wait(400, 1000) and get_retry_wait(1600, 1000)",
-        output: "400 1000",
-        explanation: "400 stays 400; 1600 is capped at 1000.",
+        input: "attempt=2, base_ms=100, max_ms=1000, jitter_ms=50",
+        output: "450",
+        explanation: "100 * (2**2) + 50 = 450 <= 1000.",
+      },
+      {
+        input: "attempt=4, base_ms=100, max_ms=1000, jitter_ms=50",
+        output: "1000",
+        explanation: "100 * 16 + 50 = 1650 -> capped at 1000.",
       },
     ],
     complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def get_retry_wait(delay_ms, max_ms):
-    # 👉 Write 1 line: return min(delay_ms, max_ms)
+    initial_code: `def compute_backoff(attempt, base_ms, max_ms, jitter_ms):
+    # 👉 Compute exponential backoff + jitter and clamp between 0 and max_ms:
     return 0
 
-print(get_retry_wait(400, 1000), get_retry_wait(1600, 1000))`,
-    expected_output: "400 1000",
+print(compute_backoff(2, 100, 1000, 50), compute_backoff(4, 100, 1000, 50))`,
+    expected_output: "450 1000",
     hidden_tests: `import json
 results = []
 try:
-    r1 = get_retry_wait(400, 1000)
-    results.append({"id": 1, "input": "delay=400, max=1000", "expected": "400", "actual": str(r1), "passed": r1 == 400})
-    r2 = get_retry_wait(1600, 1000)
-    results.append({"id": 2, "input": "delay=1600, max=1000 (capped)", "expected": "1000", "actual": str(r2), "passed": r2 == 1000})
+    r1 = compute_backoff(2, 100, 1000, 50)
+    results.append({"id": 1, "input": "attempt=2, base=100, max=1000, jit=50", "expected": "450", "actual": str(r1), "passed": r1 == 450})
+    r2 = compute_backoff(4, 100, 1000, 50)
+    results.append({"id": 2, "input": "attempt=4 (capped)", "expected": "1000", "actual": str(r2), "passed": r2 == 1000})
+    r3 = compute_backoff(0, 200, 1000, 25)
+    results.append({"id": 3, "input": "attempt=0", "expected": "225", "actual": str(r3), "passed": r3 == 225})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
+    visual_type: "memory",
     visual_data: [
-      {
-        label: "delay = 400ms",
-        value: "400ms (under cap)",
-        address: "min(400, 1000)",
-      },
-      {
-        label: "delay = 800ms",
-        value: "800ms (under cap)",
-        address: "min(800, 1000)",
-      },
-      {
-        label: "delay = 1600ms",
-        value: "CAPPED AT 1000ms ✓",
-        address: "min(1600, 1000)",
-      },
+      { label: "attempt 0", value: "100 + 50 = 150ms", type: "int", address: "2^0" },
+      { label: "attempt 2", value: "400 + 50 = 450ms", type: "int", address: "2^2" },
+      { label: "attempt 4", value: "1650 -> CAPPED 1000ms ✓", type: "int", address: "min()" },
     ],
-    hints: ["Replace `return 0` with `return min(delay_ms, max_ms)`."],
+    hints: [
+      "Compute `raw = base_ms * (2 ** attempt) + jitter_ms`.",
+      "Clamp with `return max(0, min(max_ms, raw))`.",
+    ],
   },
   {
     id: "exp-sys-10",
-    title: "Stuck Job Alert: 3-Strike Rule",
+    title: "Dead-Letter Queue (DLQ) Batch Triager",
     track: "system_design",
-    category: "WORKER QUEUES",
-    difficulty: "Easy",
+    category: "MESSAGE QUEUES",
+    difficulty: "Medium",
     tree_row: 8,
     lesson_order: 10,
     is_free: false,
     description:
-      "Alert the engineering team when a background job fails 3 or more times (attempts >= 3).",
+      "Route failed worker jobs into either a retry queue or a Dead-Letter Queue (DLQ) once max_attempts is reached.",
     content:
-      'In background queues, if a job fails **3 or more times** (`attempts >= 3`), we stop retrying and return **`"ALERT_TEAM"`**. Otherwise we return **`"RETRY"`**:\n\n```python\ndef check_job_status(attempts):\n    if attempts >= 3:\n        return "ALERT_TEAM"\n    return "RETRY"\n```',
+      "Background workers (SQS, Kafka, Celery) isolate poison-pill jobs that keep crashing so healthy messages aren't starved.\n\nGiven `jobs` like `[{\"id\": \"j1\", \"attempts\": 1}, {\"id\": \"j2\", \"attempts\": 3}]` and `max_attempts = 3`:\n- If `job[\"attempts\"] >= max_attempts`: append `job[\"id\"]` to `dlq`\n- Otherwise append `job[\"id\"]` to `retry`",
     assignment:
-      'Complete the `if attempts >= 3:` block so it returns `"ALERT_TEAM"`.',
+      'Complete `triage_jobs(jobs, max_attempts)` to return `{"retry": [...], "dlq": [...]}` containing job IDs in order.',
     constraints: [
-      'Return `"ALERT_TEAM"` when `attempts >= 3`',
-      'Return `"RETRY"` when `attempts < 3`',
+      "Move jobs with `attempts >= max_attempts` to `\"dlq\"`",
+      "Preserve original order of IDs in both buckets",
     ],
     examples: [
       {
-        input: "check_job_status(1) and check_job_status(3)",
-        output: "RETRY ALERT_TEAM",
-        explanation: "1 attempt retries; 3 attempts alerts the team.",
+        input: 'jobs = [{"id": "j1", "attempts": 1}, {"id": "j2", "attempts": 3}], max_attempts = 3',
+        output: "{'retry': ['j1'], 'dlq': ['j2']}",
+        explanation: "j2 hit 3 attempts so it moves to DLQ; j1 stays in retry.",
       },
     ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def check_job_status(attempts):
-    if attempts >= 3:
-        # 👉 Write 1 line: return "ALERT_TEAM"
-        pass
-    return "RETRY"
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def triage_jobs(jobs, max_attempts):
+    retry = []
+    dlq = []
+    # 👉 Route each job['id'] to dlq if attempts >= max_attempts, else retry:
+    return {"retry": retry, "dlq": dlq}
 
-print(check_job_status(1), check_job_status(3))`,
-    expected_output: "RETRY ALERT_TEAM",
+sample = [{"id": "j1", "attempts": 1}, {"id": "j2", "attempts": 3}]
+print(triage_jobs(sample, 3))`,
+    expected_output: "{'retry': ['j1'], 'dlq': ['j2']}",
     hidden_tests: `import json
 results = []
 try:
-    r1 = check_job_status(1)
-    results.append({"id": 1, "input": "attempts = 1", "expected": "RETRY", "actual": str(r1), "passed": r1 == "RETRY"})
-    r2 = check_job_status(3)
-    results.append({"id": 2, "input": "attempts = 3", "expected": "ALERT_TEAM", "actual": str(r2), "passed": r2 == "ALERT_TEAM"})
-    r3 = check_job_status(5)
-    results.append({"id": 3, "input": "attempts = 5", "expected": "ALERT_TEAM", "actual": str(r3), "passed": r3 == "ALERT_TEAM"})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "hashmap",
-    visual_data: [
-      { label: "Attempt 1", value: "-> RETRY", address: "1 < 3" },
-      { label: "Attempt 2", value: "-> RETRY", address: "2 < 3" },
-      { label: "Attempt 3", value: "-> ALERT_TEAM 🚨", address: "3 >= 3" },
-    ],
-    hints: [
-      'Replace `pass` inside the `if attempts >= 3:` block with `return "ALERT_TEAM"`.',
-    ],
-  },
-  {
-    id: "exp-sys-11",
-    title: "Server Failover: Automatic Backup Switch",
-    track: "system_design",
-    category: "HIGH AVAILABILITY",
-    difficulty: "Easy",
-    tree_row: 9,
-    lesson_order: 11,
-    is_free: false,
-    description:
-      'Route traffic to "primary" when online, and automatically switch to "backup" when offline.',
-    content:
-      'How do apps like Netflix stay online even if a server loses power? **Automatic Failover**!\n\n• If `primary_online` is `True`, return **`"primary"`**.\n• Otherwise, return **`"backup"`**!',
-    assignment:
-      'Complete `choose_server(primary_online)` so it returns `"primary"` when `primary_online` is True, and `"backup"` when False.',
-    constraints: [
-      'Return `"primary"` when `primary_online` is `True`',
-      'Return `"backup"` when `primary_online` is `False`',
-    ],
-    examples: [
-      {
-        input: "choose_server(True) and choose_server(False)",
-        output: "primary backup",
-        explanation:
-          "Uses primary when healthy; switches to backup when offline.",
-      },
-    ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def choose_server(primary_online):
-    if primary_online:
-        return "primary"
-    # 👉 Write 1 line: return "backup"
-    return ""
-
-print(choose_server(True), choose_server(False))`,
-    expected_output: "primary backup",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = choose_server(True)
-    results.append({"id": 1, "input": "primary_online = True", "expected": "primary", "actual": str(r1), "passed": r1 == "primary"})
-    r2 = choose_server(False)
-    results.append({"id": 2, "input": "primary_online = False", "expected": "backup", "actual": str(r2), "passed": r2 == "backup"})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "hashmap",
-    visual_data: [
-      {
-        label: "primary_online=True",
-        value: "-> primary ✓",
-        address: "healthy",
-      },
-      {
-        label: "primary_online=False",
-        value: "-> backup (FAILOVER) ⚡",
-        address: "standby",
-      },
-    ],
-    hints: [
-      'Replace `return ""` at the bottom of `choose_server` with `return "backup"`.',
-    ],
-  },
-  {
-    id: "exp-sys-12",
-    title: "CDN Router: Closest Video Server",
-    track: "system_design",
-    category: "GLOBAL CDN",
-    difficulty: "Easy",
-    tree_row: 10,
-    lesson_order: 12,
-    is_free: false,
-    description:
-      'Look up the closest regional server in a CDN dictionary, or fall back to "global-edge".',
-    content:
-      'A **CDN (Content Delivery Network)** stores videos on servers around the world (`{"eu": "eu-west", "asia": "tokyo-edge"}`).\n\nUsing **`cdn_map.get(region, "global-edge")`** returns the matching regional server, or safely falls back to `"global-edge"` if the region isn\'t in the dictionary!',
-    assignment:
-      'Complete `pick_cdn_server(cdn_map, region)` using `cdn_map.get(region, "global-edge")`.',
-    constraints: [
-      'Return `cdn_map.get(region, "global-edge")`',
-      "Keep the `print(...)` line at the bottom",
-    ],
-    examples: [
-      {
-        input: 'region="eu" -> "eu-west"; region="sa" -> "global-edge"',
-        output: "eu-west global-edge",
-        explanation:
-          '"eu" is found in cdn_map; "sa" uses the fallback "global-edge".',
-      },
-    ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def pick_cdn_server(cdn_map, region):
-    # 👉 Write 1 line: return cdn_map.get(region, "global-edge")
-    return ""
-
-servers = {"eu": "eu-west", "asia": "tokyo-edge"}
-print(pick_cdn_server(servers, "eu"), pick_cdn_server(servers, "sa"))`,
-    expected_output: "eu-west global-edge",
-    hidden_tests: `import json
-results = []
-try:
-    s = {"eu": "eu-west", "asia": "tokyo-edge"}
-    r1 = pick_cdn_server(s, "eu")
-    results.append({"id": 1, "input": "region = 'eu'", "expected": "eu-west", "actual": str(r1), "passed": r1 == "eu-west"})
-    r2 = pick_cdn_server(s, "sa")
-    results.append({"id": 2, "input": "region = 'sa' (fallback)", "expected": "global-edge", "actual": str(r2), "passed": r2 == "global-edge"})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "hashmap",
-    visual_data: [
-      {
-        label: 'region = "eu"',
-        value: '-> "eu-west" ✓',
-        address: "direct hit",
-      },
-      {
-        label: 'region = "asia"',
-        value: '-> "tokyo-edge" ✓',
-        address: "direct hit",
-      },
-      {
-        label: 'region = "sa"',
-        value: '-> "global-edge" (FALLBACK)',
-        address: "default",
-      },
-    ],
-    hints: [
-      'Replace `return ""` with `return cdn_map.get(region, "global-edge")`.',
-    ],
-  },
-  {
-    id: "exp-sys-13",
-    title: "Health Check: RAM Usage Alarm",
-    track: "system_design",
-    category: "OBSERVABILITY",
-    difficulty: "Easy",
-    tree_row: 11,
-    lesson_order: 13,
-    is_free: false,
-    description:
-      'Trigger a "WARN" alert when server memory usage reaches 90% or higher.',
-    content:
-      'Cloud monitoring tools check server RAM usage every few seconds:\n\n• If `usage >= 90`, return **`"WARN"`** so engineers can scale up.\n• Otherwise, return **`"OK"`**!\n\n```python\ndef check_ram_alarm(usage):\n    if usage >= 90:\n        return "WARN"\n    return "OK"\n```',
-    assignment:
-      'Complete the `if usage >= 90:` block so `check_ram_alarm(usage)` returns `"WARN"` when usage is 90 or above.',
-    constraints: [
-      'Return `"WARN"` when `usage >= 90`',
-      'Return `"OK"` when `usage < 90`',
-    ],
-    examples: [
-      {
-        input: "check_ram_alarm(65) and check_ram_alarm(92)",
-        output: "OK WARN",
-        explanation: "65% is OK; 92% triggers WARN.",
-      },
-    ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def check_ram_alarm(usage):
-    if usage >= 90:
-        # 👉 Write 1 line: return "WARN"
-        pass
-    return "OK"
-
-print(check_ram_alarm(65), check_ram_alarm(92))`,
-    expected_output: "OK WARN",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = check_ram_alarm(65)
-    results.append({"id": 1, "input": "usage = 65%", "expected": "OK", "actual": str(r1), "passed": r1 == "OK"})
-    r2 = check_ram_alarm(90)
-    results.append({"id": 2, "input": "usage = 90%", "expected": "WARN", "actual": str(r2), "passed": r2 == "WARN"})
-    r3 = check_ram_alarm(96)
-    results.append({"id": 3, "input": "usage = 96%", "expected": "WARN", "actual": str(r3), "passed": r3 == "WARN"})
+    r1 = triage_jobs([{"id": "j1", "attempts": 1}, {"id": "j2", "attempts": 3}], 3)
+    results.append({"id": 1, "input": "j1(1), j2(3), max=3", "expected": "{'retry': ['j1'], 'dlq': ['j2']}", "actual": str(r1), "passed": r1 == {"retry": ["j1"], "dlq": ["j2"]}})
+    r2 = triage_jobs([{"id": "a", "attempts": 5}, {"id": "b", "attempts": 0}], 2)
+    results.append({"id": 2, "input": "a(5), b(0), max=2", "expected": "{'retry': ['b'], 'dlq': ['a']}", "actual": str(r2), "passed": r2 == {"retry": ["b"], "dlq": ["a"]}})
+    r3 = triage_jobs([], 3)
+    results.append({"id": 3, "input": "empty queue", "expected": "{'retry': [], 'dlq': []}", "actual": str(r3), "passed": r3 == {"retry": [], "dlq": []}})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "array",
     visual_data: [
-      { label: "RAM: 65%", value: "-> OK ✓", address: "< 90%" },
-      { label: "RAM: 90%", value: "-> WARN ⚠️", address: ">= 90%" },
-      { label: "RAM: 96%", value: "-> WARN ⚠️", address: ">= 90%" },
+      { label: "j1 (1/3)", value: "-> RETRY QUEUE", address: "active" },
+      { label: "j2 (3/3)", value: "-> DLQ QUARANTINE 🚨", address: "isolated" },
     ],
     hints: [
-      'Replace `pass` inside `if usage >= 90:` with `return "WARN"`.',
+      "Loop `for job in jobs:`.",
+      "If `job['attempts'] >= max_attempts`: `dlq.append(job['id'])`, else `retry.append(job['id'])`.",
     ],
   },
   {
-    id: "exp-sys-14",
-    title: "Feature Flags: Remote Toggle Switch",
+    id: "exp-sys-11",
+    title: "Least-Load Healthy Server Failover",
     track: "system_design",
-    category: "RELEASE ENGINEERING",
-    difficulty: "Easy",
-    tree_row: 11,
-    lesson_order: 14,
+    category: "HIGH AVAILABILITY",
+    difficulty: "Medium",
+    tree_row: 9,
+    lesson_order: 11,
     is_free: false,
     description:
-      "Check if a feature flag is enabled in a dictionary, safely defaulting to False when missing.",
+      "Filter out unhealthy nodes and select the least-loaded healthy server (or 'UNAVAILABLE' if all nodes are down).",
     content:
-      "Modern apps use **Feature Flags** (`{\"dark_mode\": True}`) to turn features ON or OFF remotely without redeploying code.\n\nUse **`flags.get(feature, False)`** so any unknown feature safely defaults to `False` (OFF)!\n\n```python\ndef is_feature_enabled(flags, feature):\n    return flags.get(feature, False)\n```",
+      "Real load balancers combine **Health Checks** with **Least-Load Routing**.\n\nGiven a list of servers like `[{\"name\": \"us-1\", \"healthy\": False, \"load\": 10}, {\"name\": \"us-2\", \"healthy\": True, \"load\": 45}, {\"name\": \"eu-1\", \"healthy\": True, \"load\": 20}]`:\n1. Filter to `healthy == True` nodes.\n2. Return the `\"name\"` of the healthy node with the lowest `\"load\"`.\n3. If zero nodes are healthy, return `\"UNAVAILABLE\"`!",
     assignment:
-      "Complete `is_feature_enabled(flags, feature)` so it returns `flags.get(feature, False)`.",
+      'Complete `pick_healthy_server(servers)` to return the `name` of the lowest-load healthy server, or `"UNAVAILABLE"` if none are healthy.',
     constraints: [
-      "Use `flags.get(feature, False)`",
-      "Return the boolean result",
+      "Never select a node where `healthy` is `False` even if its `load` is 0",
+      'Return `"UNAVAILABLE"` when no healthy node exists',
     ],
     examples: [
       {
-        input: 'is_feature_enabled({"dark_mode": True}, "dark_mode") and is_feature_enabled({}, "beta")',
-        output: "True False",
-        explanation:
-          '"dark_mode" is True; missing flag "beta" safely defaults to False.',
+        input: '[{"name":"us-1","healthy":False,"load":10}, {"name":"us-2","healthy":True,"load":45}, {"name":"eu-1","healthy":True,"load":20}]',
+        output: "eu-1",
+        explanation: "us-1 is down; between us-2 (45) and eu-1 (20), eu-1 has lower load.",
       },
     ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def is_feature_enabled(flags, feature):
-    # 👉 Write 1 line: return flags.get(feature, False)
-    return False
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def pick_healthy_server(servers):
+    # 👉 Filter healthy servers and pick the one with minimum load, else "UNAVAILABLE":
+    return "UNAVAILABLE"
 
-print(is_feature_enabled({"dark_mode": True}, "dark_mode"), is_feature_enabled({}, "beta"))`,
-    expected_output: "True False",
+fleet = [
+    {"name": "us-1", "healthy": False, "load": 10},
+    {"name": "us-2", "healthy": True, "load": 45},
+    {"name": "eu-1", "healthy": True, "load": 20},
+]
+print(pick_healthy_server(fleet))`,
+    expected_output: "eu-1",
     hidden_tests: `import json
 results = []
 try:
-    r1 = is_feature_enabled({"dark_mode": True}, "dark_mode")
-    results.append({"id": 1, "input": "flag 'dark_mode' = True", "expected": "True", "actual": str(r1), "passed": r1 is True})
-    r2 = is_feature_enabled({}, "beta")
-    results.append({"id": 2, "input": "missing flag 'beta'", "expected": "False", "actual": str(r2), "passed": r2 is False})
+    f1 = [{"name":"us-1","healthy":False,"load":10},{"name":"us-2","healthy":True,"load":45},{"name":"eu-1","healthy":True,"load":20}]
+    r1 = pick_healthy_server(f1)
+    results.append({"id": 1, "input": "us-1 down, us-2(45), eu-1(20)", "expected": "eu-1", "actual": str(r1), "passed": r1 == "eu-1"})
+    f2 = [{"name":"a","healthy":False,"load":0},{"name":"b","healthy":False,"load":5}]
+    r2 = pick_healthy_server(f2)
+    results.append({"id": 2, "input": "all unhealthy", "expected": "UNAVAILABLE", "actual": str(r2), "passed": r2 == "UNAVAILABLE"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "us-1 (load 10)", value: "OFFLINE -> skipped", address: "healthy=False" },
+      { label: "us-2 (load 45)", value: "healthy backup", address: "load=45" },
+      { label: "eu-1 (load 20)", value: "SELECTED ✓", address: "min load" },
+    ],
+    hints: [
+      "Filter first: `healthy = [s for s in servers if s.get('healthy')]`.",
+      "If not `healthy`: return `'UNAVAILABLE'`, else `return min(healthy, key=lambda s: s['load'])['name']`.",
+    ],
+  },
+  {
+    id: "exp-sys-12",
+    title: "Latency-Aware CDN Edge Selector",
+    track: "system_design",
+    category: "GLOBAL EDGE",
+    difficulty: "Medium",
+    tree_row: 10,
+    lesson_order: 12,
+    is_free: false,
+    description:
+      "Route a user to their regional CDN edge if healthy, otherwise fail over to the lowest-latency healthy edge worldwide.",
+    content:
+      "CDNs prefer the PoP inside the user's `region` (`edge['region'] == region and edge['healthy']`).\n\nIf that local edge is missing or unhealthy, the router must fail over to the **lowest-latency healthy edge** globally (or `\"origin\"` if every edge is offline).",
+    assignment:
+      "Complete `pick_cdn_server(edges, region)` where each edge is `{\"id\": str, \"region\": str, \"latency_ms\": int, \"healthy\": bool}`, returning the chosen edge `id` (or `\"origin\"`).",
+    constraints: [
+      "Prefer a healthy edge matching `region` (lowest `latency_ms` if multiple)",
+      'Fall back to the lowest-latency healthy edge in any region, or `"origin"` if all are down',
+    ],
+    examples: [
+      {
+        input: 'edges = [{"id":"eu-1","region":"eu","latency_ms":15,"healthy":False}, {"id":"us-1","region":"us","latency_ms":85,"healthy":True}, {"id":"uk-1","region":"uk","latency_ms":35,"healthy":True}], region = "eu"',
+        output: "uk-1",
+        explanation: "eu-1 is down, so fail over to uk-1 (35ms < 85ms).",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def pick_cdn_server(edges, region):
+    # 👉 1. Filter to healthy edges (return "origin" if none)
+    # 👉 2. Prefer lowest-latency edge matching region, else lowest-latency overall
+    return "origin"
+
+pops = [
+    {"id": "eu-1", "region": "eu", "latency_ms": 15, "healthy": False},
+    {"id": "us-1", "region": "us", "latency_ms": 85, "healthy": True},
+    {"id": "uk-1", "region": "uk", "latency_ms": 35, "healthy": True},
+]
+print(pick_cdn_server(pops, "eu"))`,
+    expected_output: "uk-1",
+    hidden_tests: `import json
+results = []
+try:
+    pops = [
+        {"id": "eu-1", "region": "eu", "latency_ms": 15, "healthy": False},
+        {"id": "us-1", "region": "us", "latency_ms": 85, "healthy": True},
+        {"id": "uk-1", "region": "uk", "latency_ms": 35, "healthy": True},
+    ]
+    r1 = pick_cdn_server(pops, "eu")
+    results.append({"id": 1, "input": "region='eu' (eu-1 down)", "expected": "uk-1", "actual": str(r1), "passed": r1 == "uk-1"})
+    r2 = pick_cdn_server(pops, "us")
+    results.append({"id": 2, "input": "region='us' (us-1 healthy)", "expected": "us-1", "actual": str(r2), "passed": r2 == "us-1"})
+    r3 = pick_cdn_server([{"id": "x", "region": "eu", "latency_ms": 10, "healthy": False}], "eu")
+    results.append({"id": 3, "input": "all edges offline", "expected": "origin", "actual": str(r3), "passed": r3 == "origin"})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "hashmap",
     visual_data: [
-      { label: '"dark_mode"', value: "-> True (ENABLED)", address: "in flags" },
-      {
-        label: '"beta" (missing)',
-        value: "-> False (SAFE DEFAULT)",
-        address: "fallback",
-      },
+      { label: "eu-1 (15ms)", value: "UNHEALTHY -> skipped", address: "eu" },
+      { label: "uk-1 (35ms)", value: "FALLBACK PICKED ✓", address: "35ms < 85ms" },
+      { label: "us-1 (85ms)", value: "healthy backup", address: "us" },
     ],
     hints: [
-      "Inside `is_feature_enabled`, write `return flags.get(feature, False)`.",
+      "Keep `healthy = [e for e in edges if e['healthy']]` and `local = [e for e in healthy if e['region'] == region]`.",
+      "Pick `pool = local if local else healthy`, then return `min(pool, key=lambda e: e['latency_ms'])['id']`.",
+    ],
+  },
+  {
+    id: "exp-sys-13",
+    title: "Flap-Guarded RAM Incident Detector",
+    track: "system_design",
+    category: "OBSERVABILITY",
+    difficulty: "Medium",
+    tree_row: 11,
+    lesson_order: 13,
+    is_free: false,
+    description:
+      "Trigger a 'WARN' alert only when consecutive RAM samples stay at or above threshold, ignoring brief 1-tick spikes.",
+    content:
+      "Paging an on-call engineer on a single 1-second garbage-collection spike creates **alert fatigue**.\n\nInstead, require **`consecutive_needed` consecutive samples** `>= threshold` before returning `\"WARN\"` — resetting the streak counter to `0` whenever a sample drops below `threshold`!",
+    assignment:
+      'Complete `evaluate_ram_alarm(samples, threshold, consecutive_needed)` to return `"WARN"` if at least `consecutive_needed` consecutive readings in `samples` are `>= threshold`, otherwise `"OK"`.',
+    constraints: [
+      "Reset the consecutive streak to `0` whenever a sample is `< threshold`",
+      'Return `"WARN"` as soon as `streak >= consecutive_needed`',
+    ],
+    examples: [
+      {
+        input: "samples = [95, 70, 92, 94], threshold = 90, consecutive_needed = 2",
+        output: "WARN",
+        explanation: "First 95 is isolated (reset at 70), then [92, 94] hits 2 in a row.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def evaluate_ram_alarm(samples, threshold, consecutive_needed):
+    streak = 0
+    # 👉 Track consecutive samples >= threshold, resetting on drops:
+    return "OK"
+
+print(evaluate_ram_alarm([95, 70, 88, 92], 90, 2), evaluate_ram_alarm([95, 70, 92, 94], 90, 2))`,
+    expected_output: "OK WARN",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = evaluate_ram_alarm([95, 70, 88, 92], 90, 2)
+    results.append({"id": 1, "input": "[95,70,88,92], thresh=90, k=2", "expected": "OK", "actual": str(r1), "passed": r1 == "OK"})
+    r2 = evaluate_ram_alarm([95, 70, 92, 94], 90, 2)
+    results.append({"id": 2, "input": "[95,70,92,94], thresh=90, k=2", "expected": "WARN", "actual": str(r2), "passed": r2 == "WARN"})
+    r3 = evaluate_ram_alarm([90, 90, 90], 90, 3)
+    results.append({"id": 3, "input": "[90,90,90], thresh=90, k=3", "expected": "WARN", "actual": str(r3), "passed": r3 == "WARN"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "95%", value: "streak = 1", address: "t=0" },
+      { label: "70%", value: "streak reset -> 0", address: "t=1" },
+      { label: "92% -> 94%", value: "streak = 2 -> WARN 🚨", address: "t=2..3" },
+    ],
+    hints: [
+      "Inside `for s in samples:`, increment `streak += 1` if `s >= threshold` else reset `streak = 0`.",
+      "If `streak >= consecutive_needed`: `return 'WARN'` immediately.",
+    ],
+  },
+  {
+    id: "exp-sys-14",
+    title: "Deterministic Percentage Rollout Flag",
+    track: "system_design",
+    category: "FEATURE FLAGS",
+    difficulty: "Medium",
+    tree_row: 11,
+    lesson_order: 14,
+    is_free: false,
+    description:
+      "Evaluate staged percentage rollouts (e.g. 25% of users) deterministically using user_id % 100 and a kill-switch.",
+    content:
+      "Modern feature flag platforms (LaunchDarkly, Statsig) roll out risky features to **10% -> 25% -> 100%** of users consistently.\n\nEach entry in `flags` looks like `{\"enabled\": True, \"rollout_pct\": 25}`:\n1. If `feature not in flags` or `not flags[feature][\"enabled\"]`: return `False` (master kill-switch)\n2. Compute bucket `user_id % 100` (`0..99`) and return `bucket < flags[feature][\"rollout_pct\"]`!",
+    assignment:
+      "Complete `is_feature_enabled(flags, feature, user_id)` so disabled/missing flags return `False`, and enabled flags return `True` when `user_id % 100 < rollout_pct`.",
+    constraints: [
+      "Missing flags or `enabled == False` must always return `False`",
+      "Use `user_id % 100 < rollout_pct` so the same user gets a deterministic bucket",
+    ],
+    examples: [
+      {
+        input: 'flags = {"ai_search": {"enabled": True, "rollout_pct": 25}}, user_id = 110 vs 140',
+        output: "True / False",
+        explanation: "110 % 100 = 10 (< 25 -> True); 140 % 100 = 40 (>= 25 -> False).",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def is_feature_enabled(flags, feature, user_id):
+    # 👉 Check feature existence & enabled kill-switch, then user_id % 100 < rollout_pct:
+    return False
+
+cfg = {"ai_search": {"enabled": True, "rollout_pct": 25}, "old_ui": {"enabled": False, "rollout_pct": 100}}
+print(is_feature_enabled(cfg, "ai_search", 110), is_feature_enabled(cfg, "ai_search", 140))`,
+    expected_output: "True False",
+    hidden_tests: `import json
+results = []
+try:
+    cfg = {"ai_search": {"enabled": True, "rollout_pct": 25}, "old_ui": {"enabled": False, "rollout_pct": 100}}
+    r1 = is_feature_enabled(cfg, "ai_search", 110)
+    results.append({"id": 1, "input": "rollout=25, user=110 (bucket 10)", "expected": "True", "actual": str(r1), "passed": r1 is True})
+    r2 = is_feature_enabled(cfg, "ai_search", 125)
+    results.append({"id": 2, "input": "rollout=25, user=125 (bucket 25 boundary)", "expected": "False", "actual": str(r2), "passed": r2 is False})
+    r3 = is_feature_enabled(cfg, "old_ui", 101)
+    results.append({"id": 3, "input": "kill-switch enabled=False", "expected": "False", "actual": str(r3), "passed": r3 is False})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "enabled flag", value: "True (kill-switch ON)", type: "bool", address: "check 1" },
+      { label: "user 110 % 100", value: "bucket 10 < 25 -> ON ✓", type: "int", address: "check 2" },
+      { label: "user 125 % 100", value: "bucket 25 >= 25 -> OFF", type: "int", address: "boundary" },
+    ],
+    hints: [
+      "Fetch `cfg = flags.get(feature)` and return `False` if `not cfg or not cfg.get('enabled')`.",
+      "Then return `(user_id % 100) < cfg.get('rollout_pct', 0)`.",
     ],
   },
   {
     id: "exp-sys-15",
-    title: "Payload Guard: Max Upload Size Check",
+    title: "API Gateway Payload & MIME Validator",
     track: "system_design",
     category: "API GATEWAY",
     difficulty: "Easy",
@@ -374,265 +371,294 @@ except Exception as e:
     lesson_order: 15,
     is_free: false,
     description:
-      "Protect your server by checking that an uploaded file's size_mb is less than or equal to max_mb.",
+      "Validate upload size bounds (0 < size <= max_mb) and allowed MIME types at the gateway before touching storage.",
     content:
-      "To stop giant file uploads from crashing a server, an **API Gateway** checks that `size_mb <= max_mb` before accepting the upload:\n\n```python\ndef can_upload_file(size_mb, max_mb):\n    return size_mb <= max_mb\n```",
+      "An API Gateway rejects bad uploads early with descriptive reasons before allocating memory or S3 streams:\n\n1. If `size_mb <= 0`: return `{\"ok\": False, \"reason\": \"EMPTY_FILE\"}`\n2. If `size_mb > max_mb`: return `{\"ok\": False, \"reason\": \"TOO_LARGE\"}`\n3. If `content_type not in allowed_types`: return `{\"ok\": False, \"reason\": \"BAD_TYPE\"}`\n4. Otherwise return `{\"ok\": True, \"reason\": \"OK\"}`!",
     assignment:
-      "Complete `can_upload_file(size_mb, max_mb)` so it returns `True` when `size_mb <= max_mb`, and `False` otherwise.",
+      "Complete `validate_upload(size_mb, max_mb, content_type, allowed_types)` enforcing size bounds and MIME allowlists with structured status responses.",
     constraints: [
-      "Use `size_mb <= max_mb`",
-      "Return the boolean result",
+      "Check empty/non-positive size (`<= 0`) first, then `> max_mb`, then `content_type`",
+      'Return `{"ok": bool, "reason": str}`',
     ],
     examples: [
       {
-        input: "can_upload_file(10, 25) and can_upload_file(40, 25)",
-        output: "True False",
-        explanation: "10 MB is under the 25 MB limit (True); 40 MB is rejected (False).",
+        input: 'validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"])',
+        output: "{'ok': True, 'reason': 'OK'}",
+        explanation: "Size is within (0, 25] and content_type is allowed.",
       },
     ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def can_upload_file(size_mb, max_mb):
-    # 👉 Write 1 line: return size_mb <= max_mb
-    return False
+    complexities: { time: "O(k) allowed types", space: "O(1)" },
+    initial_code: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
+    # 👉 Enforce size_mb <= 0 ("EMPTY_FILE"), > max_mb ("TOO_LARGE"), and MIME allowlist ("BAD_TYPE"):
+    return {"ok": False, "reason": "UNIMPLEMENTED"}
 
-print(can_upload_file(10, 25), can_upload_file(40, 25))`,
-    expected_output: "True False",
+print(validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"]))`,
+    expected_output: "{'ok': True, 'reason': 'OK'}",
     hidden_tests: `import json
 results = []
 try:
-    r1 = can_upload_file(10, 25)
-    results.append({"id": 1, "input": "10 MB (limit 25 MB)", "expected": "True", "actual": str(r1), "passed": r1 is True})
-    r2 = can_upload_file(25, 25)
-    results.append({"id": 2, "input": "25 MB (exact limit 25 MB)", "expected": "True", "actual": str(r2), "passed": r2 is True})
-    r3 = can_upload_file(40, 25)
-    results.append({"id": 3, "input": "40 MB (over limit)", "expected": "False", "actual": str(r3), "passed": r3 is False})
+    types = ["image/png", "image/jpeg"]
+    r1 = validate_upload(10, 25, "image/png", types)
+    results.append({"id": 1, "input": "10MB image/png", "expected": "{'ok': True, 'reason': 'OK'}", "actual": str(r1), "passed": r1 == {"ok": True, "reason": "OK"}})
+    r2 = validate_upload(0, 25, "image/png", types)
+    results.append({"id": 2, "input": "0MB empty", "expected": "EMPTY_FILE", "actual": str(r2), "passed": r2 == {"ok": False, "reason": "EMPTY_FILE"}})
+    r3 = validate_upload(30, 25, "image/png", types)
+    results.append({"id": 3, "input": "30MB > 25MB", "expected": "TOO_LARGE", "actual": str(r3), "passed": r3 == {"ok": False, "reason": "TOO_LARGE"}})
+    r4 = validate_upload(5, 25, "application/exe", types)
+    results.append({"id": 4, "input": "disallowed .exe", "expected": "BAD_TYPE", "actual": str(r4), "passed": r4 == {"ok": False, "reason": "BAD_TYPE"}})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
+    visual_type: "memory",
     visual_data: [
-      { label: "10 MB <= 25 MB", value: "ALLOWED ✓", address: "True" },
-      { label: "25 MB <= 25 MB", value: "ALLOWED ✓", address: "True" },
-      { label: "40 MB <= 25 MB", value: "REJECTED ✕", address: "False" },
+      { label: "size > 0", value: "reject 0MB / negative", type: "guard", address: "rule 1" },
+      { label: "size <= max_mb", value: "reject > 25MB", type: "guard", address: "rule 2" },
+      { label: "MIME allowlist", value: "reject .exe -> 415", type: "guard", address: "rule 3" },
     ],
-    hints: ["Replace `return False` with `return size_mb <= max_mb`."],
+    hints: [
+      "Return early on each failing check in order: `EMPTY_FILE`, `TOO_LARGE`, `BAD_TYPE`.",
+      "If all 3 guards pass, return `{\"ok\": True, \"reason\": \"OK\"}`.",
+    ],
   },
   {
     id: "exp-sys-16",
-    title: "Autoscaler: Busy Queue Detector",
+    title: "Queue-Depth Worker Autoscaler",
     track: "system_design",
-    category: "AUTO SCALING",
-    difficulty: "Easy",
+    category: "AUTOSCALING",
+    difficulty: "Medium",
     tree_row: 13,
     lesson_order: 16,
     is_free: false,
     description:
-      "Check if more than 5 jobs are waiting in a queue using len(queue) > 5 to trigger an extra worker.",
+      "Compute exact desired worker count using ceiling division on queue backlog, clamped between 1 and max_workers.",
     content:
-      "How does an **Autoscaler** know when to launch an extra server? It checks how many tasks are waiting in the queue using **`len(queue) > 5`**:\n\n```python\ndef needs_extra_worker(queue):\n    return len(queue) > 5\n```",
+      "Production autoscalers calculate target worker replicas from queue depth using **ceiling division**:\n\n`needed = (queue_len + target_per_worker - 1) // target_per_worker`\n\nFor example, if `target_per_worker = 5` and `queue_len = 12`, you need `3` workers (`2` handle 10 jobs, `3rd` takes the remaining 2). Always clamp between `1` (minimum floor) and `max_workers`!",
     assignment:
-      "Complete `needs_extra_worker(queue)` so it returns `True` when `len(queue) > 5`, or `False` otherwise.",
+      "Complete `scale_workers(queue_len, target_per_worker, max_workers)` returning the desired worker count in `[1, max_workers]`.",
     constraints: [
-      "Use `len(queue) > 5`",
-      "Return the boolean result",
+      "Use ceiling division so partial batches still get a worker",
+      "Always keep at least `1` worker and never exceed `max_workers`",
     ],
     examples: [
       {
-        input: "2 jobs in queue -> False; 6 jobs in queue -> True",
-        output: "False True",
-        explanation:
-          "2 jobs does not need an extra worker; 6 jobs (> 5) triggers scaling.",
+        input: "queue_len = 12, target_per_worker = 5, max_workers = 10",
+        output: "3",
+        explanation: "ceil(12 / 5) = 3 workers.",
       },
     ],
     complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def needs_extra_worker(queue):
-    # 👉 Write 1 line: return len(queue) > 5
-    return False
+    initial_code: `def scale_workers(queue_len, target_per_worker, max_workers):
+    # 👉 Compute ceiling(queue_len / target_per_worker) clamped to [1, max_workers]:
+    return 1
 
-print(needs_extra_worker(["j1", "j2"]), needs_extra_worker(["j1", "j2", "j3", "j4", "j5", "j6"]))`,
-    expected_output: "False True",
+print(scale_workers(12, 5, 10), scale_workers(0, 5, 10), scale_workers(100, 5, 8))`,
+    expected_output: "3 1 8",
     hidden_tests: `import json
 results = []
 try:
-    r1 = needs_extra_worker(["j1", "j2"])
-    results.append({"id": 1, "input": "2 jobs in queue", "expected": "False", "actual": str(r1), "passed": r1 is False})
-    r2 = needs_extra_worker(["j1", "j2", "j3", "j4", "j5", "j6"])
-    results.append({"id": 2, "input": "6 jobs in queue (> 5)", "expected": "True", "actual": str(r2), "passed": r2 is True})
+    r1 = scale_workers(12, 5, 10)
+    results.append({"id": 1, "input": "queue=12, per=5, max=10", "expected": "3", "actual": str(r1), "passed": r1 == 3})
+    r2 = scale_workers(0, 5, 10)
+    results.append({"id": 2, "input": "queue=0 (min floor 1)", "expected": "1", "actual": str(r2), "passed": r2 == 1})
+    r3 = scale_workers(100, 5, 8)
+    results.append({"id": 3, "input": "queue=100 (capped at max=8)", "expected": "8", "actual": str(r3), "passed": r3 == 8})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
+    visual_type: "memory",
     visual_data: [
-      { label: "len(queue) == 2", value: "2 > 5 -> False (Normal)", address: "1 worker" },
-      { label: "len(queue) == 6", value: "6 > 5 -> True (SCALE UP ⚡)", address: "+1 worker" },
+      { label: "queue_len = 12", value: "ceil(12 / 5) = 3 workers", type: "int", address: "normal" },
+      { label: "queue_len = 0", value: "min floor -> 1 worker", type: "int", address: "min(1)" },
+      { label: "queue_len = 100", value: "cap -> 8 workers ✓", type: "int", address: "max(8)" },
     ],
-    hints: ["Replace `return False` with `return len(queue) > 5`."],
+    hints: [
+      "Compute `needed = (queue_len + target_per_worker - 1) // target_per_worker`.",
+      "Clamp with `return max(1, min(max_workers, needed))`.",
+    ],
   },
   {
     id: "exp-sys-17",
-    title: "API Key Guard: Auth Header Check",
+    title: "Scoped API Key & Expiry Authorizer",
     track: "system_design",
-    category: "API SECURITY",
-    difficulty: "Easy",
+    category: "AUTH & SECURITY",
+    difficulty: "Medium",
     tree_row: 14,
     lesson_order: 17,
     is_free: false,
     description:
-      "Verify if an incoming request's api_key is in the valid_keys allowlist using Python's 'in' operator.",
+      "Enforce API key existence, revocation status, TTL expiry, and RBAC permission scopes in one gateway check.",
     content:
-      'Before an API server returns private data, it checks whether the caller\'s **`api_key`** is inside **`valid_keys`** using **`api_key in valid_keys`**:\n\n```python\ndef is_valid_api_key(valid_keys, api_key):\n    return api_key in valid_keys\n```',
+      "Real API authentication checks 4 conditions on every token record (`{\"active\": bool, \"expires_at\": int, \"scopes\": [...]}`):\n\n1. Key exists in `key_store`\n2. `record[\"active\"]` is `True` (not revoked)\n3. `now_ts < record[\"expires_at\"]` (not expired)\n4. `required_scope in record[\"scopes\"]` (least-privilege RBAC)",
     assignment:
-      "Complete `is_valid_api_key(valid_keys, api_key)` so it returns `True` if `api_key` is in `valid_keys`, or `False` otherwise.",
+      "Complete `authorize_request(key_store, api_key, required_scope, now_ts)` returning `True` only when all 4 security checks pass.",
     constraints: [
-      "Use `api_key in valid_keys`",
-      "Return the boolean result",
+      "Reject revoked (`active == False`) or expired (`now_ts >= expires_at`) keys",
+      "Verify `required_scope` is present inside `record['scopes']`",
     ],
     examples: [
       {
-        input: 'valid_keys = ["k_live_1", "k_live_2"], api_key = "k_live_1"',
-        output: "True False",
-        explanation:
-          '"k_live_1" is in valid_keys (True); "k_bad" is rejected (False).',
+        input: 'api_key="k1", required_scope="read", now_ts=50 (expires_at=100, active=True, scopes=["read"])',
+        output: "True",
+        explanation: "Active, unexpired, and authorized for 'read'.",
       },
     ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def is_valid_api_key(valid_keys, api_key):
-    # 👉 Write 1 line: return api_key in valid_keys
+    complexities: { time: "O(1) key lookup", space: "O(1)" },
+    initial_code: `def authorize_request(key_store, api_key, required_scope, now_ts):
+    # 👉 Verify key exists, is active, now_ts < expires_at, and required_scope is in scopes:
     return False
 
-keys = ["k_live_1", "k_live_2"]
-print(is_valid_api_key(keys, "k_live_1"), is_valid_api_key(keys, "k_bad"))`,
+keys = {
+    "k1": {"active": True, "expires_at": 100, "scopes": ["read", "write"]},
+    "k2": {"active": False, "expires_at": 200, "scopes": ["read"]},
+}
+print(authorize_request(keys, "k1", "write", 50), authorize_request(keys, "k1", "write", 100))`,
     expected_output: "True False",
     hidden_tests: `import json
 results = []
 try:
-    keys = ["k_live_1", "k_live_2"]
-    r1 = is_valid_api_key(keys, "k_live_1")
-    results.append({"id": 1, "input": "api_key = 'k_live_1'", "expected": "True", "actual": str(r1), "passed": r1 is True})
-    r2 = is_valid_api_key(keys, "k_bad")
-    results.append({"id": 2, "input": "api_key = 'k_bad'", "expected": "False", "actual": str(r2), "passed": r2 is False})
+    keys = {
+        "k1": {"active": True, "expires_at": 100, "scopes": ["read", "write"]},
+        "k2": {"active": False, "expires_at": 200, "scopes": ["read"]},
+    }
+    results.append({"id": 1, "input": "valid k1 read/write at t=50", "expected": "True", "actual": str(authorize_request(keys, "k1", "write", 50)), "passed": authorize_request(keys, "k1", "write", 50) is True})
+    results.append({"id": 2, "input": "expired k1 at t=100", "expected": "False", "actual": str(authorize_request(keys, "k1", "write", 100)), "passed": authorize_request(keys, "k1", "write", 100) is False})
+    results.append({"id": 3, "input": "revoked k2", "expected": "False", "actual": str(authorize_request(keys, "k2", "read", 50)), "passed": authorize_request(keys, "k2", "read", 50) is False})
+    results.append({"id": 4, "input": "missing scope 'admin'", "expected": "False", "actual": str(authorize_request(keys, "k1", "admin", 50)), "passed": authorize_request(keys, "k1", "admin", 50) is False})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "hashmap",
     visual_data: [
-      { label: '"k_live_1"', value: "ALLOW (200 OK) ✓", address: "in valid_keys" },
-      { label: '"k_bad"', value: "DENY (401) ✕", address: "unauthorized" },
+      { label: "active?", value: "True -> not revoked", address: "check 1" },
+      { label: "now < expires_at", value: "50 < 100 -> fresh", address: "check 2" },
+      { label: "scope check", value: "'write' in scopes -> 200 OK ✓", address: "RBAC" },
     ],
-    hints: ["Replace `return False` with `return api_key in valid_keys`."],
+    hints: [
+      "Look up `rec = key_store.get(api_key)` and return `False` if `not rec`.",
+      "Return `bool(rec.get('active') and now_ts < rec.get('expires_at', 0) and required_scope in rec.get('scopes', []))`.",
+    ],
   },
   {
     id: "exp-sys-18",
-    title: "Pagination Offset: Page Skip Calculator",
+    title: "Pagination Metadata & Slice Engine",
     track: "system_design",
-    category: "DATABASE QUERIES",
-    difficulty: "Easy",
+    category: "API PAGINATION",
+    difficulty: "Medium",
     tree_row: 14,
     lesson_order: 18,
     is_free: false,
     description:
-      "Calculate how many database rows to skip for a given page number using (page - 1) * page_size.",
+      "Slice an items list by (page, page_size) and compute accurate has_next and total_pages metadata.",
     content:
-      "When you click **Page 1, Page 2, Page 3** on a website showing `10` items per page (`page_size = 10`):\n\n• **Page 1** skips `0` items: `(1 - 1) * 10 = 0`\n• **Page 2** skips `10` items: `(2 - 1) * 10 = 10`\n• **Page 3** skips `20` items: `(3 - 1) * 10 = 20`\n\nFormula: **`(page - 1) * page_size`**!",
+      "REST APIs never just return a raw array — they return the page slice plus navigation metadata:\n\n- `offset = max(0, page - 1) * page_size`\n- `page_items = items[offset : offset + page_size]`\n- `has_next = (offset + page_size) < len(items)`\n- `total_pages = (len(items) + page_size - 1) // page_size` if `items` is non-empty else `0`",
     assignment:
-      "Complete `get_page_offset(page, page_size)` so it returns `(page - 1) * page_size`.",
+      'Complete `paginate_items(items, page, page_size)` returning `{"items": page_items, "has_next": bool, "total_pages": int}`.',
     constraints: [
-      "Use `(page - 1) * page_size`",
-      "Return the calculated offset",
+      "Handle empty `items` cleanly (`items: [], has_next: False, total_pages: 0`)",
+      "Compute `has_next` accurately on exact-multiple boundaries",
     ],
     examples: [
       {
-        input: "get_page_offset(1, 10) and get_page_offset(3, 10)",
-        output: "0 20",
-        explanation: "Page 1 skips 0 items; Page 3 skips (3 - 1) * 10 = 20 items.",
+        input: "items = ['a','b','c','d','e'], page = 2, page_size = 2",
+        output: "{'items': ['c', 'd'], 'has_next': True, 'total_pages': 3}",
+        explanation: "Page 2 skips 2 items -> ['c', 'd']; 'e' remains on page 3 so has_next=True.",
       },
     ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def get_page_offset(page, page_size):
-    # 👉 Write 1 line: return (page - 1) * page_size
-    return 0
+    complexities: { time: "O(k) slice", space: "O(k)" },
+    initial_code: `def paginate_items(items, page, page_size):
+    # 👉 Slice items[offset : offset + page_size] and compute has_next + total_pages:
+    return {"items": [], "has_next": False, "total_pages": 0}
 
-print(get_page_offset(1, 10), get_page_offset(3, 10))`,
-    expected_output: "0 20",
+print(paginate_items(["a", "b", "c", "d", "e"], 2, 2))`,
+    expected_output: "{'items': ['c', 'd'], 'has_next': True, 'total_pages': 3}",
     hidden_tests: `import json
 results = []
 try:
-    r1 = get_page_offset(1, 10)
-    results.append({"id": 1, "input": "page=1, page_size=10", "expected": "0", "actual": str(r1), "passed": r1 == 0})
-    r2 = get_page_offset(3, 10)
-    results.append({"id": 2, "input": "page=3, page_size=10", "expected": "20", "actual": str(r2), "passed": r2 == 20})
+    r1 = paginate_items(["a", "b", "c", "d", "e"], 2, 2)
+    results.append({"id": 1, "input": "5 items, page=2, size=2", "expected": "['c','d'], next=True, pages=3", "actual": str(r1), "passed": r1 == {"items": ["c", "d"], "has_next": True, "total_pages": 3}})
+    r2 = paginate_items(["a", "b", "c", "d"], 2, 2)
+    results.append({"id": 2, "input": "4 items, page=2, size=2 (exact end)", "expected": "['c','d'], next=False, pages=2", "actual": str(r2), "passed": r2 == {"items": ["c", "d"], "has_next": False, "total_pages": 2}})
+    r3 = paginate_items([], 1, 10)
+    results.append({"id": 3, "input": "empty items", "expected": "0 pages", "actual": str(r3), "passed": r3 == {"items": [], "has_next": False, "total_pages": 0}})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "array",
     visual_data: [
-      { label: "Page 1", value: "skip 0 (rows 0..9)", address: "(1-1)*10" },
-      { label: "Page 2", value: "skip 10 (rows 10..19)", address: "(2-1)*10" },
-      { label: "Page 3", value: "skip 20 (rows 20..29) ✓", address: "(3-1)*10" },
+      { label: "page 1", value: "['a', 'b'] (offset 0)", address: "0..1" },
+      { label: "page 2", value: "['c', 'd'] has_next=True ✓", address: "2..3" },
+      { label: "page 3", value: "['e'] has_next=False", address: "4" },
     ],
-    hints: ["Replace `return 0` with `return (page - 1) * page_size`."],
+    hints: [
+      "Compute `offset = max(0, page - 1) * page_size` and `sliced = items[offset : offset + page_size]`.",
+      "Compute `total_pages = (len(items) + page_size - 1) // page_size if items else 0`.",
+    ],
   },
   {
     id: "exp-sys-19",
-    title: "Cache Key Builder: User Profile Key",
+    title: "Cache-Aside Read-Through Simulator",
     track: "system_design",
-    category: "REDIS CACHING",
-    difficulty: "Easy",
+    category: "REDIS PATTERNS",
+    difficulty: "Medium",
     tree_row: 15,
     lesson_order: 19,
     is_free: false,
     description:
-      'Format a standardized Redis cache key like "user:42:profile" using an f-string.',
+      "Implement the Cache-Aside pattern: check Redis key user:{id}:profile first, populate from DB on miss, and avoid caching None.",
     content:
-      'In Redis caches, engineers organize keys with colons (`:`), like **`"user:42:profile"`**.\n\nWe can build this cache key cleanly for any `user_id` using an **f-string**:\n\n```python\ndef make_cache_key(user_id):\n    return f"user:{user_id}:profile"\n```',
+      "In the **Cache-Aside** pattern:\n\n1. Build the deterministic key: `key = f\"user:{user_id}:profile\"`\n2. If `key in cache`: return `{\"source\": \"cache\", \"data\": cache[key]}`\n3. Otherwise look up `user_id` in `db`: if found, write `cache[key] = db[user_id]` (cache warming) and return `{\"source\": \"db\", \"data\": db[user_id]}`.\n4. If missing in both, return `{\"source\": \"miss\", \"data\": None}` without polluting cache!",
     assignment:
-      'Complete `make_cache_key(user_id)` so it returns `f"user:{user_id}:profile"`.',
+      'Complete `fetch_user_profile(cache, db, user_id)` using key `f"user:{user_id}:profile"` and populating `cache` on a DB hit.',
     constraints: [
-      'Use `f"user:{user_id}:profile"`',
-      "Return the formatted string",
+      'Always use key format `f"user:{user_id}:profile"`',
+      "Populate `cache[key]` only when `user_id` exists in `db`",
     ],
     examples: [
       {
-        input: "user_id = 42",
-        output: "user:42:profile",
-        explanation: "Plugs 42 into {user_id} between 'user:' and ':profile'.",
+        input: 'cache={}, db={42: "Aria"}, user_id=42 -> 1st call then 2nd call',
+        output: "{'source': 'db', 'data': 'Aria'} then {'source': 'cache', 'data': 'Aria'}",
+        explanation: "First read warms cache['user:42:profile']; second read hits cache directly.",
       },
     ],
     complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def make_cache_key(user_id):
-    # 👉 Write 1 line: return f"user:{user_id}:profile"
-    return ""
+    initial_code: `def fetch_user_profile(cache, db, user_id):
+    key = f"user:{user_id}:profile"
+    # 👉 1. Return cache hit if key in cache
+    # 👉 2. Else query db, warm cache[key] if found, or return miss:
+    return {"source": "miss", "data": None}
 
-print(make_cache_key(42))`,
-    expected_output: "user:42:profile",
+c = {}
+d = {42: "Aria"}
+print(fetch_user_profile(c, d, 42), fetch_user_profile(c, d, 42))`,
+    expected_output: "{'source': 'db', 'data': 'Aria'} {'source': 'cache', 'data': 'Aria'}",
     hidden_tests: `import json
 results = []
 try:
-    r1 = make_cache_key(42)
-    results.append({"id": 1, "input": "user_id = 42", "expected": "user:42:profile", "actual": str(r1), "passed": r1 == "user:42:profile"})
-    r2 = make_cache_key(99)
-    results.append({"id": 2, "input": "user_id = 99", "expected": "user:99:profile", "actual": str(r2), "passed": r2 == "user:99:profile"})
+    c = {}
+    d = {42: "Aria"}
+    r1 = fetch_user_profile(c, d, 42)
+    r2 = fetch_user_profile(c, d, 42)
+    results.append({"id": 1, "input": "1st read (DB + cache warm)", "expected": "db -> Aria", "actual": str(r1), "passed": r1 == {"source": "db", "data": "Aria"} and c.get("user:42:profile") == "Aria"})
+    results.append({"id": 2, "input": "2nd read (Cache Hit)", "expected": "cache -> Aria", "actual": str(r2), "passed": r2 == {"source": "cache", "data": "Aria"}})
+    r3 = fetch_user_profile(c, d, 99)
+    results.append({"id": 3, "input": "missing user 99", "expected": "miss -> None", "actual": str(r3), "passed": r3 == {"source": "miss", "data": None} and "user:99:profile" not in c})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "hashmap",
     visual_data: [
-      {
-        label: "user_id = 42",
-        value: '-> "user:42:profile" ✓',
-        address: "Redis key",
-      },
-      {
-        label: "user_id = 99",
-        value: '-> "user:99:profile" ✓',
-        address: "Redis key",
-      },
+      { label: "Read #1", value: "MISS -> DB ('Aria') -> save cache", address: "warmed" },
+      { label: "Read #2", value: "cache['user:42:profile'] -> HIT ✓", address: "0.2ms" },
+      { label: "user 99", value: "not in DB -> 'miss' (not cached)", address: "clean" },
     ],
-    hints: ['Replace `return ""` with `return f"user:{user_id}:profile"`.'],
+    hints: [
+      "If `key in cache`: `return {'source': 'cache', 'data': cache[key]}`.",
+      "If `user_id in db`: `cache[key] = db[user_id]; return {'source': 'db', 'data': db[user_id]}`.",
+    ],
   },
   {
     id: "exp-sys-20",
-    title: "Batch Splitter: Notification Chunk Count",
+    title: "Chunked Notification Batch Splitter",
     track: "system_design",
     category: "BATCH PROCESSING",
     difficulty: "Easy",
@@ -640,46 +666,51 @@ except Exception as e:
     lesson_order: 20,
     is_free: false,
     description:
-      "Calculate how many full notification batches can be sent using integer division (total_users // batch_size).",
+      "Split a list of user IDs into fixed-size worker batches including any smaller trailing partial batch.",
     content:
-      "When sending push notifications to `250` users in batches of `100` (`batch_size = 100`), how many **full batches** are there?\n\nUse Python's integer division **`//`**:\n\n```python\nfull_batches = 250 // 100  # 2 full batches\n```",
+      "Email and push-notification services (like AWS SES or APNs) limit bulk requests to `batch_size` recipients per API call.\n\nUse `range(0, len(user_ids), batch_size)` to slice consecutive chunks `[user_ids[i : i + batch_size] ...]` without dropping the trailing partial chunk! Guard against `batch_size <= 0` by returning `[]`.",
     assignment:
-      "Complete `count_full_batches(total_users, batch_size)` so it returns `total_users // batch_size`.",
+      "Complete `build_batches(user_ids, batch_size)` to return a list of sublist batches of at most `batch_size` items each (or `[]` if `batch_size <= 0`).",
     constraints: [
-      "Use `total_users // batch_size` (double slash integer division)",
-      "Return the whole number of full batches",
+      "Include any trailing partial batch at the end",
+      "Return `[]` safely when `user_ids` is empty or `batch_size <= 0`",
     ],
     examples: [
       {
-        input: "total_users = 250, batch_size = 100",
-        output: "2",
-        explanation: "250 // 100 = 2 full batches of 100 users.",
+        input: "user_ids = [1, 2, 3, 4, 5], batch_size = 2",
+        output: "[[1, 2], [3, 4], [5]]",
+        explanation: "Two full batches of 2 plus one partial batch [5].",
       },
     ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def count_full_batches(total_users, batch_size):
-    # 👉 Write 1 line: return total_users // batch_size
-    return 0
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def build_batches(user_ids, batch_size):
+    # 👉 Guard batch_size <= 0, then slice chunks of batch_size:
+    return []
 
-print(count_full_batches(250, 100))`,
-    expected_output: "2",
+print(build_batches([1, 2, 3, 4, 5], 2))`,
+    expected_output: "[[1, 2], [3, 4], [5]]",
     hidden_tests: `import json
 results = []
 try:
-    r1 = count_full_batches(250, 100)
-    results.append({"id": 1, "input": "250 users, batch 100", "expected": "2", "actual": str(r1), "passed": r1 == 2})
-    r2 = count_full_batches(500, 100)
-    results.append({"id": 2, "input": "500 users, batch 100", "expected": "5", "actual": str(r2), "passed": r2 == 5})
+    r1 = build_batches([1, 2, 3, 4, 5], 2)
+    results.append({"id": 1, "input": "[1,2,3,4,5], batch=2", "expected": "[[1, 2], [3, 4], [5]]", "actual": str(r1), "passed": r1 == [[1, 2], [3, 4], [5]]})
+    r2 = build_batches([10, 20], 5)
+    results.append({"id": 2, "input": "[10,20], batch=5", "expected": "[[10, 20]]", "actual": str(r2), "passed": r2 == [[10, 20]]})
+    r3 = build_batches([1, 2], 0)
+    results.append({"id": 3, "input": "batch_size=0 guard", "expected": "[]", "actual": str(r3), "passed": r3 == []})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "array",
     visual_data: [
-      { label: "Batch #1", value: "100 users ✓", address: "0..99" },
-      { label: "Batch #2", value: "100 users ✓", address: "100..199" },
-      { label: "Remainder", value: "50 users (partial)", address: "250 // 100 = 2" },
+      { label: "Batch #1", value: "[1, 2]", address: "0:2" },
+      { label: "Batch #2", value: "[3, 4]", address: "2:4" },
+      { label: "Batch #3", value: "[5] (trailing partial ✓)", address: "4:6" },
     ],
-    hints: ["Replace `return 0` with `return total_users // batch_size`."],
+    hints: [
+      "First check `if batch_size <= 0: return []`.",
+      "Then `return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]`.",
+    ],
   },
   {
     id: "exp-sys-21",
