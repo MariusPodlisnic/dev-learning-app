@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { supabase } from "../../lib/supabase";
+import AlgorithmVisualizerLab from "../components/AlgorithmVisualizerLab";
 import AppHeader from "../components/AppHeader";
 import Auth from "../components/Auth";
 import BugHuntArena from "../components/BugHuntArena";
@@ -382,6 +383,11 @@ export default function HomeScreen() {
     if (mode === "blitz") {
       handledDeepLinkRef.current = true;
       setViewMode("blitz");
+      return;
+    }
+    if (mode === "algolab") {
+      handledDeepLinkRef.current = true;
+      setViewMode("algolab");
       return;
     }
     if (lessons.length === 0) return;
@@ -978,7 +984,9 @@ export default function HomeScreen() {
         ? "Bug Hunt Arena | DevLearn Arcade"
         : viewMode === "blitz"
           ? "60s Syntax Blitz | DevLearn Arcade"
-          : "DevLearn Arcade | Interactive Python, Algorithms & System Design";
+          : viewMode === "algolab"
+            ? "Pro Algorithm Visual Lab | DevLearn Arcade"
+            : "DevLearn Arcade | Interactive Python, Algorithms & System Design";
 
   const seoDescription =
     viewMode === "studio" && selectedLesson
@@ -987,7 +995,9 @@ export default function HomeScreen() {
         ? "Spot and fix broken Python and algorithm snippets in the DevLearn Arcade Bug Hunt Arena."
         : viewMode === "blitz"
           ? "Race the 60-second clock to predict outputs and spot syntax bugs in DevLearn Arcade."
-          : "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.";
+          : viewMode === "algolab"
+            ? "Observe Binary Search, Two Pointers, Sliding Window, Sorting, Hash Maps, and BFS step-by-step in the Pro Algorithm Visual Lab."
+            : "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1086,6 +1096,17 @@ export default function HomeScreen() {
             })
           }
           onAwardBlitzXp={handleAwardBlitzXp}
+        />
+      ) : viewMode === "algolab" ? (
+        <AlgorithmVisualizerLab
+          isPremium={effectiveIsPremium}
+          onRequirePro={() =>
+            openPaywall({
+              source: "arena",
+              lessonTitle: "Pro Algorithm Visual Lab",
+            })
+          }
+          onBackToMap={() => setViewMode("roadmap")}
         />
       ) : (
         <View style={styles.content}>

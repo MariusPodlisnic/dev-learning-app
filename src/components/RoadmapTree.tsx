@@ -69,7 +69,7 @@ interface RoadmapTreeProps {
   streakCount?: number;
   lastActiveDate?: string | null;
   totalSolvedCount?: number;
-  onStartQuickMode?: (mode: "bughunt" | "blitz") => void;
+  onStartQuickMode?: (mode: "bughunt" | "blitz" | "algolab") => void;
   onSaveStreak?: () => void;
   onOpenAuth?: (mode?: "signup" | "signin", reason?: string) => void;
   onOpenTrackCertificate?: (trackKey: string) => void;
@@ -614,6 +614,17 @@ export default function RoadmapTree({
                   >
                     <Text style={styles.onboardingSecondaryBtnText}>
                       🪲 BUG HUNT
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.onboardingSecondaryBtn}
+                    onPress={() => {
+                      playKeyClick();
+                      onStartQuickMode("algolab");
+                    }}
+                  >
+                    <Text style={styles.onboardingSecondaryBtnText}>
+                      ★ ALGO LAB
                     </Text>
                   </Pressable>
                 </>

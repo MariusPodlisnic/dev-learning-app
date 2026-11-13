@@ -140,6 +140,22 @@ export default function AppHeader({
               ⚡ SPEED BLITZ
             </Text>
           </Pressable>
+          <Pressable
+            style={[
+              styles.modeBtn,
+              viewMode === "algolab" && styles.modeBtnAlgoLabActive,
+            ]}
+            onPress={() => handleSwitchMode("algolab")}
+          >
+            <Text
+              style={[
+                styles.modeBtnText,
+                viewMode === "algolab" && styles.modeBtnAlgoLabTextActive,
+              ]}
+            >
+              {isPremium ? "★ ALGO LAB" : "🔒 ALGO LAB"}
+            </Text>
+          </Pressable>
         </View>
 
         {!isCompactHeader && (
@@ -387,6 +403,10 @@ const getStyles = () =>
     backgroundColor: StudioColors.lime,
     borderColor: StudioColors.ink,
   },
+  modeBtnAlgoLabActive: {
+    backgroundColor: StudioColors.violet,
+    borderColor: StudioColors.ink,
+  },
   modeBtnText: {
     color: StudioColors.textPrimary,
     fontSize: 11,
@@ -400,6 +420,10 @@ const getStyles = () =>
     fontWeight: "900",
   },
   modeBtnBlitzTextActive: {
+    color: StudioColors.ink,
+    fontWeight: "900",
+  },
+  modeBtnAlgoLabTextActive: {
     color: StudioColors.ink,
     fontWeight: "900",
   },
