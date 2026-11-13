@@ -500,7 +500,12 @@ export default function LessonProblemPanel({
                             },
                           ]}
                         >
-                          <Text style={styles.missionBullet}>
+                          <Text
+                            style={[
+                              styles.missionBullet,
+                              isStepPassed && { color: StudioColors.ink },
+                            ]}
+                          >
                             {isStepPassed ? "✓" : `0${i + 1}`}
                           </Text>
                         </View>
@@ -740,9 +745,8 @@ const getStyles = () =>
       marginBottom: 2,
     },
     missionRowPassed: {
-      backgroundColor: "#ECFDF5",
-      padding: 6,
-      borderRadius: 6,
+      backgroundColor: StudioColors.cardDoneBg,
+      borderColor: StudioColors.cardDoneBorder,
     },
     targetOutputTerminal: {
       marginTop: 14,
@@ -1194,6 +1198,10 @@ const getStyles = () =>
       gap: 10,
       width: "100%",
       minWidth: 0,
+      padding: 7,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: "transparent",
     },
     missionBulletBox: {
       width: 22,

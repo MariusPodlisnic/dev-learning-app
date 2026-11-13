@@ -46,6 +46,7 @@ export const ThemePalettes: Record<
     textMuted: string;
     textDim: string;
     cardDoneBg: string;
+    cardDoneBorder: string;
     cardLockedBg: string;
   }
 > = {
@@ -61,7 +62,8 @@ export const ThemePalettes: Record<
     textSecondary: '#38352F',
     textMuted: '#686359',
     textDim: '#8C8579',
-    cardDoneBg: '#F4FFF8',
+    cardDoneBg: '#C9F2D9',
+    cardDoneBorder: '#059669',
     cardLockedBg: '#E6E0D0',
   },
   dark: {
@@ -77,6 +79,7 @@ export const ThemePalettes: Record<
     textMuted: '#8B877E',
     textDim: '#68655E',
     cardDoneBg: '#162621',
+    cardDoneBorder: '#34D399',
     cardLockedBg: '#16171D',
   },
 };
@@ -97,6 +100,7 @@ export function applyColorTheme(mode: ThemeMode) {
     root.style.setProperty('--dl-text-muted', pal.textMuted);
     root.style.setProperty('--dl-text-dim', pal.textDim);
     root.style.setProperty('--dl-card-done-bg', pal.cardDoneBg);
+    root.style.setProperty('--dl-card-done-border', pal.cardDoneBorder);
     root.style.setProperty('--dl-card-locked-bg', pal.cardLockedBg);
   }
 }
@@ -111,6 +115,7 @@ export const StudioColors = {
   surfaceHover: isWeb ? 'var(--dl-surface-hover, #2E3240)' : '#2E3240',
   surfaceGlass: 'rgba(27, 29, 36, 0.95)',
   cardDoneBg: isWeb ? 'var(--dl-card-done-bg, #162621)' : '#162621',
+  cardDoneBorder: isWeb ? 'var(--dl-card-done-border, #34D399)' : '#34D399',
   cardLockedBg: isWeb ? 'var(--dl-card-locked-bg, #16171D)' : '#16171D',
 
   // Constant Jet Black Ink (for text/borders on bright neon stickers & buttons)

@@ -283,7 +283,7 @@ function SidebarModuleItem({
         hovered &&
           !isActive && [
             styles.lessonCardHovered,
-            { borderColor: isCompleted ? StudioColors.mint : accentBg },
+            { borderColor: isCompleted ? StudioColors.cardDoneBorder : accentBg },
           ],
         hovered && isActive && styles.activeLessonCardHovered,
       ]}
@@ -731,7 +731,7 @@ const getStyles = () =>
     },
     lessonCardCompleted: {
       backgroundColor: StudioColors.cardDoneBg,
-      borderColor: "rgba(110, 231, 183, 0.45)",
+      borderColor: StudioColors.cardDoneBorder,
     },
     lessonCardHovered: {
       backgroundColor: StudioColors.surfaceElevated,
@@ -762,7 +762,7 @@ const getStyles = () =>
       alignItems: "center",
     },
     stepCircleCompleted: {
-      backgroundColor: StudioColors.mint,
+      backgroundColor: StudioColors.emeraldLight,
       borderColor: StudioColors.ink,
     },
     stepCircleCompletedActive: {
