@@ -981,6 +981,22 @@ export default function HomeScreen() {
             ? "Observe Binary Search, Two Pointers, Sliding Window, Sorting, Hash Maps, and BFS step-by-step in the Pro Algorithm Visual Lab."
             : "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.";
 
+  const activeBackdropAccent =
+    viewMode === "bughunt"
+      ? StudioColors.coral
+      : viewMode === "blitz"
+        ? StudioColors.lime
+        : viewMode === "algolab"
+          ? StudioColors.violet
+          : TrackThemes[activeTrack]?.stickerBg || StudioColors.yellow;
+
+  const backdropVariant =
+    viewMode === "studio"
+      ? "studio"
+      : viewMode === "roadmap"
+        ? "roadmap"
+        : "arena";
+
   return (
     <SafeAreaView style={styles.container}>
       <Head>
@@ -993,7 +1009,11 @@ export default function HomeScreen() {
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
       </Head>
-      <MinimalPcbBackground />
+      <MinimalPcbBackground
+        accentColor={activeBackdropAccent}
+        themeMode={themeMode}
+        variant={backdropVariant}
+      />
       <AppHeader
         viewMode={viewMode}
         onChangeViewMode={setViewMode}
