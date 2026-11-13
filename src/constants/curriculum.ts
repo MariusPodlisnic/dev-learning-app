@@ -92,17 +92,13 @@ export function getLessonEnrichment(lesson: {
     | "algorithms"
     | "system_design";
 
-  if ((lesson.lesson_order || 0) >= 9) {
-    const byExpansionOrder = LESSON_ENRICHMENTS.find(
+  if (lesson.lesson_order !== undefined) {
+    const byOrder = LESSON_ENRICHMENTS.find(
       (item) =>
         item.matchTrack === track && item.matchOrder === lesson.lesson_order,
     );
-    if (byExpansionOrder) {
-      return attachDefaultPitfallAndGuided(
-        byExpansionOrder,
-        track,
-        lesson.initial_code,
-      );
+    if (byOrder) {
+      return attachDefaultPitfallAndGuided(byOrder, track, lesson.initial_code);
     }
   }
 
@@ -113,14 +109,6 @@ export function getLessonEnrichment(lesson: {
   );
   if (byKeyword) {
     return attachDefaultPitfallAndGuided(byKeyword, track, lesson.initial_code);
-  }
-
-  const byOrder = LESSON_ENRICHMENTS.find(
-    (item) =>
-      item.matchTrack === track && item.matchOrder === lesson.lesson_order,
-  );
-  if (byOrder) {
-    return attachDefaultPitfallAndGuided(byOrder, track, lesson.initial_code);
   }
 
   return attachDefaultPitfallAndGuided(

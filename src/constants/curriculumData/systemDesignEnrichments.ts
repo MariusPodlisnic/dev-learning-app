@@ -4,17 +4,113 @@ export const SYSTEM_DESIGN_ENRICHMENTS: EnrichedLessonData[] = [
   {
     matchTrack: "system_design",
     matchOrder: 1,
-    matchKeywords: ["cache", "caching", "redis", "lru", "memory", "load"],
+    matchKeywords: ["rate limiter", "token bucket", "ddos", "allow_request"],
     realWorldUse:
-      "Used by Instagram and TikTok to serve popular posts instantly from fast memory.",
-    analogyTitle: "Keeping Favorite Snacks on Your Desk",
+      "Used by Stripe, GitHub, and Cloudflare to stop traffic bursts and DDoS spikes before they overload backend databases.",
+    analogyTitle: "An API Bouncer Counting Wristbands",
     analogyText:
-      "Check if `key in cache` first (fast **Cache Hit**). If not, fetch from `db` and save it in `cache`!",
-    cheatSheet: `if key in cache:
-    return cache[key]
-val = db.get(key)
-cache[key] = val
-return val`,
+      "Your `TokenBucket` starts with `capacity` tokens. Each incoming request checks `if self.tokens > 0:` — if true, subtract 1 token and allow (`True`); if empty, reject (`False`)!",
+    cheatSheet: `class TokenBucket:
+    def __init__(self, capacity: int):
+        self.tokens = capacity
+
+    def allow_request(self) -> bool:
+        if self.tokens > 0:
+            self.tokens -= 1
+            return True
+        return False`,
+    commonPitfall: {
+      title: "Checking self.tokens >= 0 or forgetting to decrement self.tokens",
+      wrongCode: "if self.tokens >= 0:\n    return True  # Never runs out or blocks!",
+      rightCode: "if self.tokens > 0:\n    self.tokens -= 1\n    return True\nreturn False",
+      explanation:
+        "You must check strictly `self.tokens > 0` AND decrement `self.tokens -= 1` before returning `True` so the bucket actually drains.",
+    },
+    guidedCode: `class TokenBucket:
+    def __init__(self, capacity: int):
+        self.tokens = capacity
+
+    def allow_request(self) -> bool:
+        # 👉 If self.tokens > 0, decrement self.tokens and return True, else False:
+        if self.tokens > 0:
+            self.tokens -= 1
+            return True
+        return False`,
+    solutionCode: `class TokenBucket:
+    def __init__(self, capacity: int):
+        self.tokens = capacity
+
+    def allow_request(self) -> bool:
+        if self.tokens > 0:
+            self.tokens -= 1
+            return True
+        return False`,
+    proInsights: {
+      timeComplexity: "O(1) per request",
+      spaceComplexity: "O(1) per client",
+      tradeoff:
+        "Token Bucket handles short bursts smoothly up to `capacity` while protecting downstream services; pair it with timestamp-based refill (see Chapter VI) in distributed Redis clusters.",
+      followUp:
+        "In multi-server deployments, why must the check-and-decrement run inside a Redis Lua script instead of two separate GET/SET commands?",
+    },
+    quiz: {
+      question: "If a `TokenBucket` starts with `capacity = 2`, what does the 3rd consecutive `allow_request()` call return?",
+      options: [
+        "`False` (429 Throttled because tokens reached 0)",
+        "`True` (it resets automatically)",
+        "`-1`",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Requests 1 and 2 spend tokens `2 -> 1 -> 0`, so the 3rd request sees `self.tokens == 0` and returns `False`!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 2,
+    matchKeywords: ["cache", "caching", "redis", "lru", "hit", "miss"],
+    realWorldUse:
+      "Used by Instagram and TikTok to serve popular posts and user profiles instantly from fast in-memory RAM instead of disk.",
+    analogyTitle: "Keeping Hot Snacks on Your Desk",
+    analogyText:
+      "Check if `key in self.store` first (**Cache Hit** in microseconds). On a **Cache Miss**, return `-1` so the caller knows to query the database!",
+    cheatSheet: `class LRUCache:
+    def __init__(self, capacity: int):
+        self.capacity = capacity
+        self.store = {}
+
+    def get(self, key: str):
+        return self.store.get(key, -1)`,
+    commonPitfall: {
+      title: "Indexing self.store[key] directly on a missing key",
+      wrongCode: "return self.store[key]  # Raises KeyError on cache miss!",
+      rightCode: "return self.store.get(key, -1)",
+      explanation:
+        "A cache miss is normal behavior, not a crash; `.get(key, -1)` cleanly returns `-1` when `key` is absent.",
+    },
+    guidedCode: `class LRUCache:
+    def __init__(self, capacity: int):
+        self.capacity = capacity
+        self.store = {"user:1": "Alice", "user:2": "Bob"}
+
+    def get(self, key: str):
+        # 👉 Return self.store[key] if key exists, otherwise -1:
+        return self.store.get(key, -1)`,
+    solutionCode: `class LRUCache:
+    def __init__(self, capacity: int):
+        self.capacity = capacity
+        self.store = {"user:1": "Alice", "user:2": "Bob"}
+
+    def get(self, key: str):
+        return self.store.get(key, -1)`,
+    proInsights: {
+      timeComplexity: "O(1) lookup",
+      spaceComplexity: "O(capacity)",
+      tradeoff:
+        "Hash-map lookups serve cache hits in O(1); full production LRU eviction pairs the dictionary with a Doubly Linked List (or `collections.OrderedDict`) to evict the oldest key in O(1) too.",
+      followUp:
+        "What is a Cache Stampede ('thundering herd'), and how do request coalescing or jittered TTLs prevent it?",
+    },
     quiz: {
       question: "What is a 'Cache Hit'?",
       options: [
@@ -28,6 +124,47 @@ return val`,
   },
   {
     matchTrack: "system_design",
+    matchOrder: 3,
+    matchKeywords: ["consistent hashing", "shard", "ring", "loadbalancer"],
+    realWorldUse:
+      "Used by Cassandra, DynamoDB, and distributed API routers to map request IDs deterministically across backend partitions.",
+    analogyTitle: "Clock-Bucket Routing with Modulo (%)",
+    analogyText:
+      "Computing `request_id % num_shards` always produces a shard index from `0` to `num_shards - 1`, routing the same ID to the same shard every time.",
+    cheatSheet: `class LoadBalancer:
+    def get_shard(self, request_id: int, num_shards: int) -> int:
+        return request_id % num_shards`,
+    commonPitfall: {
+      title: "Using integer division // instead of modulo %",
+      wrongCode: "return request_id // num_shards  # Out of shard bounds!",
+      rightCode: "return request_id % num_shards   # Always 0..num_shards-1!",
+      explanation:
+        "`10 // 3` is `3` (which overflows 3 shards indexed `0, 1, 2`), whereas `10 % 3` wraps safely to `1`.",
+    },
+    guidedCode: `class LoadBalancer:
+    def get_shard(self, request_id: int, num_shards: int) -> int:
+        # 👉 Map request_id to shard 0..num_shards-1 using %:
+        return request_id % num_shards`,
+    solutionCode: `class LoadBalancer:
+    def get_shard(self, request_id: int, num_shards: int) -> int:
+        return request_id % num_shards`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Simple modulo hashing is stateless and O(1) when cluster size is fixed; when shards scale up or down dynamically, switch to a Consistent Hash Ring (Chapter VI) so only ~1/N keys move.",
+      followUp:
+        "Why do production consistent hash rings place multiple 'virtual nodes' per physical server?",
+    },
+    quiz: {
+      question: "With `num_shards = 3`, what shard index does `get_shard(12, 3)` return?",
+      options: ["0 (because 12 % 3 == 0)", "4", "3"],
+      correctIndex: 0,
+      explanation: "12 divides evenly by 3 with remainder `0`, routing to Shard-0!",
+    },
+  },
+  {
+    matchTrack: "system_design",
     matchOrder: 4,
     matchKeywords: ["round-robin", "round robin", "load balancer", "route"],
     realWorldUse:
@@ -37,6 +174,27 @@ return val`,
       "Use the remainder operator `%` (`request_index % len(servers)`) to cycle smoothly through your servers!",
     cheatSheet: `def pick_server(servers, request_index):
     return servers[request_index % len(servers)]`,
+    guidedCode: `def route_request(servers, request_index):
+    # 👉 Compute slot = request_index % len(servers) and return servers[slot]:
+    slot = request_index % len(servers)
+    return servers[slot]
+
+fleet = ["srv-alpha", "srv-beta", "srv-gamma"]
+print(route_request(fleet, 4))`,
+    solutionCode: `def route_request(servers, request_index):
+    slot = request_index % len(servers)
+    return servers[slot]
+
+fleet = ["srv-alpha", "srv-beta", "srv-gamma"]
+print(route_request(fleet, 4))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Round-robin balances uniform requests cleanly in O(1) time; when requests vary wildly in cost (e.g., slow report exports vs fast pings), 'Least Connections' avoids overloading one node.",
+      followUp:
+        "How would you implement Weighted Round-Robin when `srv-alpha` has 2x the CPU cores of `srv-beta`?",
+    },
     quiz: {
       question: "With 3 servers, what is `3 % 3`?",
       options: ["0 (wraps back to the first server)", "3", "9"],
@@ -55,6 +213,25 @@ return val`,
       "Compute `shard_id = user_id % num_shards` so every user always goes to the same database shard!",
     cheatSheet: `def get_shard(user_id, num_shards):
     return f"shard_{user_id % num_shards}"`,
+    guidedCode: `def get_user_shard(user_id, num_shards):
+    # 👉 Calculate shard_id = user_id % num_shards and format f"shard_{shard_id}":
+    shard_id = user_id % num_shards
+    return f"shard_{shard_id}"
+
+print(get_user_shard(42, 4))`,
+    solutionCode: `def get_user_shard(user_id, num_shards):
+    shard_id = user_id % num_shards
+    return f"shard_{shard_id}"
+
+print(get_user_shard(42, 4))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Hash-based shard keys spread write load evenly across DB instances, unlike range-sharding by timestamp which creates a hot write shard on 'today'.",
+      followUp:
+        "What happens if one celebrity `user_id` generates 50% of all traffic on a single shard ('hot partition')?",
+    },
     quiz: {
       question: "If `num_shards = 4`, which shard holds `user_id = 5`?",
       options: ["shard_1 (because 5 % 4 == 1)", "shard_9", "shard_0"],
@@ -65,7 +242,7 @@ return val`,
   {
     matchTrack: "system_design",
     matchOrder: 6,
-    matchKeywords: ["circuit", "breaker", "health", "failover", "outage"],
+    matchKeywords: ["circuit", "breaker", "health", "outage"],
     realWorldUse:
       "Used by Netflix and Stripe to stop calling a down service while it recovers.",
     analogyTitle: "A Home Electrical Circuit Breaker",
@@ -74,6 +251,29 @@ return val`,
     cheatSheet: `if failures >= threshold:
     return "OPEN"
 return "CLOSED"`,
+    guidedCode: `def get_circuit_status(failures, threshold):
+    # 👉 Return "OPEN" if failures >= threshold, else "CLOSED":
+    if failures >= threshold:
+        return "OPEN"
+    return "CLOSED"
+
+print(get_circuit_status(5, 5))
+print(get_circuit_status(2, 5))`,
+    solutionCode: `def get_circuit_status(failures, threshold):
+    if failures >= threshold:
+        return "OPEN"
+    return "CLOSED"
+
+print(get_circuit_status(5, 5))
+print(get_circuit_status(2, 5))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Failing fast with `OPEN` prevents caller thread-pool exhaustion and cascading timeouts across upstream microservices.",
+      followUp:
+        "How does the `HALF_OPEN` state let a tripped circuit breaker probe whether a recovering service is healthy again?",
+    },
     quiz: {
       question: "What does an `OPEN` circuit breaker do?",
       options: [
@@ -97,6 +297,31 @@ return "CLOSED"`,
       "Count how many votes are `True`, and check if `yes_votes > len(votes) / 2`!",
     cheatSheet: `yes_votes = votes.count(True)
 return yes_votes > len(votes) / 2`,
+    guidedCode: `def has_quorum(votes):
+    yes_votes = 0
+    for v in votes:
+        if v is True:
+            yes_votes += 1
+    # 👉 Return True if yes_votes is strictly greater than len(votes) / 2:
+    return yes_votes > len(votes) / 2
+
+print(has_quorum([True, True, False, True, False]))`,
+    solutionCode: `def has_quorum(votes):
+    yes_votes = 0
+    for v in votes:
+        if v is True:
+            yes_votes += 1
+    return yes_votes > len(votes) / 2
+
+print(has_quorum([True, True, False, True, False]))`,
+    proInsights: {
+      timeComplexity: "O(n) cluster nodes",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Strict majority (`W > N / 2`) guarantees any two quorums overlap by at least one node, preventing split-brain conflicting leaders.",
+      followUp:
+        "Why do distributed consensus clusters (Raft, etcd, ZooKeeper) almost always deploy odd cluster sizes like 3 or 5 instead of 4?",
+    },
     quiz: {
       question: "Out of 5 servers, how many `True` votes make a majority?",
       options: ["At least 3", "1", "0"],
@@ -132,6 +357,18 @@ print(cap_retry_wait(1600, 1000))  # 1000`,
     return min(delay_ms, max_ms)
 
 print(get_retry_wait(400, 1000), get_retry_wait(1600, 1000))`,
+    solutionCode: `def get_retry_wait(delay_ms, max_ms):
+    return min(delay_ms, max_ms)
+
+print(get_retry_wait(400, 1000), get_retry_wait(1600, 1000))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Capping exponential backoff prevents users from waiting hours on transient outages while still giving overloaded servers breathing room.",
+      followUp:
+        "Why do AWS and Google add random 'jitter' on top of capped exponential backoff?",
+    },
     quiz: {
       question: "What does `min(1600, 1000)` return?",
       options: ["1000 (caps the value at 1000)", "1600", "2600"],
@@ -167,6 +404,20 @@ print(get_retry_wait(400, 1000), get_retry_wait(1600, 1000))`,
     return "RETRY"
 
 print(check_job_status(1), check_job_status(3))`,
+    solutionCode: `def check_job_status(attempts):
+    if attempts >= 3:
+        return "ALERT_TEAM"
+    return "RETRY"
+
+print(check_job_status(1), check_job_status(3))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Moving poison-pill jobs to a Dead-Letter Queue (DLQ) after max retries keeps worker queues unblocked for healthy jobs.",
+      followUp:
+        "How do you safely replay DLQ messages once you fix the bug in the consumer code?",
+    },
     quiz: {
       question: "If `attempts = 3`, what does `if attempts >= 3:` evaluate to?",
       options: ["True", "False", "Error"],
@@ -201,6 +452,20 @@ print(check_job_status(1), check_job_status(3))`,
     return "backup"
 
 print(choose_server(True), choose_server(False))`,
+    solutionCode: `def choose_server(primary_online):
+    if primary_online:
+        return "primary"
+    return "backup"
+
+print(choose_server(True), choose_server(False))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Active-passive failover minimizes data-sync conflicts compared to multi-master writes, at the cost of idle standby capacity.",
+      followUp:
+        "What is 'replication lag', and how can it cause a newly promoted backup DB to miss the last few milliseconds of writes?",
+    },
     quiz: {
       question: "What is 'Automatic Failover' in System Design?",
       options: [
@@ -239,6 +504,19 @@ server = cdn_map.get(region, "global-edge")`,
 
 servers = {"eu": "eu-west", "asia": "tokyo-edge"}
 print(pick_cdn_server(servers, "eu"), pick_cdn_server(servers, "sa"))`,
+    solutionCode: `def pick_cdn_server(cdn_map, region):
+    return cdn_map.get(region, "global-edge")
+
+servers = {"eu": "eu-west", "asia": "tokyo-edge"}
+print(pick_cdn_server(servers, "eu"), pick_cdn_server(servers, "sa"))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Geo-routing with a safe global edge fallback avoids single-region lookup failures while cutting round-trip latency for covered regions.",
+      followUp:
+        "Why do CDNs use Anycast BGP routing alongside DNS geo-lookups to handle sudden regional PoP outages?",
+    },
     quiz: {
       question: 'What does `{"eu": "paris"}.get("mars", "global")` return?',
       options: [
@@ -278,6 +556,20 @@ print(pick_cdn_server(servers, "eu"), pick_cdn_server(servers, "sa"))`,
     return "OK"
 
 print(check_ram_alarm(65), check_ram_alarm(92))`,
+    solutionCode: `def check_ram_alarm(usage):
+    if usage >= 90:
+        return "WARN"
+    return "OK"
+
+print(check_ram_alarm(65), check_ram_alarm(92))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Threshold alerts are simple and predictable; pairing them with hysteresis (e.g. warn at >=90%, recover only below 80%) stops alert flapping.",
+      followUp:
+        "Why is tracking the *rate of change* (memory leak slope) often better than a static 90% threshold?",
+    },
     quiz: {
       question: 'What should `check_ram_alarm(95)` return if the threshold is `>= 90`?',
       options: ['"WARN"', '"OK"', "95"],
@@ -310,6 +602,18 @@ enabled = flags.get(feature_name, False)`,
     return flags.get(feature, False)
 
 print(is_feature_enabled({"dark_mode": True}, "dark_mode"), is_feature_enabled({}, "beta"))`,
+    solutionCode: `def is_feature_enabled(flags, feature):
+    return flags.get(feature, False)
+
+print(is_feature_enabled({"dark_mode": True}, "dark_mode"), is_feature_enabled({}, "beta"))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Decoupling feature rollouts from binary deployments lets teams kill-switch broken code in seconds without waiting for App Store review.",
+      followUp:
+        "How would you roll out a flag to 10% of users consistently using `hash(user_id) % 100 < 10`?",
+    },
     quiz: {
       question: "Why do Feature Flag lookups default to `False` when a flag name is missing?",
       options: [
@@ -346,6 +650,18 @@ print(is_feature_enabled({"dark_mode": True}, "dark_mode"), is_feature_enabled({
     return size_mb <= max_mb
 
 print(can_upload_file(10, 25), can_upload_file(40, 25))`,
+    solutionCode: `def can_upload_file(size_mb, max_mb):
+    return size_mb <= max_mb
+
+print(can_upload_file(10, 25), can_upload_file(40, 25))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Checking `Content-Length` at the API gateway rejects oversized payloads before buffering multi-gigabyte streams into application RAM.",
+      followUp:
+        "How do pre-signed S3 upload URLs bypass your API server entirely for large video/image uploads?",
+    },
     quiz: {
       question: "If `max_mb = 25`, what does `can_upload_file(25, 25)` return with `size_mb <= max_mb`?",
       options: ["True (25 MB is within the 25 MB limit)", "False", "Error"],
@@ -377,6 +693,18 @@ print(can_upload_file(10, 25), can_upload_file(40, 25))`,
     return len(queue) > 5
 
 print(needs_extra_worker(["j1", "j2"]), needs_extra_worker(["j1", "j2", "j3", "j4", "j5", "j6"]))`,
+    solutionCode: `def needs_extra_worker(queue):
+    return len(queue) > 5
+
+print(needs_extra_worker(["j1", "j2"]), needs_extra_worker(["j1", "j2", "j3", "j4", "j5", "j6"]))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Autoscaling on queue depth reacts directly to backlog pressure; add a cooldown window so cold-starting workers don't overshoot and thrash.",
+      followUp:
+        "When is 'oldest message age in queue' a better autoscaling metric than raw queue length?",
+    },
     quiz: {
       question: "How do you check if a `queue` list has more than 5 items waiting?",
       options: ["len(queue) > 5", "queue > 5", "queue.count() > 5"],
@@ -408,6 +736,19 @@ print(needs_extra_worker(["j1", "j2"]), needs_extra_worker(["j1", "j2", "j3", "j
 
 keys = ["k_live_1", "k_live_2"]
 print(is_valid_api_key(keys, "k_live_1"), is_valid_api_key(keys, "k_bad"))`,
+    solutionCode: `def is_valid_api_key(valid_keys, api_key):
+    return api_key in valid_keys
+
+keys = ["k_live_1", "k_live_2"]
+print(is_valid_api_key(keys, "k_live_1"), is_valid_api_key(keys, "k_bad"))`,
+    proInsights: {
+      timeComplexity: "O(1) with set / O(n) with list",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Storing active keys in a `set` or Redis hash table keeps gateway auth checks O(1); in production, store SHA-256 hashes of keys rather than plaintext.",
+      followUp:
+        "Why should API key verification use constant-time comparison (`hmac.compare_digest`) when validating HMAC signatures?",
+    },
     quiz: {
       question: "Which expression checks if `token` is inside `allowed_tokens`?",
       options: [
@@ -443,6 +784,18 @@ print(is_valid_api_key(keys, "k_live_1"), is_valid_api_key(keys, "k_bad"))`,
     return (page - 1) * page_size
 
 print(get_page_offset(1, 10), get_page_offset(3, 10))`,
+    solutionCode: `def get_page_offset(page, page_size):
+    return (page - 1) * page_size
+
+print(get_page_offset(1, 10), get_page_offset(3, 10))`,
+    proInsights: {
+      timeComplexity: "O(1) math (O(offset) DB scan)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Offset pagination allows jumping to any page number, but deep SQL offsets (`OFFSET 100000`) scan and discard 100k rows; switch to cursor/keyset pagination (`WHERE id > last_seen_id`) for infinite feeds.",
+      followUp:
+        "What duplicate-row bug happens in offset pagination when a new post is inserted while a user scrolls from Page 1 to Page 2?",
+    },
     quiz: {
       question: "If `page_size = 20`, how many items should be skipped on `page = 1`?",
       options: ["0", "20", "1"],
@@ -474,6 +827,18 @@ print(get_page_offset(1, 10), get_page_offset(3, 10))`,
     return f"user:{user_id}:profile"
 
 print(make_cache_key(42))`,
+    solutionCode: `def make_cache_key(user_id):
+    return f"user:{user_id}:profile"
+
+print(make_cache_key(42))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Colon-namespaced keys (`entity:id:field`) prevent cross-service key collisions and make Redis wildcard inspection (`SCAN user:42:*`) effortless.",
+      followUp:
+        "How does adding a schema version (`v2:user:42:profile`) let you deploy breaking cache changes without flushing the whole Redis cluster?",
+    },
     quiz: {
       question: 'If `user_id = 7`, what does `f"user:{user_id}:profile"` return?',
       options: [
@@ -508,6 +873,18 @@ print(make_cache_key(42))`,
     return total_users // batch_size
 
 print(count_full_batches(250, 100))`,
+    solutionCode: `def count_full_batches(total_users, batch_size):
+    return total_users // batch_size
+
+print(count_full_batches(250, 100))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Batching API calls reduces network round-trips and DB transactions by 100x; use ceiling division `(total_users + batch_size - 1) // batch_size` when counting partial trailing batches too.",
+      followUp:
+        "If one item in a 100-item batch fails validation, should the worker fail the whole batch or isolate the bad record?",
+    },
     quiz: {
       question: "What does `350 // 100` evaluate to in Python?",
       options: ["3", "3.5", "50"],
@@ -555,6 +932,14 @@ print(evaluate_sliding_window([10, 45, 55], 70, 30, 3))`,
     return {"allowed": False, "active_count": len(active)}
 
 print(evaluate_sliding_window([10, 45, 55], 70, 30, 3))`,
+    proInsights: {
+      timeComplexity: "O(k) per check",
+      spaceComplexity: "O(limit) timestamps",
+      tradeoff:
+        "Sliding Window Log gives exact burst precision without boundary spikes, at the cost of storing up to `limit` timestamps per user (use Redis Sorted Sets `ZREMRANGEBYSCORE` + `ZCARD`).",
+      followUp:
+        "When a user has a 100,000 req/min limit, why do systems switch to Sliding Window Counter (two integer buckets + weighted overlap) instead of storing every timestamp?",
+    },
     quiz: {
       question: "Why does a sliding window log beat a fixed-minute counter at `:59` and `:01`?",
       options: [
@@ -604,6 +989,14 @@ print(consume_token(1, 10, 13, 2, 5))`,
     return {"allowed": False, "tokens": available}
 
 print(consume_token(1, 10, 13, 2, 5))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1) per key (2 floats)",
+      tradeoff:
+        "Lazy refill stores only `(tokens, last_ts)` per API key and computes accrued tokens on arrival — zero background cron timers needed.",
+      followUp:
+        "How does Leaky Bucket differ from Token Bucket when a downstream payment processor needs strictly smoothed constant output?",
+    },
     quiz: {
       question: "Why do production services compute token refills lazily on each request instead of running a timer every second per user?",
       options: [
@@ -656,6 +1049,14 @@ print(route_hash_ring([(90, "db-c"), (20, "db-a"), (55, "db-b")], 60))`,
     return ordered[0][1]
 
 print(route_hash_ring([(90, "db-c"), (20, "db-a"), (55, "db-b")], 60))`,
+    proInsights: {
+      timeComplexity: "O(N log N) sort / O(log N) binary search",
+      spaceComplexity: "O(N) ring nodes",
+      tradeoff:
+        "Consistent hashing isolates node additions/removals to ~1/N key migrations, whereas modulo routing (`hash % N`) invalidates nearly 100% of cached keys on resize.",
+      followUp:
+        "In production, pre-sorting the ring once and using `bisect_left` drops every key lookup from O(N) to O(log N).",
+    },
     quiz: {
       question: "What happens on a consistent hash ring when `key_hash` is greater than every node position on the ring?",
       options: [
@@ -713,6 +1114,14 @@ print(read_ttl_cache(store, "u1", 80), read_ttl_cache(store, "u1", 100))`,
 
 store = {"u1": {"value": "Alice", "expires_at": 100}}
 print(read_ttl_cache(store, "u1", 80), read_ttl_cache(store, "u1", 100))`,
+    proInsights: {
+      timeComplexity: "O(1) read & lazy delete",
+      spaceComplexity: "O(keys)",
+      tradeoff:
+        "Lazy expiration guarantees zero stale reads at O(1) cost, while Redis pairs it with periodic random sampling so write-once-never-read keys still get reclaimed.",
+      followUp:
+        "What happens when RAM fills up with keys whose TTL hasn't expired yet? Combine TTL with LRU/LFU maxmemory eviction policies.",
+    },
     quiz: {
       question: "Why does `read_ttl_cache` delete `cache[key]` upon detecting expiration (`now_ts >= expires_at`)?",
       options: [

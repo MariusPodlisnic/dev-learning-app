@@ -42,6 +42,14 @@ for i, num in enumerate(nums):
                 return [seen[needed], i]
             seen[num] = i
         return []`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "Trading O(n) hash-map memory drops lookup from an O(n^2) nested pair scan down to a single linear pass.",
+      followUp:
+        "If `nums` were already sorted, two pointers could solve it in O(1) extra space instead of a hash map.",
+    },
     quiz: {
       question: "Why do we store seen numbers in a dictionary `{}`?",
       options: [
@@ -56,7 +64,7 @@ for i, num in enumerate(nums):
   {
     matchTrack: "algorithms",
     matchOrder: 2,
-    matchKeywords: ["pointer", "palindrome", "reverse", "window", "binary"],
+    matchKeywords: ["pointer", "palindrome", "reverse", "symmetry"],
     realWorldUse:
       "Used in text tools and DNA sequence checks to see if a word reads the same backward and forward.",
     analogyTitle: "Checking From Both Ends Toward the Middle",
@@ -67,6 +75,35 @@ right = len(items) - 1
 while left < right:
     left += 1
     right -= 1`,
+    guidedCode: `class Solution:
+    def isPalindrome(self, s: str) -> bool:
+        cleaned = "".join(c.lower() for c in s if c.isalnum())
+        left, right = 0, len(cleaned) - 1
+        while left < right:
+            # 👉 Return False if cleaned[left] != cleaned[right], then move inward:
+            if cleaned[left] != cleaned[right]:
+                return False
+            left += 1
+            right -= 1
+        return True`,
+    solutionCode: `class Solution:
+    def isPalindrome(self, s: str) -> bool:
+        cleaned = "".join(c.lower() for c in s if c.isalnum())
+        left, right = 0, len(cleaned) - 1
+        while left < right:
+            if cleaned[left] != cleaned[right]:
+                return False
+            left += 1
+            right -= 1
+        return True`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n) / O(1) in-place",
+      tradeoff:
+        "Converging two pointers checks symmetry in a single pass; skipping non-alphanumeric chars inline avoids allocating `cleaned` if strict O(1) space is required.",
+      followUp:
+        "How would you handle Valid Palindrome II where at most one character deletion is allowed?",
+    },
     quiz: {
       question: "When should a two-pointer loop stop?",
       options: [
@@ -80,6 +117,143 @@ while left < right:
   },
   {
     matchTrack: "algorithms",
+    matchOrder: 3,
+    matchKeywords: ["parentheses", "brackets", "lifo", "stack", "valid"],
+    realWorldUse:
+      "Compilers, JSON parsers, and IDE linters validate deeply nested syntax blocks in a single linear pass using a LIFO stack.",
+    analogyTitle: "Matching Russian Nesting Dolls",
+    analogyText:
+      "Every closing bracket `)`, `}`, `]` must match the most recently opened bracket sitting on top of the stack.",
+    cheatSheet: `stack = []
+pairs = {")": "(", "}": "{", "]": "["}
+for ch in s:
+    if ch in pairs:
+        if not stack or stack[-1] != pairs[ch]:
+            return False
+        stack.pop()
+    else:
+        stack.append(ch)
+return len(stack) == 0`,
+    commonPitfall: {
+      title: "Popping from an empty stack or returning True with unclosed openers",
+      wrongCode: "if ch in pairs:\n    if stack.pop() != pairs[ch]: return False",
+      rightCode: "if ch in pairs:\n    if not stack or stack[-1] != pairs[ch]: return False\n    stack.pop()",
+      explanation:
+        "Calling `stack.pop()` when `stack` is empty raises `IndexError` on inputs starting with `]` or `)`. Also check `len(stack) == 0` at the end.",
+    },
+    guidedCode: `class Solution:
+    def isValid(self, s: str) -> bool:
+        stack = []
+        pairs = {")": "(", "}": "{", "]": "["}
+        for ch in s:
+            # 👉 Match closing brackets against pairs[ch], otherwise push onto stack:
+            if ch in pairs:
+                if not stack or stack[-1] != pairs[ch]:
+                    return False
+                stack.pop()
+            else:
+                stack.append(ch)
+        return len(stack) == 0`,
+    solutionCode: `class Solution:
+    def isValid(self, s: str) -> bool:
+        stack = []
+        pairs = {")": "(", "}": "{", "]": "["}
+        for ch in s:
+            if ch in pairs:
+                if not stack or stack[-1] != pairs[ch]:
+                    return False
+                stack.pop()
+            else:
+                stack.append(ch)
+        return len(stack) == 0`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "A dictionary lookup + stack validates arbitrary nesting in one pass, avoiding repeated string `.replace('()', '')` scans which degrade to O(n^2).",
+      followUp:
+        "What if the input only has one bracket type (`(` and `)`)? You can replace the stack array with a single integer counter for O(1) space.",
+    },
+    quiz: {
+      question: "What happens if `stack` still contains `'('` after the loop finishes?",
+      options: [
+        "`len(stack) == 0` is `False` because an opening bracket was never closed",
+        "The string is valid anyway",
+        "Python pops it automatically",
+      ],
+      correctIndex: 0,
+      explanation:
+        "An unclosed bracket means the expression is invalid, so `len(stack) == 0` safely returns `False`.",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 4,
+    matchKeywords: ["binary search", "search", "sorted", "log n"],
+    realWorldUse:
+      "Databases (B-Trees), `git bisect`, and sorted time-series logs locate targets across millions of records in ~20 comparisons.",
+    analogyTitle: "Guessing a Number by Halving",
+    analogyText:
+      "Check the middle page. If the target is bigger, discard the entire left half (`low = mid + 1`); if smaller, discard the right half (`high = mid - 1`).",
+    cheatSheet: `low, high = 0, len(nums) - 1
+while low <= high:
+    mid = (low + high) // 2
+    if nums[mid] == target:
+        return mid
+    elif nums[mid] < target:
+        low = mid + 1
+    else:
+        high = mid - 1
+return -1`,
+    commonPitfall: {
+      title: "Using while low < high instead of low <= high or forgetting +/- 1",
+      wrongCode: "while low < high:\n    low = mid  # Can infinite-loop on 2 elements!",
+      rightCode: "while low <= high:\n    if nums[mid] < target: low = mid + 1\n    else: high = mid - 1",
+      explanation:
+        "Advancing past `mid` (`mid + 1` / `mid - 1`) guarantees the window strictly shrinks every iteration and checks 1-element ranges via `low <= high`.",
+    },
+    guidedCode: `class Solution:
+    def search(self, nums: list, target: int) -> int:
+        low, high = 0, len(nums) - 1
+        while low <= high:
+            # 👉 Compute mid, return if found, else shrink low or high:
+            mid = (low + high) // 2
+            if nums[mid] == target:
+                return mid
+            elif nums[mid] < target:
+                low = mid + 1
+            else:
+                high = mid - 1
+        return -1`,
+    solutionCode: `class Solution:
+    def search(self, nums: list, target: int) -> int:
+        low, high = 0, len(nums) - 1
+        while low <= high:
+            mid = (low + high) // 2
+            if nums[mid] == target:
+                return mid
+            elif nums[mid] < target:
+                low = mid + 1
+            else:
+                high = mid - 1
+        return -1`,
+    proInsights: {
+      timeComplexity: "O(log n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Iterative binary search runs in constant O(1) stack space and eliminates half the remaining array on every comparison, versus O(n) linear scan.",
+      followUp:
+        "How would you modify `if nums[mid] == target` to find the *first* (leftmost) occurrence when duplicates exist?",
+    },
+    quiz: {
+      question: "How many comparisons does binary search need at most for 1,000,000 sorted elements?",
+      options: ["Around 20 steps (log2 of 1,000,000)", "500,000 steps", "1,000 steps"],
+      correctIndex: 0,
+      explanation: "`2^20 = 1,048,576`, so halving 20 times narrows down a million items!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
     matchOrder: 6,
     matchKeywords: ["frequency", "count", "most", "active", "tally"],
     realWorldUse: "Used by Spotify Wrapped to tally your most-played artist.",
@@ -89,6 +263,29 @@ while left < right:
     cheatSheet: `counts = {}
 for item in items:
     counts[item] = counts.get(item, 0) + 1`,
+    guidedCode: `def count_messages(users):
+    counts = {}
+    for u in users:
+        # 👉 Increment count using counts.get(u, 0) + 1:
+        counts[u] = counts.get(u, 0) + 1
+    return counts
+
+print(count_messages(["alex", "sam", "alex", "mia", "alex"]))`,
+    solutionCode: `def count_messages(users):
+    counts = {}
+    for u in users:
+        counts[u] = counts.get(u, 0) + 1
+    return counts
+
+print(count_messages(["alex", "sam", "alex", "mia", "alex"]))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(k) unique keys",
+      tradeoff:
+        "A single hash-map tally avoids O(n^2) repeated `.count()` scans over the list.",
+      followUp:
+        "In production Python, `collections.Counter(users)` implements this same C-optimized tally.",
+    },
     quiz: {
       question:
         'What does `counts.get("alex", 0)` return the first time `"alex"` is seen?',
@@ -112,6 +309,33 @@ best = window_sum
 for i in range(k, len(nums)):
     window_sum += nums[i] - nums[i - k]
     best = max(best, window_sum)`,
+    guidedCode: `def max_window_sum(visitors, k):
+    window_sum = sum(visitors[:k])
+    best = window_sum
+    for i in range(k, len(visitors)):
+        # 👉 Add entering visitors[i], subtract leaving visitors[i - k]:
+        window_sum += visitors[i] - visitors[i - k]
+        best = max(best, window_sum)
+    return best
+
+print(max_window_sum([10, 40, 30, 50, 20], 3))`,
+    solutionCode: `def max_window_sum(visitors, k):
+    window_sum = sum(visitors[:k])
+    best = window_sum
+    for i in range(k, len(visitors)):
+        window_sum += visitors[i] - visitors[i - k]
+        best = max(best, window_sum)
+    return best
+
+print(max_window_sum([10, 40, 30, 50, 20], 3))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Updating the running sum in O(1) per slide avoids recomputing `sum(visitors[i-k+1:i+1])` (`O(n * k)` total).",
+      followUp:
+        "What if `k` wasn't fixed and you needed the shortest subarray with sum >= target? Switch to a dynamic variable-width window.",
+    },
     quiz: {
       question:
         "How do we update a sliding window sum when moving 1 step right?",
@@ -143,6 +367,41 @@ for ch in text:
             return False
         stack.pop()
 return len(stack) == 0`,
+    guidedCode: `def is_balanced(code_str):
+    stack = []
+    for ch in code_str:
+        if ch == "(":
+            stack.append(ch)
+        elif ch == ")":
+            # 👉 Return False if stack is empty, otherwise pop:
+            if not stack:
+                return False
+            stack.pop()
+    return len(stack) == 0
+
+print(is_balanced("(())"))
+print(is_balanced("(()"))`,
+    solutionCode: `def is_balanced(code_str):
+    stack = []
+    for ch in code_str:
+        if ch == "(":
+            stack.append(ch)
+        elif ch == ")":
+            if not stack:
+                return False
+            stack.pop()
+    return len(stack) == 0
+
+print(is_balanced("(())"))
+print(is_balanced("(()"))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "A stack cleanly extends to multiple bracket pairs (`()[]{}`); for a single pair `( )`, a depth integer gives O(1) space.",
+      followUp:
+        "How would you return the minimum number of parentheses to add so any invalid string becomes balanced?",
+    },
     quiz: {
       question: "Which list method removes the top (last) item from a stack?",
       options: ["stack.pop()", "stack.append()", "stack.clear()"],
@@ -177,6 +436,18 @@ print(cheapest)  # 145`,
     return min(prices)
 
 print(find_cheapest_flight([320, 195, 240, 160, 410]))`,
+    solutionCode: `def find_cheapest_flight(prices):
+    return min(prices)
+
+print(find_cheapest_flight([320, 195, 240, 160, 410]))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "A single linear scan beats sorting (`O(n log n)`) whenever you only need the minimum element.",
+      followUp:
+        "If `prices` could be empty, pass `min(prices, default=None)` to guard against `ValueError`.",
+    },
     quiz: {
       question: "What does `min([40, 12, 85, 29])` return?",
       options: ["12", "85", "40"],
@@ -214,6 +485,19 @@ print(items[mid])       # 30`,
     return items[mid]
 
 print(get_middle_item([10, 25, 42, 70, 99]))`,
+    solutionCode: `def get_middle_item(items):
+    mid = len(items) // 2
+    return items[mid]
+
+print(get_middle_item([10, 25, 42, 70, 99]))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Python lists support random-access indexing in constant O(1) time, making binary midpoint probes instant.",
+      followUp:
+        "In overflow-prone languages (C++/Java), write `low + (high - low) // 2` instead of `(low + high) // 2`.",
+    },
     quiz: {
       question:
         "Why do we use `// 2` instead of `/ 2` when computing a list index?",
@@ -254,6 +538,19 @@ print(mutual)  # ['Sam', 'Mia']`,
     return [f for f in friends_a if f in friends_b]
 
 print(find_mutual_friends(["Sam", "Mia", "Leo"], ["Mia", "Zoe", "Sam"]))`,
+    solutionCode: `def find_mutual_friends(friends_a, friends_b):
+    b_lookup = set(friends_b)
+    return [f for f in friends_a if f in b_lookup]
+
+print(find_mutual_friends(["Sam", "Mia", "Leo"], ["Mia", "Zoe", "Sam"]))`,
+    proInsights: {
+      timeComplexity: "O(n + m)",
+      spaceComplexity: "O(m)",
+      tradeoff:
+        "Converting `friends_b` to a `set` turns membership checks from O(m) list scans into O(1) lookups, keeping order while scaling from O(n*m) to O(n + m).",
+      followUp:
+        "If `friends_a` might contain duplicates you only want once, track already-emitted matches in a second `seen` set.",
+    },
     quiz: {
       question: 'What does `"Mia" in ["Mia", "Zoe"]` evaluate to?',
       options: ["True", "False", '"Mia"'],
@@ -297,6 +594,23 @@ print(running)  # [10, 30, 35]`,
     return result
 
 print(running_totals([10, 20, 15, 5]))`,
+    solutionCode: `def running_totals(numbers):
+    result = []
+    total = 0
+    for n in numbers:
+        total += n
+        result.append(total)
+    return result
+
+print(running_totals([10, 20, 15, 5]))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "Precomputing a prefix-sum array lets any subsequent subarray range sum `sum(i..j)` run in O(1) via `prefix[j] - prefix[i - 1]`.",
+      followUp:
+        "How do prefix sums combine with a Hash Map to solve 'Subarray Sum Equals K' in O(n)?",
+    },
     quiz: {
       question: "What are the running totals of `[5, 10, 2]`?",
       options: ["[5, 15, 17]", "[5, 10, 2]", "[17]"],
@@ -331,6 +645,18 @@ print(best)  # 450`,
     return max(scores)
 
 print(find_high_score([120, 450, 310, 290]))`,
+    solutionCode: `def find_high_score(scores):
+    return max(scores)
+
+print(find_high_score([120, 450, 310, 290]))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Scanning once with `max()` is optimal compared to sorting the whole list first (`O(n log n)`).",
+      followUp:
+        "For streaming scores that arrive one at a time, maintain `best = max(best, score)` in O(1) memory.",
+    },
     quiz: {
       question: "What does `max([15, 99, 42])` return?",
       options: ["99", "15", "42"],
@@ -364,6 +690,18 @@ print(ranked)  # [95, 70, 40]`,
     return sorted(scores, reverse=True)
 
 print(rank_leaderboard([40, 95, 70, 85]))`,
+    solutionCode: `def rank_leaderboard(scores):
+    return sorted(scores, reverse=True)
+
+print(rank_leaderboard([40, 95, 70, 85]))`,
+    proInsights: {
+      timeComplexity: "O(n log n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "`sorted(..., reverse=True)` preserves the original input list untouched; use `scores.sort(reverse=True)` only when in-place mutation is desired.",
+      followUp:
+        "If you only ever need the top 3 podium scores out of 1,000,000, `heapq.nlargest(3, scores)` runs in O(n log 3).",
+    },
     quiz: {
       question: "What does `sorted([10, 30, 20], reverse=True)` return?",
       options: ["[30, 20, 10]", "[10, 20, 30]", "[10, 30, 20]"],
@@ -398,6 +736,18 @@ print(evens)  # [2, 4, 6]`,
     return [n for n in nums if n % 2 == 0]
 
 print(get_even_ids([10, 15, 22, 33, 40]))`,
+    solutionCode: `def get_even_ids(nums):
+    return [n for n in nums if n % 2 == 0]
+
+print(get_even_ids([10, 15, 22, 33, 40]))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(k) matching items",
+      tradeoff:
+        "A single-pass list comprehension avoids quadratic pop/remove shifts when deleting odd elements from a list in place.",
+      followUp:
+        "For huge datasets where you iterate lazily once, swap `[...]` for a generator expression `(...)` to achieve O(1) memory.",
+    },
     quiz: {
       question: "What does `8 % 2 == 0` evaluate to?",
       options: ["True (because 8 is an even number)", "False", "4"],
@@ -431,6 +781,18 @@ print("Leo" in vips)  # False`,
     return name in vip_list
 
 print(has_vip_pass(["Aria", "Kai", "Nova"], "Kai"), has_vip_pass(["Aria", "Kai"], "Leo"))`,
+    solutionCode: `def has_vip_pass(vip_list, name):
+    return name in vip_list
+
+print(has_vip_pass(["Aria", "Kai", "Nova"], "Kai"), has_vip_pass(["Aria", "Kai"], "Leo"))`,
+    proInsights: {
+      timeComplexity: "O(n) on list / O(1) on set",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "On a small list, `name in vip_list` short-circuits on the first match. For repeated lookups across thousands of VIPs, convert `vip_list` to a `set` once.",
+      followUp:
+        "What happens if `vip_list` is sorted? Binary search drops single-query lookup from O(n) to O(log n) without extra memory.",
+    },
     quiz: {
       question: 'What does `"Kai" in ["Aria", "Kai"]` return?',
       options: ["True", "False", "1"],
@@ -463,6 +825,18 @@ print(word == reversed_word)  # True`,
     return word == word[::-1]
 
 print(is_palindrome("level"), is_palindrome("code"))`,
+    solutionCode: `def is_palindrome(word):
+    return word == word[::-1]
+
+print(is_palindrome("level"), is_palindrome("code"))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "Slice reversal `word[::-1]` is fast in CPython and super readable; switch to two inward pointers (`left`, `right`) if an interviewer asks for strict O(1) extra memory.",
+      followUp:
+        "How would you handle case-insensitive palindromes with spaces or punctuation?",
+    },
     quiz: {
       question: 'What does `"abc"[::-1]` produce in Python?',
       options: ['"cba"', '"ab"', '"abc"'],
@@ -494,6 +868,18 @@ print(is_unique)  # True`,
     return len(names) == len(set(names))
 
 print(all_unique(["aria", "kai"]), all_unique(["aria", "aria"]))`,
+    solutionCode: `def all_unique(names):
+    return len(names) == len(set(names))
+
+print(all_unique(["aria", "kai"]), all_unique(["aria", "aria"]))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "`len(set(names))` is concise and O(n) via hashing; if inputs are huge and duplicates appear early, looping with a `seen = set()` lets you exit on the first duplicate.",
+      followUp:
+        "How would you solve 'Contains Duplicate' if extra hash-set memory was forbidden? Sort in O(n log n) and compare neighbors.",
+    },
     quiz: {
       question: 'If `items = ["a", "a", "b"]`, what is `len(set(items))`?',
       options: ["2", "3", "1"],
@@ -525,6 +911,18 @@ print(abs(25 - 15))  # 10`,
     return abs(a - b)
 
 print(temp_swing(15, 25))`,
+    solutionCode: `def temp_swing(a, b):
+    return abs(a - b)
+
+print(temp_swing(15, 25))`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "`abs(a - b)` computes symmetric distance cleanly without branching (`if a > b else b - a`).",
+      followUp:
+        "In 2D grid/BFS problems, Manhattan distance generalizes this directly to `abs(x1 - x2) + abs(y1 - y2)`.",
+    },
     quiz: {
       question: "What does `abs(-42)` return?",
       options: ["42", "-42", "0"],
@@ -559,6 +957,18 @@ print(board)  # {'Aria': 100, 'Kai': 85}`,
     return dict(zip(names, scores))
 
 print(build_scoreboard(["Aria", "Kai"], [100, 85]))`,
+    solutionCode: `def build_scoreboard(names, scores):
+    return dict(zip(names, scores))
+
+print(build_scoreboard(["Aria", "Kai"], [100, 85]))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "`dict(zip(...))` builds the lookup table in C speed without index loops (`range(len(names))`); note `zip()` stops at the shorter list if lengths differ.",
+      followUp:
+        "Use `zip(names, scores, strict=True)` in Python 3.10+ if mismatched list lengths should raise a `ValueError` instead of silently truncating.",
+    },
     quiz: {
       question: 'What does `dict(zip(["a", "b"], [1, 2]))` return?',
       options: [
@@ -613,6 +1023,14 @@ print(max_profit([7, 1, 5, 3, 6, 4]))`,
     return best
 
 print(max_profit([7, 1, 5, 3, 6, 4]))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Tracking only the running minimum price avoids an O(n^2) all-pairs check and requires zero auxiliary arrays.",
+      followUp:
+        "If unlimited buy/sell transactions were allowed (Buy & Sell Stock II), sum every positive daily gain `max(0, prices[i] - prices[i - 1])`.",
+    },
     quiz: {
       question: "What is the time and space complexity of tracking `min_price` in a single loop?",
       options: [
@@ -664,6 +1082,14 @@ print(group_anagrams(["eat", "tea", "tan", "ate", "nat", "bat"]))`,
     return list(groups.values())
 
 print(group_anagrams(["eat", "tea", "tan", "ate", "nat", "bat"]))`,
+    proInsights: {
+      timeComplexity: "O(n * k log k)",
+      spaceComplexity: "O(n * k)",
+      tradeoff:
+        "Sorting each k-letter word is simple and fast for short strings; for very long words over lowercase a–z, a 26-int frequency tuple key improves runtime to O(n * k).",
+      followUp:
+        "How would you adapt the signature key to handle Unicode or case-insensitive grouping?",
+    },
     quiz: {
       question: "Why must we convert `sorted(word)` with `''.join(...)` before using it as a dict key?",
       options: [
@@ -725,6 +1151,14 @@ print(merge_intervals([[1, 3], [2, 6], [8, 10], [15, 18]]))`,
     return merged
 
 print(merge_intervals([[1, 3], [2, 6], [8, 10], [15, 18]]))`,
+    proInsights: {
+      timeComplexity: "O(n log n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "Sorting upfront costs O(n log n) once, reducing overlap resolution to a single O(n) pass without mutating the caller's nested lists.",
+      followUp:
+        "If intervals are already sorted and you only insert one new interval (Insert Interval), you can skip sorting and run in O(n) total.",
+    },
     quiz: {
       question: "Why do we sort intervals by `x[0]` before iterating?",
       options: [
@@ -774,6 +1208,14 @@ print(top_k_frequent([1, 1, 1, 2, 2, 3], 2))`,
     return ranked[:k]
 
 print(top_k_frequent([1, 1, 1, 2, 2, 3], 2))`,
+    proInsights: {
+      timeComplexity: "O(n log n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "Sorting unique keys is deterministic and clean; a size-k min-heap drops ranking to O(n log k), and Bucket Sort achieves O(n) total.",
+      followUp:
+        "Can you implement Top K Frequent in strict O(n) time without sorting by indexing buckets by frequency?",
+    },
     quiz: {
       question: "What does sorting by `key=lambda x: (-counts[x], x)` achieve?",
       options: [

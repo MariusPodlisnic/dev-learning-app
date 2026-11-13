@@ -12,6 +12,13 @@ export interface CommonPitfall {
   explanation: string;
 }
 
+export interface ProInsights {
+  timeComplexity: string;
+  spaceComplexity: string;
+  tradeoff: string;
+  followUp?: string;
+}
+
 export interface LessonEnrichment {
   realWorldUse: string;
   analogyTitle: string;
@@ -21,6 +28,7 @@ export interface LessonEnrichment {
   commonPitfall?: CommonPitfall;
   guidedCode?: string;
   solutionCode?: string;
+  proInsights?: ProInsights;
 }
 
 export interface EnrichedLessonData extends LessonEnrichment {

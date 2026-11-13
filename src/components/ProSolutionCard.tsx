@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Platform,
   Pressable,
@@ -54,6 +54,10 @@ function explainPythonLine(line: string): string {
     return "Catches the error safely and runs the fallback logic instead of crashing.";
   }
 
+  if (trimmed.startsWith("for ") && trimmed.includes("enumerate(")) {
+    return "Loops through each item while tracking both its position index and value in one pass.";
+  }
+
   if (trimmed.startsWith("for ") && trimmed.endsWith(":")) {
     return "Loops through each item in the collection one by one.";
   }
@@ -70,8 +74,24 @@ function explainPythonLine(line: string): string {
     return "Runs this fallback branch when the earlier if-condition was False.";
   }
 
+  if (trimmed.startsWith("del ")) {
+    return "Lazily evicts the expired or stale entry directly from memory.";
+  }
+
   if (trimmed.startsWith("return ")) {
     const expr = trimmed.slice(7).trim();
+    if (expr === "len(stack) == 0") {
+      return "Returns True only if every opening bracket was matched and popped off the stack.";
+    }
+    if (expr.includes("dict(zip(")) {
+      return "Pairs items at matching positions from both lists into a dictionary and returns it.";
+    }
+    if (expr.includes("len(") && expr.includes("set(")) {
+      return "Compares total length against unique set size to detect duplicates in O(n) time.";
+    }
+    if (expr.includes("abs(")) {
+      return "Returns the non-negative absolute difference regardless of operand order.";
+    }
     if (expr.includes(".count(")) {
       return "Counts how many times the target value appears in the list and returns that number.";
     }
@@ -86,6 +106,9 @@ function explainPythonLine(line: string): string {
     }
     if (expr.includes("[:")) {
       return "Slices the list from the beginning up to the cutoff index and returns those items.";
+    }
+    if (expr.includes("[::-1]")) {
+      return "Reverses the sequence with a negative slice step and checks symmetry.";
     }
     if (expr.includes(".replace(")) {
       return "Finds every match of the old word and swaps it with the new text.";
@@ -117,12 +140,40 @@ function explainPythonLine(line: string): string {
     return `Hands the final result (\`${expr}\`) back to whoever called the function.`;
   }
 
+  if (trimmed.includes(".setdefault(")) {
+    return "Initializes an empty bucket list on first sight and appends the current item.";
+  }
+
   if (trimmed.includes(".append(")) {
     return "Adds the new value onto the end of the result list.";
   }
 
+  if (trimmed.includes(".pop(")) {
+    return "Removes and discards the top element from the stack in O(1) time.";
+  }
+
+  if (trimmed.includes("float(") && trimmed.includes("inf")) {
+    return "Initializes a positive-infinity sentinel so the first real value always beats it.";
+  }
+
+  if (trimmed.includes("sorted(") && trimmed.includes("key=")) {
+    return "Sorts items deterministically using a custom key selector function.";
+  }
+
+  if (trimmed.includes("min(capacity,")) {
+    return "Refills tokens lazily from elapsed time while capping at maximum bucket capacity.";
+  }
+
+  if (trimmed.includes("self.")) {
+    return "Reads or updates instance state persisted on the service object.";
+  }
+
   if (trimmed.includes("+=")) {
     return "Adds the right-hand value into the running variable.";
+  }
+
+  if (trimmed.includes("-=")) {
+    return "Decrements the running counter or pointer by the right-hand amount.";
   }
 
   if (trimmed.startsWith("print(")) {
@@ -184,11 +235,8 @@ export default function ProSolutionCard({
   onOpenPaywall,
 }: ProSolutionCardProps) {
   const styles = getStyles();
-  const [revealed, setRevealed] = useState(false);
-
-  useEffect(() => {
-    setRevealed(false);
-  }, [selectedLesson.id]);
+  const [revealedLessonId, setRevealedLessonId] = useState<string | null>(null);
+  const revealed = revealedLessonId === selectedLesson.id;
 
   const { cleanCode, steps } = buildCleanSolutionAndSteps(
     selectedLesson,
@@ -196,6 +244,12 @@ export default function ProSolutionCard({
   );
   const firstStep = steps[0];
   const remainingStepsCount = Math.max(steps.length - 1, 1);
+
+  const insights = lessonEnrichment?.proInsights;
+  const displayTime =
+    insights?.timeComplexity || selectedLesson.complexities?.time || "";
+  const displaySpace =
+    insights?.spaceComplexity || selectedLesson.complexities?.space || "";
 
   return (
     <View style={styles.card}>
@@ -234,7 +288,11 @@ export default function ProSolutionCard({
               revealed && styles.revealToggleBtnActive,
               pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
             ]}
-            onPress={() => setRevealed((prev) => !prev)}
+            onPress={() =>
+              setRevealedLessonId((prev) =>
+                prev === selectedLesson.id ? null : selectedLesson.id,
+              )
+            }
           >
             <Text style={styles.revealToggleBtnText}>
               {revealed
@@ -245,6 +303,47 @@ export default function ProSolutionCard({
 
           {revealed && (
             <View style={styles.solutionBody}>
+              {(insights || displayTime || displaySpace) && (
+                <View style={styles.insightsCard}>
+                  <View style={styles.insightsTopRow}>
+                    <Text style={styles.insightsBadge}>
+                      COMPLEXITY & TRADE-OFF BRIEF
+                    </Text>
+                    <View style={styles.complexityPillsRow}>
+                      {!!displayTime && (
+                        <View style={styles.complexityPill}>
+                          <Text style={styles.complexityPillText}>
+                            TIME: {displayTime}
+                          </Text>
+                        </View>
+                      )}
+                      {!!displaySpace && (
+                        <View style={styles.complexityPill}>
+                          <Text style={styles.complexityPillText}>
+                            SPACE: {displaySpace}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  {insights?.tradeoff && (
+                    <Text style={styles.insightsTradeoff}>
+                      {insights.tradeoff}
+                    </Text>
+                  )}
+                  {insights?.followUp && (
+                    <View style={styles.followUpBox}>
+                      <Text style={styles.followUpLabel}>
+                        INTERVIEW FOLLOW-UP
+                      </Text>
+                      <Text style={styles.followUpText}>
+                        {insights.followUp}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
               {/* Step-by-Step Line Breakdown */}
               <Text style={styles.sectionLabel}>
                 LINE-BY-LINE PLAIN-ENGLISH BREAKDOWN
@@ -445,6 +544,72 @@ const getStyles = () =>
     solutionBody: {
       gap: 12,
       marginTop: 4,
+    },
+    insightsCard: {
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 8,
+      padding: 12,
+      gap: 8,
+    },
+    insightsTopRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    insightsBadge: {
+      color: StudioColors.textMuted,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.7,
+    },
+    complexityPillsRow: {
+      flexDirection: "row",
+      gap: 6,
+      flexWrap: "wrap",
+    },
+    complexityPill: {
+      backgroundColor: StudioColors.ink,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 4,
+    },
+    complexityPillText: {
+      color: StudioColors.amber,
+      fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    insightsTradeoff: {
+      color: StudioColors.textPrimary,
+      fontSize: 12.5,
+      fontWeight: "600",
+      lineHeight: 18,
+    },
+    followUpBox: {
+      backgroundColor: StudioColors.surface,
+      borderWidth: 1,
+      borderColor: StudioColors.border,
+      borderRadius: 6,
+      padding: 9,
+      gap: 3,
+    },
+    followUpLabel: {
+      color: StudioColors.textMuted,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.6,
+    },
+    followUpText: {
+      color: StudioColors.textSecondary,
+      fontSize: 12,
+      fontWeight: "600",
+      lineHeight: 17,
     },
     sectionLabel: {
       color: StudioColors.textMuted,
