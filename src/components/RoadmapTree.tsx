@@ -974,15 +974,13 @@ export default function RoadmapTree({
           </Animated.View>
         </View>
 
-        {/* Byte-Cat Companion Hub & Interactive Briefing */}
+        {/* Byte-Cat Companion Hub & Interactive Quotes */}
         <ByteCatGuideCard
           completedCount={completedCount}
           totalCount={trackLessons.length}
           activeTrack={activeTrack}
           activeTrackLabel={currentTrackMeta.label}
           activeTrackAccent={currentTrackMeta.stickerBg}
-          totalXp={totalXp}
-          streakCount={streakCount}
           isPremium={isPremium}
           onOpenPaywall={onOpenPaywall}
           nextLessonTitle={nextUpLesson?.title}

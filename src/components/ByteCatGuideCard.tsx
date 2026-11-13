@@ -29,6 +29,7 @@ import {
 
 const BYTE_CAT_IMAGE = require("../../assets/images/byte-cat.jpg");
 const STORAGE_BYTECAT_QUOTE_KEY = "devlearn_bytecat_quote_state_v1";
+const STORAGE_BYTECAT_QUOTE_PREFS_KEY = "devlearn_bytecat_quote_prefs_v1";
 const STORAGE_BYTECAT_PET_KEY = "devlearn_bytecat_pet_v1";
 const TREAT_XP_AMOUNT = 15;
 
@@ -36,7 +37,6 @@ export interface ByteCatQuote {
   id: number;
   quote: string;
   author: string;
-  catNote: string;
   moodBadge: string;
   accentBg: string;
 }
@@ -46,8 +46,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     id: 1,
     quote: "First, solve the problem. Then, write the code.",
     author: "John Johnson",
-    catNote:
-      "Paws off the keyboard for 10 seconds—sketch your plan first, then pounce!",
     moodBadge: "=^._.^= STRATEGIC PAWS",
     accentBg: "#FFDE59",
   },
@@ -56,8 +54,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     quote:
       "Every master programmer was once a beginner who refused to quit on a syntax error.",
     author: "Byte-Cat Wisdom",
-    catNote:
-      "Red console text isn't failure—it's just the compiler meowing for attention.",
     moodBadge: "⚡ RESILIENT CODER",
     accentBg: "#A3E635",
   },
@@ -65,8 +61,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     id: 3,
     quote: "Simplicity is the soul of efficiency.",
     author: "Austin Freeman",
-    catNote:
-      "If a 3-line loop does the job clearly, you don't need a 20-line hairball!",
     moodBadge: "✦ CLEAN SYNTAX",
     accentBg: "#6EE7B7",
   },
@@ -74,8 +68,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     id: 4,
     quote: "Make it work, make it right, make it fast.",
     author: "Kent Beck",
-    catNote:
-      "Pass Test Case #1 first! We can groom and optimize the code after it runs.",
     moodBadge: "🚀 SHIP IT MODE",
     accentBg: "#FF90E8",
   },
@@ -83,8 +75,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     id: 5,
     quote: "Talk is cheap. Show me the code.",
     author: "Linus Torvalds",
-    catNote:
-      "Even one 5-minute module today keeps your coding claws razor sharp!",
     moodBadge: "🐾 CLAWS ON KEYS",
     accentBg: "#FFDE59",
   },
@@ -93,8 +83,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     quote:
       "The only way to learn a new programming language is by writing programs in it.",
     author: "Dennis Ritchie",
-    catNote:
-      "Reading docs is nice, but typing code into the console is where the magic clicks.",
     moodBadge: "⌨️ KEYCAP HERO",
     accentBg: "#C4B5FD",
   },
@@ -103,8 +91,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     quote:
       "Debugging is twice as hard as writing the code in the first place.",
     author: "Brian Kernighan",
-    catNote:
-      "When in doubt, drop a print() statement and follow the trail of pawprints.",
     moodBadge: "🔍 BUG STALKER",
     accentBg: "#6EE7B7",
   },
@@ -112,17 +98,13 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     id: 8,
     quote: "Small daily improvements over time lead to stunning results.",
     author: "Robin Sharma",
-    catNote:
-      "1 module a day = 365 solved challenges a year. Keep that streak purring!",
-    moodBadge: "🔥 STREAK GUARDIAN",
+    moodBadge: "🔥 DAILY MOMENTUM",
     accentBg: "#A3E635",
   },
   {
     id: 9,
     quote: "Code is like humor. When you have to explain it, it's bad.",
     author: "Cory House",
-    catNote:
-      "Pick variable names so clear that future-you will give present-you a treat.",
     moodBadge: "★ READABLE CODE",
     accentBg: "#FF90E8",
   },
@@ -131,7 +113,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     quote:
       "Any fool can write code that a computer can understand. Good programmers write code that humans can understand.",
     author: "Martin Fowler",
-    catNote: "Your future teammates (and cats) appreciate clean indentation!",
     moodBadge: "💎 CRAFT MODE",
     accentBg: "#FFDE59",
   },
@@ -139,8 +120,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     id: 11,
     quote: "Experience is the name everyone gives to their mistakes.",
     author: "Oscar Wilde",
-    catNote:
-      "Every bug you squash today is a pattern you'll spot in 2 seconds tomorrow.",
     moodBadge: "⚡ XP GAINED",
     accentBg: "#C4B5FD",
   },
@@ -148,8 +127,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     id: 12,
     quote: "The best error message is the one that never shows up.",
     author: "Thomas Fuchs",
-    catNote:
-      "Check your edge cases (empty lists & zeroes) before they ambush you!",
     moodBadge: "🛡️ EDGE CASE READY",
     accentBg: "#6EE7B7",
   },
@@ -157,8 +134,6 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     id: 13,
     quote: "Consistency beats intensity when you're building a superpower.",
     author: "Byte-Cat Protocol // 07",
-    catNote:
-      "Got 60 seconds? Knock out today's Warm-Up or a quick module to level up!",
     moodBadge: "=^._.^= DAILY BOOST",
     accentBg: "#A3E635",
   },
@@ -166,10 +141,82 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     id: 14,
     quote: "Knowledge is power, but applied knowledge is a career.",
     author: "Developer Proverb",
-    catNote:
-      "Each node you unlock on this Skill Map is a real tool in your engineering kit.",
     moodBadge: "🎯 SKILL BUILDER",
     accentBg: "#FFDE59",
+  },
+  {
+    id: 15,
+    quote:
+      "Programs must be written for people to read, and only incidentally for machines to execute.",
+    author: "Harold Abelson",
+    moodBadge: "📖 CLEAN READS",
+    accentBg: "#C4B5FD",
+  },
+  {
+    id: 16,
+    quote: "Premature optimization is the root of all evil.",
+    author: "Donald Knuth",
+    moodBadge: "🧠 FOCUS FIRST",
+    accentBg: "#FFDE59",
+  },
+  {
+    id: 17,
+    quote: "Testing shows the presence, not the absence of bugs.",
+    author: "Edsger W. Dijkstra",
+    moodBadge: "🔬 VERIFY LOGIC",
+    accentBg: "#6EE7B7",
+  },
+  {
+    id: 18,
+    quote: "Simplicity is prerequisite for reliability.",
+    author: "Edsger W. Dijkstra",
+    moodBadge: "🏗️ SOLID SYSTEMS",
+    accentBg: "#A3E635",
+  },
+  {
+    id: 19,
+    quote:
+      "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away.",
+    author: "Antoine de Saint-Exupéry",
+    moodBadge: "✂️ LESS IS MORE",
+    accentBg: "#FF90E8",
+  },
+  {
+    id: 20,
+    quote:
+      "Measuring programming progress by lines of code is like measuring aircraft building progress by weight.",
+    author: "Bill Gates",
+    moodBadge: "⚖️ SIGNAL OVER NOISE",
+    accentBg: "#FFDE59",
+  },
+  {
+    id: 21,
+    quote: "Deleted code is debugged code.",
+    author: "Jeff Sickel",
+    moodBadge: "🧹 ZERO BLOAT",
+    accentBg: "#6EE7B7",
+  },
+  {
+    id: 22,
+    quote: "Before software can be reusable it first has to be usable.",
+    author: "Ralph Johnson",
+    moodBadge: "🔧 SHIP WORKING FIRST",
+    accentBg: "#C4B5FD",
+  },
+  {
+    id: 23,
+    quote: "Truth can only be found in one place: the code.",
+    author: "Robert C. Martin",
+    moodBadge: "🔍 SOURCE OF TRUTH",
+    accentBg: "#A3E635",
+  },
+  {
+    id: 24,
+    quote:
+      "One of my most productive days was throwing away 1,000 lines of code.",
+    author: "Ken Thompson",
+    moodBadge: "🔥 REFACTOR HERO",
+    accentBg: "#FF90E8",
   },
 ];
 
@@ -187,7 +234,7 @@ const PET_LEVEL_TIERS: PetLevelTier[] = [
   {
     level: 1,
     minXp: 0,
-    title: "ROOKIE KITTEN",
+    title: "KEYBOARD NAPPER",
     icon: "🐾",
     perkTitle: "Animated Stage",
     perkDesc: "Idle float, ear tilt & orbiting sparkles",
@@ -196,7 +243,7 @@ const PET_LEVEL_TIERS: PetLevelTier[] = [
   {
     level: 2,
     minXp: 30,
-    title: "SPARK PAW",
+    title: "MERGE CONFLICT CAT",
     icon: "🌈",
     perkTitle: "Prism Halo",
     perkDesc: "Cycles vibrant neon stage rings & unlocks 🐾 orbit badge",
@@ -205,7 +252,7 @@ const PET_LEVEL_TIERS: PetLevelTier[] = [
   {
     level: 3,
     minXp: 75,
-    title: "CYBER WHISKER",
+    title: "SUDO ROOT GREMLIN",
     icon: "⚡",
     perkTitle: "Hacker Visor",
     perkDesc: "Equips BYTE-OS visor overlay, fast equalizer & cyber whispers",
@@ -214,7 +261,7 @@ const PET_LEVEL_TIERS: PetLevelTier[] = [
   {
     level: 4,
     minXp: 135,
-    title: "BUG BUSTER",
+    title: "BUG WHACKER 9000",
     icon: "🪲",
     perkTitle: "Double Burst",
     perkDesc: "Upgrades sparkles to 🪲/💎 & triggers dual celebratory popups",
@@ -223,7 +270,7 @@ const PET_LEVEL_TIERS: PetLevelTier[] = [
   {
     level: 5,
     minXp: 210,
-    title: "SYNTAX KING",
+    title: "10X SENIOR CHONK",
     icon: "👑",
     perkTitle: "Golden Crown",
     perkDesc: "Floating 👑 crown sticker & gleaming gold portrait trim",
@@ -232,10 +279,10 @@ const PET_LEVEL_TIERS: PetLevelTier[] = [
   {
     level: 6,
     minXp: 300,
-    title: "ARCADE LEGEND",
+    title: "PROD OVERLORD CAT",
     icon: "🚀",
     perkTitle: "Rainbow Legend",
-    perkDesc: "Cycling rainbow arcade frame & ★ LEGEND crest on top bar",
+    perkDesc: "Cycling rainbow arcade frame & ★ LEGEND trim on top bar",
     accent: "#C4B5FD",
   },
 ];
@@ -474,15 +521,6 @@ const TRACK_QUIZZES: Record<string, MiniQuizItem[]> = {
   ],
 };
 
-const TRACK_TIPS: Record<string, string> = {
-  python_basics:
-    "Start with variables & loops—every tiny script builds muscle memory.",
-  algorithms:
-    "Look for the pattern first (pointers, window, or hash) before coding.",
-  system_design:
-    "Think about bottlenecks: caches, queues, and safe fallbacks keep apps fast.",
-};
-
 const TREAT_WHISPERS = [
   "🐟 CRUNCH! +15 PET XP",
   "♥ PURRS IN O(1)!",
@@ -507,8 +545,6 @@ interface ByteCatGuideCardProps {
   activeTrack?: string;
   activeTrackLabel: string;
   activeTrackAccent?: string;
-  totalXp?: number;
-  streakCount?: number;
   isPremium?: boolean;
   onOpenPaywall?: () => void;
   nextLessonTitle?: string;
@@ -521,8 +557,6 @@ export default function ByteCatGuideCard({
   activeTrack = "python_basics",
   activeTrackLabel,
   activeTrackAccent = StudioColors.yellow,
-  totalXp = 0,
-  streakCount = 0,
   isPremium = false,
   onOpenPaywall,
   nextLessonTitle,
@@ -532,6 +566,9 @@ export default function ByteCatGuideCard({
 
   const [mode, setMode] = useState<CompanionMode>("wisdom");
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
+  const [savedQuoteIds, setSavedQuoteIds] = useState<number[]>([]);
+  const [quoteFilter, setQuoteFilter] = useState<"all" | "saved">("all");
+  const [quoteVibeCount, setQuoteVibeCount] = useState<number>(0);
   const [snackIndex, setSnackIndex] = useState<number>(0);
   const [quizIndex, setQuizIndex] = useState<number>(0);
   const [quizSelection, setQuizSelection] = useState<{
@@ -1008,6 +1045,19 @@ export default function ByteCatGuideCard({
         updatedAt: Date.now(),
       });
 
+      const savedPrefs = readLocalJson<{
+        savedIds?: number[];
+        vibeCount?: number;
+      }>(STORAGE_BYTECAT_QUOTE_PREFS_KEY, {});
+      if (Array.isArray(savedPrefs.savedIds)) {
+        setSavedQuoteIds(
+          savedPrefs.savedIds.filter((id) => typeof id === "number"),
+        );
+      }
+      if (typeof savedPrefs.vibeCount === "number" && savedPrefs.vibeCount > 0) {
+        setQuoteVibeCount(savedPrefs.vibeCount);
+      }
+
       const currentDayKey = getTodayDateKey();
       setTodayKey(currentDayKey);
 
@@ -1065,13 +1115,102 @@ export default function ByteCatGuideCard({
 
   const snacks = TRACK_SNACKS[activeTrack] || TRACK_SNACKS.python_basics;
   const quizzes = TRACK_QUIZZES[activeTrack] || TRACK_QUIZZES.python_basics;
-  const currentQuote = BYTE_CAT_QUOTES[quoteIndex] || BYTE_CAT_QUOTES[0];
+  const savedQuotes = BYTE_CAT_QUOTES.filter((q) =>
+    savedQuoteIds.includes(q.id),
+  );
+  const usingSavedFilter = quoteFilter === "saved" && savedQuotes.length > 0;
+  const activeQuotePool = usingSavedFilter ? savedQuotes : BYTE_CAT_QUOTES;
+  const rawQuote = BYTE_CAT_QUOTES[quoteIndex] || BYTE_CAT_QUOTES[0];
+  const currentQuote = usingSavedFilter
+    ? savedQuotes.find((q) => q.id === rawQuote.id) || savedQuotes[0]
+    : rawQuote;
+  const isCurrentQuoteSaved = savedQuoteIds.includes(currentQuote.id);
+  const activePoolIdx = Math.max(
+    0,
+    activeQuotePool.findIndex((q) => q.id === currentQuote.id),
+  );
   const currentSnack = snacks[snackIndex % snacks.length];
   const safeQuizIdx = quizIndex % quizzes.length;
   const currentQuiz = quizzes[safeQuizIdx];
   const currentQuizKey = `${activeTrack}-${safeQuizIdx}`;
   const selectedQuizOpt =
     quizSelection?.key === currentQuizKey ? quizSelection.optionIdx : null;
+
+  function stepQuote(direction: -1 | 1) {
+    playKeyClick();
+    triggerPlayfulBounce(false);
+    triggerContentTransition();
+    const nextPoolIdx =
+      (activePoolIdx + direction + activeQuotePool.length) %
+      activeQuotePool.length;
+    const nextQuote = activeQuotePool[nextPoolIdx] || BYTE_CAT_QUOTES[0];
+    const nextGlobalIdx = Math.max(
+      0,
+      BYTE_CAT_QUOTES.findIndex((q) => q.id === nextQuote.id),
+    );
+    setQuoteIndex(nextGlobalIdx);
+    writeLocalJson(STORAGE_BYTECAT_QUOTE_KEY, {
+      lastIndex: nextGlobalIdx,
+      updatedAt: Date.now(),
+    });
+    setWhisperText(direction > 0 ? "▶ NEXT QUOTE!" : "◀ PREV QUOTE!");
+  }
+
+  function handleToggleSaveQuote() {
+    const exists = savedQuoteIds.includes(currentQuote.id);
+    const nextSaved = exists
+      ? savedQuoteIds.filter((id) => id !== currentQuote.id)
+      : [...savedQuoteIds, currentQuote.id];
+    setSavedQuoteIds(nextSaved);
+    if (exists && quoteFilter === "saved" && nextSaved.length === 0) {
+      setQuoteFilter("all");
+    }
+    writeLocalJson(STORAGE_BYTECAT_QUOTE_PREFS_KEY, {
+      savedIds: nextSaved,
+      vibeCount: quoteVibeCount,
+    });
+    if (exists) {
+      playKeyClick();
+      setWhisperText("☆ REMOVED PIN");
+      spawnFloatingPopup("QUOTE UNSAVED");
+    } else {
+      playSuccessChime();
+      triggerPlayfulBounce(false);
+      setWhisperText("★ QUOTE PINNED!");
+      spawnFloatingPopup("★ SAVED TO FAVS");
+    }
+  }
+
+  function handleToggleQuoteFilter() {
+    playKeyClick();
+    triggerContentTransition();
+    if (quoteFilter === "saved") {
+      setQuoteFilter("all");
+      setWhisperText(`📚 ALL ${BYTE_CAT_QUOTES.length} QUOTES`);
+      return;
+    }
+    if (savedQuotes.length === 0) return;
+    setQuoteFilter("saved");
+    const firstSavedGlobalIdx = Math.max(
+      0,
+      BYTE_CAT_QUOTES.findIndex((q) => q.id === savedQuotes[0].id),
+    );
+    setQuoteIndex(firstSavedGlobalIdx);
+    setWhisperText(`★ ${savedQuotes.length} SAVED`);
+  }
+
+  function handleVibeQuote() {
+    const nextCount = quoteVibeCount + 1;
+    setQuoteVibeCount(nextCount);
+    writeLocalJson(STORAGE_BYTECAT_QUOTE_PREFS_KEY, {
+      savedIds: savedQuoteIds,
+      vibeCount: nextCount,
+    });
+    playKeyClick();
+    triggerPlayfulBounce(false);
+    setWhisperText("🐾 PURR-APPROVED!");
+    spawnFloatingPopup("🐾 +1 VIBE");
+  }
 
   function activateHyperPurr(durationMs = 1800) {
     setHyperPurrActive(true);
@@ -1183,7 +1322,19 @@ export default function ByteCatGuideCard({
 
     if (mode === "wisdom" || mode === "perks") {
       if (mode === "perks") setMode("wisdom");
-      advanceToFreshQuote(false);
+      if (usingSavedFilter && activeQuotePool.length > 1) {
+        const offset =
+          1 + Math.floor(Math.random() * (activeQuotePool.length - 1));
+        const nextSaved =
+          activeQuotePool[(activePoolIdx + offset) % activeQuotePool.length];
+        const nextGlobal = Math.max(
+          0,
+          BYTE_CAT_QUOTES.findIndex((q) => q.id === nextSaved.id),
+        );
+        setQuoteIndex(nextGlobal);
+      } else {
+        advanceToFreshQuote(false);
+      }
       setWhisperText("💬 FRESH WISDOM!");
       spawnFloatingPopup("💬 WISDOM ↻");
     } else if (mode === "snack") {
@@ -1237,14 +1388,12 @@ export default function ByteCatGuideCard({
   const mascotRank = isPremium
     ? activeTier.title
     : completedCount >= 10
-      ? "ARCHITECT CAT"
+      ? "SENIOR PURRCHITECT"
       : completedCount >= 5
-        ? "CODE STALKER"
+        ? "BRANCH SLAPPER"
         : completedCount >= 1
-          ? "PAW CODER"
-          : "NEW COMPANION";
-
-  const trackTip = TRACK_TIPS[activeTrack] || TRACK_TIPS.python_basics;
+          ? "CONSOLE STALKER"
+          : "KEYCAP INTERN";
 
   // Prism Halo (Lvl 2+) & Legend Rainbow Frame (Lvl 6+)
   const activeHaloColor = hyperPurrActive
@@ -1422,27 +1571,6 @@ export default function ByteCatGuideCard({
             </Text>
           </View>
         </View>
-
-        <View style={styles.companionBarRight}>
-          <Pressable
-            style={styles.telemetryChip}
-            onPress={() =>
-              handleSwitchMode(mode === "perks" ? "wisdom" : "perks")
-            }
-          >
-            <Text style={styles.telemetryChipText}>
-              {isPremium ? `🐾 PET LVL ${petLevel}` : "🔒 PRO PET"}
-            </Text>
-          </Pressable>
-          {streakCount > 0 && (
-            <View style={styles.telemetryChip}>
-              <Text style={styles.telemetryChipText}>🔥 {streakCount}D</Text>
-            </View>
-          )}
-          <View style={styles.telemetryChip}>
-            <Text style={styles.telemetryChipText}>⚡ {totalXp} XP</Text>
-          </View>
-        </View>
       </View>
 
       <View style={styles.cardBodyRow}>
@@ -1613,9 +1741,11 @@ export default function ByteCatGuideCard({
             </Pressable>
           </View>
 
-          {/* Unified Single Daily Treat Button (Pro Only) + Shuffle Button */}
+          {/* Unified Single Daily Treat Button (Pro Only, locked after daily use) + Shuffle Button */}
           <View style={styles.actionBtnRow}>
             <Pressable
+              disabled={treatedToday}
+              accessibilityState={{ disabled: treatedToday }}
               style={({ pressed }) => [
                 styles.miniActionBtn,
                 !isPremium
@@ -1623,7 +1753,7 @@ export default function ByteCatGuideCard({
                   : treatedToday
                     ? styles.treatDoneTodayBtn
                     : styles.treatProBtn,
-                pressed && styles.miniBtnPressed,
+                pressed && !treatedToday && styles.miniBtnPressed,
               ]}
               onPress={handleTreatPet}
             >
@@ -1736,31 +1866,104 @@ export default function ByteCatGuideCard({
                     </Text>
                   </View>
                   <Text style={styles.quoteCounterText}>
-                    #{String(currentQuote.id).padStart(2, "0")}/
-                    {String(BYTE_CAT_QUOTES.length).padStart(2, "0")}
+                    {usingSavedFilter
+                      ? `★ ${activePoolIdx + 1}/${activeQuotePool.length} SAVED`
+                      : `#${String(currentQuote.id).padStart(2, "0")}/${String(BYTE_CAT_QUOTES.length).padStart(2, "0")}`}
                   </Text>
+                  {savedQuoteIds.length > 0 && (
+                    <Pressable
+                      style={[
+                        styles.quoteFilterPill,
+                        usingSavedFilter && styles.quoteFilterPillActive,
+                      ]}
+                      onPress={handleToggleQuoteFilter}
+                    >
+                      <Text
+                        style={[
+                          styles.quoteFilterPillText,
+                          usingSavedFilter && styles.quoteFilterPillTextActive,
+                        ]}
+                      >
+                        ★ FAVS ({savedQuoteIds.length})
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
 
-                <View style={styles.quoteBodyWrap}>
-                  <Text style={styles.quoteText}>
-                    &ldquo;{currentQuote.quote}&rdquo;
-                  </Text>
-                  <Text style={styles.quoteAuthor}>— {currentQuote.author}</Text>
-                </View>
-
-                <View style={styles.catNoteBox}>
-                  <View style={styles.catNoteHeaderRow}>
-                    <Text style={styles.catNotePrefix}>
-                      🐾 BYTE-CAT BRIEFING
-                    </Text>
-                    <Text style={styles.catNoteTrackTag}>
-                      {activeTrackLabel}
+                <View
+                  style={[
+                    styles.quoteSpotlightBox,
+                    { borderLeftColor: currentQuote.accentBg },
+                  ]}
+                >
+                  <View style={styles.quoteSpotlightTopRow}>
+                    <View
+                      style={[
+                        styles.quoteCornerMark,
+                        { backgroundColor: currentQuote.accentBg },
+                      ]}
+                    >
+                      <Text style={styles.quoteCornerMarkText}>&ldquo;</Text>
+                    </View>
+                    <Text style={styles.quoteAuthor}>
+                      — {currentQuote.author}
                     </Text>
                   </View>
-                  <Text style={styles.catNoteText}>{trackTip}</Text>
-                  <Text style={styles.catNoteSubText}>
-                    {currentQuote.catNote}
+                  <Text style={styles.quoteText}>
+                    {currentQuote.quote}
                   </Text>
+                </View>
+
+                <View style={styles.quoteInteractiveBar}>
+                  <View style={styles.quoteNavGroup}>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.quoteStepBtn,
+                        pressed && { transform: [{ translateY: 1 }] },
+                      ]}
+                      onPress={() => stepQuote(-1)}
+                    >
+                      <Text style={styles.quoteStepBtnText}>◀</Text>
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.quoteStepBtn,
+                        pressed && { transform: [{ translateY: 1 }] },
+                      ]}
+                      onPress={() => stepQuote(1)}
+                    >
+                      <Text style={styles.quoteStepBtnText}>▶</Text>
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.quoteActionChip,
+                        isCurrentQuoteSaved && styles.quoteActionChipSaved,
+                        pressed && { transform: [{ translateY: 1 }] },
+                      ]}
+                      onPress={handleToggleSaveQuote}
+                    >
+                      <Text
+                        style={[
+                          styles.quoteActionChipText,
+                          isCurrentQuoteSaved && styles.quoteActionChipTextInk,
+                        ]}
+                      >
+                        {isCurrentQuoteSaved ? "★ SAVED" : "☆ SAVE"}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.quoteVibeBtn,
+                      pressed && { transform: [{ translateY: 1 }] },
+                    ]}
+                    onPress={handleVibeQuote}
+                  >
+                    <Text style={styles.quoteVibeBtnText}>
+                      🐾 PURR{quoteVibeCount > 0 ? ` · ${quoteVibeCount}` : " +1"}
+                    </Text>
+                  </Pressable>
                 </View>
               </>
             ) : mode === "snack" ? (
@@ -1940,12 +2143,17 @@ export default function ByteCatGuideCard({
                         </View>
                         <View style={styles.perkCopyCol}>
                           <Text style={styles.perkTitleLine}>
-                            {tier.perkTitle}{" "}
+                            {tier.title}{" "}
                             <Text style={styles.perkTitleReq}>
                               · {tier.minXp} XP
                             </Text>
                           </Text>
-                          <Text style={styles.perkDescLine}>{tier.perkDesc}</Text>
+                          <Text style={styles.perkDescLine}>
+                            <Text style={styles.perkBonusLabel}>
+                              {tier.perkTitle}:
+                            </Text>{" "}
+                            {tier.perkDesc}
+                          </Text>
                         </View>
                         <Text style={styles.perkStatusMark}>
                           {isUnlocked ? "✓" : "🔒"}
@@ -2028,12 +2236,6 @@ const getStyles = () =>
       gap: 8,
       flexWrap: "wrap",
     },
-    companionBarRight: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      flexWrap: "wrap",
-    },
     rankBadge: {
       backgroundColor: StudioColors.surface,
       borderWidth: 1.5,
@@ -2051,18 +2253,6 @@ const getStyles = () =>
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.5,
-    },
-    telemetryChip: {
-      backgroundColor: StudioColors.ink,
-      borderRadius: 6,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-    },
-    telemetryChipText: {
-      color: StudioColors.yellow,
-      fontSize: 9.5,
-      fontWeight: "900",
-      fontFamily: MonoFont,
     },
     cardBodyRow: {
       flexDirection: "row",
@@ -2349,6 +2539,11 @@ const getStyles = () =>
       flex: 1,
       backgroundColor: StudioColors.cardDoneBg,
       borderColor: StudioColors.cardDoneBorder,
+      opacity: 0.92,
+      ...Platform.select({
+        web: { cursor: "default", userSelect: "none", boxShadow: "none" } as any,
+        default: {},
+      }),
     },
     treatLockedBtn: {
       flex: 1,
@@ -2477,63 +2672,144 @@ const getStyles = () =>
       fontFamily: MonoFont,
       letterSpacing: 0.6,
     },
-    quoteBodyWrap: {
-      gap: 4,
-    },
-    quoteText: {
-      color: StudioColors.textPrimary,
-      fontSize: 15.5,
-      fontWeight: "900",
-      lineHeight: 22,
-      letterSpacing: -0.2,
-    },
-    quoteAuthor: {
-      color: StudioColors.textSecondary,
-      fontSize: 11,
-      fontWeight: "800",
-      fontFamily: MonoFont,
-    },
-    catNoteBox: {
+    quoteFilterPill: {
       backgroundColor: StudioColors.surface,
-      borderRadius: 10,
       borderWidth: 1.5,
       borderColor: StudioColors.border,
-      paddingHorizontal: 12,
-      paddingVertical: 9,
-      gap: 3,
+      borderRadius: 6,
+      paddingHorizontal: 7,
+      paddingVertical: 2.5,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
-    catNoteHeaderRow: {
+    quoteFilterPillActive: {
+      backgroundColor: StudioColors.yellow,
+      borderColor: StudioColors.ink,
+    },
+    quoteFilterPillText: {
+      color: StudioColors.textSecondary,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+    },
+    quoteFilterPillTextActive: {
+      color: StudioColors.ink,
+    },
+    quoteSpotlightBox: {
+      backgroundColor: StudioColors.surface,
+      borderRadius: 11,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderLeftWidth: 5,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      gap: 9,
+    },
+    quoteSpotlightTopRow: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 8,
       flexWrap: "wrap",
     },
-    catNotePrefix: {
+    quoteCornerMark: {
+      width: 24,
+      height: 22,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    quoteCornerMarkText: {
+      color: StudioColors.ink,
+      fontSize: 17,
+      fontWeight: "900",
+      lineHeight: 20,
+      marginTop: 2,
+    },
+    quoteText: {
+      color: StudioColors.textPrimary,
+      fontSize: 18,
+      fontWeight: "900",
+      lineHeight: 26,
+      letterSpacing: -0.2,
+    },
+    quoteAuthor: {
+      color: StudioColors.textSecondary,
+      fontSize: 11.5,
+      fontWeight: "800",
+      fontFamily: MonoFont,
+    },
+    quoteInteractiveBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    quoteNavGroup: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap",
+    },
+    quoteStepBtn: {
+      backgroundColor: StudioColors.surface,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 7,
+      paddingHorizontal: 9,
+      paddingVertical: 4.5,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    quoteStepBtnText: {
       color: StudioColors.textPrimary,
       fontSize: 10,
       fontWeight: "900",
       fontFamily: MonoFont,
-      letterSpacing: 0.6,
     },
-    catNoteTrackTag: {
-      color: StudioColors.textMuted,
-      fontSize: 9.5,
-      fontWeight: "800",
-      fontFamily: MonoFont,
-      textTransform: "uppercase",
+    quoteActionChip: {
+      backgroundColor: StudioColors.surface,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 7,
+      paddingHorizontal: 9,
+      paddingVertical: 4.5,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
-    catNoteText: {
+    quoteActionChipSaved: {
+      backgroundColor: StudioColors.yellow,
+      borderColor: StudioColors.ink,
+    },
+    quoteActionChipText: {
       color: StudioColors.textPrimary,
-      fontSize: 12.5,
-      fontWeight: "800",
-      lineHeight: 18,
+      fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
     },
-    catNoteSubText: {
-      color: StudioColors.textSecondary,
-      fontSize: 12,
-      fontWeight: "600",
-      lineHeight: 17,
+    quoteActionChipTextInk: {
+      color: StudioColors.ink,
+    },
+    quoteVibeBtn: {
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 7,
+      paddingHorizontal: 10,
+      paddingVertical: 4.5,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    quoteVibeBtnText: {
+      color: StudioColors.textPrimary,
+      fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
     },
     snackPanel: {
       gap: 9,
@@ -2707,6 +2983,10 @@ const getStyles = () =>
       fontSize: 10.5,
       fontWeight: "600",
       lineHeight: 14,
+    },
+    perkBonusLabel: {
+      color: StudioColors.textPrimary,
+      fontWeight: "800",
     },
     perkStatusMark: {
       fontSize: 11,
