@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { supabase } from "../../lib/supabase";
+import AchievementsHall from "../components/AchievementsHall";
 import AlgorithmVisualizerLab from "../components/AlgorithmVisualizerLab";
 import AppHeader from "../components/AppHeader";
 import Auth from "../components/Auth";
@@ -1123,6 +1124,15 @@ export default function HomeScreen() {
           }
           onBackToMap={() => setViewMode("roadmap")}
         />
+      ) : viewMode === "achievements" ? (
+        <AchievementsHall
+          xpPoints={xpPoints}
+          streakCount={streakCount}
+          lessons={lessons}
+          completedLessons={completedLessons}
+          solvedIncidents={solvedIncidents}
+          onNavigateMode={(mode) => setViewMode(mode)}
+        />
       ) : (
         <View style={styles.content}>
           <StudioSidebar
@@ -1409,6 +1419,10 @@ export default function HomeScreen() {
               handleSwitchTrack(trackKey);
             }}
             onOpenCertificate={(cert) => setActiveCertificate(cert)}
+            onOpenAchievementsTab={() => {
+              setShowProfileModal(false);
+              setViewMode("achievements");
+            }}
             onToggleDevPro={
               isDevMode
                 ? () => setDevProOverride((prev) => !(prev ?? true))

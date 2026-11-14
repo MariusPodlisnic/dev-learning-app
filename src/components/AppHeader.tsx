@@ -74,6 +74,8 @@ function getModeAccent(viewMode: ViewMode): {
       return { primary: StudioColors.lime, secondary: "#38BDF8" };
     case "algolab":
       return { primary: StudioColors.violet, secondary: StudioColors.pink };
+    case "achievements":
+      return { primary: StudioColors.yellow, secondary: StudioColors.coral };
     case "roadmap":
     default:
       return { primary: StudioColors.yellow, secondary: StudioColors.mint };
@@ -585,6 +587,40 @@ export default function AppHeader({
                   <Text style={styles.proBadgeText}>👑 PRO MEMBER</Text>
                 </View>
               )}
+            </Pressable>
+
+            {/* 2b. Dedicated Achievements Tab Button */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.achievementsTabBtn,
+                viewMode === "achievements" && styles.achievementsTabBtnActive,
+                pressed && {
+                  transform: [{ translateX: 1 }, { translateY: 1 }],
+                },
+              ]}
+              onPress={() => handleSwitchMode("achievements")}
+            >
+              <View style={styles.headerBtnTextStack}>
+                {!isCompactHeader && (
+                  <Text
+                    style={[
+                      styles.headerBtnMicroLabelMuted,
+                      viewMode === "achievements" && styles.headerBtnMicroLabel,
+                    ]}
+                  >
+                    TROPHY HALL
+                  </Text>
+                )}
+                <Text
+                  style={[
+                    styles.achievementsTabBtnText,
+                    viewMode === "achievements" &&
+                      styles.achievementsTabBtnTextActive,
+                  ]}
+                >
+                  🏅 ACHIEVEMENTS
+                </Text>
+              </View>
             </Pressable>
 
             {/* 3. Unlock Pro Primary CTA Box */}
@@ -1112,6 +1148,31 @@ const getStyles = () =>
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,
+    },
+    achievementsTabBtn: {
+      backgroundColor: StudioColors.surface,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 7,
+      borderWidth: 2,
+      borderColor: StudioColors.border,
+      justifyContent: "center",
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    achievementsTabBtnActive: {
+      backgroundColor: StudioColors.mint,
+      borderColor: StudioColors.ink,
+    },
+    achievementsTabBtnText: {
+      color: StudioColors.textPrimary,
+      fontSize: 10.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+    },
+    achievementsTabBtnTextActive: {
+      color: StudioColors.ink,
     },
     upgradeHeaderBtn: {
       backgroundColor: StudioColors.pink,

@@ -40,7 +40,13 @@ export interface Lesson {
   hints?: string[];
 }
 
-export type ViewMode = "roadmap" | "studio" | "bughunt" | "blitz" | "algolab";
+export type ViewMode =
+  | "roadmap"
+  | "studio"
+  | "bughunt"
+  | "blitz"
+  | "algolab"
+  | "achievements";
 export type ExplainStyle = "analogy" | "guide" | "cheatsheet";
 
 export const STORAGE_DRAFTS_KEY = "devlearn_code_drafts_v1";
@@ -54,7 +60,7 @@ export function readLocalJson<T>(key: string, fallback: T): T {
   try {
     const raw = window.localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch (_e) {
+  } catch {
     return fallback;
   }
 }
@@ -63,7 +69,7 @@ export function writeLocalJson(key: string, value: unknown) {
   if (typeof window === "undefined" || !window.localStorage) return;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
-  } catch (_e) {}
+  } catch {}
 }
 
 /**

@@ -19,6 +19,7 @@ interface ProfileStatsModalProps {
   completedLessons: Record<string, boolean>;
   onSelectTrack: (trackKey: string) => void;
   onOpenCertificate?: (certificate: CertificateData) => void;
+  onOpenAchievementsTab?: () => void;
   onToggleDevPro?: () => void;
   onOpenAuth: () => void;
   onClose: () => void;
@@ -137,6 +138,7 @@ export default function ProfileStatsModal({
   completedLessons,
   onSelectTrack,
   onOpenCertificate,
+  onOpenAchievementsTab,
   onToggleDevPro,
   onOpenAuth,
   onClose,
@@ -174,40 +176,6 @@ export default function ProfileStatsModal({
       setTimeout(() => setShareFeedback("idle"), 2500);
     }
   }
-
-  const pyLessons = lessons.filter((l) => l.track === "python_basics");
-  const pyDone = pyLessons.filter((l) => completedLessons[l.id]).length;
-
-  const achievements = [
-    {
-      id: "first_solve",
-      icon: "01",
-      title: "First Execution",
-      desc: "Solve your first coding assignment",
-      unlocked: totalCompleted >= 1,
-    },
-    {
-      id: "streak_active",
-      icon: "02",
-      title: "Momentum Builder",
-      desc: "Maintain an active daily streak",
-      unlocked: streakCount >= 1,
-    },
-    {
-      id: "xp_milestone",
-      icon: "03",
-      title: "200 XP Club",
-      desc: "Earn 200+ total experience points",
-      unlocked: xpPoints >= 200,
-    },
-    {
-      id: "python_master",
-      icon: "04",
-      title: "Core Graduate",
-      desc: "Complete all Python Foundations modules",
-      unlocked: pyLessons.length > 0 && pyDone === pyLessons.length,
-    },
-  ];
 
   return (
     <View style={styles.card}>
@@ -428,42 +396,28 @@ export default function ProfileStatsModal({
           <View style={styles.certLockedTeaser}>
             <Text style={styles.certLockedTeaserText}>
               Complete any 4-module chapter or finish a full track to mint your
-              first shareable Certificate & LinkedIn credential.
+              first shareable Certificate &amp; LinkedIn credential.
             </Text>
           </View>
         )}
 
-        {/* Unlockable Achievements */}
-        <Text style={styles.sectionHeading}>ACHIEVEMENT BADGES</Text>
-        <View style={styles.achievementsGrid}>
-          {achievements.map((ach) => (
-            <View
-              key={ach.id}
-              style={[
-                styles.achievementCard,
-                ach.unlocked
-                  ? styles.achievementCardUnlocked
-                  : styles.achievementCardLocked,
-              ]}
-            >
-              <View style={styles.achievementTop}>
-                <Text style={styles.achievementIcon}>{ach.icon}</Text>
-                <Text
-                  style={[
-                    styles.achievementStatus,
-                    ach.unlocked
-                      ? { color: StudioColors.emerald }
-                      : { color: StudioColors.textMuted },
-                  ]}
-                >
-                  {ach.unlocked ? "✓ UNLOCKED" : "LOCKED"}
-                </Text>
-              </View>
-              <Text style={styles.achievementTitle}>{ach.title}</Text>
-              <Text style={styles.achievementDesc}>{ach.desc}</Text>
-            </View>
-          ))}
-        </View>
+        {onOpenAchievementsTab && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.shareCardBtn,
+              { backgroundColor: StudioColors.mint, marginBottom: 8 },
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              onOpenAchievementsTab();
+            }}
+          >
+            <Text style={styles.shareCardBtnText}>
+              🏆 OPEN ACHIEVEMENTS TAB ↗
+            </Text>
+          </Pressable>
+        )}
 
         {!userEmail && (
           <Pressable
@@ -759,58 +713,6 @@ const styles = StyleSheet.create({
   },
   trackRowBarFill: {
     height: "100%",
-  },
-  achievementsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 8,
-  },
-  achievementCard: {
-    width: "48%",
-    flexGrow: 1,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    gap: 4,
-  },
-  achievementCardUnlocked: {
-    backgroundColor: StudioColors.mint,
-    borderColor: StudioColors.border,
-  },
-  achievementCardLocked: {
-    backgroundColor: StudioColors.bg,
-    borderColor: StudioColors.border,
-    opacity: 0.7,
-  },
-  achievementTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 2,
-  },
-  achievementIcon: {
-    fontSize: 14,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    color: StudioColors.textPrimary,
-  },
-  achievementStatus: {
-    fontSize: 8,
-    fontWeight: "900",
-    letterSpacing: 0.8,
-    fontFamily: MonoFont,
-  },
-  achievementTitle: {
-    color: StudioColors.textPrimary,
-    fontSize: 12,
-    fontWeight: "900",
-  },
-  achievementDesc: {
-    color: StudioColors.textSecondary,
-    fontSize: 11,
-    fontWeight: "600",
-    lineHeight: 15,
   },
   syncCtaBtn: {
     marginTop: 10,
