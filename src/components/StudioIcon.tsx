@@ -61,6 +61,7 @@ export type StudioIconName =
   | "sun"
   | "keyboard"
   | "timer"
+  | "star"
   | "check_box"
   | "cross_box"
   | "yellow_box";
@@ -435,6 +436,11 @@ const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
   yellow_box: `
     <rect x="5" y="5" width="22" height="22" rx="4" fill="#111111" transform="translate(1.6,1.6)"/>
     <rect x="5" y="5" width="22" height="22" rx="4" fill="#FFDE59" stroke="#111111" stroke-width="2.2"/>
+  `,
+  star: `
+    <polygon points="16,4 19.6,11.6 28,12.8 22,18.7 23.4,27 16,23.1 8.6,27 10,18.7 4,12.8 12.4,11.6" fill="#111111" transform="translate(1.8,1.8)"/>
+    <polygon points="16,4 19.6,11.6 28,12.8 22,18.7 23.4,27 16,23.1 8.6,27 10,18.7 4,12.8 12.4,11.6" fill="#FFDE59" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
+    <circle cx="16" cy="16.5" r="2.6" fill="#FFFBEB" stroke="#111111" stroke-width="1.4"/>
   `,
 };
 

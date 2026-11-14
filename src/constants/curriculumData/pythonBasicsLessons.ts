@@ -1,5 +1,447 @@
 export const PYTHON_BASICS_EXPANSION_LESSONS = [
   {
+    id: "exp-py-01",
+    title: "Variables & Data Types: Player Profile Setup",
+    track: "python_basics",
+    category: "VARIABLES & TYPES",
+    difficulty: "Easy",
+    tree_row: 1,
+    lesson_order: 1,
+    is_free: true,
+    description:
+      "Store text strings, integer numbers, and boolean switches in variables and return a formatted summary.",
+    content:
+      'In Python, a **variable** is a named label that stores a value in memory using `=`:\n\n• **Strings (`"Aria"`)**: Text wrapped in quotes.\n• **Integers (`100`)**: Whole numbers written without quotes so you can do math.\n• **Booleans (`True` / `False`)**: Capitalized ON/OFF switches.\n\n```python\nhero = "Aria"       # str\nhp = 100            # int\nis_ready = True     # bool\nprint(hero, hp, is_ready)\n```',
+    assignment:
+      "Complete `create_hero_profile(name, bonus_hp)`: calculate `total_hp = 100 + bonus_hp`, set `is_online = True`, and return the tuple `(name, total_hp, is_online)`.",
+    constraints: [
+      "Compute `total_hp = 100 + bonus_hp` using integer math (no quotes around 100)",
+      "Create a boolean `is_online = True`",
+      "Return `(name, total_hp, is_online)`",
+    ],
+    examples: [
+      {
+        input: 'name = "Aria", bonus_hp = 50',
+        output: "('Aria', 150, True)",
+        explanation: "100 base HP + 50 bonus HP = 150, paired with name and True.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def create_hero_profile(name, bonus_hp):
+    # Calculate total_hp (100 + bonus_hp) and return (name, total_hp, True)
+    pass
+
+print(create_hero_profile("Aria", 50))`,
+    expected_output: "('Aria', 150, True)",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = create_hero_profile("Aria", 50)
+    results.append({"id": 1, "input": "'Aria', 50", "expected": "('Aria', 150, True)", "actual": str(r1), "passed": r1 == ("Aria", 150, True)})
+    r2 = create_hero_profile("Kai", 25)
+    results.append({"id": 2, "input": "'Kai', 25", "expected": "('Kai', 125, True)", "actual": str(r2), "passed": r2 == ("Kai", 125, True)})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "name", value: '"Aria"', type: "str", address: "0x01" },
+      { label: "total_hp", value: "150", type: "int", address: "0x02" },
+      { label: "is_online", value: "True", type: "bool", address: "0x03" },
+    ],
+    hints: [
+      "Inside the function, write `total_hp = 100 + bonus_hp`.",
+      "Return `(name, total_hp, True)`.",
+    ],
+  },
+  {
+    id: "exp-py-02",
+    title: "Lists & Loops: XP Batch Calculator",
+    track: "python_basics",
+    category: "LISTS & LOOPS",
+    difficulty: "Easy",
+    tree_row: 2,
+    lesson_order: 2,
+    is_free: true,
+    description:
+      "Store ordered collections of data in a list and iterate over every item using a for loop.",
+    content:
+      "A **List (`[10, 20, 30]`)** stores an ordered sequence of items. A **`for` loop** visits each item one by one from left to right so you can accumulate totals or transform values:\n\n```python\nquests = [10, 20, 30]\ntotal_xp = 0\nfor xp in quests:\n    total_xp += xp\nprint(total_xp)  # 60\n```",
+    assignment:
+      "Complete `sum_doubled_xp(quests)`: loop through every number `xp` in `quests`, double it (`xp * 2`), add it to a running `total`, and return `total`.",
+    constraints: [
+      "Start with `total = 0` before the loop",
+      "Use `for xp in quests:` to visit each quest reward",
+      "Add `xp * 2` to `total` on each step and return `total` outside the loop",
+    ],
+    examples: [
+      {
+        input: "quests = [10, 20, 5]",
+        output: "70",
+        explanation: "(10*2) + (20*2) + (5*2) = 20 + 40 + 10 = 70.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def sum_doubled_xp(quests):
+    total = 0
+    # Loop over quests, add xp * 2 to total, and return total
+    return total
+
+print(sum_doubled_xp([10, 20, 5]))`,
+    expected_output: "70",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = sum_doubled_xp([10, 20, 5])
+    results.append({"id": 1, "input": "[10, 20, 5]", "expected": "70", "actual": str(r1), "passed": r1 == 70})
+    r2 = sum_doubled_xp([5, 15])
+    results.append({"id": 2, "input": "[5, 15]", "expected": "40", "actual": str(r2), "passed": r2 == 40})
+    r3 = sum_doubled_xp([])
+    results.append({"id": 3, "input": "[]", "expected": "0", "actual": str(r3), "passed": r3 == 0})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "idx 0: 10", value: "+20 -> total = 20", address: "step 1" },
+      { label: "idx 1: 20", value: "+40 -> total = 60", address: "step 2" },
+      { label: "idx 2: 5", value: "+10 -> total = 70 ✓", address: "step 3" },
+    ],
+    hints: [
+      "Write `for xp in quests:` and indent the next line by 4 spaces.",
+      "Inside the loop, write `total += xp * 2`, then `return total` unindented at the bottom.",
+    ],
+  },
+  {
+    id: "exp-py-03",
+    title: "Conditionals: Ranked Tier Evaluator",
+    track: "python_basics",
+    category: "IF / ELIF / ELSE",
+    difficulty: "Easy",
+    tree_row: 3,
+    lesson_order: 3,
+    is_free: true,
+    description:
+      "Branch your code's decisions cleanly using if, elif, and else comparison blocks.",
+    content:
+      'Use **`if`**, **`elif`** (else-if), and **`else`** to test conditions in order from top to bottom. Python runs the **first** branch that evaluates to `True` and skips the rest:\n\n```python\nif score >= 1000:\n    rank = "GOLD"\nelif score >= 500:\n    rank = "SILVER"\nelse:\n    rank = "BRONZE"\n```',
+    assignment:
+      'Complete `get_rank_tier(score)`: return `"GOLD"` if `score >= 1000`, `"SILVER"` if `score >= 500`, or `"BRONZE"` otherwise.',
+    constraints: [
+      'Check `if score >= 1000:` first and return `"GOLD"`',
+      'Use `elif score >= 500:` to return `"SILVER"`',
+      'Return `"BRONZE"` in the `else:` fallback',
+    ],
+    examples: [
+      {
+        input: "score = 750",
+        output: "SILVER",
+        explanation: "750 is less than 1000 but >= 500, so it lands in SILVER.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def get_rank_tier(score):
+    # Return "GOLD" (>= 1000), "SILVER" (>= 500), or "BRONZE"
+    pass
+
+print(get_rank_tier(750))`,
+    expected_output: "SILVER",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = get_rank_tier(750)
+    results.append({"id": 1, "input": "750", "expected": "SILVER", "actual": str(r1), "passed": r1 == "SILVER"})
+    r2 = get_rank_tier(1200)
+    results.append({"id": 2, "input": "1200", "expected": "GOLD", "actual": str(r2), "passed": r2 == "GOLD"})
+    r3 = get_rank_tier(200)
+    results.append({"id": 3, "input": "200", "expected": "BRONZE", "actual": str(r3), "passed": r3 == "BRONZE"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "score >= 1000", value: "750 >= 1000 -> False", type: "bool", address: "if" },
+      { label: "score >= 500", value: "750 >= 500 -> True ✓", type: "bool", address: "elif" },
+      { label: "return", value: '"SILVER"', type: "str", address: "out" },
+    ],
+    hints: [
+      'Check the highest threshold (`score >= 1000`) first before `elif score >= 500:`.',
+      'Remember the colon `:` at the end of `if`, `elif`, and `else`.',
+    ],
+  },
+  {
+    id: "exp-py-04",
+    title: "Functions & Return: Combo Score Multiplier",
+    track: "python_basics",
+    category: "FUNCTIONS",
+    difficulty: "Easy",
+    tree_row: 4,
+    lesson_order: 4,
+    is_free: true,
+    description:
+      "Write reusable functions with parameters and hand back calculated values using return.",
+    content:
+      "A **function** packages reusable logic with **`def`**, accepts inputs inside parentheses `( )`, and sends back its result with **`return`**:\n\n```python\ndef calc_combo(base_pts, multiplier):\n    return base_pts * multiplier\n\nprint(calc_combo(150, 3))  # 450\n```\n\nNote: `print()` only displays text on screen (`returns None`), whereas **`return`** actually hands the value back to the caller!",
+    assignment:
+      "Complete `calc_final_score(base_pts, streak_bonus, multiplier)` so it adds `base_pts + streak_bonus`, multiplies the sum by `multiplier`, and returns the result.",
+    constraints: [
+      "Group `(base_pts + streak_bonus)` in parentheses before multiplying by `multiplier`",
+      "Use `return` (not `print`) inside the function body",
+    ],
+    examples: [
+      {
+        input: "base_pts = 100, streak_bonus = 25, multiplier = 2",
+        output: "250",
+        explanation: "(100 + 25) * 2 = 125 * 2 = 250.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def calc_final_score(base_pts, streak_bonus, multiplier):
+    # Add base_pts and streak_bonus, multiply by multiplier, and return
+    pass
+
+print(calc_final_score(100, 25, 2))`,
+    expected_output: "250",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = calc_final_score(100, 25, 2)
+    results.append({"id": 1, "input": "100, 25, 2", "expected": "250", "actual": str(r1), "passed": r1 == 250})
+    r2 = calc_final_score(50, 10, 3)
+    results.append({"id": 2, "input": "50, 10, 3", "expected": "180", "actual": str(r2), "passed": r2 == 180})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "base + bonus", value: "100 + 25 = 125", type: "int", address: "0x10" },
+      { label: "* multiplier", value: "125 * 2 = 250", type: "int", address: "0x14" },
+    ],
+    hints: [
+      "Use parentheses `(base_pts + streak_bonus) * multiplier` so addition happens before multiplication.",
+      "Return the calculated number with `return (base_pts + streak_bonus) * multiplier`.",
+    ],
+  },
+  {
+    id: "exp-py-05",
+    title: "Dictionaries: User Role & XP Registry",
+    track: "python_basics",
+    category: "DICTIONARIES",
+    difficulty: "Easy",
+    tree_row: 5,
+    lesson_order: 5,
+    is_free: true,
+    description:
+      "Read and update key-value pairs in a Python dictionary in O(1) instant lookup time.",
+    content:
+      'A **Dictionary (`{ }`)** stores labeled **`"key": value`** pairs. You can read or update any key in **O(1)** time using square brackets:\n\n```python\nuser = {"username": "coder", "xp": 100}\nuser["role"] = "admin"\nuser["xp"] = user["xp"] + 50\n```',
+    assignment:
+      'Complete `promote_user(user, bonus_xp)`: set `user["role"] = "admin"`, add `bonus_xp` to `user["xp"]`, and return the updated `user` dictionary.',
+    constraints: [
+      'Assign `user["role"] = "admin"`',
+      'Update `user["xp"] = user["xp"] + bonus_xp`',
+      "Return the `user` dictionary",
+    ],
+    examples: [
+      {
+        input: 'user = {"username": "nova", "xp": 100}, bonus_xp = 50',
+        output: "{'username': 'nova', 'xp': 150, 'role': 'admin'}",
+        explanation: 'Adds "role": "admin" and increases "xp" from 100 to 150.',
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def promote_user(user, bonus_xp):
+    # Set user["role"] = "admin", add bonus_xp to user["xp"], and return user
+    return user
+
+print(promote_user({"username": "nova", "xp": 100}, 50))`,
+    expected_output: "{'username': 'nova', 'xp': 150, 'role': 'admin'}",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = promote_user({"username": "nova", "xp": 100}, 50)
+    results.append({"id": 1, "input": "{'username': 'nova', 'xp': 100}, 50", "expected": "{'username': 'nova', 'xp': 150, 'role': 'admin'}", "actual": str(r1), "passed": r1 == {"username": "nova", "xp": 150, "role": "admin"}})
+    r2 = promote_user({"username": "leo", "xp": 0}, 25)
+    results.append({"id": 2, "input": "{'username': 'leo', 'xp': 0}, 25", "expected": "{'username': 'leo', 'xp': 25, 'role': 'admin'}", "actual": str(r2), "passed": r2 == {"username": "leo", "xp": 25, "role": "admin"}})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: '"username"', value: '"nova"', address: "0x01" },
+      { label: '"xp"', value: "100 -> 150 ✓", address: "0x02" },
+      { label: '"role"', value: '"admin" ★', address: "0x03" },
+    ],
+    hints: [
+      'Use quotes around dictionary keys: `user["role"] = "admin"`.',
+      'Update XP with `user["xp"] += bonus_xp` before returning `user`.',
+    ],
+  },
+  {
+    id: "exp-py-06",
+    title: "String Cleaning: Handle Normalizer",
+    track: "python_basics",
+    category: "STRING METHODS",
+    difficulty: "Easy",
+    tree_row: 6,
+    lesson_order: 6,
+    is_free: true,
+    description:
+      "Clean messy user input by chaining .strip() and .lower() on strings.",
+    content:
+      'Users often type extra spaces or random capital letters into sign-up forms. Chain **`.strip()`** (removes outer whitespace) and **`.lower()`** (converts to lowercase) to normalize text:\n\n```python\nraw = "   Alex_Dev  "\nclean = raw.strip().lower()\nprint(clean)  # "alex_dev"\n```',
+    assignment:
+      "Complete `normalize_handle(raw_handle)` so it strips leading/trailing spaces, converts the handle to lowercase, and returns it.",
+    constraints: [
+      "Call `.strip()` to remove outer spaces",
+      "Call `.lower()` to convert all letters to lowercase",
+      "Return the cleaned string",
+    ],
+    examples: [
+      {
+        input: 'raw_handle = "  Py_Ninja99  "',
+        output: "py_ninja99",
+        explanation: "Outer spaces are stripped and uppercase letters become lowercase.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def normalize_handle(raw_handle):
+    # Strip outer whitespace and convert raw_handle to lowercase
+    return raw_handle
+
+print(normalize_handle("  Py_Ninja99  "))`,
+    expected_output: "py_ninja99",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = normalize_handle("  Py_Ninja99  ")
+    results.append({"id": 1, "input": "'  Py_Ninja99  '", "expected": "py_ninja99", "actual": str(r1), "passed": r1 == "py_ninja99"})
+    r2 = normalize_handle(" BYTE_CAT ")
+    results.append({"id": 2, "input": "' BYTE_CAT '", "expected": "byte_cat", "actual": str(r2), "passed": r2 == "byte_cat"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "raw_handle", value: '"  Py_Ninja99  "', type: "str", address: "0x10" },
+      { label: ".strip()", value: '"Py_Ninja99"', type: "str", address: "0x14" },
+      { label: ".lower()", value: '"py_ninja99" ✓', type: "str", address: "0x18" },
+    ],
+    hints: [
+      "Remember to include empty parentheses `()` on both `.strip()` and `.lower()`.",
+      "Chain them together: `return raw_handle.strip().lower()`.",
+    ],
+  },
+  {
+    id: "exp-py-07",
+    title: "Filtering Lists: High-Score Qualifier",
+    track: "python_basics",
+    category: "LIST FILTERING",
+    difficulty: "Easy",
+    tree_row: 7,
+    lesson_order: 7,
+    is_free: true,
+    description:
+      "Filter a list of numbers by keeping only items that pass an if condition.",
+    content:
+      "To filter a list, create an empty result list `passed = []` (or use a list comprehension), loop through every item, and **`.append(item)`** only when your `if` condition is true:\n\n```python\npassed = []\nfor s in scores:\n    if s >= 80:\n        passed.append(s)\n```",
+    assignment:
+      "Complete `filter_passing_scores(scores, min_score)` so it returns a new list containing only the numbers in `scores` that are `>= min_score` (in their original order).",
+    constraints: [
+      "Keep only scores where `s >= min_score`",
+      "Return the filtered list of passing scores",
+    ],
+    examples: [
+      {
+        input: "scores = [65, 92, 80, 45, 99], min_score = 80",
+        output: "[92, 80, 99]",
+        explanation: "92, 80, and 99 are all >= 80.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def filter_passing_scores(scores, min_score):
+    passed = []
+    # Loop through scores and append any score >= min_score
+    return passed
+
+print(filter_passing_scores([65, 92, 80, 45, 99], 80))`,
+    expected_output: "[92, 80, 99]",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = filter_passing_scores([65, 92, 80, 45, 99], 80)
+    results.append({"id": 1, "input": "[65, 92, 80, 45, 99], 80", "expected": "[92, 80, 99]", "actual": str(r1), "passed": r1 == [92, 80, 99]})
+    r2 = filter_passing_scores([10, 50, 30], 40)
+    results.append({"id": 2, "input": "[10, 50, 30], 40", "expected": "[50]", "actual": str(r2), "passed": r2 == [50]})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "65 < 80", value: "skip", address: "idx 0" },
+      { label: "92 >= 80", value: "append(92) ✓", address: "idx 1" },
+      { label: "80 >= 80", value: "append(80) ✓", address: "idx 2" },
+      { label: "99 >= 80", value: "append(99) ✓", address: "idx 4" },
+    ],
+    hints: [
+      "Inside `for s in scores:`, check `if s >= min_score:`.",
+      "Indent `passed.append(s)` inside the `if` block, or use `[s for s in scores if s >= min_score]`.",
+    ],
+  },
+  {
+    id: "exp-py-08",
+    title: "Error Handling: Crash-Proof Win Rate",
+    track: "python_basics",
+    category: "TRY / EXCEPT",
+    difficulty: "Easy",
+    tree_row: 7,
+    lesson_order: 8,
+    is_free: true,
+    description:
+      "Prevent ZeroDivisionError crashes using a try / except safety block.",
+    content:
+      "Dividing by `0` raises a **`ZeroDivisionError`** and crashes your program. Wrap risky math inside **`try:`** and return a safe fallback inside **`except ZeroDivisionError:`**:\n\n```python\ntry:\n    return wins / matches\nexcept ZeroDivisionError:\n    return 0.0\n```",
+    assignment:
+      "Complete `safe_win_rate(wins, matches)`: inside a `try:` block return `wins / matches`, and if `matches` is `0` catch `ZeroDivisionError` and return `0.0`.",
+    constraints: [
+      "Use a `try:` block to return `wins / matches`",
+      "Catch `ZeroDivisionError` in the `except` block and return `0.0`",
+    ],
+    examples: [
+      {
+        input: "safe_win_rate(6, 10) and safe_win_rate(0, 0)",
+        output: "0.6 0.0",
+        explanation: "6 / 10 is 0.6; dividing by 0 is safely caught and returns 0.0.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def safe_win_rate(wins, matches):
+    # Use try / except ZeroDivisionError to return wins / matches or 0.0
+    pass
+
+print(safe_win_rate(6, 10), safe_win_rate(0, 0))`,
+    expected_output: "0.6 0.0",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = safe_win_rate(6, 10)
+    results.append({"id": 1, "input": "wins=6, matches=10", "expected": "0.6", "actual": str(r1), "passed": r1 == 0.6})
+    r2 = safe_win_rate(0, 0)
+    results.append({"id": 2, "input": "wins=0, matches=0", "expected": "0.0", "actual": str(r2), "passed": r2 == 0.0})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "6 / 10", value: "0.6 ✓", type: "float", address: "try" },
+      { label: "0 / 0", value: "caught -> 0.0 🛡️", type: "float", address: "except" },
+    ],
+    hints: [
+      "Put `return wins / matches` inside the `try:` block.",
+      "Put `return 0.0` inside the `except ZeroDivisionError:` block.",
+    ],
+  },
+  {
     id: "exp-py-09",
     title: "Counting Items: Emoji Reaction Counter",
     track: "python_basics",
@@ -15,8 +457,8 @@ export const PYTHON_BASICS_EXPANSION_LESSONS = [
     assignment:
       "Complete `count_reactions(reactions, target)` so it returns how many times `target` appears inside the `reactions` list.",
     constraints: [
-      "Use `reactions.count(target)` to count matching items",
-      "Return the count from the function",
+      "Use `.count(target)` on the `reactions` list",
+      "Return the matching count from the function",
       "Keep the `print(...)` line at the bottom so it prints `3`",
     ],
     examples: [
@@ -28,7 +470,7 @@ export const PYTHON_BASICS_EXPANSION_LESSONS = [
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def count_reactions(reactions, target):
-    # 👉 Write 1 line: return reactions.count(target)
+    # Count how many times target appears in reactions and return it
     return 0
 
 print(count_reactions(["🔥", "❤️", "🔥", "👍", "🔥"], "🔥"))`,
@@ -84,7 +526,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def clean_guest_list(guests):
-    # 👉 Write 1 line: return sorted(set(guests))
+    # Remove duplicate names and return them in sorted A-Z order
     return []
 
 print(clean_guest_list(["Sam", "Alex", "Sam", "Zoe", "Alex"]))`,
@@ -137,7 +579,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def make_url_slug(words):
-    # 👉 Write 1 line: return "-".join(words)
+    # Join all words in the list with "-" and return the slug string
     return ""
 
 print(make_url_slug(["pixel", "arcade", "game"]))`,
@@ -194,7 +636,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def get_top_three(players):
-    # 👉 Write 1 line: return players[:3]
+    # Slice and return only the first 3 players from the list
     return []
 
 print(get_top_three(["Aria", "Kai", "Nova", "Leo", "Max"]))`,
@@ -246,7 +688,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def hide_spoilers(message):
-    # 👉 Write 1 line: return message.replace("spoiler", "[HIDDEN]")
+    # Replace every "spoiler" with "[HIDDEN]" and return the updated string
     return message
 
 print(hide_spoilers("Alert: spoiler ahead!"))`,
@@ -304,7 +746,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def get_cart_total(prices):
-    # 👉 Write 1 line: return sum(prices)
+    # Return the total sum of all numbers in prices
     return 0
 
 print(get_cart_total([15, 25, 10]))`,
@@ -356,7 +798,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def is_secure_link(url):
-    # 👉 Write 1 line: return url.startswith("https://")
+    # Return True if url starts with "https://", otherwise False
     return False
 
 print(is_secure_link("https://arcade.dev"), is_secure_link("http://old.site"))`,
@@ -419,7 +861,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def get_user_theme(settings):
-    # 👉 Write 1 line: return settings.get("theme", "light")
+    # Safely read "theme" from settings with a fallback of "light"
     return ""
 
 print(get_user_theme({"theme": "dark"}), get_user_theme({}))`,
@@ -480,7 +922,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def make_badge(name, level):
-    # 👉 Write 1 line: return f"Player {name} - Level {level}"
+    # Return a formatted f-string: "Player {name} - Level {level}"
     return ""
 
 print(make_badge("Aria", 5))`,
@@ -539,7 +981,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def count_words(sentence):
-    # 👉 Write 1 line: return len(sentence.split())
+    # Split sentence into words and return the word count
     return 0
 
 print(count_words("Python is super fun"))`,
@@ -591,7 +1033,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def has_item(backpack, item):
-    # 👉 Write 1 line: return item in backpack
+    # Return True if item is inside backpack, otherwise False
     return False
 
 bag = ["torch", "map", "potion"]
@@ -644,7 +1086,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def format_rating(rating):
-    # 👉 Write 1 line: return round(rating, 1)
+    # Round rating to 1 decimal place and return it
     return 0.0
 
 print(format_rating(4.66667))`,
@@ -706,10 +1148,9 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def calc_damage(attack, is_crit, defense):
-    # 👉 1. Double attack if is_crit is True, else normal attack:
-    dmg = attack * 2 if is_crit else attack
-    # 👉 2. Subtract defense, minimum 1 damage:
-    return max(dmg - defense, 1)
+    # 1. Double attack if is_crit is True, else use normal attack
+    # 2. Subtract defense and return at least 1 damage using max(..., 1)
+    return 1
 
 print(calc_damage(50, True, 20))`,
     expected_output: "80",
@@ -771,10 +1212,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def check_password(password):
-    # 👉 Check length >= 8 and at least one digit:
-    has_digit = any(ch.isdigit() for ch in password)
-    if len(password) >= 8 and has_digit:
-        return "STRONG"
+    # Return "STRONG" if len(password) >= 8 and it has at least 1 digit, else "WEAK"
     return "WEAK"
 
 print(check_password("Python99"))`,
@@ -838,10 +1276,9 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def split_bill(total, tip_percent, people):
-    # 👉 1. Calculate each person's share with tip:
-    share = (total * (1 + tip_percent / 100)) / people
-    # 👉 2. Round to 2 decimal places:
-    return round(share, 2)
+    # 1. Calculate each person's share including tip_percent
+    # 2. Return the share rounded to 2 decimal places
+    return 0.0
 
 print(split_bill(100.0, 20, 4))`,
     expected_output: "30.0",
@@ -902,10 +1339,9 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def bot_reply(message, mood_map):
-    # 👉 1. Safely look up message.lower() with fallback "🤖 I hear you!":
-    reply = mood_map.get(message.lower(), "🤖 I hear you!")
-    # 👉 2. Return f-string format:
-    return f"Bot: {reply}"
+    # 1. Normalize message with .lower() and look it up in mood_map (fallback "🤖 I hear you!")
+    # 2. Return formatted f-string: f"Bot: {reply}"
+    return "Bot: 🤖 I hear you!"
 
 moods = {"happy": "🎉 Yay!", "tired": "☕ Grab coffee!"}
 print(bot_reply("HAPPY", moods))`,

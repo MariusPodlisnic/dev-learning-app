@@ -151,12 +151,23 @@ export async function executeLessonVerification(
       ? `${code}\n${selectedLesson.hidden_tests}`
       : code;
     const result = await pyodideInstance.runPythonAsync(executionCode);
-    const rawOutput = stdoutBuffer.trim();
+    let rawOutput = stdoutBuffer.trim();
 
     let parsedResult: any = null;
     try {
       parsedResult = JSON.parse(String(result));
-    } catch (_e) {}
+    } catch {}
+
+    if (!parsedResult || !parsedResult.is_test_suite) {
+      const lines = rawOutput.split("\n");
+      const lastLine = lines[lines.length - 1]?.trim() || "";
+      if (lastLine.startsWith("{") && lastLine.includes('"is_test_suite"')) {
+        try {
+          parsedResult = JSON.parse(lastLine);
+          rawOutput = lines.slice(0, -1).join("\n").trim();
+        } catch {}
+      }
+    }
 
     if (parsedResult && parsedResult.is_test_suite) {
       if (parsedResult.error) {

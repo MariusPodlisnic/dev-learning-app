@@ -61,6 +61,7 @@ import {
 } from "../constants/theme";
 import {
   ExplainStyle,
+  getLessonStarRating,
   isLessonLockedForUser,
   isProTrackPreviewLesson,
   Lesson,
@@ -139,6 +140,14 @@ export default function HomeScreen() {
   const [completedLessons, setCompletedLessons] = useState<
     Record<string, boolean>
   >({});
+  const [completedChallenges, setCompletedChallenges] = useState<
+    Record<string, boolean>
+  >({});
+  const [peekedSolutions, setPeekedSolutions] = useState<
+    Record<string, boolean>
+  >({});
+  const usedSolutionInAttemptRef = useRef<boolean>(false);
+  const [activeChallengeIdx, setActiveChallengeIdx] = useState<number>(0);
   const [solvedIncidents, setSolvedIncidents] = useState<
     Record<string, boolean>
   >({});
@@ -219,17 +228,39 @@ export default function HomeScreen() {
     ref?: string;
   }>();
 
-  function updateCodeWithDraft(nextCode: string, lessonObj?: Lesson | null) {
+  function getStageDraftKey(lessonObj: Lesson, stageIdx: number): string {
+    if (stageIdx <= 0) return lessonObj.id;
+    const drill = lessonObj.practiceChallenges?.[stageIdx - 1];
+    return drill?.id || `${lessonObj.id}::stage_${stageIdx}`;
+  }
+
+  function getStageDefaultCode(lessonObj: Lesson, stageIdx: number): string {
+    if (stageIdx <= 0) {
+      return (lessonObj.initial_code || "").replace(/\\n/g, "\n");
+    }
+    const drill = lessonObj.practiceChallenges?.[stageIdx - 1];
+    return (drill?.initial_code || "").replace(/\\n/g, "\n");
+  }
+
+  function updateCodeWithDraft(
+    nextCode: string,
+    lessonObj?: Lesson | null,
+    stageIdxOverride?: number,
+  ) {
     setCode(nextCode);
     const targetLesson = lessonObj !== undefined ? lessonObj : selectedLesson;
     if (!targetLesson) return;
-    const defaultCode = (targetLesson.initial_code || "").replace(/\\n/g, "\n");
+    const targetStageIdx =
+      stageIdxOverride !== undefined ? stageIdxOverride : activeChallengeIdx;
+    const draftKey = getStageDraftKey(targetLesson, targetStageIdx);
+    const defaultCode = getStageDefaultCode(targetLesson, targetStageIdx);
     if (nextCode !== defaultCode) {
-      codeDraftsRef.current[targetLesson.id] = nextCode;
+      codeDraftsRef.current[draftKey] = nextCode;
       setHasSavedDraft(true);
     } else {
-      delete codeDraftsRef.current[targetLesson.id];
+      delete codeDraftsRef.current[draftKey];
       setHasSavedDraft(false);
+      usedSolutionInAttemptRef.current = false;
     }
     writeLocalJson(STORAGE_DRAFTS_KEY, codeDraftsRef.current);
   }
@@ -244,6 +275,8 @@ export default function HomeScreen() {
 
     const savedState = readLocalJson<{
       completedLessons?: Record<string, boolean>;
+      completedChallenges?: Record<string, boolean>;
+      peekedSolutions?: Record<string, boolean>;
       solvedIncidents?: Record<string, boolean>;
       claimedChapters?: Record<string, boolean>;
       xpPoints?: number;
@@ -260,6 +293,12 @@ export default function HomeScreen() {
 
     if (savedState.completedLessons) {
       setCompletedLessons(savedState.completedLessons);
+    }
+    if (savedState.completedChallenges) {
+      setCompletedChallenges(savedState.completedChallenges);
+    }
+    if (savedState.peekedSolutions) {
+      setPeekedSolutions(savedState.peekedSolutions);
     }
     if (savedState.solvedIncidents) {
       setSolvedIncidents(savedState.solvedIncidents);
@@ -422,6 +461,8 @@ export default function HomeScreen() {
     if (!hydratedRef.current) return;
     writeLocalJson(STORAGE_STATE_KEY, {
       completedLessons,
+      completedChallenges,
+      peekedSolutions,
       solvedIncidents,
       claimedChapters,
       xpPoints,
@@ -437,6 +478,8 @@ export default function HomeScreen() {
     });
   }, [
     completedLessons,
+    completedChallenges,
+    peekedSolutions,
     solvedIncidents,
     claimedChapters,
     xpPoints,
@@ -601,9 +644,30 @@ export default function HomeScreen() {
     trackFunnelMilestone("paywall_viewed", { source: context.source });
   }
 
+  function handleSelectChallengeStage(
+    stageIdx: number,
+    lessonObj?: Lesson | null,
+  ) {
+    const targetLesson = lessonObj || selectedLesson;
+    if (!targetLesson) return;
+    usedSolutionInAttemptRef.current = false;
+    setActiveChallengeIdx(stageIdx);
+    const draftKey = getStageDraftKey(targetLesson, stageIdx);
+    const defaultCode = getStageDefaultCode(targetLesson, stageIdx);
+    const draft = codeDraftsRef.current[draftKey];
+    setCode(draft !== undefined ? draft : defaultCode);
+    setHasSavedDraft(draft !== undefined && draft !== defaultCode);
+    setOutput("");
+    setTestResults(null);
+    setActiveTab("mission");
+    setBottomTab("console");
+  }
+
   function openLessonInStudio(fullLesson: Lesson) {
+    usedSolutionInAttemptRef.current = false;
     setActiveTrack(fullLesson.track);
     setSelectedLesson(fullLesson);
+    setActiveChallengeIdx(0);
     const defaultCode = (fullLesson.initial_code || "").replace(/\\n/g, "\n");
     const draft = codeDraftsRef.current[fullLesson.id];
     setCode(draft !== undefined ? draft : defaultCode);
@@ -693,6 +757,11 @@ export default function HomeScreen() {
   function handleNextLesson() {
     setShowSuccessModal(false);
     if (!selectedLesson) return;
+    const practiceDrills = selectedLesson.practiceChallenges || [];
+    if (activeChallengeIdx < practiceDrills.length) {
+      handleSelectChallengeStage(activeChallengeIdx + 1, selectedLesson);
+      return;
+    }
     const currentTrackLessons = lessons.filter((l) => l.track === activeTrack);
     const currentIndex = currentTrackLessons.findIndex(
       (l) => l.id === selectedLesson.id,
@@ -767,11 +836,24 @@ export default function HomeScreen() {
     setTestResults(null);
     trackFunnelMilestone("first_code_run");
 
+    const activePractice =
+      activeChallengeIdx > 0 && selectedLesson?.practiceChallenges
+        ? selectedLesson.practiceChallenges[activeChallengeIdx - 1]
+        : undefined;
+    const verificationLesson: Lesson | null =
+      selectedLesson && activePractice
+        ? {
+            ...selectedLesson,
+            expected_output: activePractice.expected_output,
+            hidden_tests: activePractice.hidden_tests,
+          }
+        : selectedLesson;
+
     try {
       const outcome = await executeLessonVerification(
         pyodideRef.current,
         code,
-        selectedLesson,
+        verificationLesson,
       );
 
       setTestResults(outcome.testResults);
@@ -784,18 +866,64 @@ export default function HomeScreen() {
       if (outcome.allPassed && selectedLesson) {
         setShowSuccessModal(true);
         trackFunnelMilestone("first_lesson_solved");
-        const isAlreadyCompleted = completedLessons[selectedLesson.id];
+        const stageKey =
+          activeChallengeIdx === 0
+            ? `${selectedLesson.id}::core`
+            : activePractice?.id ||
+              `${selectedLesson.id}::stage_${activeChallengeIdx}`;
+        const isStageAlreadyCompleted = Boolean(
+          completedChallenges[stageKey] ||
+            (activeChallengeIdx === 0 && completedLessons[selectedLesson.id]),
+        );
+        const stageXp = activePractice?.xpReward || 50;
         const { newXp, newStreak } = recordActiveDevSession(
-          isAlreadyCompleted ? 0 : 50,
+          isStageAlreadyCompleted ? 0 : stageXp,
         );
 
-        setCompletedLessons((prev) => ({
-          ...prev,
-          [selectedLesson.id]: true,
-        }));
+        const nextCompletedChallenges = {
+          ...completedChallenges,
+          [stageKey]: true,
+        };
+        setCompletedChallenges(nextCompletedChallenges);
+
+        const practiceList = selectedLesson.practiceChallenges || [];
+        const allStagesNowDone =
+          practiceList.length === 0 ||
+          (Boolean(
+            nextCompletedChallenges[`${selectedLesson.id}::core`] ||
+              completedLessons[selectedLesson.id],
+          ) &&
+            practiceList.every((ch, idx) =>
+              Boolean(
+                nextCompletedChallenges[ch.id] ||
+                  nextCompletedChallenges[
+                    `${selectedLesson.id}::stage_${idx + 1}`
+                  ],
+              ),
+            ));
+
+        if (usedSolutionInAttemptRef.current) {
+          setPeekedSolutions((prev) => ({
+            ...prev,
+            [selectedLesson.id]: true,
+          }));
+        } else if (allStagesNowDone && peekedSolutions[selectedLesson.id]) {
+          setPeekedSolutions((prev) => {
+            const next = { ...prev };
+            delete next[selectedLesson.id];
+            return next;
+          });
+        }
+
+        if (allStagesNowDone) {
+          setCompletedLessons((prev) => ({
+            ...prev,
+            [selectedLesson.id]: true,
+          }));
+        }
 
         if (session) {
-          if (!selectedLesson.id.startsWith("exp-")) {
+          if (allStagesNowDone && !selectedLesson.id.startsWith("exp-")) {
             await supabase.from("user_progress").upsert({
               user_id: session.user.id,
               lesson_id: selectedLesson.id,
@@ -1059,6 +1187,8 @@ export default function HomeScreen() {
         <RoadmapTree
           lessons={lessons}
           completedLessons={completedLessons}
+          completedChallenges={completedChallenges}
+          peekedSolutions={peekedSolutions}
           isPremium={effectiveIsPremium}
           activeTrack={activeTrack}
           onSelectTrack={handleSwitchTrack}
@@ -1142,6 +1272,8 @@ export default function HomeScreen() {
           streakCount={streakCount}
           lessons={lessons}
           completedLessons={completedLessons}
+          completedChallenges={completedChallenges}
+          peekedSolutions={peekedSolutions}
           solvedIncidents={solvedIncidents}
           onNavigateMode={(mode) => setViewMode(mode)}
         />
@@ -1267,13 +1399,28 @@ export default function HomeScreen() {
                     selectedLesson={selectedLesson}
                     activeTrack={activeTrack}
                     completedLessons={completedLessons}
+                    completedChallenges={completedChallenges}
+                    peekedSolutions={peekedSolutions}
+                    activeChallengeIdx={activeChallengeIdx}
+                    onSelectChallengeIdx={(idx) =>
+                      handleSelectChallengeStage(idx, selectedLesson)
+                    }
                     activeTab={activeTab}
                     onChangeActiveTab={setActiveTab}
                     explainStyle={explainStyle}
                     onChangeExplainStyle={setExplainStyle}
                     lessonEnrichment={lessonEnrichment}
                     onLoadGuidedSteps={(guidedCode) => {
-                      updateCodeWithDraft(guidedCode, selectedLesson);
+                      usedSolutionInAttemptRef.current = true;
+                      setPeekedSolutions((prev) => ({
+                        ...prev,
+                        [selectedLesson.id]: true,
+                      }));
+                      updateCodeWithDraft(
+                        guidedCode,
+                        selectedLesson,
+                        activeChallengeIdx,
+                      );
                       if (isCompactStudio) {
                         setMobileStudioPane("code");
                       }
@@ -1292,9 +1439,28 @@ export default function HomeScreen() {
 
                 {(!isCompactStudio || mobileStudioPane === "code") && (
                   <StudioCodeEditor
-                    selectedLesson={selectedLesson}
+                    selectedLesson={
+                      activeChallengeIdx > 0 &&
+                      selectedLesson.practiceChallenges?.[
+                        activeChallengeIdx - 1
+                      ]
+                        ? {
+                            ...selectedLesson,
+                            initial_code:
+                              selectedLesson.practiceChallenges[
+                                activeChallengeIdx - 1
+                              ].initial_code,
+                          }
+                        : selectedLesson
+                    }
                     code={code}
-                    onChangeCode={updateCodeWithDraft}
+                    onChangeCode={(nextCode) =>
+                      updateCodeWithDraft(
+                        nextCode,
+                        selectedLesson,
+                        activeChallengeIdx,
+                      )
+                    }
                     hasSavedDraft={hasSavedDraft}
                     pyodideReady={pyodideReady}
                     isExecuting={isExecuting}
@@ -1374,20 +1540,61 @@ export default function HomeScreen() {
       {showSuccessModal && (
         <View style={styles.modalOverlay}>
           <SuccessModal
-            xpEarned={50}
+            xpEarned={
+              activeChallengeIdx > 0 &&
+              selectedLesson?.practiceChallenges?.[activeChallengeIdx - 1]
+                ?.xpReward
+                ? selectedLesson.practiceChallenges[activeChallengeIdx - 1]
+                    .xpReward!
+                : 50
+            }
             totalXp={xpPoints}
             streakCount={streakCount}
             lessonId={selectedLesson?.id}
-            lessonTitle={selectedLesson?.title || ""}
+            lessonTitle={
+              activeChallengeIdx > 0 &&
+              selectedLesson?.practiceChallenges?.[activeChallengeIdx - 1]
+                ? `${selectedLesson.title} — ${selectedLesson.practiceChallenges[activeChallengeIdx - 1].title}`
+                : selectedLesson?.title || ""
+            }
+            challengeStepLabel={
+              selectedLesson?.practiceChallenges?.length
+                ? `STAGE ${activeChallengeIdx + 1} OF ${1 + selectedLesson.practiceChallenges.length} COMPLETE`
+                : undefined
+            }
             keyTakeaway={
               lessonEnrichment?.realWorldUse || selectedLesson?.description
             }
             nextLessonTitle={
-              hasNextLesson
-                ? currentLessons[currentLessonIndex + 1]?.title
+              selectedLesson?.practiceChallenges &&
+              activeChallengeIdx < selectedLesson.practiceChallenges.length
+                ? `Stage ${activeChallengeIdx + 2}: ${selectedLesson.practiceChallenges[activeChallengeIdx].title}`
+                : hasNextLesson
+                  ? currentLessons[currentLessonIndex + 1]?.title
+                  : undefined
+            }
+            nextActionLabel={
+              selectedLesson?.practiceChallenges &&
+              activeChallengeIdx < selectedLesson.practiceChallenges.length
+                ? `START PRACTICE STAGE ${activeChallengeIdx + 2} (${selectedLesson.practiceChallenges[activeChallengeIdx].title.toUpperCase()}) →`
                 : undefined
             }
-            hasNextLesson={Boolean(hasNextLesson)}
+            starRating={
+              selectedLesson
+                ? getLessonStarRating(
+                    selectedLesson,
+                    completedLessons,
+                    completedChallenges,
+                    peekedSolutions,
+                  )
+                : undefined
+            }
+            hasNextLesson={Boolean(
+              (selectedLesson?.practiceChallenges &&
+                activeChallengeIdx <
+                  selectedLesson.practiceChallenges.length) ||
+                hasNextLesson,
+            )}
             isGuest={!session}
             totalSolvedCount={totalSolvedCount}
             onSaveProgress={() => {

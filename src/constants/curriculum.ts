@@ -2,6 +2,7 @@ import { ALGORITHMS_ENRICHMENTS } from "./curriculumData/algorithmsEnrichments";
 import { ALGORITHMS_EXPANSION_LESSONS } from "./curriculumData/algorithmsLessons";
 import { PYTHON_BASICS_ENRICHMENTS } from "./curriculumData/pythonBasicsEnrichments";
 import { PYTHON_BASICS_EXPANSION_LESSONS } from "./curriculumData/pythonBasicsLessons";
+import { PYTHON_BASICS_PRACTICE_DRILLS } from "./curriculumData/pythonBasicsPracticeDrills";
 import { SYSTEM_DESIGN_ENRICHMENTS } from "./curriculumData/systemDesignEnrichments";
 import { SYSTEM_DESIGN_EXPANSION_LESSONS } from "./curriculumData/systemDesignLessons";
 import {
@@ -264,13 +265,27 @@ export function mergeCurriculumLessons<
     );
     if (existingIdx === -1) {
       merged.push(exp as unknown as T);
-    } else if (exp.track !== "python_basics") {
-      // Prefer upgraded local Pro curriculum over older DB rows while keeping DB id for user_progress continuity.
+    } else {
+      // Upgrade older DB rows with rich local curriculum while keeping DB id for user_progress continuity.
       merged[existingIdx] = {
         ...exp,
         id: merged[existingIdx].id,
       } as unknown as T;
     }
   }
+
+  for (let i = 0; i < merged.length; i++) {
+    const item = merged[i];
+    if (item.track === "python_basics") {
+      const drills = PYTHON_BASICS_PRACTICE_DRILLS[item.lesson_order];
+      if (drills && drills.length > 0) {
+        merged[i] = {
+          ...item,
+          practiceChallenges: drills,
+        };
+      }
+    }
+  }
+
   return merged.sort((a, b) => a.lesson_order - b.lesson_order);
 }

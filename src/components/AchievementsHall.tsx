@@ -13,7 +13,11 @@ import {
   MonoFont,
   StudioColors,
 } from "../constants/theme";
-import { Lesson, ViewMode } from "../types/lesson";
+import {
+  getLessonStarRating,
+  Lesson,
+  ViewMode,
+} from "../types/lesson";
 import { playKeyClick } from "../utils/soundEffects";
 
 interface AchievementsHallProps {
@@ -21,6 +25,8 @@ interface AchievementsHallProps {
   streakCount: number;
   lessons: Lesson[];
   completedLessons: Record<string, boolean>;
+  completedChallenges?: Record<string, boolean>;
+  peekedSolutions?: Record<string, boolean>;
   solvedIncidents: Record<string, boolean>;
   onNavigateMode: (mode: ViewMode) => void;
 }
@@ -51,6 +57,8 @@ export default function AchievementsHall({
   streakCount,
   lessons,
   completedLessons,
+  completedChallenges = {},
+  peekedSolutions = {},
   solvedIncidents,
   onNavigateMode,
 }: AchievementsHallProps) {
@@ -59,6 +67,20 @@ export default function AchievementsHall({
   const totalSolvedCount = useMemo(
     () => lessons.filter((l) => completedLessons[l.id]).length,
     [lessons, completedLessons],
+  );
+
+  const threeStarSolvedCount = useMemo(
+    () =>
+      lessons.filter(
+        (l) =>
+          getLessonStarRating(
+            l,
+            completedLessons,
+            completedChallenges,
+            peekedSolutions,
+          ) === 3,
+      ).length,
+    [lessons, completedLessons, completedChallenges, peekedSolutions],
   );
 
   const pyLessons = useMemo(
@@ -388,6 +410,60 @@ export default function AchievementsHall({
         actionMode: "roadmap",
         actionLabel: "VIEW SKILL MAP →",
       },
+      // 17. EASY — 3-STAR MASTERY (SMALL AMOUNT)
+      {
+        id: "three_star_starter_5",
+        title: "3-Star Rising Constellation",
+        subtitle: "5 PERFECT 3-STAR MODULES",
+        howToObtain:
+          "Earn a 3-Star Mastery rating (★★★) on 5 lessons by clearing all practice stages without loading the reference solution.",
+        rewardLabel: "+150 XP STAR CREST",
+        icon: "star",
+        crestBg: StudioColors.yellow,
+        crestSecondary: StudioColors.mint,
+        difficulty: "easy",
+        current: Math.min(5, threeStarSolvedCount),
+        target: 5,
+        unit: "3-STAR MODULES",
+        actionMode: "roadmap",
+        actionLabel: "EARN 3 STARS →",
+      },
+      // 18. MEDIUM — 3-STAR MASTERY (MEDIUM AMOUNT)
+      {
+        id: "three_star_medium_15",
+        title: "3-Star Mastery Tactician",
+        subtitle: "15 PERFECT 3-STAR MODULES",
+        howToObtain:
+          "Achieve a perfect 3-Star Mastery rating (★★★) across 15 lessons by conquering every practice drill and boss stage on your own.",
+        rewardLabel: "CONSTELLATION MEDAL",
+        icon: "medal",
+        crestBg: StudioColors.yellow,
+        crestSecondary: "#38BDF8",
+        difficulty: "medium",
+        current: Math.min(15, threeStarSolvedCount),
+        target: 15,
+        unit: "3-STAR MODULES",
+        actionMode: "roadmap",
+        actionLabel: "MASTER DRILLS →",
+      },
+      // 19. HARD (HIGHLIGHTED!) — 3-STAR MASTERY (ALL LESSONS)
+      {
+        id: "three_star_all_lessons",
+        title: "Astral 3-Star Perfectionist",
+        subtitle: "100% 3-STAR ACADEMY PERFECTION",
+        howToObtain:
+          "Earn all 3 Stars (★★★) on every single lesson across the entire curriculum—clearing every core lesson, practice stage, and boss drill with zero solution spoilers.",
+        rewardLabel: "★ CELESTIAL 3-STAR CROWN",
+        icon: "crown",
+        crestBg: StudioColors.yellow,
+        crestSecondary: StudioColors.pink,
+        difficulty: "hard",
+        current: Math.min(allTotal, threeStarSolvedCount),
+        target: allTotal,
+        unit: "3-STAR MODULES",
+        actionMode: "roadmap",
+        actionLabel: "PERFECT ALL LESSONS →",
+      },
     ];
   }, [
     pyLessons.length,
@@ -395,6 +471,7 @@ export default function AchievementsHall({
     sysLessons.length,
     lessons.length,
     totalSolvedCount,
+    threeStarSolvedCount,
     streakCount,
     bugsSolvedCount,
     pySolvedCount,

@@ -22,6 +22,9 @@ interface SuccessModalProps {
   keyTakeaway?: string;
   nextLessonTitle?: string;
   hasNextLesson: boolean;
+  challengeStepLabel?: string;
+  nextActionLabel?: string;
+  starRating?: 0 | 1 | 2 | 3;
   isGuest?: boolean;
   totalSolvedCount?: number;
   onSaveProgress?: () => void;
@@ -40,6 +43,9 @@ export default function SuccessModal({
   keyTakeaway,
   nextLessonTitle,
   hasNextLesson,
+  challengeStepLabel,
+  nextActionLabel,
+  starRating,
   isGuest = false,
   totalSolvedCount = 0,
   onSaveProgress,
@@ -88,12 +94,38 @@ export default function SuccessModal({
           <Text style={styles.emoji}>✓</Text>
         </View>
         <View style={styles.headerTextGroup}>
-          <View style={styles.statusPill}>
-            <Text style={styles.statusPillText}>
-              ALL ASSERTIONS PASSED · +{xpEarned} XP
-            </Text>
+          <View style={styles.statusPillsRow}>
+            <View style={styles.statusPill}>
+              <Text style={styles.statusPillText}>
+                {challengeStepLabel || "ALL ASSERTIONS PASSED"} · +{xpEarned} XP
+              </Text>
+            </View>
+            {typeof starRating === "number" && starRating > 0 && (
+              <View
+                style={[
+                  styles.starRatingPill,
+                  starRating === 3 && styles.starRatingPillGold,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.starRatingPillText,
+                    starRating === 3 && styles.starRatingPillTextGold,
+                  ]}
+                >
+                  {[1, 2, 3]
+                    .map((s) => (s <= starRating ? "★" : "☆"))
+                    .join("")}{" "}
+                  {starRating === 3
+                    ? "3-STAR MASTERY!"
+                    : `${starRating}/3 STARS`}
+                </Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.title}>Module Mastered!</Text>
+          <Text style={styles.title}>
+            {challengeStepLabel ? "Challenge Cleared!" : "Module Mastered!"}
+          </Text>
           <Text style={styles.subtitle} numberOfLines={2}>
             Verified all checks for{" "}
             <Text style={styles.highlight}>{lessonTitle}</Text>
@@ -214,7 +246,9 @@ export default function SuccessModal({
             onNextLesson();
           }}
         >
-          <Text style={styles.nextBtnLabel}>UP NEXT MISSION</Text>
+          <Text style={styles.nextBtnLabel}>
+            {nextActionLabel || "UP NEXT MISSION"}
+          </Text>
           <Text style={styles.nextBtnText} numberOfLines={1}>
             {nextLessonTitle
               ? `${nextLessonTitle} →`
@@ -331,6 +365,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 3,
   },
+  statusPillsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+  },
   statusPill: {
     backgroundColor: StudioColors.mint,
     borderWidth: 1.5,
@@ -345,6 +385,28 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0.8,
     fontFamily: MonoFont,
+  },
+  starRatingPill: {
+    backgroundColor: "rgba(251, 191, 36, 0.16)",
+    borderWidth: 1.5,
+    borderColor: StudioColors.yellow,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  starRatingPillGold: {
+    backgroundColor: StudioColors.yellow,
+    borderColor: StudioColors.ink,
+  },
+  starRatingPillText: {
+    color: StudioColors.yellow,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.6,
+    fontFamily: MonoFont,
+  },
+  starRatingPillTextGold: {
+    color: StudioColors.ink,
   },
   title: {
     color: StudioColors.textPrimary,

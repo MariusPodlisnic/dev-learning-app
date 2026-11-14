@@ -29,8 +29,11 @@ import {
   TrackThemes,
 } from "../constants/theme";
 import {
+  getLessonStageProgress,
+  getLessonStarRating,
   isLessonLockedForUser,
   isProTrackPreviewLesson,
+  PracticeChallenge,
   readLocalJson,
   STORAGE_QUICKSTART_DISMISSED_KEY,
   writeLocalJson,
@@ -54,6 +57,7 @@ export interface Lesson {
   expected_output?: string;
   constraints?: string[];
   complexities?: { time?: string; space?: string };
+  practiceChallenges?: PracticeChallenge[];
   is_free: boolean;
   lesson_order: number;
 }
@@ -61,6 +65,8 @@ export interface Lesson {
 interface RoadmapTreeProps {
   lessons: Lesson[];
   completedLessons: Record<string, boolean>;
+  completedChallenges?: Record<string, boolean>;
+  peekedSolutions?: Record<string, boolean>;
   isPremium: boolean;
   activeTrack: string;
   onSelectTrack: (track: string) => void;
@@ -629,6 +635,8 @@ function TrackPathCard({
 export default function RoadmapTree({
   lessons,
   completedLessons,
+  completedChallenges = {},
+  peekedSolutions = {},
   isPremium,
   activeTrack,
   onSelectTrack,
@@ -1571,6 +1579,55 @@ export default function RoadmapTree({
                             </Text>
                           </View>
                         ) : null}
+
+                        {node.practiceChallenges &&
+                        node.practiceChallenges.length > 0 ? (
+                          <View style={styles.complexityMiniPill}>
+                            <Text style={styles.complexityMiniText}>
+                              🎯{" "}
+                              {(() => {
+                                const prog = getLessonStageProgress(
+                                  node,
+                                  completedLessons,
+                                  completedChallenges,
+                                );
+                                return `${prog.solvedStages}/${prog.totalStages} STAGES`;
+                              })()}
+                            </Text>
+                          </View>
+                        ) : null}
+
+                        {(() => {
+                          const stars = getLessonStarRating(
+                            node,
+                            completedLessons,
+                            completedChallenges,
+                            peekedSolutions,
+                          );
+                          return (
+                            <View
+                              style={[
+                                styles.nodeStarPill,
+                                stars === 3 && styles.nodeStarPillGold,
+                                stars > 0 && stars < 3 && styles.nodeStarPillPartial,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.nodeStarPillText,
+                                  stars === 3 && styles.nodeStarPillTextGold,
+                                  stars > 0 &&
+                                    stars < 3 &&
+                                    styles.nodeStarPillTextPartial,
+                                ]}
+                              >
+                                {[1, 2, 3]
+                                  .map((s) => (s <= stars ? "★" : "☆"))
+                                  .join("")}
+                              </Text>
+                            </View>
+                          );
+                        })()}
 
                         <View
                           style={[
@@ -2830,5 +2887,34 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.5,
+  },
+  nodeStarPill: {
+    backgroundColor: StudioColors.surfaceElevated,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  nodeStarPillGold: {
+    backgroundColor: StudioColors.yellow,
+    borderColor: StudioColors.ink,
+  },
+  nodeStarPillPartial: {
+    backgroundColor: "rgba(251, 191, 36, 0.16)",
+    borderColor: StudioColors.yellow,
+  },
+  nodeStarPillText: {
+    color: StudioColors.textMuted,
+    fontSize: 10.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 1,
+  },
+  nodeStarPillTextGold: {
+    color: StudioColors.ink,
+  },
+  nodeStarPillTextPartial: {
+    color: StudioColors.yellow,
   },
 });

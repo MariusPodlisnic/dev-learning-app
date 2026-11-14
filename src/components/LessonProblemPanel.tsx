@@ -18,6 +18,9 @@ import {
 } from "../constants/theme";
 import {
   ExplainStyle,
+  getLessonStageProgress,
+  getLessonStarRating,
+  isLessonStageCompleted,
   isProTrackPreviewLesson,
   Lesson,
   TestCaseResult,
@@ -33,6 +36,10 @@ interface LessonProblemPanelProps {
   selectedLesson: Lesson;
   activeTrack: string;
   completedLessons: Record<string, boolean>;
+  completedChallenges?: Record<string, boolean>;
+  peekedSolutions?: Record<string, boolean>;
+  activeChallengeIdx?: number;
+  onSelectChallengeIdx?: (idx: number) => void;
   activeTab: "problem" | "mission" | "visual";
   onChangeActiveTab: (tab: "problem" | "mission" | "visual") => void;
   explainStyle: ExplainStyle;
@@ -48,6 +55,10 @@ export default function LessonProblemPanel({
   selectedLesson,
   activeTrack,
   completedLessons,
+  completedChallenges = {},
+  peekedSolutions = {},
+  activeChallengeIdx = 0,
+  onSelectChallengeIdx,
   activeTab,
   onChangeActiveTab,
   explainStyle,
@@ -119,7 +130,27 @@ export default function LessonProblemPanel({
   useEffect(() => {
     scrollToTop();
     pendingToolScrollRef.current = false;
-  }, [activeTab, selectedLesson.id]);
+  }, [activeTab, selectedLesson.id, activeChallengeIdx]);
+
+  const practiceDrills = selectedLesson.practiceChallenges || [];
+  const {
+    solvedStages: solvedStagesCount,
+    totalStages: totalChallengeStages,
+  } = getLessonStageProgress(
+    selectedLesson,
+    completedLessons,
+    completedChallenges,
+  );
+  const hasMultipleChallenges = totalChallengeStages > 1;
+  const activePracticeDrill =
+    activeChallengeIdx > 0 ? practiceDrills[activeChallengeIdx - 1] : null;
+  const starRating = getLessonStarRating(
+    selectedLesson,
+    completedLessons,
+    completedChallenges,
+    peekedSolutions,
+  );
+  const hasPeekedSolution = Boolean(peekedSolutions[selectedLesson.id]);
 
   return (
     <ScrollView
@@ -157,60 +188,362 @@ export default function LessonProblemPanel({
         )}
       </View>
 
-      <Text style={styles.title}>{selectedLesson.title}</Text>
-      <Text style={styles.subtitleDesc}>{selectedLesson.description}</Text>
+      <Text style={styles.title}>
+        {activePracticeDrill ? activePracticeDrill.title : selectedLesson.title}
+      </Text>
+      <Text style={styles.subtitleDesc}>
+        {activePracticeDrill
+          ? `Concept Practice for "${selectedLesson.title}" — Mission Brief & Clues only.`
+          : selectedLesson.description}
+      </Text>
 
-      {/* 3-Mode Focused Tab Switcher */}
-      <View style={styles.tabBar}>
-        <Pressable
-          style={[
-            styles.tabItem,
-            activeTab === "mission" && styles.activeMissionTabItem,
-          ]}
-          onPress={() => handleSwitchTab("mission")}
-        >
-          <Text
+      {/* 3-Star Mastery & Multi-Stage Practice Challenge Switcher */}
+      <View style={styles.practiceDeckCard}>
+        <View style={styles.practiceDeckHeaderRow}>
+          <Text style={styles.practiceDeckEyebrow}>
+            {hasMultipleChallenges
+              ? `⚡ CONCEPT PRACTICE STAGES (${solvedStagesCount}/${totalChallengeStages} CLEARED)`
+              : "⭐ MODULE MASTERY RATING"}
+          </Text>
+          <View style={styles.masteryStarsPill}>
+            <Text style={styles.masteryStarsPillGlyph}>
+              {[1, 2, 3].map((s) => (s <= starRating ? "★" : "☆")).join(" ")}
+            </Text>
+            <Text style={styles.masteryStarsPillText}>
+              {starRating}/3 STARS
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.masteryCriteriaRow}>
+          <View
             style={[
-              styles.tabText,
-              activeTab === "mission" && styles.activeTabText,
+              styles.masteryCriterionChip,
+              starRating >= 1 && styles.masteryCriterionChipEarned,
             ]}
           >
-            01. 🎯 MISSION BRIEF
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.tabItem,
-            activeTab === "problem" && styles.activeTabItem,
-          ]}
-          onPress={() => handleSwitchTab("problem")}
-        >
-          <Text
+            <Text
+              style={[
+                styles.masteryCriterionText,
+                starRating >= 1 && styles.masteryCriterionTextEarned,
+              ]}
+            >
+              {starRating >= 1 ? "★" : "☆"} Core Cleared
+            </Text>
+          </View>
+          <View
             style={[
-              styles.tabText,
-              activeTab === "problem" && styles.activeTabText,
+              styles.masteryCriterionChip,
+              starRating >= 2 && styles.masteryCriterionChipEarned,
             ]}
           >
-            02. 🧰 LEARN & TOOLS
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.tabItem,
-            activeTab === "visual" && styles.activeTabItem,
-          ]}
-          onPress={() => handleSwitchTab("visual")}
-        >
-          <Text
+            <Text
+              style={[
+                styles.masteryCriterionText,
+                starRating >= 2 && styles.masteryCriterionTextEarned,
+              ]}
+            >
+              {starRating >= 2 ? "★" : "☆"}{" "}
+              {hasMultipleChallenges ? "Drills Applied" : "All Tests Passed"}
+            </Text>
+          </View>
+          <View
             style={[
-              styles.tabText,
-              activeTab === "visual" && styles.activeTabText,
+              styles.masteryCriterionChip,
+              starRating >= 3 && styles.masteryCriterionChipEarned,
+              hasPeekedSolution &&
+                starRating < 3 &&
+                styles.masteryCriterionChipWarn,
             ]}
           >
-            03. 💾 MEMORY SIM
-          </Text>
-        </Pressable>
+            <Text
+              style={[
+                styles.masteryCriterionText,
+                starRating >= 3 && styles.masteryCriterionTextEarned,
+              ]}
+            >
+              {starRating >= 3 ? "★" : "☆"}{" "}
+              {hasPeekedSolution && starRating < 3
+                ? "Re-solve w/o Solution"
+                : "All Stages · No Solution"}
+            </Text>
+          </View>
+        </View>
+
+        {hasMultipleChallenges && (
+          <View style={styles.practiceStagePillsRow}>
+            {/* Stage 1: Core Lesson */}
+            {(() => {
+              const isStage0Selected = activeChallengeIdx === 0;
+              const isStage0Solved = isLessonStageCompleted(
+                selectedLesson,
+                0,
+                completedLessons,
+                completedChallenges,
+              );
+              return (
+                <Pressable
+                  onPress={() => {
+                    playKeyClick();
+                    onSelectChallengeIdx?.(0);
+                  }}
+                  style={[
+                    styles.practiceStagePill,
+                    isStage0Selected && styles.practiceStagePillActive,
+                    isStage0Solved &&
+                      !isStage0Selected &&
+                      styles.practiceStagePillSolved,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.practiceStagePillIndex,
+                      isStage0Selected && styles.practiceStagePillTextActive,
+                    ]}
+                  >
+                    {isStage0Solved ? "✓ 01" : "01"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.practiceStagePillLabel,
+                      isStage0Selected && styles.practiceStagePillTextActive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    📖 Core Lesson
+                  </Text>
+                </Pressable>
+              );
+            })()}
+
+            {/* Stages 2..N: Practice Challenges */}
+            {practiceDrills.map((drill, dIdx) => {
+              const stageIdx = dIdx + 1;
+              const isSelected = activeChallengeIdx === stageIdx;
+              const isSolved = isLessonStageCompleted(
+                selectedLesson,
+                stageIdx,
+                completedLessons,
+                completedChallenges,
+              );
+              const stageNumber = String(stageIdx + 1).padStart(2, "0");
+              const shortTag =
+                stageIdx === 1
+                  ? "🎯 Practice I"
+                  : stageIdx === 2
+                    ? "⚡ Practice II"
+                    : "🔥 Boss Drill";
+              return (
+                <Pressable
+                  key={drill.id}
+                  onPress={() => {
+                    playKeyClick();
+                    onSelectChallengeIdx?.(stageIdx);
+                  }}
+                  style={[
+                    styles.practiceStagePill,
+                    isSelected && styles.practiceStagePillActive,
+                    isSolved && !isSelected && styles.practiceStagePillSolved,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.practiceStagePillIndex,
+                      isSelected && styles.practiceStagePillTextActive,
+                    ]}
+                  >
+                    {isSolved ? `✓ ${stageNumber}` : stageNumber}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.practiceStagePillLabel,
+                      isSelected && styles.practiceStagePillTextActive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {shortTag}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </View>
+
+      {/* When on Practice Challenge 2..N: Focused Mission Brief + Clues Only (No Deep Explanation) */}
+      {activePracticeDrill ? (
+        <View style={styles.problemCard}>
+          <View style={styles.assignmentBox}>
+            <View style={styles.missionCommandTopBar} />
+            <View style={styles.assignmentHeaderRow}>
+              <View style={styles.missionSticker}>
+                <Text style={styles.assignmentHeaderLabel}>
+                  ⚡ {activePracticeDrill.difficultyLabel} · STAGE{" "}
+                  {activeChallengeIdx + 1}/{totalChallengeStages}
+                </Text>
+              </View>
+              <View style={styles.xpRewardPill}>
+                <Text style={styles.xpRewardPillText}>+25 XP</Text>
+              </View>
+            </View>
+
+            <View style={styles.missionObjectiveCallout}>
+              <Text style={styles.missionObjectiveMicro}>
+                PRACTICE MISSION BRIEF (NO LECTURE — PURE CODING)
+              </Text>
+              <FormattedText
+                text={activePracticeDrill.assignment}
+                style={styles.assignmentDescription}
+              />
+            </View>
+
+            {activePracticeDrill.constraints.length > 0 && (
+              <View style={styles.checklistContainer}>
+                <Text style={styles.checklistSectionTitle}>
+                  MISSION REQUIREMENTS
+                </Text>
+                {activePracticeDrill.constraints.map((c, i) => {
+                  const isStepPassed = testResults?.[i]?.passed;
+                  return (
+                    <View
+                      key={i}
+                      style={[
+                        styles.missionRow,
+                        isStepPassed && styles.missionRowPassed,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.missionBulletBox,
+                          isStepPassed && {
+                            backgroundColor: StudioColors.lime,
+                            borderColor: StudioColors.ink,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.missionBullet,
+                            isStepPassed && { color: StudioColors.ink },
+                          ]}
+                        >
+                          {isStepPassed ? "✓" : `0${i + 1}`}
+                        </Text>
+                      </View>
+                      <FormattedText text={c} style={styles.missionText} />
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {activePracticeDrill.expected_output ? (
+              <View style={styles.targetOutputTerminal}>
+                <View style={styles.targetOutputHeader}>
+                  <Text style={styles.targetOutputHeaderLabel}>
+                    EXPECTED CONSOLE OUTPUT TARGET
+                  </Text>
+                  <Text style={styles.targetOutputMatchTag}>
+                    MUST MATCH EXACTLY
+                  </Text>
+                </View>
+                <Text style={styles.targetOutputCode}>
+                  {activePracticeDrill.expected_output}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          {activePracticeDrill.examples.map((ex, i) => (
+            <View key={i} style={styles.exampleBlock}>
+              <Text style={styles.exampleTitle}>EXAMPLE 0{i + 1}</Text>
+              <View style={styles.exampleBox}>
+                <Text style={styles.exampleCode}>
+                  <Text style={styles.bold}>Input: </Text>
+                  {ex.input}
+                </Text>
+                <Text style={styles.exampleCode}>
+                  <Text style={styles.bold}>Output: </Text>
+                  {ex.output}
+                </Text>
+                {ex.explanation && (
+                  <Text style={styles.exampleCode}>
+                    <Text style={styles.bold}>Why: </Text>
+                    {ex.explanation}
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+
+          {/* Quick Refresher Button back to Stage 1 Concept Guide if needed */}
+          <Pressable
+            onPress={() => {
+              playKeyClick();
+              onSelectChallengeIdx?.(0);
+              onChangeActiveTab("problem");
+            }}
+            style={styles.quickConceptPeekBtn}
+          >
+            <Text style={styles.quickConceptPeekText}>
+              📖 Forgot the syntax? Peek back at Stage 01 Concept &amp; Cheat
+              Sheet →
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          {/* 3-Mode Focused Tab Switcher (Stage 1 Core Lesson only) */}
+          <View style={styles.tabBar}>
+            <Pressable
+              style={[
+                styles.tabItem,
+                activeTab === "mission" && styles.activeMissionTabItem,
+              ]}
+              onPress={() => handleSwitchTab("mission")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "mission" && styles.activeTabText,
+                ]}
+              >
+                01. 🎯 MISSION BRIEF
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.tabItem,
+                activeTab === "problem" && styles.activeTabItem,
+              ]}
+              onPress={() => handleSwitchTab("problem")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "problem" && styles.activeTabText,
+                ]}
+              >
+                02. 🧰 LEARN & TOOLS
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.tabItem,
+                activeTab === "visual" && styles.activeTabItem,
+              ]}
+              onPress={() => handleSwitchTab("visual")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "visual" && styles.activeTabText,
+                ]}
+              >
+                03. 💾 MEMORY SIM
+              </Text>
+            </Pressable>
+          </View>
 
       {activeTab === "problem" ? (
         <View
@@ -575,7 +908,15 @@ export default function LessonProblemPanel({
           testResults={testResults}
         />
       )}
-      <HintAccordion hints={selectedLesson.hints || []} />
+        </>
+      )}
+      <HintAccordion
+        hints={
+          activePracticeDrill
+            ? activePracticeDrill.hints
+            : selectedLesson.hints || []
+        }
+      />
     </ScrollView>
   );
 }
@@ -583,6 +924,149 @@ export default function LessonProblemPanel({
 const getStyles = () =>
   StyleSheet.create({
     explanationPanel: { flex: 1, paddingRight: 8 },
+    practiceDeckCard: {
+      backgroundColor: StudioColors.surfaceElevated,
+      borderWidth: 2,
+      borderColor: StudioColors.ink,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 14,
+      gap: 10,
+      ...HardShadowSm,
+    },
+    practiceDeckHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    practiceDeckEyebrow: {
+      color: StudioColors.yellow,
+      fontFamily: MonoFont,
+      fontSize: 10.5,
+      fontWeight: "900",
+      letterSpacing: 0.5,
+    },
+    practiceDeckSubTag: {
+      color: StudioColors.mint,
+      fontFamily: MonoFont,
+      fontSize: 10,
+      fontWeight: "900",
+    },
+    masteryStarsPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(251, 191, 36, 0.14)",
+      borderWidth: 1.5,
+      borderColor: StudioColors.yellow,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    masteryStarsPillGlyph: {
+      color: StudioColors.yellow,
+      fontFamily: MonoFont,
+      fontSize: 12,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+    masteryStarsPillText: {
+      color: StudioColors.textPrimary,
+      fontFamily: MonoFont,
+      fontSize: 10,
+      fontWeight: "900",
+    },
+    masteryCriteriaRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 6,
+    },
+    masteryCriterionChip: {
+      backgroundColor: StudioColors.surface,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    masteryCriterionChipEarned: {
+      backgroundColor: "rgba(251, 191, 36, 0.16)",
+      borderColor: StudioColors.yellow,
+    },
+    masteryCriterionChipWarn: {
+      backgroundColor: "rgba(251, 113, 133, 0.14)",
+      borderColor: StudioColors.coral,
+    },
+    masteryCriterionText: {
+      color: StudioColors.textMuted,
+      fontFamily: MonoFont,
+      fontSize: 10,
+      fontWeight: "800",
+    },
+    masteryCriterionTextEarned: {
+      color: StudioColors.yellow,
+      fontWeight: "900",
+    },
+    practiceStagePillsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    practiceStagePill: {
+      flex: 1,
+      minWidth: 108,
+      backgroundColor: StudioColors.surface,
+      borderWidth: 2,
+      borderColor: StudioColors.border,
+      borderRadius: 9,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      gap: 2,
+      ...Platform.select({ web: { cursor: "pointer" } }),
+    },
+    practiceStagePillActive: {
+      backgroundColor: StudioColors.yellow,
+      borderColor: StudioColors.ink,
+      ...HardShadowSm,
+    },
+    practiceStagePillSolved: {
+      borderColor: StudioColors.mint,
+      backgroundColor: "rgba(52, 211, 153, 0.12)",
+    },
+    practiceStagePillIndex: {
+      color: StudioColors.textMuted,
+      fontFamily: MonoFont,
+      fontSize: 10,
+      fontWeight: "900",
+    },
+    practiceStagePillLabel: {
+      color: StudioColors.textPrimary,
+      fontFamily: MonoFont,
+      fontSize: 11,
+      fontWeight: "900",
+    },
+    practiceStagePillTextActive: {
+      color: StudioColors.ink,
+    },
+    quickConceptPeekBtn: {
+      backgroundColor: StudioColors.surfaceElevated,
+      borderWidth: 2,
+      borderColor: StudioColors.border,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      marginTop: 10,
+      alignItems: "center",
+      ...Platform.select({ web: { cursor: "pointer" } }),
+    },
+    quickConceptPeekText: {
+      color: StudioColors.yellow,
+      fontFamily: MonoFont,
+      fontSize: 11.5,
+      fontWeight: "900",
+    },
     lessonBadgeRow: {
       flexDirection: "row",
       gap: 8,
