@@ -215,11 +215,14 @@ const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
     <circle cx="13" cy="5" r="1.8" fill="#38BDF8" stroke="#111111" stroke-width="1.4"/>
   `,
   python: `
-    <path d="M9 11 C9 6 22 6 22 11 V15 C22 18 10 17 10 21 V24 C10 27 23 27 23 22" fill="none" stroke="#111111" stroke-width="7.5" stroke-linecap="round" transform="translate(1.5,1.5)"/>
-    <path d="M9 11 C9 6 22 6 22 11 V15 C22 18 10 17 10 21" fill="none" stroke="#38BDF8" stroke-width="5.5" stroke-linecap="round"/>
-    <path d="M22 14 C22 18 10 17 10 21 V24 C10 27 23 27 23 22" fill="none" stroke="#FFDE59" stroke-width="5.5" stroke-linecap="round"/>
-    <circle cx="13" cy="9.5" r="1.3" fill="#111111"/>
-    <circle cx="19" cy="23.5" r="1.3" fill="#111111"/>
+    <g fill="#111111" transform="translate(1.8,1.8)">
+      <path d="M10 9.5 H15.5 V11 H9.5 C6 11 4.5 13 4.5 16.5 C4.5 20 6 21.5 9.5 21.5 H11.5 V18 C11.5 15.5 13.2 14 15.8 14 H21.5 C23.2 14 24.5 12.7 24.5 11 V7.5 C24.5 5.2 22 4 17.2 4 C12.5 4 10 5.2 10 7.5 Z"/>
+      <path d="M22 22.5 H16.5 V21 H22.5 C26 21 27.5 19 27.5 15.5 C27.5 12 26 10.5 22.5 10.5 H20.5 V14 C20.5 16.5 18.8 18 16.2 18 H10.5 C8.8 18 7.5 19.3 7.5 21 V24.5 C7.5 26.8 10 28 14.8 28 C19.5 28 22 26.8 22 24.5 Z"/>
+    </g>
+    <path d="M10 9.5 H15.5 V11 H9.5 C6 11 4.5 13 4.5 16.5 C4.5 20 6 21.5 9.5 21.5 H11.5 V18 C11.5 15.5 13.2 14 15.8 14 H21.5 C23.2 14 24.5 12.7 24.5 11 V7.5 C24.5 5.2 22 4 17.2 4 C12.5 4 10 5.2 10 7.5 Z" fill="#38BDF8" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M22 22.5 H16.5 V21 H22.5 C26 21 27.5 19 27.5 15.5 C27.5 12 26 10.5 22.5 10.5 H20.5 V14 C20.5 16.5 18.8 18 16.2 18 H10.5 C8.8 18 7.5 19.3 7.5 21 V24.5 C7.5 26.8 10 28 14.8 28 C19.5 28 22 26.8 22 24.5 Z" fill="#FFDE59" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="13.5" cy="7.3" r="1.4" fill="#111111"/>
+    <circle cx="18.5" cy="24.7" r="1.4" fill="#111111"/>
   `,
   search: `
     <circle cx="14" cy="14" r="8.5" fill="#111111" transform="translate(1.6,1.6)"/>
