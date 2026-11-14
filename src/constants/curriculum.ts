@@ -1,5 +1,7 @@
 import { ALGORITHMS_ENRICHMENTS } from "./curriculumData/algorithmsEnrichments";
 import { ALGORITHMS_EXPANSION_LESSONS } from "./curriculumData/algorithmsLessons";
+import { getCurriculumLessonSortKey } from "./certificates";
+import { CHAPTER_RECAP_LESSONS } from "./curriculumData/chapterRecapLessons";
 import { PYTHON_BASICS_ENRICHMENTS } from "./curriculumData/pythonBasicsEnrichments";
 import { PYTHON_BASICS_EXPANSION_LESSONS } from "./curriculumData/pythonBasicsLessons";
 import { PYTHON_BASICS_PRACTICE_DRILLS } from "./curriculumData/pythonBasicsPracticeDrills";
@@ -29,6 +31,7 @@ export const EXPANSION_LESSONS = [
   ...PYTHON_BASICS_EXPANSION_LESSONS,
   ...ALGORITHMS_EXPANSION_LESSONS,
   ...SYSTEM_DESIGN_EXPANSION_LESSONS,
+  ...CHAPTER_RECAP_LESSONS,
 ];
 
 function attachDefaultPitfallAndGuided(
@@ -321,5 +324,9 @@ export function mergeCurriculumLessons<
     }
   }
 
-  return merged.sort((a, b) => a.lesson_order - b.lesson_order);
+  return merged.sort(
+    (a, b) =>
+      getCurriculumLessonSortKey(a.track, a) -
+      getCurriculumLessonSortKey(b.track, b),
+  );
 }

@@ -163,13 +163,20 @@ export default function LessonProblemPanel({
           style={[
             styles.lessonStepPill,
             {
-              backgroundColor: currentTrackTheme.stickerBg,
+              backgroundColor: selectedLesson.is_recap
+                ? StudioColors.yellow
+                : currentTrackTheme.stickerBg,
             },
           ]}
         >
           {selectedLesson.category ||
             `MODULE ${String(selectedLesson.lesson_order).padStart(2, "0")}`}
         </Text>
+        {selectedLesson.is_recap && (
+          <Text style={styles.recapBadgePill}>
+            🏆 CHAPTER {selectedLesson.recap_chapter || ""} CAPSTONE
+          </Text>
+        )}
         {completedLessons[selectedLesson.id] && (
           <Text style={styles.completedLessonPill}>SOLVED ✓</Text>
         )}
@@ -196,6 +203,24 @@ export default function LessonProblemPanel({
           ? `Concept Practice for "${selectedLesson.title}" — Mission Brief & Clues only.`
           : selectedLesson.description}
       </Text>
+
+      {selectedLesson.is_recap &&
+        !activePracticeDrill &&
+        selectedLesson.recap_topics &&
+        selectedLesson.recap_topics.length > 0 && (
+          <View style={styles.recapTopicsCard}>
+            <Text style={styles.recapTopicsEyebrow}>
+              🏆 CUMULATIVE CHAPTER RECAP · COMBINES:
+            </Text>
+            <View style={styles.recapTopicsRow}>
+              {selectedLesson.recap_topics.map((topic, tIdx) => (
+                <View key={tIdx} style={styles.recapTopicChip}>
+                  <Text style={styles.recapTopicChipText}>{topic}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
       {/* 3-Star Mastery & Multi-Stage Practice Challenge Switcher */}
       <View style={styles.practiceDeckCard}>
@@ -1100,6 +1125,54 @@ const getStyles = () =>
       borderWidth: 1.5,
       borderColor: StudioColors.ink,
       letterSpacing: 0.6,
+    },
+    recapBadgePill: {
+      backgroundColor: StudioColors.ink,
+      color: StudioColors.yellow,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      borderRadius: 4,
+      borderWidth: 1.5,
+      borderColor: StudioColors.yellow,
+      letterSpacing: 0.6,
+    },
+    recapTopicsCard: {
+      backgroundColor: "rgba(251, 191, 36, 0.10)",
+      borderWidth: 1.5,
+      borderColor: StudioColors.yellow,
+      borderRadius: 10,
+      padding: 12,
+      marginBottom: 14,
+      gap: 8,
+    },
+    recapTopicsEyebrow: {
+      color: StudioColors.yellow,
+      fontFamily: MonoFont,
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 0.7,
+    },
+    recapTopicsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 6,
+    },
+    recapTopicChip: {
+      backgroundColor: StudioColors.surface,
+      borderWidth: 1,
+      borderColor: StudioColors.border,
+      borderRadius: 5,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    recapTopicChipText: {
+      color: StudioColors.textPrimary,
+      fontFamily: MonoFont,
+      fontSize: 10,
+      fontWeight: "800",
     },
     freePreviewLessonPill: {
       backgroundColor: StudioColors.lime,

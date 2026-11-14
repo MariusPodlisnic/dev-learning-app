@@ -55,6 +55,9 @@ export interface Lesson {
   complexities?: Complexities;
   is_free: boolean;
   lesson_order: number;
+  is_recap?: boolean;
+  recap_chapter?: number;
+  recap_topics?: string[];
   visual_type?: string;
   visual_data?: any;
   hints?: string[];

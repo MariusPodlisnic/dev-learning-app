@@ -18,6 +18,9 @@ import {
 import { Text } from "./StudioIcon";
 import {
   ChapterTierMeta,
+  getChapterForTrackLesson,
+  getCurriculumLessonSortKey,
+  isLessonInChapter,
   TRACK_CHAPTERS,
 } from "../constants/certificates";
 import {
@@ -44,6 +47,7 @@ import RoadmapScrollBackdrop from "./RoadmapScrollBackdrop";
 
 export interface Lesson {
   id: string;
+  slug?: string;
   title: string;
   track: string;
   category?: string;
@@ -58,6 +62,9 @@ export interface Lesson {
   constraints?: string[];
   complexities?: { time?: string; space?: string };
   practiceChallenges?: PracticeChallenge[];
+  is_recap?: boolean;
+  recap_chapter?: number;
+  recap_topics?: string[];
   is_free: boolean;
   lesson_order: number;
 }
@@ -422,6 +429,7 @@ function InteractiveLessonNode({
   isDone,
   isNextUp,
   isLocked,
+  isRecap,
   accentColor,
   onPress,
   children,
@@ -429,6 +437,7 @@ function InteractiveLessonNode({
   isDone: boolean;
   isNextUp: boolean;
   isLocked: boolean;
+  isRecap?: boolean;
   accentColor: string;
   onPress: () => void;
   children: React.ReactNode;
@@ -478,12 +487,20 @@ function InteractiveLessonNode({
         }}
         style={[
           styles.nodeCard,
+          isRecap && styles.nodeCardRecap,
           isDone && styles.nodeCardDone,
+          isRecap && isDone && styles.nodeCardRecapDone,
           isNextUp && styles.nodeCardNextUp,
           isLocked && styles.nodeCardLocked,
           hovered && [
             styles.nodeCardHovered,
-            { borderColor: isNextUp ? StudioColors.lime : accentColor },
+            {
+              borderColor: isRecap
+                ? StudioColors.yellow
+                : isNextUp
+                  ? StudioColors.lime
+                  : accentColor,
+            },
           ],
         ]}
       >
@@ -727,12 +744,8 @@ export default function RoadmapTree({
   const trackChapters =
     TRACK_CHAPTERS[activeTrack] || TRACK_CHAPTERS.python_basics;
 
-  function getChapterForLesson(lessonOrder: number): ChapterTierMeta {
-    return (
-      trackChapters.find(
-        (ch) => lessonOrder >= ch.minOrder && lessonOrder <= ch.maxOrder,
-      ) || trackChapters[trackChapters.length - 1]
-    );
+  function getChapterForLesson(lesson: Lesson): ChapterTierMeta {
+    return getChapterForTrackLesson(activeTrack, lesson);
   }
 
   // Determine the "Next Up" recommended lesson in the current track
@@ -757,7 +770,7 @@ export default function RoadmapTree({
     if (statusFilter === "unsolved" && isDone) return false;
     if (statusFilter === "solved" && !isDone) return false;
     if (chapterFilter !== null) {
-      const ch = getChapterForLesson(lesson.lesson_order);
+      const ch = getChapterForLesson(lesson);
       if (ch.id !== chapterFilter) return false;
     }
     if (normalizedQuery) {
@@ -782,7 +795,11 @@ export default function RoadmapTree({
 
   const sortedRows = Object.keys(rowsMap)
     .map(Number)
-    .sort((a, b) => a - b);
+    .sort(
+      (a, b) =>
+        getCurriculumLessonSortKey(activeTrack, rowsMap[a][0]) -
+        getCurriculumLessonSortKey(activeTrack, rowsMap[b][0]),
+    );
 
   return (
     <View style={styles.rootWrap}>
@@ -1263,22 +1280,14 @@ export default function RoadmapTree({
             const rowCleared = rowNodes.some((n) => completedLessons[n.id]);
 
             const firstNodeInRow = rowNodes[0];
-            const currentChapter = getChapterForLesson(
-              firstNodeInRow.lesson_order,
-            );
+            const currentChapter = getChapterForLesson(firstNodeInRow);
             const prevChapter =
-              idx > 0
-                ? getChapterForLesson(
-                    rowsMap[sortedRows[idx - 1]][0].lesson_order,
-                  )
-                : null;
+              idx > 0 ? getChapterForLesson(rowsMap[sortedRows[idx - 1]][0]) : null;
             const isFirstRowOfChapter =
               !prevChapter || prevChapter.id !== currentChapter.id;
 
-            const chapterLessons = trackLessons.filter(
-              (l) =>
-                l.lesson_order >= currentChapter.minOrder &&
-                l.lesson_order <= currentChapter.maxOrder,
+            const chapterLessons = trackLessons.filter((l) =>
+              isLessonInChapter(l, currentChapter),
             );
             const chapterDoneCount = chapterLessons.filter(
               (l) => completedLessons[l.id],
@@ -1342,7 +1351,7 @@ export default function RoadmapTree({
                             >
                               {isChapterCleared
                                 ? "🏆 MILESTONE UNLOCKED"
-                                : "🎁 +100 XP BONUS AT 4/4"}
+                                : `🎁 +100 XP BONUS AT ${chapterLessons.length}/${chapterLessons.length}`}
                             </Text>
                           </View>
                         </View>
@@ -1446,13 +1455,16 @@ export default function RoadmapTree({
 
                 <View style={styles.tierLabelWrapper}>
                   <Text style={styles.tierLabelText}>
-                    STAGE {String(idx + 1).padStart(2, "0")}
+                    {firstNodeInRow.is_recap
+                      ? `🏆 CHAPTER ${currentChapter.roman} RECAP BOSS`
+                      : `STAGE ${String(idx + 1).padStart(2, "0")}`}
                   </Text>
                 </View>
 
               <View style={styles.nodesRow}>
                 {rowNodes.map((node) => {
                   const isDone = Boolean(completedLessons[node.id]);
+                  const isRecap = Boolean(node.is_recap);
                   const isFreePreview =
                     isProTrackPreviewLesson(node) && !isPremium;
                   const isLocked = isLessonLockedForUser(node, isPremium);
@@ -1467,6 +1479,7 @@ export default function RoadmapTree({
                       isDone={isDone}
                       isNextUp={isNextUp}
                       isLocked={isLocked}
+                      isRecap={isRecap}
                       accentColor={currentTrackMeta.stickerBg}
                       onPress={() => onSelectLesson(node)}
                     >
@@ -1477,9 +1490,11 @@ export default function RoadmapTree({
                           {
                             backgroundColor: isDone
                               ? StudioColors.mint
-                              : isNextUp
-                                ? StudioColors.lime
-                                : currentTrackMeta.stickerBg,
+                              : isRecap
+                                ? StudioColors.yellow
+                                : isNextUp
+                                  ? StudioColors.lime
+                                  : currentTrackMeta.stickerBg,
                           },
                         ]}
                       />
@@ -1490,8 +1505,9 @@ export default function RoadmapTree({
                           <View
                             style={[
                               styles.statusBadge,
+                              isRecap && !isDone && styles.statusBadgeRecap,
                               isDone && styles.statusBadgeDone,
-                              isNextUp && {
+                              isNextUp && !isRecap && {
                                 backgroundColor: StudioColors.lime,
                               },
                             ]}
@@ -1500,6 +1516,8 @@ export default function RoadmapTree({
                               <Text style={styles.lockIcon}>PRO</Text>
                             ) : isDone ? (
                               <Text style={styles.statusIconDone}>✓</Text>
+                            ) : isRecap ? (
+                              <Text style={styles.statusIconRecap}>🏆</Text>
                             ) : (
                               <Text style={styles.statusNumberText}>
                                 {String(node.lesson_order).padStart(2, "0")}
@@ -1508,11 +1526,19 @@ export default function RoadmapTree({
                           </View>
 
                           <Text style={styles.nodeCategory} numberOfLines={1}>
-                            {node.category || `MODULE ${node.lesson_order}`}
+                            {isRecap
+                              ? `CHAPTER ${currentChapter.roman} CAPSTONE`
+                              : node.category || `MODULE ${node.lesson_order}`}
                           </Text>
                         </View>
 
-                        {isFreePreview ? (
+                        {isRecap && !isDone && !isLocked ? (
+                          <View style={styles.recapNodePill}>
+                            <Text style={styles.recapNodePillText}>
+                              🏆 CHAPTER RECAP
+                            </Text>
+                          </View>
+                        ) : isFreePreview ? (
                           <View style={styles.nextUpNodePill}>
                             <Text style={styles.nextUpNodePillText}>
                               ★ FREE PREVIEW
@@ -1547,6 +1573,18 @@ export default function RoadmapTree({
 
                       {shortSummary ? (
                         <Text style={styles.nodeDesc}>{shortSummary}</Text>
+                      ) : null}
+
+                      {isRecap && node.recap_topics && node.recap_topics.length > 0 ? (
+                        <View style={styles.nodeRecapTopicsRow}>
+                          {node.recap_topics.map((topic, tIdx) => (
+                            <View key={tIdx} style={styles.nodeRecapTopicChip}>
+                              <Text style={styles.nodeRecapTopicText}>
+                                {topic}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
                       ) : null}
 
                       {/* Footer Metadata Pills */}
@@ -2916,5 +2954,59 @@ const styles = StyleSheet.create({
   },
   nodeStarPillTextPartial: {
     color: StudioColors.yellow,
+  },
+  nodeCardRecap: {
+    borderColor: StudioColors.yellow,
+    borderWidth: 2.5,
+    backgroundColor: "rgba(251, 191, 36, 0.09)",
+    maxWidth: "100%",
+    width: Math.max(CARD_WIDTH, 390),
+  },
+  nodeCardRecapDone: {
+    backgroundColor: StudioColors.cardDoneBg,
+    borderColor: StudioColors.mint,
+  },
+  statusBadgeRecap: {
+    backgroundColor: StudioColors.yellow,
+    borderColor: StudioColors.ink,
+  },
+  statusIconRecap: {
+    fontSize: 13,
+  },
+  recapNodePill: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
+    ...HardShadowSm,
+  },
+  recapNodePillText: {
+    color: StudioColors.ink,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  nodeRecapTopicsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 5,
+    marginTop: 2,
+  },
+  nodeRecapTopicChip: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  nodeRecapTopicText: {
+    color: StudioColors.textSecondary,
+    fontSize: 9.5,
+    fontWeight: "800",
+    fontFamily: MonoFont,
   },
 });

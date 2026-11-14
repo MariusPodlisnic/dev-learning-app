@@ -84,6 +84,7 @@ const pyDrillsMod = loadTsModule(
 );
 const algMod = loadTsModule(path.join(DATA_DIR, "algorithmsLessons.ts"));
 const sysMod = loadTsModule(path.join(DATA_DIR, "systemDesignLessons.ts"));
+const recapMod = loadTsModule(path.join(DATA_DIR, "chapterRecapLessons.ts"));
 
 const pyLessons = (pyMod.PYTHON_BASICS_EXPANSION_LESSONS || []).map((l) => ({
   ...l,
@@ -104,7 +105,18 @@ const sysLessons = (sysMod.SYSTEM_DESIGN_EXPANSION_LESSONS || []).map((l) => ({
   practice_challenges: l.practiceChallenges || [],
 }));
 
-const allExportedLessons = [...pyLessons, ...algLessons, ...sysLessons];
+const recapLessons = (recapMod.CHAPTER_RECAP_LESSONS || []).map((l) => ({
+  ...l,
+  slug: l.id,
+  practice_challenges: l.practiceChallenges || [],
+}));
+
+const allExportedLessons = [
+  ...pyLessons,
+  ...algLessons,
+  ...sysLessons,
+  ...recapLessons,
+];
 
 const slugSyncMappings = allExportedLessons.map((l) => {
   return `  UPDATE public.lessons
@@ -143,7 +155,10 @@ const lessonRowsSql = allExportedLessons
   ${sqlDollar(l.visual_type || "memory")},
   ${sqlJsonb(l.visual_data || [], [])},
   ${sqlJsonb(l.hints || [], [])},
-  ${sqlJsonb(l.practice_challenges || [], [])}
+  ${sqlJsonb(l.practice_challenges || [], [])},
+  ${Boolean(l.is_recap)},
+  ${l.recap_chapter ? Number(l.recap_chapter) : "NULL"},
+  ${sqlJsonb(l.recap_topics || [], [])}
 )`;
   })
   .join(",\n");
@@ -175,7 +190,10 @@ ALTER TABLE public.lessons
   ADD COLUMN IF NOT EXISTS visual_type text,
   ADD COLUMN IF NOT EXISTS visual_data jsonb,
   ADD COLUMN IF NOT EXISTS hints jsonb,
-  ADD COLUMN IF NOT EXISTS practice_challenges jsonb NOT NULL DEFAULT '[]'::jsonb;
+  ADD COLUMN IF NOT EXISTS practice_challenges jsonb NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS is_recap boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS recap_chapter integer,
+  ADD COLUMN IF NOT EXISTS recap_topics jsonb NOT NULL DEFAULT '[]'::jsonb;
 
 CREATE UNIQUE INDEX IF NOT EXISTS lessons_slug_uidx
   ON public.lessons (slug);
@@ -251,7 +269,10 @@ INSERT INTO public.lessons (
   visual_type,
   visual_data,
   hints,
-  practice_challenges
+  practice_challenges,
+  is_recap,
+  recap_chapter,
+  recap_topics
 ) VALUES
 ${lessonRowsSql}
 ON CONFLICT (slug) DO UPDATE SET
@@ -274,10 +295,13 @@ ON CONFLICT (slug) DO UPDATE SET
   visual_type = EXCLUDED.visual_type,
   visual_data = EXCLUDED.visual_data,
   hints = EXCLUDED.hints,
-  practice_challenges = EXCLUDED.practice_challenges;
+  practice_challenges = EXCLUDED.practice_challenges,
+  is_recap = EXCLUDED.is_recap,
+  recap_chapter = EXCLUDED.recap_chapter,
+  recap_topics = EXCLUDED.recap_topics;
 `;
 
 fs.writeFileSync(OUT_FILE, sqlOutput, "utf8");
 console.log(
-  `Generated ${path.relative(ROOT_DIR, OUT_FILE)} with ${allExportedLessons.length} curriculum modules (${pyLessons.length} python_basics, ${algLessons.length} algorithms, ${sysLessons.length} system_design).`,
+  `Generated ${path.relative(ROOT_DIR, OUT_FILE)} with ${allExportedLessons.length} curriculum modules (${pyLessons.length} python_basics, ${algLessons.length} algorithms, ${sysLessons.length} system_design, ${recapLessons.length} chapter_recaps).`,
 );

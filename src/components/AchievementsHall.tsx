@@ -115,11 +115,51 @@ export default function AchievementsHall({
     [solvedIncidents],
   );
 
+  const recapLessons = useMemo(
+    () => lessons.filter((l) => Boolean(l.is_recap)),
+    [lessons],
+  );
+  const recapSolvedCount = useMemo(
+    () => recapLessons.filter((l) => completedLessons[l.id]).length,
+    [recapLessons, completedLessons],
+  );
+  const pyRecapSolvedCount = useMemo(
+    () =>
+      pyLessons.filter((l) => Boolean(l.is_recap) && completedLessons[l.id])
+        .length,
+    [pyLessons, completedLessons],
+  );
+  const algoRecapSolvedCount = useMemo(
+    () =>
+      algoLessons.filter((l) => Boolean(l.is_recap) && completedLessons[l.id])
+        .length,
+    [algoLessons, completedLessons],
+  );
+  const sysRecapSolvedCount = useMemo(
+    () =>
+      sysLessons.filter((l) => Boolean(l.is_recap) && completedLessons[l.id])
+        .length,
+    [sysLessons, completedLessons],
+  );
+
   const achievements: AchievementItem[] = useMemo(() => {
-    const pyTotal = Math.max(24, pyLessons.length);
-    const algoTotal = Math.max(20, algoLessons.length);
-    const sysTotal = Math.max(20, sysLessons.length);
-    const allTotal = Math.max(64, lessons.length);
+    const pyTotal = Math.max(30, pyLessons.length);
+    const algoTotal = Math.max(26, algoLessons.length);
+    const sysTotal = Math.max(26, sysLessons.length);
+    const allTotal = Math.max(82, lessons.length);
+    const pyRecapTotal = Math.max(
+      6,
+      pyLessons.filter((l) => Boolean(l.is_recap)).length,
+    );
+    const algoRecapTotal = Math.max(
+      6,
+      algoLessons.filter((l) => Boolean(l.is_recap)).length,
+    );
+    const sysRecapTotal = Math.max(
+      6,
+      sysLessons.filter((l) => Boolean(l.is_recap)).length,
+    );
+    const allRecapTotal = Math.max(18, recapLessons.length);
 
     return [
       // 1. EASY
@@ -464,14 +504,109 @@ export default function AchievementsHall({
         actionMode: "roadmap",
         actionLabel: "PERFECT ALL LESSONS →",
       },
+      // 20. EASY — FIRST CHAPTER RECAP PASSED
+      {
+        id: "first_chapter_recap",
+        title: "Chapter Boss Conqueror",
+        subtitle: "FIRST CHAPTER RECAP CLEARED",
+        howToObtain:
+          "Pass any Chapter Recap Capstone lesson at the end of a chapter by combining all concepts taught in that chapter.",
+        rewardLabel: "+100 XP CHAPTER SEAL",
+        icon: "trophy",
+        crestBg: StudioColors.yellow,
+        crestSecondary: StudioColors.mint,
+        difficulty: "easy",
+        current: Math.min(1, recapSolvedCount),
+        target: 1,
+        unit: "CHAPTER RECAP",
+        actionMode: "roadmap",
+        actionLabel: "TACKLE RECAP BOSS →",
+      },
+      // 21. MEDIUM — PYTHON ALL 6 CHAPTER RECAPS
+      {
+        id: "python_all_recaps",
+        title: "Python Chapter Sovereign",
+        subtitle: "ALL 6 PYTHON CHAPTER RECAPS",
+        howToObtain:
+          "Pass all 6 cumulative Chapter Recap Boss challenges in the Python Foundations track.",
+        rewardLabel: "PYTHON CHAPTER MEDAL",
+        icon: "python",
+        crestBg: StudioColors.yellow,
+        crestSecondary: "#38BDF8",
+        difficulty: "medium",
+        current: Math.min(pyRecapTotal, pyRecapSolvedCount),
+        target: pyRecapTotal,
+        unit: "PYTHON RECAPS",
+        actionMode: "roadmap",
+        actionLabel: "CONQUER PYTHON RECAPS →",
+      },
+      // 22. MEDIUM — ALGORITHMS ALL 6 CHAPTER RECAPS
+      {
+        id: "algo_all_recaps",
+        title: "Algorithm Chapter Master",
+        subtitle: "ALL 6 ALGO CHAPTER RECAPS",
+        howToObtain:
+          "Pass all 6 cumulative Chapter Recap Boss challenges across Patterns, Graphs, Dynamic Programming, and Tries.",
+        rewardLabel: "ALGO CAPSTONE SEAL",
+        icon: "swords",
+        crestBg: StudioColors.violet,
+        crestSecondary: StudioColors.yellow,
+        difficulty: "medium",
+        current: Math.min(algoRecapTotal, algoRecapSolvedCount),
+        target: algoRecapTotal,
+        unit: "ALGO RECAPS",
+        actionMode: "roadmap",
+        actionLabel: "CONQUER ALGO RECAPS →",
+      },
+      // 23. MEDIUM — SYSTEM DESIGN ALL 6 CHAPTER RECAPS
+      {
+        id: "sys_all_recaps",
+        title: "Architecture Chapter Laureate",
+        subtitle: "ALL 6 SYSTEM CHAPTER RECAPS",
+        howToObtain:
+          "Pass all 6 cumulative Chapter Recap Boss challenges across Caching, Sharding, Messaging, and Resiliency.",
+        rewardLabel: "ARCHITECT CAPSTONE",
+        icon: "arch",
+        crestBg: StudioColors.mint,
+        crestSecondary: StudioColors.yellow,
+        difficulty: "medium",
+        current: Math.min(sysRecapTotal, sysRecapSolvedCount),
+        target: sysRecapTotal,
+        unit: "SYSTEM RECAPS",
+        actionMode: "roadmap",
+        actionLabel: "CONQUER SYSTEM RECAPS →",
+      },
+      // 24. HARD (HIGHLIGHTED!) — ALL 18 CHAPTER RECAPS CLEARED
+      {
+        id: "all_chapters_recap_grand",
+        title: "Grand Chapter Capstone Champion",
+        subtitle: "ALL 18 CHAPTER RECAPS CLEARED",
+        howToObtain:
+          "Complete every Chapter Recap Boss challenge across all 18 chapters of Python Foundations, Algorithms, and System Design.",
+        rewardLabel: "★ GRAND CAPSTONE CROWN",
+        icon: "crown",
+        crestBg: StudioColors.yellow,
+        crestSecondary: StudioColors.coral,
+        difficulty: "hard",
+        current: Math.min(allRecapTotal, recapSolvedCount),
+        target: allRecapTotal,
+        unit: "CHAPTER RECAPS",
+        actionMode: "roadmap",
+        actionLabel: "FINISH ALL RECAPS →",
+      },
     ];
   }, [
-    pyLessons.length,
-    algoLessons.length,
-    sysLessons.length,
+    pyLessons,
+    algoLessons,
+    sysLessons,
+    recapLessons.length,
     lessons.length,
     totalSolvedCount,
     threeStarSolvedCount,
+    recapSolvedCount,
+    pyRecapSolvedCount,
+    algoRecapSolvedCount,
+    sysRecapSolvedCount,
     streakCount,
     bugsSolvedCount,
     pySolvedCount,

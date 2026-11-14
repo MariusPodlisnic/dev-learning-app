@@ -5,6 +5,8 @@ export interface CertificateLessonRef {
   id: string;
   track: string;
   lesson_order: number;
+  is_recap?: boolean;
+  recap_chapter?: number;
 }
 
 export interface ChapterTierMeta {
@@ -14,6 +16,48 @@ export interface ChapterTierMeta {
   subtitle: string;
   minOrder: number;
   maxOrder: number;
+}
+
+export function isLessonInChapter(
+  lesson: { lesson_order: number; is_recap?: boolean; recap_chapter?: number },
+  chapter: ChapterTierMeta,
+): boolean {
+  if (typeof lesson.recap_chapter === "number") {
+    return lesson.recap_chapter === chapter.id;
+  }
+  return (
+    lesson.lesson_order >= chapter.minOrder &&
+    lesson.lesson_order <= chapter.maxOrder
+  );
+}
+
+export function getChapterForTrackLesson(
+  trackKey: string,
+  lesson: { lesson_order: number; is_recap?: boolean; recap_chapter?: number },
+): ChapterTierMeta {
+  const chapters = TRACK_CHAPTERS[trackKey] || TRACK_CHAPTERS.python_basics;
+  if (typeof lesson.recap_chapter === "number") {
+    const byRecap = chapters.find((ch) => ch.id === lesson.recap_chapter);
+    if (byRecap) return byRecap;
+  }
+  return (
+    chapters.find(
+      (ch) =>
+        lesson.lesson_order >= ch.minOrder &&
+        lesson.lesson_order <= ch.maxOrder,
+    ) || chapters[chapters.length - 1]
+  );
+}
+
+export function getCurriculumLessonSortKey(
+  trackKey: string,
+  lesson: { lesson_order: number; is_recap?: boolean; recap_chapter?: number },
+): number {
+  if (lesson.is_recap || typeof lesson.recap_chapter === "number") {
+    const ch = getChapterForTrackLesson(trackKey, lesson);
+    return ch.maxOrder + 0.5;
+  }
+  return lesson.lesson_order;
 }
 
 export const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
@@ -315,9 +359,7 @@ export function getUnlockedCertificates(options: {
 
     const chapters = TRACK_CHAPTERS[trackKey] || [];
     for (const ch of chapters) {
-      const chLessons = tLessons.filter(
-        (l) => l.lesson_order >= ch.minOrder && l.lesson_order <= ch.maxOrder,
-      );
+      const chLessons = tLessons.filter((l) => isLessonInChapter(l, ch));
       if (
         chLessons.length > 0 &&
         chLessons.every((l) => options.completedLessons[l.id])

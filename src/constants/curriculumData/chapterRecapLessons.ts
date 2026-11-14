@@ -1,0 +1,1125 @@
+export const CHAPTER_RECAP_LESSONS = [
+  // =========================================================================
+  // TRACK 1: PYTHON BASICS — 6 CUMULATIVE CHAPTER RECAP CAPSTONES (FREE)
+  // =========================================================================
+  {
+    id: "py-recap-ch1",
+    title: "Chapter I Recap: Guild Party XP & Rank Auditor",
+    track: "python_basics",
+    category: "🏆 CHAPTER I RECAP",
+    difficulty: "Medium",
+    tree_row: 1001,
+    lesson_order: 101,
+    is_free: true,
+    is_recap: true,
+    recap_chapter: 1,
+    recap_topics: [
+      "Variables & Types",
+      "Lists & Loops",
+      "if / elif / else",
+      "Functions & Return",
+    ],
+    description:
+      "Conclusive Chapter I capstone: loop through party members, sum quest XP, classify rank tiers with conditionals, and return a structured summary.",
+    content:
+      'Welcome to the **Chapter I Boss Challenge**!\n\nTo clear Chapter I, combine everything you learned in Modules 01–04 into one clean pipeline:\n1. **Variables & Types:** Track `total_xp` (`int`) and `gold_count` (`int`).\n2. **Lists & Loops:** Iterate over `(name, xp, bonus)` tuples inside `party`.\n3. **Conditionals:** Compute `score = xp + bonus`. Assign `"Gold"` if `score >= 100`, `"Silver"` if `score >= 50`, else `"Bronze"`, and count how many reached `"Gold"`.\n4. **Functions & Return:** Return `(total_xp, gold_count, lead_tier)` where `lead_tier` is `"Elite"` if `gold_count >= 2` else `"Squad"`.',
+    assignment:
+      'Complete `audit_guild_party(party)` where `party` is a list of `(name, xp, bonus)` tuples. Return `(total_xp, gold_count, squad_rank)` after evaluating every member.',
+    constraints: [
+      "Combine `xp + bonus` for each tuple `(name, xp, bonus)` in `party`",
+      "Add every member's combined score into `total_xp`",
+      "Increment `gold_count` whenever a member's combined score is `>= 100`",
+      'Set `squad_rank = "Elite"` if `gold_count >= 2` else `"Squad"`, then return `(total_xp, gold_count, squad_rank)`',
+    ],
+    examples: [
+      {
+        input: 'party = [("Aria", 80, 30), ("Kai", 45, 10), ("Neo", 90, 25)]',
+        output: "(280, 2, 'Elite')",
+        explanation:
+          "Scores are 110 (Gold), 55 (Silver), 115 (Gold). Total=280, Gold=2 -> 'Elite'.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def audit_guild_party(party):
+    # Combine variables, for-loop unpacking, conditionals, and return tuple
+    pass
+
+sample = [("Aria", 80, 30), ("Kai", 45, 10), ("Neo", 90, 25)]
+print(audit_guild_party(sample))`,
+    expected_output: "(280, 2, 'Elite')",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = audit_guild_party([("Aria", 80, 30), ("Kai", 45, 10), ("Neo", 90, 25)])
+    results.append({"id": 1, "input": "2 Gold, 1 Silver", "expected": "(280, 2, 'Elite')", "actual": str(r1), "passed": r1 == (280, 2, "Elite")})
+    r2 = audit_guild_party([("Sam", 90, 10), ("Lee", 30, 5)])
+    results.append({"id": 2, "input": "1 Gold boundary (100)", "expected": "(135, 1, 'Squad')", "actual": str(r2), "passed": r2 == (135, 1, "Squad")})
+    r3 = audit_guild_party([])
+    results.append({"id": 3, "input": "empty party", "expected": "(0, 0, 'Squad')", "actual": str(r3), "passed": r3 == (0, 0, "Squad")})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "loop item", value: '("Aria", 80, 30) -> 110', type: "tuple", address: "0xC1" },
+      { label: "gold_count", value: "2 (>= 100)", type: "int", address: "0xC2" },
+      { label: "return", value: "(280, 2, 'Elite')", type: "tuple", address: "0xC3" },
+    ],
+    hints: [
+      "Start with `total_xp = 0` and `gold_count = 0`.",
+      "Unpack with `for name, xp, bonus in party:` and compute `score = xp + bonus`.",
+      'Use `squad_rank = "Elite" if gold_count >= 2 else "Squad"`.',
+    ],
+  },
+  {
+    id: "py-recap-ch2",
+    title: "Chapter II Recap: Crash-Proof Tournament Roster",
+    track: "python_basics",
+    category: "🏆 CHAPTER II RECAP",
+    difficulty: "Medium",
+    tree_row: 1002,
+    lesson_order: 102,
+    is_free: true,
+    is_recap: true,
+    recap_chapter: 2,
+    recap_topics: [
+      "Dictionaries",
+      ".strip().lower()",
+      "List Filtering",
+      "try / except",
+    ],
+    description:
+      "Conclusive Chapter II capstone: sanitize messy player handles, safely parse corrupted score strings with try/except, filter qualifiers, and build a registry dictionary.",
+    content:
+      "Welcome to the **Chapter II Boss Challenge**!\n\nReal tournament signups arrive dirty: extra spaces, mixed casing, and occasional `'N/A'` corrupted score strings. Combine **all skills from Chapters I & II**:\n• Normalize handle text with `.strip().lower()`.\n• Convert `raw_score` with `int(raw_score)` inside `try / except ValueError:` so invalid numbers are skipped safely.\n• Filter to keep only players with `score >= min_score`.\n• Store qualified `{clean_handle: score}` entries in a dictionary and return it.",
+    assignment:
+      "Complete `build_qualified_roster(entries, min_score)` where `entries` is a list of `(raw_handle, raw_score)` pairs. Return a dictionary mapping each cleaned handle to its integer score if `score >= min_score`.",
+    constraints: [
+      "Clean every handle using `.strip().lower()`",
+      "Wrap `int(raw_score)` in `try / except (ValueError, TypeError):` to skip bad scores without crashing",
+      "Include only players whose parsed integer score is `>= min_score`",
+    ],
+    examples: [
+      {
+        input: 'entries = [("  Aria ", "120"), ("bob", "ERR"), (" KAI", "75")], min_score = 80',
+        output: "{'aria': 120}",
+        explanation: "'bob' fails int() safely and is skipped; 'kai' (75) is below 80.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def build_qualified_roster(entries, min_score):
+    # Clean handles, safely parse scores with try/except, filter >= min_score into dict
+    pass
+
+raw = [("  Aria ", "120"), ("bob", "ERR"), (" KAI", "75")]
+print(build_qualified_roster(raw, 80))`,
+    expected_output: "{'aria': 120}",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = build_qualified_roster([("  Aria ", "120"), ("bob", "ERR"), (" KAI", "75")], 80)
+    results.append({"id": 1, "input": "mixed dirty + bad score", "expected": "{'aria': 120}", "actual": str(r1), "passed": r1 == {"aria": 120}})
+    r2 = build_qualified_roster([("  NEO ", "100"), ("sam", None), ("Zed", "99")], 100)
+    results.append({"id": 2, "input": "None + exact boundary", "expected": "{'neo': 100}", "actual": str(r2), "passed": r2 == {"neo": 100}})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: '"  Aria ".strip().lower()', value: '"aria"', type: "str", address: "0xD1" },
+      { label: 'int("ERR")', value: "ValueError -> skipped", type: "except", address: "0xD2" },
+      { label: "roster", value: "{'aria': 120}", type: "dict", address: "0xD3" },
+    ],
+    hints: [
+      "Initialize `roster = {}` and loop `for handle, raw_score in entries:`.",
+      "Inside `try:`, compute `score = int(raw_score)`; in `except (ValueError, TypeError): continue`.",
+      "If `score >= min_score`, set `roster[handle.strip().lower()] = score`.",
+    ],
+  },
+  {
+    id: "py-recap-ch3",
+    title: "Chapter III Recap: Top-3 Trending Slug Digest",
+    track: "python_basics",
+    category: "🏆 CHAPTER III RECAP",
+    difficulty: "Medium",
+    tree_row: 1003,
+    lesson_order: 103,
+    is_free: true,
+    is_recap: true,
+    recap_chapter: 3,
+    recap_topics: [
+      "Frequency Counting",
+      "Deduplication",
+      "Slicing [:3]",
+      '".join()" Slugs',
+    ],
+    description:
+      "Conclusive Chapter III capstone: count repeated hashtags, sort unique tags by highest frequency (then alphabetically on ties), slice the top 3, and join into a slug.",
+    content:
+      "Welcome to the **Chapter III Boss Challenge**!\n\nCombine **Counting, Deduplication, Slicing, and Joining** (plus handle cleaning from Chapter II!):\n1. Count how many times each normalized tag (`tag.strip().lower()`) appears in `tags`.\n2. Rank the unique tags by `(-count, tag)` so higher frequency comes first and ties break alphabetically.\n3. Slice `[:3]` for the podium top 3 tags and join them with `\" | \"` using `.join(...)`.",
+    assignment:
+      'Complete `build_trending_digest(tags)` to count normalized tags, keep unique tags sorted by frequency descending (tie-break ascending alphabetically), slice the top 3, and return `" | ".join(top_three)`.',
+    constraints: [
+      "Normalize each tag with `.strip().lower()` and skip empty strings",
+      "Count occurrences in a frequency dictionary",
+      'Sort unique keys by `(-counts[t], t)`, take `[:3]`, and return `" | ".join(...)`',
+    ],
+    examples: [
+      {
+        input: 'tags = [" Python", "ai", "python", "loops", "AI", "python", "lists"]',
+        output: "python | ai | lists",
+        explanation: "python(3), ai(2), then tie lists(1) vs loops(1) -> lists wins alphabetically.",
+      },
+    ],
+    complexities: { time: "O(n log n)", space: "O(n)" },
+    initial_code: `def build_trending_digest(tags):
+    # Count tags, deduplicate & sort by (-count, tag), slice top 3, join with " | "
+    pass
+
+sample = [" Python", "ai", "python", "loops", "AI", "python", "lists"]
+print(build_trending_digest(sample))`,
+    expected_output: "python | ai | lists",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = build_trending_digest([" Python", "ai", "python", "loops", "AI", "python", "lists"])
+    results.append({"id": 1, "input": "ranked + tie-break", "expected": "python | ai | lists", "actual": str(r1), "passed": r1 == "python | ai | lists"})
+    r2 = build_trending_digest(["api", "API", "   ", "db"])
+    results.append({"id": 2, "input": "fewer than 3 unique + blanks", "expected": "api | db", "actual": str(r2), "passed": r2 == "api | db"})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "counts", value: "{'python': 3, 'ai': 2, 'lists': 1, 'loops': 1}", type: "dict", address: "0xE1" },
+      { label: "top[:3]", value: "['python', 'ai', 'lists']", type: "list", address: "0xE2" },
+      { label: '" | ".join()', value: '"python | ai | lists"', type: "str", address: "0xE3" },
+    ],
+    hints: [
+      "Build `counts = {}` while looping over `tags`: clean with `t = tag.strip().lower()`, ignore if `not t`.",
+      "Sort unique keys using `ranked = sorted(counts.keys(), key=lambda t: (-counts[t], t))`.",
+      'Return `" | ".join(ranked[:3])`.',
+    ],
+  },
+  {
+    id: "py-recap-ch4",
+    title: "Chapter IV Recap: Stream Moderation & Tip Auditor",
+    track: "python_basics",
+    category: "🏆 CHAPTER IV RECAP",
+    difficulty: "Medium",
+    tree_row: 1004,
+    lesson_order: 104,
+    is_free: true,
+    is_recap: true,
+    recap_chapter: 4,
+    recap_topics: [
+      ".replace()",
+      "sum()",
+      ".startswith()",
+      ".get(key, default)",
+    ],
+    description:
+      "Conclusive Chapter IV capstone: filter safe HTTPS tip events, mask blocked words with .replace(), look up tier multipliers via .get(), and sum total payouts.",
+    content:
+      "Welcome to the **Chapter IV Boss Challenge**!\n\nEvery event dict has `{\"url\": ..., \"text\": ..., \"tier\": ...}`:\n1. Only count events whose `\"url\"` starts with `\"https://\"` (`.startswith()`).\n2. Clean `\"text\"` by replacing `\"spoiler\"` with `\"[REDACTED]\"` (`.replace()`).\n3. Look up payout amount in `tier_rates.get(tier, 5)` using `.get()` safe default.\n4. Use `sum()` over all approved payouts and return `(total_payout, cleaned_messages)`.",
+    assignment:
+      'Complete `process_stream_events(events, tier_rates)` to keep only events starting with `"https://"`, redact `"spoiler"` -> `"[REDACTED]"`, look up payouts via `tier_rates.get(tier, 5)`, and return `(sum_of_payouts, cleaned_texts)`.',
+    constraints: [
+      'Reject any event whose `"url"` does not `.startswith("https://")`',
+      'Replace `"spoiler"` with `"[REDACTED]"` in each approved message text',
+      "Look up each approved event's payout via `tier_rates.get(event.get(\"tier\"), 5)` and compute total with `sum()`",
+    ],
+    examples: [
+      {
+        input: 'events=[{"url":"https://ok","text":"no spoiler","tier":"vip"},{"url":"http://bad","text":"hi","tier":"vip"}], rates={"vip":20}',
+        output: "(20, ['no [REDACTED]'])",
+        explanation: "http:// event is dropped; https:// event is redacted and pays 20.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def process_stream_events(events, tier_rates):
+    # Filter https://, replace "spoiler" -> "[REDACTED]", lookup .get(..., 5), sum payouts
+    pass
+
+sample_events = [
+    {"url": "https://ok", "text": "no spoiler", "tier": "vip"},
+    {"url": "http://bad", "text": "ignore me", "tier": "vip"},
+]
+print(process_stream_events(sample_events, {"vip": 20}))`,
+    expected_output: "(20, ['no [REDACTED]'])",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    ev1 = [
+        {"url": "https://ok", "text": "no spoiler", "tier": "vip"},
+        {"url": "http://bad", "text": "ignore me", "tier": "vip"},
+    ]
+    r1 = process_stream_events(ev1, {"vip": 20})
+    results.append({"id": 1, "input": "https + spoiler + http reject", "expected": "(20, ['no [REDACTED]'])", "actual": str(r1), "passed": r1 == (20, ["no [REDACTED]"])})
+    ev2 = [
+        {"url": "https://a.dev", "text": "spoiler alert!", "tier": "vip"},
+        {"url": "https://b.dev", "text": "gg!", "tier": "guest"},
+    ]
+    r2 = process_stream_events(ev2, {"vip": 25})
+    results.append({"id": 2, "input": "fallback .get(guest, 5)", "expected": "(30, ['[REDACTED] alert!', 'gg!'])", "actual": str(r2), "passed": r2 == (30, ["[REDACTED] alert!", "gg!"])})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: '.startswith("https://")', value: "True / False gate", type: "bool", address: "0xF1" },
+      { label: '.replace("spoiler", ...)', value: '"no [REDACTED]"', type: "str", address: "0xF2" },
+      { label: "sum(payouts)", value: "30 (25 + default 5)", type: "int", address: "0xF3" },
+    ],
+    hints: [
+      "Collect approved payouts in `payouts = []` and cleaned texts in `texts = []`.",
+      'Check `if event.get("url", "").startswith("https://"):`.',
+      'Use `sum(payouts)` when returning `(sum(payouts), texts)`.',
+    ],
+  },
+  {
+    id: "py-recap-ch5",
+    title: "Chapter V Recap: Review Analyzer & Star Card",
+    track: "python_basics",
+    category: "🏆 CHAPTER V RECAP",
+    difficulty: "Medium",
+    tree_row: 1005,
+    lesson_order: 105,
+    is_free: true,
+    is_recap: true,
+    recap_chapter: 5,
+    recap_topics: [
+      "F-Strings",
+      ".split() Words",
+      "`in` Membership",
+      "round(val, 1)",
+    ],
+    description:
+      "Conclusive Chapter V capstone: tokenize a review with .split(), count flagged words with `in`, average and round ratings to 1 decimal place, and format a badge with f-strings.",
+    content:
+      "Welcome to the **Chapter V Boss Challenge**!\n\nTie together all **Chapter V Everyday Essentials** (`.split()`, `in`, `round()`, and `f\"...\"`) with earlier loop & list math:\n• Split `comment.lower()` into words via `.split()` and check if any word is `in banned_words`.\n• Compute the average of `scores` (`sum(scores) / len(scores)`) rounded to 1 decimal with `round(avg, 1)`.\n• Return `f\"FLAGGED | avg {avg}/5 ({word_count} words)\"` if any banned word matched, else `f\"APPROVED | avg {avg}/5 ({word_count} words)\"`.",
+    assignment:
+      "Complete `format_review_badge(comment, scores, banned_words)` combining `.split()`, `in`, `round(..., 1)`, and an f-string summary card.",
+    constraints: [
+      "Split `comment.lower().split()` into lowercase word tokens and record `word_count = len(words)`",
+      "Check membership with `w in banned_words` to set `status = 'FLAGGED'` or `'APPROVED'`",
+      "Compute `avg = round(sum(scores) / len(scores), 1)` (use `0.0` if `scores` is empty)",
+      'Return `f"{status} | avg {avg}/5 ({word_count} words)"`',
+    ],
+    examples: [
+      {
+        input: 'comment = "Fast app great UI", scores = [5, 4, 5], banned_words = ["spam"]',
+        output: "APPROVED | avg 4.7/5 (4 words)",
+        explanation: "4 words, none in banned_words, round(14/3, 1) == 4.7.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def format_review_badge(comment, scores, banned_words):
+    # Use .split(), 'in' check, round(..., 1), and f-string formatting
+    pass
+
+print(format_review_badge("Fast app great UI", [5, 4, 5], ["spam"]))`,
+    expected_output: "APPROVED | avg 4.7/5 (4 words)",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = format_review_badge("Fast app great UI", [5, 4, 5], ["spam"])
+    results.append({"id": 1, "input": "clean review", "expected": "APPROVED | avg 4.7/5 (4 words)", "actual": str(r1), "passed": r1 == "APPROVED | avg 4.7/5 (4 words)"})
+    r2 = format_review_badge("Total SPAM link", [1, 2], ["spam", "scam"])
+    results.append({"id": 2, "input": "case-insensitive flagged word", "expected": "FLAGGED | avg 1.5/5 (3 words)", "actual": str(r2), "passed": r2 == "FLAGGED | avg 1.5/5 (3 words)"})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "words", value: "['fast', 'app', 'great', 'ui']", type: "list", address: "0xA1" },
+      { label: "round(14/3, 1)", value: "4.7", type: "float", address: "0xA2" },
+      { label: "badge", value: '"APPROVED | avg 4.7/5 (4 words)"', type: "str", address: "0xA3" },
+    ],
+    hints: [
+      "Compute `words = comment.lower().split()` and `is_flagged = any(w in banned_words for w in words)`.",
+      "Compute `avg = round(sum(scores) / len(scores), 1) if scores else 0.0`.",
+      'Format with `f"{status} | avg {avg}/5 ({len(words)} words)"`.',
+    ],
+  },
+  {
+    id: "py-recap-ch6",
+    title: "Final Python Capstone: DevLearn Arcade Boss Server",
+    track: "python_basics",
+    category: "🏆 TRACK CAPSTONE",
+    difficulty: "Hard",
+    tree_row: 1006,
+    lesson_order: 106,
+    is_free: true,
+    is_recap: true,
+    recap_chapter: 6,
+    recap_topics: [
+      "RPG Crit Math",
+      "Security Validation",
+      "Tip Rounding",
+      "Mood Bot Lookup",
+    ],
+    description:
+      "The ultimate Python Basics graduation capstone uniting ALL 4 Chapter VI mini-apps—combat crits, password validation, split rounding, and bot dispatch—inside one command router.",
+    content:
+      "Welcome to the **Python Foundations Grand Finale**!\n\nBuild `run_arcade_command(command, mood_map)` that handles 4 real mini-app commands in one server:\n1. `\"CRIT <base> <is_crit>\"`: return `int(base) * 2` if `is_crit == \"true\"` else `int(base)`.\n2. `\"PASS <pwd>\"`: return `True` if `len(pwd) >= 8` and `any(c.isdigit() for c in pwd)` else `False`.\n3. `\"SPLIT <total> <tip_pct> <people>\"`: return `round((float(total) * (1 + float(tip_pct) / 100)) / int(people), 2)`.\n4. `\"BOT <word>\"`: return `f\"Bot: {mood_map.get(word.lower(), '🤖 Ready!')}\"`. (Wrap unknown/malformed commands cleanly with `\"ERR\"`).",
+    assignment:
+      "Implement `run_arcade_command(command, mood_map)` to parse command tokens with `.strip().split()` and dispatch `'CRIT'`, `'PASS'`, `'SPLIT'`, and `'BOT'` accurately.",
+    constraints: [
+      "Normalize with `parts = command.strip().split()` and uppercase `cmd = parts[0].upper()`",
+      "Support CRIT (2x on `'true'`), PASS (length >= 8 and contains digit), SPLIT (rounded to 2 decimals), and BOT (`mood_map.get(..., '🤖 Ready!')`)",
+      'Return `"ERR"` cleanly on invalid numbers or unknown commands using `try / except`',
+    ],
+    examples: [
+      {
+        input: 'command = "SPLIT 100 20 4", mood_map = {"happy": "🎉 Yay!"}',
+        output: "30.0",
+        explanation: "100 + 20% = 120 / 4 people = 30.0.",
+      },
+      {
+        input: 'command = "BOT HAPPY", mood_map = {"happy": "🎉 Yay!"}',
+        output: "Bot: 🎉 Yay!",
+        explanation: "Normalizes HAPPY -> happy and formats f-string Bot reply.",
+      },
+    ],
+    complexities: { time: "O(k)", space: "O(k)" },
+    initial_code: `def run_arcade_command(command, mood_map):
+    # Parse command parts and route CRIT, PASS, SPLIT, BOT safely
+    pass
+
+moods = {"happy": "🎉 Yay!", "focus": "🎧 Deep Work"}
+print(run_arcade_command("SPLIT 100 20 4", moods))`,
+    expected_output: "30.0",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    moods = {"happy": "🎉 Yay!", "focus": "🎧 Deep Work"}
+    r1 = run_arcade_command("SPLIT 100 20 4", moods)
+    results.append({"id": 1, "input": "SPLIT 100 20 4", "expected": "30.0", "actual": str(r1), "passed": r1 == 30.0})
+    r2 = run_arcade_command("CRIT 35 true", moods)
+    results.append({"id": 2, "input": "CRIT 35 true", "expected": "70", "actual": str(r2), "passed": r2 == 70})
+    r3 = run_arcade_command("PASS devlearn9", moods)
+    results.append({"id": 3, "input": "PASS devlearn9", "expected": "True", "actual": str(r3), "passed": r3 is True})
+    r4 = run_arcade_command("BOT HAPPY", moods)
+    results.append({"id": 4, "input": "BOT HAPPY", "expected": "Bot: 🎉 Yay!", "actual": str(r4), "passed": r4 == "Bot: 🎉 Yay!"})
+    r5 = run_arcade_command("UNKNOWN 1", moods)
+    results.append({"id": 5, "input": "UNKNOWN command", "expected": "ERR", "actual": str(r5), "passed": r5 == "ERR"})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "CRIT", value: "35 * 2 -> 70", type: "int", address: "0xB1" },
+      { label: "PASS", value: "len>=8 + digit -> True", type: "bool", address: "0xB2" },
+      { label: "SPLIT", value: "round(120/4, 2) -> 30.0", type: "float", address: "0xB3" },
+      { label: "BOT", value: '"Bot: 🎉 Yay!"', type: "str", address: "0xB4" },
+    ],
+    hints: [
+      "Start with `parts = command.strip().split()`, returning `'ERR'` if `not parts`.",
+      "Dispatch on `cmd = parts[0].upper()` inside a `try / except Exception:` block returning `'ERR'`.",
+      "For `PASS`, use `len(pwd) >= 8 and any(ch.isdigit() for ch in pwd)`.",
+    ],
+  },
+
+  // =========================================================================
+  // TRACK 2: ALGORITHMS — 6 CUMULATIVE CHAPTER RECAP CAPSTONES (PRO)
+  // =========================================================================
+  {
+    id: "alg-recap-ch1",
+    title: "Chapter I Algo Recap: Target Window Pair Finder",
+    track: "algorithms",
+    category: "🏆 CHAPTER I RECAP",
+    difficulty: "Medium",
+    tree_row: 1001,
+    lesson_order: 101,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 1,
+    recap_topics: ["Hash Map", "Two Pointers", "Sliding Window", "Binary Search"],
+    description:
+      "Conclusive Chapter I Algo capstone: combine sliding window peak calculation with hash-map two-sum verification over recent telemetry.",
+    content:
+      "Combine **Hash Maps** and **Fixed Sliding Windows** in O(n) time:\nGiven an integer array `nums`, window size `k`, and `target`:\n1. Find the maximum sum of any contiguous subarray of length `k` (`max_window`).\n2. Check in O(n) with a `seen` set whether ANY two distinct elements in `nums` sum to `target` (`has_pair`).\n3. Return `(max_window, has_pair)`.",
+    assignment:
+      "Implement `analyze_signal_window(nums, k, target)` returning `(max_window, has_pair)` in O(n) time.",
+    constraints: [
+      "Compute the max contiguous window of size `k` using an O(n) sliding window",
+      "Check pair existence in O(n) using a hash `set()` (`target - num in seen`)",
+      "Return `(max_window, has_pair)`",
+    ],
+    examples: [
+      {
+        input: "nums = [2, 1, 5, 1, 3, 2], k = 3, target = 8",
+        output: "(9, True)",
+        explanation: "Max window [5, 1, 3] sums to 9; pair 5 + 3 == 8 exists.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def analyze_signal_window(nums, k, target):
+    # Combine O(n) sliding window max + O(n) hash-set pair lookup
+    pass
+
+print(analyze_signal_window([2, 1, 5, 1, 3, 2], 3, 8))`,
+    expected_output: "(9, True)",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = analyze_signal_window([2, 1, 5, 1, 3, 2], 3, 8)
+    results.append({"id": 1, "input": "[2,1,5,1,3,2], k=3, target=8", "expected": "(9, True)", "actual": str(r1), "passed": r1 == (9, True)})
+    r2 = analyze_signal_window([4, 2, 1], 2, 10)
+    results.append({"id": 2, "input": "[4,2,1], k=2, target=10", "expected": "(6, False)", "actual": str(r2), "passed": r2 == (6, False)})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "sliding_window",
+    visual_data: [
+      { label: "window [5,1,3]", value: "max_sum = 9", type: "window", address: "0x01" },
+      { label: "seen set", value: "3 + 5 = 8 -> True", type: "set", address: "0x02" },
+    ],
+    hints: [
+      "Compute `win = sum(nums[:k]); best = win` then slide from index `k` to `len(nums) - 1`.",
+      "Track `seen = set()` while scanning `nums` and check `if (target - x) in seen: has_pair = True`.",
+    ],
+  },
+  {
+    id: "alg-recap-ch2",
+    title: "Chapter II Algo Recap: Nested Scope Validator & Max Depth",
+    track: "algorithms",
+    category: "🏆 CHAPTER II RECAP",
+    difficulty: "Medium",
+    tree_row: 1002,
+    lesson_order: 102,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 2,
+    recap_topics: ["LIFO Stack", "Bracket Matching", "Depth Tracking", "Linear Pass"],
+    description:
+      "Conclusive Chapter II Algo capstone: validate nested bracket scopes using a LIFO stack while computing the maximum nesting depth.",
+    content:
+      "Combine **LIFO Stack Matching** and **Nesting Depth Tracking**:\nWalk `expr` character by character, ignoring non-bracket characters:\n• Push opening brackets `(`, `[`, `{` onto a stack and track `max_depth`.\n• Match every closing bracket against the top of the stack.\n• Return `(True, max_depth)` if completely balanced, else `(False, -1)`.",
+    assignment:
+      "Complete `validate_and_measure_depth(expr)` returning `(is_valid, max_depth)` in O(n) time.",
+    constraints: [
+      "Handle `(`, `)`, `[`, `]`, `{`, `}` and safely ignore other characters",
+      "Track the peak stack height as `max_depth` while scanning",
+      "Return `(False, -1)` immediately on mismatch or leftover opening brackets",
+    ],
+    examples: [
+      {
+        input: 'expr = "({[x]})()"',
+        output: "(True, 3)",
+        explanation: "Max depth reached inside {[x]} is 3 and all scopes close cleanly.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def validate_and_measure_depth(expr):
+    # Use a LIFO stack to validate brackets and measure max nesting depth
+    pass
+
+print(validate_and_measure_depth("({[x]})()"))`,
+    expected_output: "(True, 3)",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = validate_and_measure_depth("({[x]})()")
+    results.append({"id": 1, "input": "({[x]})()", "expected": "(True, 3)", "actual": str(r1), "passed": r1 == (True, 3)})
+    r2 = validate_and_measure_depth("([)]")
+    results.append({"id": 2, "input": "([)]", "expected": "(False, -1)", "actual": str(r2), "passed": r2 == (False, -1)})
+    r3 = validate_and_measure_depth("(((")
+    results.append({"id": 3, "input": "unclosed", "expected": "(False, -1)", "actual": str(r3), "passed": r3 == (False, -1)})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "stack",
+    visual_data: [
+      { label: "push '(' '{' '['", value: "depth = 3", type: "stack", address: "0xS1" },
+      { label: "pop matches", value: "stack empty -> True", type: "stack", address: "0xS2" },
+    ],
+    hints: [
+      "Keep `pairs = {')': '(', ']': '[', '}': '{'}` and `opens = {'(', '[', '{'}`.",
+      "Update `max_depth = max(max_depth, len(stack))` after each push.",
+    ],
+  },
+  {
+    id: "alg-recap-ch3",
+    title: "Chapter III Algo Recap: Range Query & Valid Candidate Engine",
+    track: "algorithms",
+    category: "🏆 CHAPTER III RECAP",
+    difficulty: "Medium",
+    tree_row: 1003,
+    lesson_order: 103,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 3,
+    recap_topics: ["Filtered Min Scan", "Lower-Bound Search", "Set Intersection", "Prefix Sums"],
+    description:
+      "Conclusive Chapter III Algo capstone: intersect candidate IDs with an allowlist in O(n), count how many valid scores meet a threshold via binary search, and sum top slices with prefix sums.",
+    content:
+      "Unite **Chapter III** algorithms into a single query helper `summarize_candidates(sorted_scores, threshold, team_a, team_b)`:\n1. Use **Lower-Bound Binary Search (`O(log n)`)** to count how many elements in `sorted_scores` are `>= threshold`.\n2. Compute the **O(n + m) sorted set intersection** `shared = sorted(set(team_a) & set(team_b))`.\n3. Compute the **Prefix Sum** of all scores passing `>= threshold` using a precomputed prefix array.\nReturn `(passing_count, passing_sum, shared)`.",
+    assignment:
+      "Implement `summarize_candidates(sorted_scores, threshold, team_a, team_b)` returning `(passing_count, passing_sum, shared)`.",
+    constraints: [
+      "Find the first index where `sorted_scores[i] >= threshold` with Binary Search in O(log n)",
+      "Compute `passing_sum` via prefix sum array `pref[n] - pref[idx]`",
+      "Return sorted unique `shared` IDs present in both `team_a` and `team_b`",
+    ],
+    examples: [
+      {
+        input: "sorted_scores=[10, 25, 40, 55], threshold=25, team_a=[3, 1, 2], team_b=[2, 4, 3]",
+        output: "(3, 120, [2, 3])",
+        explanation: "Scores >= 25 are [25, 40, 55] (count 3, sum 120); shared=[2, 3].",
+      },
+    ],
+    complexities: { time: "O(n + m)", space: "O(n)" },
+    initial_code: `def summarize_candidates(sorted_scores, threshold, team_a, team_b):
+    # Combine binary search lower_bound + prefix sums + sorted set intersection
+    pass
+
+print(summarize_candidates([10, 25, 40, 55], 25, [3, 1, 2], [2, 4, 3]))`,
+    expected_output: "(3, 120, [2, 3])",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = summarize_candidates([10, 25, 40, 55], 25, [3, 1, 2], [2, 4, 3])
+    results.append({"id": 1, "input": "standard query", "expected": "(3, 120, [2, 3])", "actual": str(r1), "passed": r1 == (3, 120, [2, 3])})
+    r2 = summarize_candidates([5, 10], 50, [1], [2])
+    results.append({"id": 2, "input": "none passing, empty overlap", "expected": "(0, 0, [])", "actual": str(r2), "passed": r2 == (0, 0, [])})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "binary_search",
+    visual_data: [
+      { label: "lower_bound(25)", value: "index = 1", type: "search", address: "0xP1" },
+      { label: "pref[4] - pref[1]", value: "120", type: "prefix", address: "0xP2" },
+    ],
+    hints: [
+      "Binary search `lo, hi = 0, len(sorted_scores)` while `lo < hi`.",
+      "Build `pref = [0]` accumulating each score so range sum is `pref[-1] - pref[lo]`.",
+    ],
+  },
+  {
+    id: "alg-recap-ch4",
+    title: "Chapter IV Algo Recap: Partitioned Telemetry & Runner-Up",
+    track: "algorithms",
+    category: "🏆 CHAPTER IV RECAP",
+    difficulty: "Medium",
+    tree_row: 1004,
+    lesson_order: 104,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 4,
+    recap_topics: ["Runner-Up Scan", "Multi-Key Sort", "Parity Partition", "O(1) Set Check"],
+    description:
+      "Conclusive Chapter IV Algo capstone: filter VIP events in O(1) via sets, partition scores cleanly, and find the distinct runner-up score in O(n).",
+    content:
+      "Combine **Chapter IV** techniques (`O(1)` set badge filtering, single-pass runner-up scan, and parity/group partitioning):\nGiven `records` = list of `(id, score)` and `vip_ids` list:\n1. Keep only records whose `id` is in `set(vip_ids)`.\n2. Sort kept records by `(-score, id)`.\n3. Return `(ordered_ids, runner_up_score)` where `runner_up_score` is the 2nd highest distinct score among kept VIPs (or `None` if fewer than 2 distinct scores).",
+    assignment:
+      "Complete `rank_vip_telemetry(records, vip_ids)` returning `(ordered_ids, runner_up_score)`.",
+    constraints: [
+      "Convert `vip_ids` to a `set()` for O(1) membership filtering",
+      "Sort qualifying records by `(-score, id)`",
+      "Find the 2nd highest distinct `score` (returning `None` if fewer than 2 distinct values exist)",
+    ],
+    examples: [
+      {
+        input: "records=[(2, 90), (1, 90), (3, 75), (4, 99)], vip_ids=[1, 2, 3]",
+        output: "([1, 2, 3], 75)",
+        explanation: "ID 4 is not VIP. Sorted VIPs: (1,90), (2,90), (3,75). Distinct scores: 90, 75 -> runner-up 75.",
+      },
+    ],
+    complexities: { time: "O(n log n)", space: "O(n)" },
+    initial_code: `def rank_vip_telemetry(records, vip_ids):
+    # O(1) set filter, multi-key sort (-score, id), and distinct runner-up
+    pass
+
+print(rank_vip_telemetry([(2, 90), (1, 90), (3, 75), (4, 99)], [1, 2, 3]))`,
+    expected_output: "([1, 2, 3], 75)",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = rank_vip_telemetry([(2, 90), (1, 90), (3, 75), (4, 99)], [1, 2, 3])
+    results.append({"id": 1, "input": "ties + non-vip filtered", "expected": "([1, 2, 3], 75)", "actual": str(r1), "passed": r1 == ([1, 2, 3], 75)})
+    r2 = rank_vip_telemetry([(1, 50), (2, 50)], [1, 2])
+    results.append({"id": 2, "input": "only 1 distinct score", "expected": "([1, 2], None)", "actual": str(r2), "passed": r2 == ([1, 2], None)})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "O(1) vip_set", value: "{1, 2, 3}", type: "set", address: "0xR1" },
+      { label: "sorted", value: "[(1,90), (2,90), (3,75)]", type: "list", address: "0xR2" },
+    ],
+    hints: [
+      "Filter `[r for r in records if r[0] in vip_set]` and sort with `key=lambda x: (-x[1], x[0])`.",
+      "Collect `distinct = sorted({s for _, s in filtered}, reverse=True)` and pick `distinct[1]` if `len(distinct) >= 2` else `None`.",
+    ],
+  },
+  {
+    id: "alg-recap-ch5",
+    title: "Chapter V Algo Recap: Conflict Index & Palindrome Audit",
+    track: "algorithms",
+    category: "🏆 CHAPTER V RECAP",
+    difficulty: "Medium",
+    tree_row: 1005,
+    lesson_order: 105,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 5,
+    recap_topics: [
+      "Clean Palindrome",
+      "First Duplicate",
+      "Closest Pair",
+      "Inverted Index",
+    ],
+    description:
+      "Conclusive Chapter V Algo capstone: normalize text for two-pointer palindrome checks, detect duplicate events early, and build a sorted inverted tag index.",
+    content:
+      "Combine **Chapter V** algorithms into one audit function `audit_palindromic_tags(items)`:\nGiven `items` = list of `(tag, raw_phrase)`:\n1. Build an inverted index mapping `clean_palindrome_phrase -> sorted(unique_tags)` ONLY for entries whose `raw_phrase` (alphanumeric lowercase only) is a **valid palindrome**.\n2. Return the FIRST duplicate `tag` encountered in input order (or `None` if all tags are unique), paired with that inverted index: `(first_dup_tag, index)`.",
+    assignment:
+      "Complete `audit_palindromic_tags(items)` returning `(first_dup_tag, index)`.",
+    constraints: [
+      "Strip non-alphanumeric chars and lowercase `raw_phrase` before two-pointer palindrome check",
+      "Track seen `tag`s in order to capture `first_dup_tag` (or `None`)",
+      "Map each valid clean palindrome string to a sorted deduplicated list of its tags",
+    ],
+    examples: [
+      {
+        input: 'items = [("api", "Race car!"), ("db", "hello"), ("api", "A man, a plan, a canal: Panama")]',
+        output: "('api', {'amanaplanacanalpanama': ['api'], 'racecar': ['api']})",
+        explanation: "'hello' is skipped; 'api' repeats first; both palindromes map to ['api'].",
+      },
+    ],
+    complexities: { time: "O(n * k)", space: "O(n * k)" },
+    initial_code: `def audit_palindromic_tags(items):
+    # First duplicate scan + two-pointer palindrome filter + inverted index
+    pass
+
+sample = [("api", "Race car!"), ("db", "hello"), ("api", "A man, a plan, a canal: Panama")]
+print(audit_palindromic_tags(sample))`,
+    expected_output: "('api', {'racecar': ['api'], 'amanaplanacanalpanama': ['api']})",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    s1 = [("api", "Race car!"), ("db", "hello"), ("api", "A man, a plan, a canal: Panama")]
+    exp1 = ("api", {"racecar": ["api"], "amanaplanacanalpanama": ["api"]})
+    r1 = audit_palindromic_tags(s1)
+    results.append({"id": 1, "input": "duplicate + palindromes", "expected": str(exp1), "actual": str(r1), "passed": r1 == exp1})
+    s2 = [("b", "Noon"), ("a", "noon"), ("c", "nope")]
+    exp2 = (None, {"noon": ["a", "b"]})
+    r2 = audit_palindromic_tags(s2)
+    results.append({"id": 2, "input": "no dup + sorted index list", "expected": str(exp2), "actual": str(r2), "passed": r2 == exp2})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "two_pointers",
+    visual_data: [
+      { label: "clean", value: '"racecar" == reverse', type: "str", address: "0xT1" },
+      { label: "first_dup", value: "'api'", type: "str", address: "0xT2" },
+    ],
+    hints: [
+      "Normalize with `clean = ''.join(ch.lower() for ch in phrase if ch.isalnum())` and check `clean and clean == clean[::-1]` (or two pointers).",
+      "Sort each list in `index` at the end via `sorted(set(tags))`.",
+    ],
+  },
+  {
+    id: "alg-recap-ch6",
+    title: "Final Algo Capstone: Stream Profit, Intervals & Top-K Engine",
+    track: "algorithms",
+    category: "🏆 TRACK CAPSTONE",
+    difficulty: "Hard",
+    tree_row: 1006,
+    lesson_order: 106,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 6,
+    recap_topics: ["Max Profit Scan", "Merge Intervals", "Top-K Frequent", "Greedy O(n log n)"],
+    description:
+      "The Algorithms graduation capstone uniting greedy profit scanning, interval merging, and Top-K frequency ranking on one dataset.",
+    content:
+      "Conquer the **Algorithms Track Finale** by combining three classic interview pillars:\n1. **Merge Intervals:** Given `windows` (list of `[start, end]`), merge overlapping intervals.\n2. **Greedy Profit:** Given `prices` list, compute maximum single buy-then-sell profit (`0` if never profitable).\n3. **Top-K Frequent:** Given `events` list and `k`, return the top `k` most frequent events (breaking ties alphabetically).\nReturn `{\"intervals\": merged, \"max_profit\": profit, \"top_k\": top}`.",
+    assignment:
+      "Implement `run_algo_suite(windows, prices, events, k)` returning `{intervals, max_profit, top_k}`.",
+    constraints: [
+      "Merge all overlapping `[start, end]` pairs cleanly after sorting by `start`",
+      "Track running `min_price` in one O(n) pass for `max_profit`",
+      "Rank `events` by `(-freq, event)` and return top `k`",
+    ],
+    examples: [
+      {
+        input: 'windows=[[1,3],[2,6],[8,10]], prices=[7,1,5,3,6,4], events=["a","b","a","c","b","a"], k=2',
+        output: "{'intervals': [[1, 6], [8, 10]], 'max_profit': 5, 'top_k': ['a', 'b']}",
+        explanation: "Intervals merge [1,6],[8,10]; profit 6-1=5; top 2 frequent are 'a'(3),'b'(2).",
+      },
+    ],
+    complexities: { time: "O(n log n)", space: "O(n)" },
+    initial_code: `def run_algo_suite(windows, prices, events, k):
+    # Merge intervals + greedy max stock profit + top-k frequent events
+    pass
+
+print(run_algo_suite([[1,3],[2,6],[8,10]], [7,1,5,3,6,4], ["a","b","a","c","b","a"], 2))`,
+    expected_output: "{'intervals': [[1, 6], [8, 10]], 'max_profit': 5, 'top_k': ['a', 'b']}",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = run_algo_suite([[1,3],[2,6],[8,10]], [7,1,5,3,6,4], ["a","b","a","c","b","a"], 2)
+    exp1 = {"intervals": [[1, 6], [8, 10]], "max_profit": 5, "top_k": ["a", "b"]}
+    results.append({"id": 1, "input": "full suite", "expected": str(exp1), "actual": str(r1), "passed": r1 == exp1})
+    r2 = run_algo_suite([[1,4],[4,5]], [9,5,2], ["z","a"], 1)
+    exp2 = {"intervals": [[1, 5]], "max_profit": 0, "top_k": ["a"]}
+    results.append({"id": 2, "input": "touching intervals + falling prices + tie", "expected": str(exp2), "actual": str(r2), "passed": r2 == exp2})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "intervals", value: "[[1,6], [8,10]]", type: "list", address: "0xM1" },
+      { label: "max_profit", value: "5 (buy 1, sell 6)", type: "int", address: "0xM2" },
+      { label: "top_k", value: "['a', 'b']", type: "list", address: "0xM3" },
+    ],
+    hints: [
+      "Sort a copy of `windows` by `w[0]` and merge whenever `start <= merged[-1][1]`.",
+      "For `prices`, track `low = float('inf')` and `profit = 0`.",
+    ],
+  },
+
+  // =========================================================================
+  // TRACK 3: SYSTEM DESIGN — 6 CUMULATIVE CHAPTER RECAP CAPSTONES (PRO)
+  // =========================================================================
+  {
+    id: "sys-recap-ch1",
+    title: "Chapter I Systems Recap: Sharded Gateway & Rate Guard",
+    track: "system_design",
+    category: "🏆 CHAPTER I RECAP",
+    difficulty: "Medium",
+    tree_row: 1001,
+    lesson_order: 101,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 1,
+    recap_topics: ["Load Balancing", "Sharding", "Rate Limiting", "LRU Cache"],
+    description:
+      "Conclusive Chapter I Systems capstone: build a mini edge gateway combining rate-limit quota checks, cache hit lookup, and shard routing.",
+    content:
+      "Connect **Chapter I Architecture Layers** into a unified request pipeline `route_edge_request(user_id, num_shards, used_reqs, limit, cache)`:\n1. **Rate Limiter:** If `used_reqs >= limit`, reject immediately with `(429, None, None)`.\n2. **Cache Layer:** If `user_id in cache`, return `(200, 'CACHE', cache[user_id])`.\n3. **Shard Router:** Otherwise compute `shard = user_id % num_shards` and return `(200, 'ORIGIN', f'shard-{shard}')`.",
+    assignment:
+      "Implement `route_edge_request(user_id, num_shards, used_reqs, limit, cache)` combining rate limiting, cache lookup, and modulo shard routing.",
+    constraints: [
+      "Enforce rate limit first: return `(429, None, None)` when `used_reqs >= limit`",
+      "Check `cache` next and return `(200, 'CACHE', cache[user_id])` on hit",
+      "Route misses using `shard = user_id % num_shards` -> `(200, 'ORIGIN', f'shard-{shard}')`",
+    ],
+    examples: [
+      {
+        input: "user_id=14, num_shards=4, used_reqs=2, limit=5, cache={}",
+        output: "(200, 'ORIGIN', 'shard-2')",
+        explanation: "2 < 5 allows request; cache miss routes 14 % 4 = shard-2.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def route_edge_request(user_id, num_shards, used_reqs, limit, cache):
+    # Gate rate limit (429), check cache (200 CACHE), else modulo shard (200 ORIGIN)
+    pass
+
+print(route_edge_request(14, 4, 2, 5, {}))`,
+    expected_output: "(200, 'ORIGIN', 'shard-2')",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = route_edge_request(14, 4, 2, 5, {})
+    results.append({"id": 1, "input": "cache miss -> shard-2", "expected": "(200, 'ORIGIN', 'shard-2')", "actual": str(r1), "passed": r1 == (200, "ORIGIN", "shard-2")})
+    r2 = route_edge_request(14, 4, 5, 5, {14: "profile"})
+    results.append({"id": 2, "input": "rate limited", "expected": "(429, None, None)", "actual": str(r2), "passed": r2 == (429, None, None)})
+    r3 = route_edge_request(14, 4, 1, 5, {14: "cached-data"})
+    results.append({"id": 3, "input": "cache hit", "expected": "(200, 'CACHE', 'cached-data')", "actual": str(r3), "passed": r3 == (200, "CACHE", "cached-data")})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "Rate Limit", value: "2 < 5 PASS", type: "guard", address: "0xG1" },
+      { label: "14 % 4", value: "shard-2", type: "shard", address: "0xG2" },
+    ],
+    hints: [
+      "Check `if used_reqs >= limit: return (429, None, None)` first.",
+      "Then check `if user_id in cache: return (200, 'CACHE', cache[user_id])`.",
+    ],
+  },
+  {
+    id: "sys-recap-ch2",
+    title: "Chapter II Systems Recap: Quorum & Circuit Breaker Coordinator",
+    track: "system_design",
+    category: "🏆 CHAPTER II RECAP",
+    difficulty: "Medium",
+    tree_row: 1002,
+    lesson_order: 102,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 2,
+    recap_topics: ["Circuit Breaker", "Quorum Consensus", "Pub/Sub Filter", "Fault Tolerance"],
+    description:
+      "Conclusive Chapter II Systems capstone: guard writes behind a circuit-breaker threshold and confirm strict majority quorum across replicas.",
+    content:
+      "Combine **Circuit Breakers** and **Quorum Consensus**:\nGiven `recent_failures`, `failure_threshold`, and `replica_acks` (list of booleans from nodes):\n1. If `recent_failures >= failure_threshold`, the circuit is **OPEN** — return `(False, 'CIRCUIT_OPEN')`.\n2. Compute majority quorum threshold `needed = (len(replica_acks) // 2) + 1`.\n3. Count `True` votes; if `acks >= needed` (and replicas > 0), return `(True, 'COMMITTED')`, else `(False, 'QUORUM_FAILED')`.",
+    assignment:
+      "Complete `commit_with_breaker(recent_failures, failure_threshold, replica_acks)` returning `(success, status)`.",
+    constraints: [
+      "Trip breaker (`(False, 'CIRCUIT_OPEN')`) whenever `recent_failures >= failure_threshold`",
+      "Require strict majority `sum(1 for x in replica_acks if x) >= (len(replica_acks) // 2) + 1`",
+      "Return `(True, 'COMMITTED')` or `(False, 'QUORUM_FAILED')`",
+    ],
+    examples: [
+      {
+        input: "recent_failures=1, failure_threshold=3, replica_acks=[True, False, True]",
+        output: "(True, 'COMMITTED')",
+        explanation: "Breaker closed (1 < 3); 2 of 3 replicas acked (>= 2 needed).",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def commit_with_breaker(recent_failures, failure_threshold, replica_acks):
+    # Enforce circuit breaker threshold + strict majority replica quorum
+    pass
+
+print(commit_with_breaker(1, 3, [True, False, True]))`,
+    expected_output: "(True, 'COMMITTED')",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = commit_with_breaker(1, 3, [True, False, True])
+    results.append({"id": 1, "input": "breaker closed + 2/3 quorum", "expected": "(True, 'COMMITTED')", "actual": str(r1), "passed": r1 == (True, "COMMITTED")})
+    r2 = commit_with_breaker(3, 3, [True, True, True])
+    results.append({"id": 2, "input": "breaker OPEN", "expected": "(False, 'CIRCUIT_OPEN')", "actual": str(r2), "passed": r2 == (False, "CIRCUIT_OPEN")})
+    r3 = commit_with_breaker(0, 3, [True, False, False])
+    results.append({"id": 3, "input": "1/3 quorum failed", "expected": "(False, 'QUORUM_FAILED')", "actual": str(r3), "passed": r3 == (False, "QUORUM_FAILED")})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "Breaker", value: "1 < 3 (CLOSED)", type: "state", address: "0xQ1" },
+      { label: "Quorum", value: "2 / 3 >= 2 (COMMITTED)", type: "quorum", address: "0xQ2" },
+    ],
+    hints: [
+      "Guard `if recent_failures >= failure_threshold: return (False, 'CIRCUIT_OPEN')` first.",
+      "Check `if not replica_acks: return (False, 'QUORUM_FAILED')` before computing `(len // 2) + 1`.",
+    ],
+  },
+  {
+    id: "sys-recap-ch3",
+    title: "Chapter III Systems Recap: Resilient Retry, DLQ & Edge Router",
+    track: "system_design",
+    category: "🏆 CHAPTER III RECAP",
+    difficulty: "Medium",
+    tree_row: 1003,
+    lesson_order: 103,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 3,
+    recap_topics: ["Backoff + Jitter", "DLQ Triage", "Priority Failover", "Regional CDN"],
+    description:
+      "Conclusive Chapter III Systems capstone: pick the lowest-latency healthy edge node or compute exponential backoff + route exhausted jobs to DLQ.",
+    content:
+      "Combine **Resilience & Traffic Routing** in `dispatch_resilient_job(edges, attempt, max_attempts, base_ms, max_ms)`:\nGiven `edges` = list of `{\"name\": ..., \"healthy\": bool, \"latency\": int}`:\n1. If any edge has `healthy == True`, pick the one with lowest `latency` and return `(\"SENT\", best_edge[\"name\"])`.\n2. If no edge is healthy and `attempt >= max_attempts`, send to dead-letter queue: `(\"DLQ\", 0)`.\n3. Otherwise compute capped backoff `min(max_ms, base_ms * (2 ** attempt))` and return `(\"RETRY\", wait_ms)`.",
+    assignment:
+      "Complete `dispatch_resilient_job(edges, attempt, max_attempts, base_ms, max_ms)` combining healthy lowest-latency routing, DLQ cutoff, and exponential backoff.",
+    constraints: [
+      "Filter `edges` to `e[\"healthy\"]` and pick minimum `latency` when available",
+      'Route to `("DLQ", 0)` once `attempt >= max_attempts` with no healthy edges',
+      'Return `("RETRY", min(max_ms, base_ms * (2 ** attempt)))` otherwise',
+    ],
+    examples: [
+      {
+        input: 'edges=[{"name":"eu","healthy":False,"latency":10},{"name":"us","healthy":True,"latency":45}], attempt=0, max_attempts=3, base_ms=100, max_ms=500',
+        output: "('SENT', 'us')",
+        explanation: "'eu' is unhealthy so traffic routes to healthy 'us'.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def dispatch_resilient_job(edges, attempt, max_attempts, base_ms, max_ms):
+    # Healthy lowest-latency edge, else DLQ when attempts exhausted, else capped backoff
+    pass
+
+sample_edges = [{"name": "eu", "healthy": False, "latency": 10}, {"name": "us", "healthy": True, "latency": 45}]
+print(dispatch_resilient_job(sample_edges, 0, 3, 100, 500))`,
+    expected_output: "('SENT', 'us')",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = dispatch_resilient_job([{"name": "eu", "healthy": False, "latency": 10}, {"name": "us", "healthy": True, "latency": 45}], 0, 3, 100, 500)
+    results.append({"id": 1, "input": "healthy failover edge", "expected": "('SENT', 'us')", "actual": str(r1), "passed": r1 == ("SENT", "us")})
+    r2 = dispatch_resilient_job([{"name": "eu", "healthy": False, "latency": 10}], 2, 3, 100, 500)
+    results.append({"id": 2, "input": "all down -> RETRY backoff", "expected": "('RETRY', 400)", "actual": str(r2), "passed": r2 == ("RETRY", 400)})
+    r3 = dispatch_resilient_job([{"name": "eu", "healthy": False, "latency": 10}], 3, 3, 100, 500)
+    results.append({"id": 3, "input": "exhausted -> DLQ", "expected": "('DLQ', 0)", "actual": str(r3), "passed": r3 == ("DLQ", 0)})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "healthy filter", value: "['us'] (45ms)", type: "route", address: "0xJ1" },
+      { label: "fallback", value: "RETRY(400ms) -> DLQ(0)", type: "dlq", address: "0xJ2" },
+    ],
+    hints: [
+      "Compute `healthy = [e for e in edges if e.get('healthy')]` and pick `min(healthy, key=lambda e: e['latency'])`.",
+      "Only enter RETRY/DLQ logic when `not healthy`.",
+    ],
+  },
+  {
+    id: "sys-recap-ch4",
+    title: "Chapter IV Systems Recap: Canary Rollout & Flap-Guarded Scaler",
+    track: "system_design",
+    category: "🏆 CHAPTER IV RECAP",
+    difficulty: "Medium",
+    tree_row: 1004,
+    lesson_order: 104,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 4,
+    recap_topics: ["Flap Guard", "Canary Flags", "Payload Gatekeeper", "Autoscaler"],
+    description:
+      "Conclusive Chapter IV Systems capstone: combine consecutive alarm-flap detection, canary rollout bucketing, and worker scaling math.",
+    content:
+      "Tie **Observability, Rollouts & Scaling** together in `evaluate_service_controller(cpu_samples, cpu_limit, user_bucket, rollout_pct, kill_switch, queue_depth, capacity_per_worker)`:\n1. `alert_firing`: `True` if at least `3` consecutive trailing samples in `cpu_samples` are `>= cpu_limit`, else `False`.\n2. `canary_on`: `False` if `kill_switch` is `True`, else `user_bucket < rollout_pct`.\n3. `workers_needed`: ceiling `max(1, (queue_depth + capacity_per_worker - 1) // capacity_per_worker)` (or `0` if `queue_depth <= 0`).\nReturn `(alert_firing, canary_on, workers_needed)`.",
+    assignment:
+      "Implement `evaluate_service_controller(...)` returning `(alert_firing, canary_on, workers_needed)`.",
+    constraints: [
+      "Require 3 consecutive samples `>= cpu_limit` at the end of `cpu_samples` to fire alarm",
+      "Check `not kill_switch and user_bucket < rollout_pct` (strict `<`) for `canary_on`",
+      "Compute ceiling worker count `(queue_depth + cap - 1) // cap` when `queue_depth > 0` else `0`",
+    ],
+    examples: [
+      {
+        input: "cpu=[50, 90, 92, 95], limit=85, bucket=15, rollout=25, kill=False, queue=11, cap=5",
+        output: "(True, True, 3)",
+        explanation: "3 trailing CPU spikes >= 85; bucket 15 < 25; ceil(11/5) = 3 workers.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def evaluate_service_controller(cpu_samples, cpu_limit, user_bucket, rollout_pct, kill_switch, queue_depth, capacity_per_worker):
+    # Compute (alert_firing, canary_on, workers_needed)
+    pass
+
+print(evaluate_service_controller([50, 90, 92, 95], 85, 15, 25, False, 11, 5))`,
+    expected_output: "(True, True, 3)",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = evaluate_service_controller([50, 90, 92, 95], 85, 15, 25, False, 11, 5)
+    results.append({"id": 1, "input": "alarm + canary + 3 workers", "expected": "(True, True, 3)", "actual": str(r1), "passed": r1 == (True, True, 3)})
+    r2 = evaluate_service_controller([90, 90, 40, 90], 85, 10, 50, True, 0, 5)
+    results.append({"id": 2, "input": "flapped + kill-switch + empty queue", "expected": "(False, False, 0)", "actual": str(r2), "passed": r2 == (False, False, 0)})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "trailing 3 CPU", value: "[90, 92, 95] >= 85 -> True", type: "alarm", address: "0xK1" },
+      { label: "ceil(11/5)", value: "3 workers", type: "scale", address: "0xK2" },
+    ],
+    hints: [
+      "`alert_firing = len(cpu_samples) >= 3 and all(s >= cpu_limit for s in cpu_samples[-3:])`.",
+      "`workers = (queue_depth + capacity_per_worker - 1) // capacity_per_worker if queue_depth > 0 else 0`.",
+    ],
+  },
+  {
+    id: "sys-recap-ch5",
+    title: "Chapter V Systems Recap: Auth-Guarded Cache-Aside & Cursor Page",
+    track: "system_design",
+    category: "🏆 CHAPTER V RECAP",
+    difficulty: "Medium",
+    tree_row: 1005,
+    lesson_order: 105,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 5,
+    recap_topics: ["Token Expiry", "Cursor Pagination", "Cache-Aside", "Batch Chunking"],
+    description:
+      "Conclusive Chapter V Systems capstone: validate non-expired tokens, serve cache-aside reads while warming the cache on DB hits, and return paginated slices.",
+    content:
+      "Combine **Chapter V API Patterns** into `serve_paginated_feed(token_expires_at, now_ts, cache_key, cache, db_records, cursor, page_size)`:\n1. **Auth Check:** If `now_ts >= token_expires_at`, return `{\"status\": 401, \"items\": [], \"has_more\": False}`.\n2. **Cache-Aside Read:** Look up `cache_key` in `cache`; on a miss, read `db_records`, write `cache[cache_key] = db_records` (when `db_records` is non-None).\n3. **Cursor Slice:** Return slice `[cursor : cursor + page_size]` and `has_more = (cursor + page_size) < len(records)`.",
+    assignment:
+      "Complete `serve_paginated_feed(...)` returning `{\"status\": 200|401, \"items\": [...], \"has_more\": bool}` while warming `cache` on miss.",
+    constraints: [
+      "Reject expired tokens when `now_ts >= token_expires_at` with `status: 401`",
+      "Check `cache` first; on miss, populate `cache[cache_key] = db_records`",
+      "Return exact page slice `records[cursor : cursor + page_size]` and accurate `has_more`",
+    ],
+    examples: [
+      {
+        input: 'expires=200, now=150, key="feed", cache={}, db=["p1","p2","p3"], cursor=0, size=2',
+        output: "{'status': 200, 'items': ['p1', 'p2'], 'has_more': True}",
+        explanation: "Valid token, warms cache['feed'], returns first 2 items with has_more=True.",
+      },
+    ],
+    complexities: { time: "O(k)", space: "O(k)" },
+    initial_code: `def serve_paginated_feed(token_expires_at, now_ts, cache_key, cache, db_records, cursor, page_size):
+    # Auth expiry guard -> cache-aside read/fill -> cursor pagination slice
+    pass
+
+c = {}
+print(serve_paginated_feed(200, 150, "feed", c, ["p1", "p2", "p3"], 0, 2))`,
+    expected_output: "{'status': 200, 'items': ['p1', 'p2'], 'has_more': True}",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cache = {}
+    r1 = serve_paginated_feed(200, 150, "feed", cache, ["p1", "p2", "p3"], 0, 2)
+    ok1 = (r1 == {"status": 200, "items": ["p1", "p2"], "has_more": True}) and ("feed" in cache)
+    results.append({"id": 1, "input": "valid + cache warm + page 1", "expected": "200 & cache warmed", "actual": f"{r1} cache_has={('feed' in cache)}", "passed": ok1})
+    r2 = serve_paginated_feed(200, 200, "feed", cache, ["p1", "p2", "p3"], 0, 2)
+    results.append({"id": 2, "input": "exact boundary expired (200 >= 200)", "expected": "status 401", "actual": str(r2), "passed": r2 == {"status": 401, "items": [], "has_more": False}})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "Auth", value: "150 < 200 -> Valid", type: "auth", address: "0xV1" },
+      { label: "Cache-Aside", value: "miss -> warmed cache['feed']", type: "cache", address: "0xV2" },
+    ],
+    hints: [
+      "Check `if now_ts >= token_expires_at: return {'status': 401, 'items': [], 'has_more': False}`.",
+      "Fetch `records = cache.get(cache_key)`; if `records is None`: set `records = db_records` and `cache[cache_key] = records`.",
+    ],
+  },
+  {
+    id: "sys-recap-ch6",
+    title: "Final Systems Capstone: Multi-Tenant Cloud Kernel",
+    track: "system_design",
+    category: "🏆 TRACK CAPSTONE",
+    difficulty: "Hard",
+    tree_row: 1006,
+    lesson_order: 106,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 6,
+    recap_topics: ["Sliding Window Log", "Token Bucket", "Hash Ring", "TTL Cache"],
+    description:
+      "The System Design graduation capstone combining sliding-window request pruning, token bucket refill/consume, TTL cache expiry, and consistent hash ring node selection.",
+    content:
+      "Conquer the **System Design Finale** with `process_kernel_request(now_ts, window_log, window_sec, max_reqs, ttl_cache, key, ring_nodes, key_hash)`:\n1. **Sliding Window Log:** Keep only timestamps `t > now_ts - window_sec`. If `len(active_log) >= max_reqs`, reject `(False, 'RATE_LIMIT', active_log)`.\n2. **TTL Cache:** Read `ttl_cache.get(key)` `(value, expires_at)`. If missing or `now_ts >= expires_at`, pick the first sorted ring node `(pos, node_name)` with `pos >= key_hash` (wrapping to `ring_sorted[0][1]`) and return `(True, f'MISS:{node}', active_log + [now_ts])`.\n3. Otherwise return `(True, value, active_log + [now_ts])`!",
+    assignment:
+      "Complete `process_kernel_request(now_ts, window_log, window_sec, max_reqs, ttl_cache, key, ring_nodes, key_hash)` combining window pruning, TTL validation, and consistent hash ring wrap-around.",
+    constraints: [
+      "Prune stale timestamps with `t > now_ts - window_sec` before checking `>= max_reqs`",
+      "Check TTL entry `(val, exp)`: expired when `now_ts >= exp`",
+      "Walk sorted `(pos, node_name)` ring entries picking first `pos >= key_hash`, wrapping to `ring_sorted[0][1]`",
+    ],
+    examples: [
+      {
+        input: 'now=100, log=[50, 95], win=10, max=3, ttl={"cfg": ("dark", 150)}, key="cfg", ring=[(10,"n1"),(50,"n2")], hash=30',
+        output: "(True, 'dark', [95, 100])",
+        explanation: "50 pruned (<=90); 1 active < 3; TTL valid (100 < 150) -> returns 'dark'.",
+      },
+    ],
+    complexities: { time: "O(n log n)", space: "O(n)" },
+    initial_code: `def process_kernel_request(now_ts, window_log, window_sec, max_reqs, ttl_cache, key, ring_nodes, key_hash):
+    # Prune sliding window log -> check TTL cache -> wrap-around consistent hash ring fallback
+    pass
+
+res = process_kernel_request(100, [50, 95], 10, 3, {"cfg": ("dark", 150)}, "cfg", [(10, "n1"), (50, "n2")], 30)
+print(res)`,
+    expected_output: "(True, 'dark', [95, 100])",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = process_kernel_request(100, [50, 95], 10, 3, {"cfg": ("dark", 150)}, "cfg", [(10, "n1"), (50, "n2")], 30)
+    results.append({"id": 1, "input": "window prune + TTL hit", "expected": "(True, 'dark', [95, 100])", "actual": str(r1), "passed": r1 == (True, "dark", [95, 100])})
+    r2 = process_kernel_request(100, [95, 98], 10, 2, {"cfg": ("dark", 150)}, "cfg", [(10, "n1"), (50, "n2")], 30)
+    results.append({"id": 2, "input": "sliding window rate limited", "expected": "(False, 'RATE_LIMIT', [95, 98])", "actual": str(r2), "passed": r2 == (False, "RATE_LIMIT", [95, 98])})
+    r3 = process_kernel_request(150, [], 10, 3, {"cfg": ("dark", 150)}, "cfg", [(10, "n1"), (50, "n2")], 75)
+    results.append({"id": 3, "input": "TTL expired + ring wrap-around", "expected": "(True, 'MISS:n1', [150])", "actual": str(r3), "passed": r3 == (True, "MISS:n1", [150])})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "window_log", value: "pruned <= 90 -> [95, 100]", type: "window", address: "0xN1" },
+      { label: "hash ring wrap", value: "75 > 50 -> wraps to n1", type: "ring", address: "0xN2" },
+    ],
+    hints: [
+      "Prune log: `active = [t for t in window_log if t > now_ts - window_sec]`. If `len(active) >= max_reqs`, return `(False, 'RATE_LIMIT', active)`.",
+      "On TTL miss/expiry, sort `ring_sorted = sorted(ring_nodes)`, pick first `name` where `pos >= key_hash` else `ring_sorted[0][1]`, and return `(True, f'MISS:{node}', active + [now_ts])`.",
+    ],
+  },
+];

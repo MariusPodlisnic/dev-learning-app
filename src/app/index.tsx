@@ -45,6 +45,7 @@ import {
   buildTrackCertificate,
   CertificateData,
   ChapterTierMeta,
+  isLessonInChapter,
   TRACK_CHAPTERS,
 } from "../constants/certificates";
 import {
@@ -1129,10 +1130,7 @@ export default function HomeScreen() {
     overrideStreak: number = streakCount,
   ) {
     const chLessons = lessons.filter(
-      (l) =>
-        l.track === trackKey &&
-        l.lesson_order >= chapter.minOrder &&
-        l.lesson_order <= chapter.maxOrder,
+      (l) => l.track === trackKey && isLessonInChapter(l, chapter),
     );
     const rank = getDeveloperRank(overrideXp);
     setActiveCertificate(

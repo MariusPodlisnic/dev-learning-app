@@ -23,6 +23,11 @@ import {
   isProTrackPreviewLesson,
   Lesson,
 } from "../types/lesson";
+import {
+  ChapterTierMeta,
+  getChapterForTrackLesson,
+  isLessonInChapter,
+} from "../constants/certificates";
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
@@ -247,6 +252,7 @@ function SidebarTrackButton({
 function SidebarModuleItem({
   lesson,
   index,
+  chapter,
   isCompleted,
   isLocked,
   isFreeProPreview,
@@ -257,6 +263,7 @@ function SidebarModuleItem({
 }: {
   lesson: Lesson;
   index: number;
+  chapter?: ChapterTierMeta;
   isCompleted: boolean;
   isLocked: boolean;
   isFreeProPreview: boolean;
@@ -265,25 +272,34 @@ function SidebarModuleItem({
   onPress: () => void;
   styles: ReturnType<typeof getStyles>;
 }) {
+  const isRecap = Boolean(lesson.is_recap);
   return (
     <SidebarInteractiveBox
       isActive={isActive}
-      zBoost={12}
+      zBoost={isRecap ? 14 : 12}
       liftY={-3}
       hoverScale={1.026}
-      marginBottom={6}
+      marginBottom={isRecap ? 10 : 6}
       onPress={onPress}
       style={(hovered) => [
         styles.lessonCard,
+        isRecap && styles.recapLessonCard,
         isCompleted && !isActive && styles.lessonCardCompleted,
+        isRecap && isCompleted && !isActive && styles.recapLessonCardCompleted,
         isActive && [
           styles.activeLessonCard,
-          { backgroundColor: accentBg },
+          { backgroundColor: isRecap ? StudioColors.yellow : accentBg },
         ],
         hovered &&
           !isActive && [
             styles.lessonCardHovered,
-            { borderColor: isCompleted ? StudioColors.cardDoneBorder : accentBg },
+            {
+              borderColor: isRecap
+                ? StudioColors.yellow
+                : isCompleted
+                  ? StudioColors.cardDoneBorder
+                  : accentBg,
+            },
           ],
         hovered && isActive && styles.activeLessonCardHovered,
       ]}
@@ -293,6 +309,7 @@ function SidebarModuleItem({
           <View
             style={[
               styles.stepCircle,
+              isRecap && !isCompleted && !isActive && styles.stepCircleRecap,
               isCompleted && !isActive && styles.stepCircleCompleted,
               !isCompleted &&
                 isActive && {
@@ -305,8 +322,10 @@ function SidebarModuleItem({
             <Text
               style={[
                 styles.stepCircleText,
+                isRecap && !isCompleted && !isActive && styles.stepCircleTextRecap,
                 isCompleted && !isActive && styles.stepCircleTextCompleted,
-                !isCompleted && isActive && { color: accentBg },
+                !isCompleted &&
+                  isActive && { color: isRecap ? StudioColors.yellow : accentBg },
                 isCompleted && isActive && styles.stepCircleTextCompletedActive,
               ]}
             >
@@ -314,20 +333,36 @@ function SidebarModuleItem({
                 ? "🔒"
                 : isCompleted
                   ? "✓"
-                  : String(index + 1).padStart(2, "0")}
+                  : isRecap
+                    ? "🏆"
+                    : String(index + 1).padStart(2, "0")}
             </Text>
           </View>
 
-          <Text
-            style={[
-              styles.lessonTitle,
-              isCompleted && !isActive && styles.completedLessonTitle,
-              isActive && styles.activeLessonTitle,
-            ]}
-            numberOfLines={2}
-          >
-            {lesson.title}
-          </Text>
+          <View style={styles.lessonTitleCol}>
+            {isRecap && (
+              <Text
+                style={[
+                  styles.recapEyebrowText,
+                  isActive && { color: StudioColors.ink },
+                ]}
+                numberOfLines={1}
+              >
+                ★ CH {chapter?.roman || lesson.recap_chapter || ""} RECAP BOSS
+              </Text>
+            )}
+            <Text
+              style={[
+                styles.lessonTitle,
+                isRecap && styles.recapLessonTitle,
+                isCompleted && !isActive && styles.completedLessonTitle,
+                isActive && styles.activeLessonTitle,
+              ]}
+              numberOfLines={2}
+            >
+              {lesson.title}
+            </Text>
+          </View>
 
           {isCompleted && isActive && (
             <View style={styles.activeSolvedPill}>
@@ -337,6 +372,11 @@ function SidebarModuleItem({
           {!isCompleted && isFreeProPreview && (
             <View style={styles.sidebarFreePreviewPill}>
               <Text style={styles.sidebarProText}>FREE TRY</Text>
+            </View>
+          )}
+          {!isCompleted && isRecap && !isLocked && !isFreeProPreview && !isActive && (
+            <View style={styles.sidebarRecapBossPill}>
+              <Text style={styles.sidebarRecapBossText}>RECAP</Text>
             </View>
           )}
           {isLocked && (
@@ -429,7 +469,9 @@ export default function StudioSidebar({
           </View>
         </View>
 
-        <Text style={[styles.sectionTitle, { marginTop: 18 }]}>MODULES</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 18 }]}>
+          CHAPTERS & MODULES
+        </Text>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.modulesScrollContent}
@@ -440,27 +482,122 @@ export default function StudioSidebar({
               style={{ marginTop: 12 }}
             />
           ) : (
-            currentLessons.map((lesson, idx) => {
-              const isCompleted = Boolean(completedLessons[lesson.id]);
-              const isLocked = isLessonLockedForUser(lesson, isPremium);
-              const isFreeProPreview =
-                isProTrackPreviewLesson(lesson) && !isPremium;
-              const isActive = selectedLesson?.id === lesson.id;
-              return (
-                <SidebarModuleItem
-                  key={lesson.id}
-                  lesson={lesson}
-                  index={idx}
-                  isCompleted={isCompleted}
-                  isLocked={isLocked}
-                  isFreeProPreview={isFreeProPreview}
-                  isActive={isActive}
-                  accentBg={currentTrackTheme.stickerBg}
-                  onPress={() => onSelectLesson(lesson)}
-                  styles={styles}
-                />
-              );
-            })
+            (() => {
+              let regularSeq = 0;
+              return currentLessons.map((lesson, idx) => {
+                const chapter = getChapterForTrackLesson(activeTrack, lesson);
+                const prevChapter =
+                  idx > 0
+                    ? getChapterForTrackLesson(
+                        activeTrack,
+                        currentLessons[idx - 1],
+                      )
+                    : null;
+                const isFirstOfChapter =
+                  !prevChapter || prevChapter.id !== chapter.id;
+
+                const chapterLessons = isFirstOfChapter
+                  ? currentLessons.filter((item) =>
+                      isLessonInChapter(item, chapter),
+                    )
+                  : [];
+                const chapterDoneCount = chapterLessons.filter((item) =>
+                  Boolean(completedLessons[item.id]),
+                ).length;
+                const isChapterCleared =
+                  chapterLessons.length > 0 &&
+                  chapterDoneCount === chapterLessons.length;
+
+                if (!lesson.is_recap) {
+                  regularSeq += 1;
+                }
+
+                const isCompleted = Boolean(completedLessons[lesson.id]);
+                const isLocked = isLessonLockedForUser(lesson, isPremium);
+                const isFreeProPreview =
+                  isProTrackPreviewLesson(lesson) && !isPremium;
+                const isActive = selectedLesson?.id === lesson.id;
+
+                return (
+                  <React.Fragment key={lesson.id}>
+                    {isFirstOfChapter && (
+                      <View
+                        style={[
+                          styles.sidebarChapterBanner,
+                          idx > 0 && { marginTop: 10 },
+                          isChapterCleared && styles.sidebarChapterBannerCleared,
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.sidebarChapterAccentBar,
+                            {
+                              backgroundColor: isChapterCleared
+                                ? StudioColors.mint
+                                : currentTrackTheme.stickerBg,
+                            },
+                          ]}
+                        />
+                        <View style={styles.sidebarChapterBody}>
+                          <View style={styles.sidebarChapterTopRow}>
+                            <View style={styles.sidebarChapterRomanPill}>
+                              <Text style={styles.sidebarChapterRomanText}>
+                                CH {chapter.roman}
+                              </Text>
+                            </View>
+                            <View
+                              style={[
+                                styles.sidebarChapterProgressPill,
+                                isChapterCleared &&
+                                  styles.sidebarChapterProgressPillCleared,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.sidebarChapterProgressText,
+                                  isChapterCleared && {
+                                    color: StudioColors.ink,
+                                  },
+                                ]}
+                              >
+                                {isChapterCleared
+                                  ? `★ ${chapterDoneCount}/${chapterLessons.length} ✓`
+                                  : `${chapterDoneCount}/${chapterLessons.length}`}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text
+                            style={styles.sidebarChapterTitle}
+                            numberOfLines={1}
+                          >
+                            {chapter.title}
+                          </Text>
+                          <Text
+                            style={styles.sidebarChapterSub}
+                            numberOfLines={1}
+                          >
+                            {chapter.subtitle}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    <SidebarModuleItem
+                      lesson={lesson}
+                      index={regularSeq - 1}
+                      chapter={chapter}
+                      isCompleted={isCompleted}
+                      isLocked={isLocked}
+                      isFreeProPreview={isFreeProPreview}
+                      isActive={isActive}
+                      accentBg={currentTrackTheme.stickerBg}
+                      onPress={() => onSelectLesson(lesson)}
+                      styles={styles}
+                    />
+                  </React.Fragment>
+                );
+              });
+            })()
           )}
         </ScrollView>
       </>
@@ -833,5 +970,123 @@ const getStyles = () =>
       fontSize: 8,
       fontWeight: "900",
       fontFamily: MonoFont,
+    },
+    sidebarChapterBanner: {
+      flexDirection: "row",
+      backgroundColor: StudioColors.surface,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 8,
+      marginBottom: 7,
+      overflow: "hidden",
+      ...HardShadowSm,
+    },
+    sidebarChapterBannerCleared: {
+      backgroundColor: StudioColors.cardDoneBg,
+      borderColor: StudioColors.mint,
+    },
+    sidebarChapterAccentBar: {
+      width: 5,
+    },
+    sidebarChapterBody: {
+      flex: 1,
+      paddingHorizontal: 9,
+      paddingVertical: 7,
+      gap: 2,
+    },
+    sidebarChapterTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 6,
+    },
+    sidebarChapterRomanPill: {
+      backgroundColor: StudioColors.ink,
+      paddingHorizontal: 6,
+      paddingVertical: 1.5,
+      borderRadius: 4,
+    },
+    sidebarChapterRomanText: {
+      color: StudioColors.yellow,
+      fontSize: 8.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.6,
+    },
+    sidebarChapterProgressPill: {
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1,
+      borderColor: StudioColors.border,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      borderRadius: 4,
+    },
+    sidebarChapterProgressPillCleared: {
+      backgroundColor: StudioColors.mint,
+      borderColor: StudioColors.ink,
+    },
+    sidebarChapterProgressText: {
+      color: StudioColors.textSecondary,
+      fontSize: 8.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    sidebarChapterTitle: {
+      color: StudioColors.textPrimary,
+      fontSize: 11.5,
+      fontWeight: "900",
+      marginTop: 2,
+    },
+    sidebarChapterSub: {
+      color: StudioColors.textMuted,
+      fontSize: 9.5,
+      fontWeight: "600",
+    },
+    recapLessonCard: {
+      backgroundColor: "rgba(251, 191, 36, 0.10)",
+      borderColor: StudioColors.yellow,
+      borderWidth: 1.5,
+    },
+    recapLessonCardCompleted: {
+      backgroundColor: StudioColors.cardDoneBg,
+      borderColor: StudioColors.mint,
+    },
+    stepCircleRecap: {
+      backgroundColor: StudioColors.yellow,
+      borderColor: StudioColors.ink,
+    },
+    stepCircleTextRecap: {
+      color: StudioColors.ink,
+      fontSize: 12,
+    },
+    lessonTitleCol: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    recapEyebrowText: {
+      color: StudioColors.yellow,
+      fontSize: 8.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.5,
+    },
+    recapLessonTitle: {
+      fontWeight: "900",
+    },
+    sidebarRecapBossPill: {
+      backgroundColor: StudioColors.yellow,
+      borderWidth: 1,
+      borderColor: StudioColors.ink,
+      paddingHorizontal: 5,
+      paddingVertical: 1.5,
+      borderRadius: 3,
+    },
+    sidebarRecapBossText: {
+      color: StudioColors.ink,
+      fontSize: 8,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
     },
   });
