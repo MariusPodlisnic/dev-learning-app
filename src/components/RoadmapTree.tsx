@@ -38,7 +38,6 @@ import {
 import { playCrtChannelSwitch, playKeyClick } from "../utils/soundEffects";
 import ByteCatGuideCard from "./ByteCatGuideCard";
 import RoadmapScrollBackdrop from "./RoadmapScrollBackdrop";
-import StreakAtRiskBanner from "./StreakAtRiskBanner";
 
 export interface Lesson {
   id: string;
@@ -631,13 +630,9 @@ export default function RoadmapTree({
   claimedChapters = {},
   onClaimChapterBonus,
   totalXp = 0,
-  streakCount = 0,
-  lastActiveDate = null,
   totalSolvedCount = 0,
   onStartQuickMode,
-  onSaveStreak,
   onOpenPaywall,
-  onOpenTrackCertificate,
   onOpenChapterCertificate,
 }: RoadmapTreeProps) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -1101,122 +1096,6 @@ export default function RoadmapTree({
             })}
           </View>
         </View>
-
-        {/* Track Mastery & Up Next Banner */}
-        <View style={styles.overviewCard}>
-          <View style={styles.progressSection}>
-            <View style={styles.progressLabelRow}>
-              <View style={styles.progressTitleGroup}>
-                <Text style={styles.progressLabel}>
-                  {currentTrackMeta.label.toUpperCase()} MASTERY
-                </Text>
-                <Text style={styles.progressSubtext}>
-                  {completedCount} of {trackLessons.length} modules solved
-                </Text>
-              </View>
-              <View style={styles.trackBadgesRightRow}>
-                {completedCount === trackLessons.length &&
-                trackLessons.length > 0 &&
-                onOpenTrackCertificate ? (
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.trackCertPillBtn,
-                      pressed && { transform: [{ translateY: 1 }] },
-                    ]}
-                    onPress={() => {
-                      playKeyClick();
-                      onOpenTrackCertificate(activeTrack);
-                    }}
-                  >
-                    <Text style={styles.trackCertPillText}>
-                      🎓 CERTIFICATE ↗
-                    </Text>
-                  </Pressable>
-                ) : null}
-                <View
-                  style={[
-                    styles.percentBadge,
-                    {
-                      backgroundColor: currentTrackMeta.stickerBg,
-                    },
-                  ]}
-                >
-                  <Text style={styles.progressPercentText}>
-                    {progressPercent}%
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.progressBarBg}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  {
-                    width: `${Math.max(progressPercent, 4)}%`,
-                    backgroundColor: StudioColors.mint,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-
-          {nextUpLesson && (
-            <View style={styles.upNextBanner}>
-              <View style={styles.upNextLeft}>
-                <View style={styles.upNextMetaRow}>
-                  <View style={styles.upNextSticker}>
-                    <Text style={styles.upNextTag}>
-                      {completedCount === trackLessons.length &&
-                      trackLessons.length > 0
-                        ? "TRACK COMPLETE · REVIEW"
-                        : "UP NEXT MISSION"}
-                    </Text>
-                  </View>
-                  <View style={styles.upNextXpPill}>
-                    <Text style={styles.upNextXpPillText}>+50 XP</Text>
-                  </View>
-                </View>
-                <Text style={styles.upNextTitle} numberOfLines={1}>
-                  {nextUpLesson.title}
-                </Text>
-                <Text style={styles.upNextDesc} numberOfLines={1}>
-                  {nextUpLesson.description}
-                </Text>
-              </View>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.upNextButton,
-                  pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
-                ]}
-                onPress={() => onSelectLesson(nextUpLesson)}
-              >
-                <Text style={styles.upNextButtonText}>
-                  {completedLessons[nextUpLesson.id]
-                    ? "REVIEW MODULE"
-                    : "START MISSION"}
-                </Text>
-                <View style={styles.upNextArrowCapsule}>
-                  <Text style={styles.upNextArrowCapsuleText}>→</Text>
-                </View>
-              </Pressable>
-            </View>
-          )}
-        </View>
-
-        {/* Streak At-Risk / Protected Banner */}
-        <StreakAtRiskBanner
-          streakCount={streakCount}
-          lastActiveDate={lastActiveDate}
-          onSaveStreak={() => {
-            if (onSaveStreak) {
-              onSaveStreak();
-            } else if (nextUpLesson) {
-              onSelectLesson(nextUpLesson);
-            }
-          }}
-        />
 
         {/* Filter & Search Control Bar */}
         <View style={styles.filterToolbarCard}>

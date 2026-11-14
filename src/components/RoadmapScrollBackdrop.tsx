@@ -16,80 +16,131 @@ interface RoadmapScrollBackdropProps {
   accentColor: string;
 }
 
+type StageVisualKind =
+  | "variables"
+  | "types"
+  | "control_flow"
+  | "loops"
+  | "arrays"
+  | "hashmap"
+  | "functions"
+  | "stack"
+  | "tree"
+  | "two_pointers"
+  | "sorting"
+  | "systems";
+
 interface LearningStageConfig {
   id: string;
-  worldY: number;
-  leftTag: string;
-  leftTitle: string;
-  rightTag: string;
-  rightTitle: string;
-  kind:
-    | "variables"
-    | "control_flow"
-    | "functions"
-    | "data_structures"
-    | "algorithms"
-    | "systems";
+  frac: number;
+  side: "left" | "right";
+  tag: string;
+  title: string;
+  kind: StageVisualKind;
 }
 
+// 12 connected CS Learning Stages distributed evenly from top (6%) to bottom (94%) of the page.
+// Every node on the rail connects directly to a learning box (zero unconnected/obsolete nodes).
 const LEARNING_STAGES: LearningStageConfig[] = [
   {
-    id: "stage-vars",
-    worldY: 78,
-    leftTag: "01 // MEM_SLOT",
-    leftTitle: "x ➔ [ 42 ]",
-    rightTag: "0x0B // BITS",
-    rightTitle: "1 0 1 1",
+    id: "stage-01-vars",
+    frac: 0.06,
+    side: "left",
+    tag: "01 // MEM_SLOT",
+    title: "x ➔ [ 42 ]",
     kind: "variables",
   },
   {
-    id: "stage-flow",
-    worldY: 310,
-    leftTag: "02 // BRANCH",
-    leftTitle: "if / else",
-    rightTag: "CLK // LOOP",
-    rightTitle: "while ↻",
+    id: "stage-02-types",
+    frac: 0.14,
+    side: "right",
+    tag: "02 // BIT_TYPE",
+    title: "int | str",
+    kind: "types",
+  },
+  {
+    id: "stage-03-branch",
+    frac: 0.22,
+    side: "left",
+    tag: "03 // IF_GATE",
+    title: "if / else",
     kind: "control_flow",
   },
   {
-    id: "stage-funcs",
-    worldY: 542,
-    leftTag: "03 // LAMBDA",
-    leftTitle: "f(x) ➔ y",
-    rightTag: "LIFO // STACK",
-    rightTitle: "push/pop",
+    id: "stage-04-loop",
+    frac: 0.3,
+    side: "right",
+    tag: "04 // LOOP_CLK",
+    title: "while ↻",
+    kind: "loops",
+  },
+  {
+    id: "stage-05-array",
+    frac: 0.38,
+    side: "left",
+    tag: "05 // LIST_ARR",
+    title: "a[0 : n]",
+    kind: "arrays",
+  },
+  {
+    id: "stage-06-hash",
+    frac: 0.46,
+    side: "right",
+    tag: "06 // DICT_MAP",
+    title: "k ➔ [idx]",
+    kind: "hashmap",
+  },
+  {
+    id: "stage-07-func",
+    frac: 0.54,
+    side: "left",
+    tag: "07 // LAMBDA",
+    title: "f(x) ➔ ret",
     kind: "functions",
   },
   {
-    id: "stage-ds",
-    worldY: 774,
-    leftTag: "04 // BST_NODE",
-    leftTitle: "L ◄ ● ► R",
-    rightTag: "HASH // O(1)",
-    rightTitle: "k ➔ [idx]",
-    kind: "data_structures",
+    id: "stage-08-stack",
+    frac: 0.62,
+    side: "right",
+    tag: "08 // CALL_STK",
+    title: "push / pop",
+    kind: "stack",
   },
   {
-    id: "stage-algo",
-    worldY: 1006,
-    leftTag: "05 // 2_PTRS",
-    leftTitle: "[L ► • ◄ R]",
-    rightTag: "ALU // SORT",
-    rightTitle: "O(n log n)",
-    kind: "algorithms",
+    id: "stage-09-tree",
+    frac: 0.7,
+    side: "left",
+    tag: "09 // BST_TREE",
+    title: "L ◄ ● ► R",
+    kind: "tree",
   },
   {
-    id: "stage-sys",
-    worldY: 1238,
-    leftTag: "06 // SCALE_LB",
-    leftTitle: "1 ➔ 3 PODS",
-    rightTag: "TEST // PASS",
-    rightTitle: "ASSERT ✓",
+    id: "stage-10-ptrs",
+    frac: 0.78,
+    side: "right",
+    tag: "10 // TWO_PTRS",
+    title: "[L ► • ◄ R]",
+    kind: "two_pointers",
+  },
+  {
+    id: "stage-11-sort",
+    frac: 0.86,
+    side: "left",
+    tag: "11 // ALU_SORT",
+    title: "O(n log n)",
+    kind: "sorting",
+  },
+  {
+    id: "stage-12-sys",
+    frac: 0.94,
+    side: "right",
+    tag: "12 // ASSERT",
+    title: "PASS ✓ 100%",
     kind: "systems",
   },
 ];
 
-const INTER_STAGE_VIAS = [194, 426, 658, 890, 1122, 1354];
+const PARALLAX_FACTOR = 0.45;
 
 export default function RoadmapScrollBackdrop({
   scrollAnim,
@@ -120,7 +171,7 @@ export default function RoadmapScrollBackdrop({
     (isHydrated ? maxScrollableDistance : 1180) || 1180,
   );
   const safeViewportH = Math.max(400, effectiveHeight || 820);
-  const minActiveH = 56;
+  const minActiveH = 52;
   const activeSpanH = Math.max(100, safeViewportH - minActiveH - 24);
 
   const animBindings = useMemo(() => {
@@ -132,74 +183,73 @@ export default function RoadmapScrollBackdrop({
 
     const sparkTranslateY = scrollAnim.interpolate({
       inputRange: [0, safeMaxScroll],
-      outputRange: [minActiveH - 10, minActiveH + activeSpanH - 10],
-      extrapolate: "clamp",
-    });
-
-    const trailingPacketY = scrollAnim.interpolate({
-      inputRange: [0, safeMaxScroll],
-      outputRange: [Math.max(16, minActiveH - 52), minActiveH + activeSpanH - 52],
+      outputRange: [minActiveH - 9, minActiveH + activeSpanH - 9],
       extrapolate: "clamp",
     });
 
     const parallaxMidY = scrollAnim.interpolate({
-      inputRange: [0, 4000],
-      outputRange: [0, -2080],
+      inputRange: [0, 10000],
+      outputRange: [0, -10000 * PARALLAX_FACTOR],
       extrapolate: "extend",
     });
 
-    const parallaxSlowY = scrollAnim.interpolate({
-      inputRange: [0, 4000],
-      outputRange: [0, -880],
-      extrapolate: "extend",
-    });
+    // Each connected junction node & CS box lights up right as the dynamic circuit
+    // passes downward through `frac * safeMaxScroll`, and unlights when scrolling back up.
+    const stages = LEARNING_STAGES.map((stage, idx) => {
+      const triggerY = stage.frac * safeMaxScroll;
+      const screenMeetY = minActiveH + stage.frac * activeSpanH;
+      const pinWorldY = Math.round(screenMeetY + PARALLAX_FACTOR * triggerY);
+      const cardWorldY = pinWorldY - 18;
 
-    const slopeDenom = 0.52 + activeSpanH / safeMaxScroll;
-
-    const stageOpacities = LEARNING_STAGES.map((stage) => {
-      const triggerY = Math.max(0, (stage.worldY - minActiveH) / slopeDenom);
-      if (triggerY <= 12) {
-        return scrollAnim.interpolate({
-          inputRange: [0, 10],
-          outputRange: [0.85, 1],
-          extrapolate: "clamp",
-        });
-      }
-      return scrollAnim.interpolate({
-        inputRange: [Math.max(0, triggerY - 70), triggerY + 18],
-        outputRange: [0.22, 1],
+      const litOpacity = scrollAnim.interpolate({
+        inputRange: [Math.max(0, triggerY - 22), triggerY + 10],
+        outputRange: [0, 1],
         extrapolate: "clamp",
       });
-    });
 
-    const stageScales = LEARNING_STAGES.map((stage) => {
-      const triggerY = Math.max(0, (stage.worldY - minActiveH) / slopeDenom);
-      if (triggerY <= 12) {
-        return scrollAnim.interpolate({
-          inputRange: [0, 10],
-          outputRange: [1, 1],
-          extrapolate: "clamp",
-        });
-      }
-      return scrollAnim.interpolate({
+      const pinScale = scrollAnim.interpolate({
         inputRange: [
-          Math.max(0, triggerY - 60),
+          Math.max(0, triggerY - 22),
           triggerY,
-          triggerY + 80,
+          triggerY + 28,
         ],
-        outputRange: [0.95, 1.04, 1],
+        outputRange: [0.85, 1.28, 1],
         extrapolate: "clamp",
       });
+
+      const cardOpacity = scrollAnim.interpolate({
+        inputRange: [Math.max(0, triggerY - 26), triggerY + 12],
+        outputRange: [0.2, 1],
+        extrapolate: "clamp",
+      });
+
+      const cardScale = scrollAnim.interpolate({
+        inputRange: [
+          Math.max(0, triggerY - 26),
+          triggerY + 4,
+          triggerY + 44,
+        ],
+        outputRange: [0.95, 1.03, 1],
+        extrapolate: "clamp",
+      });
+
+      return {
+        ...stage,
+        idx,
+        pinWorldY,
+        cardWorldY,
+        litOpacity,
+        pinScale,
+        cardOpacity,
+        cardScale,
+      };
     });
 
     return {
       activeRailHeight,
       sparkTranslateY,
-      trailingPacketY,
       parallaxMidY,
-      parallaxSlowY,
-      stageOpacities,
-      stageScales,
+      stages,
     };
   }, [scrollAnim, safeMaxScroll, activeSpanH]);
 
@@ -211,55 +261,11 @@ export default function RoadmapScrollBackdrop({
       ]}
       pointerEvents="none"
     >
-      {/* 1. Slow-Parallax Stepped Bus Sub-Rulers (Strictly Inward of railInset) */}
-      <Animated.View
-        style={[
-          styles.fullLayer,
-          { transform: [{ translateY: animBindings.parallaxSlowY }] },
-        ]}
-      >
-        {INTER_STAGE_VIAS.map((yPos, idx) => {
-          const tickLen = idx % 2 === 0 ? 12 : 8;
-          return (
-            <View key={`tick-${yPos}`} style={styles.fullLayer}>
-              <View
-                style={[
-                  styles.inwardTick,
-                  {
-                    top: yPos,
-                    left: railInset + 3,
-                    width: tickLen,
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.inwardTick,
-                  {
-                    top: yPos,
-                    right: railInset + 3,
-                    width: tickLen,
-                  },
-                ]}
-              />
-            </View>
-          );
-        })}
-      </Animated.View>
-
-      {/* 2. Base Unlit Vertical Circuit Rails (Left & Right) */}
+      {/* 1. Base Unlit Vertical Circuit Rails (Left & Right) */}
       <View style={[styles.mainRailBase, { left: railInset }]} />
       <View style={[styles.mainRailBase, { right: railInset }]} />
 
-      {/* Stepped Parallel Data Bus Line (+10px inward) */}
-      {isDesktopMargin ? (
-        <>
-          <View style={[styles.parallelBusLine, { left: railInset + 10 }]} />
-          <View style={[styles.parallelBusLine, { right: railInset + 10 }]} />
-        </>
-      ) : null}
-
-      {/* 3. Scroll-Energized Main Circuit Fill (Left & Right) */}
+      {/* 2. Scroll-Energized Main Circuit Fill (Left & Right) */}
       <Animated.View
         style={[
           styles.mainRailActive,
@@ -281,90 +287,97 @@ export default function RoadmapScrollBackdrop({
         ]}
       />
 
-      {/* 4. Mid-Parallax CS Learning Modules & Schematic Nodes (0.52x Scroll Speed) */}
+      {/* 3. Connected Junction Nodes & 12 CS Learning Boxes (6% -> 94% Full Page Extent) */}
       <Animated.View
         style={[
           styles.fullLayer,
           { transform: [{ translateY: animBindings.parallaxMidY }] },
         ]}
       >
-        {/* Inter-Stage Stepped Bypass Traces & Micro-Vias */}
-        {INTER_STAGE_VIAS.map((viaY, idx) => {
-          const viaColor =
-            idx % 2 === 0 ? StudioColors.mint : accentColor;
-          return (
-            <View key={`via-${viaY}`} style={styles.fullLayer}>
-              <View
-                style={[
-                  styles.interViaDot,
-                  {
-                    top: viaY - 4,
-                    left: railInset - 3,
-                    borderColor: viaColor,
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.interViaDot,
-                  {
-                    top: viaY - 4,
-                    right: railInset - 3,
-                    borderColor: viaColor,
-                  },
-                ]}
-              />
-            </View>
-          );
-        })}
-
-        {/* 6 Progressive CS Learning Stages (Left & Right Schematic Cards) */}
         {showModules
-          ? LEARNING_STAGES.map((stage, idx) => {
-              const stageOpacity = animBindings.stageOpacities[idx];
-              const stageScale = animBindings.stageScales[idx];
+          ? animBindings.stages.map((stage) => {
               const stageAccent =
-                idx % 2 === 0 ? accentColor : StudioColors.mint;
+                stage.idx % 2 === 0 ? accentColor : StudioColors.mint;
               const moduleOffset = railInset + 22;
+              const isLeft = stage.side === "left";
+
+              const connectorPos = isLeft
+                ? { left: railInset + 2 }
+                : { right: railInset + 2 };
+              const pinPos = isLeft
+                ? { left: railInset - 4 }
+                : { right: railInset - 4 };
+              const cardPos = isLeft
+                ? { left: moduleOffset }
+                : { right: moduleOffset };
 
               return (
                 <View key={stage.id} style={styles.fullLayer}>
-                  {/* Left Connector Trace + Pin */}
-                  <Animated.View
+                  {/* Connected Branch Trace (Unlit Base -> Lights Up with Circuit) */}
+                  <View
                     style={[
-                      styles.moduleConnectorLine,
-                      {
-                        top: stage.worldY + 18,
-                        left: railInset + 2,
-                        width: 20,
-                        backgroundColor: stageAccent,
-                        opacity: stageOpacity,
-                      },
+                      styles.moduleConnectorBase,
+                      { top: stage.pinWorldY - 1, width: 20 },
+                      connectorPos,
                     ]}
-                  />
-                  <Animated.View
-                    style={[
-                      styles.railJunctionPin,
-                      {
-                        top: stage.worldY + 14,
-                        left: railInset - 3.5,
-                        borderColor: stageAccent,
-                        opacity: stageOpacity,
-                      },
-                    ]}
-                  />
+                  >
+                    <Animated.View
+                      style={[
+                        styles.connectorLitFill,
+                        {
+                          backgroundColor: stageAccent,
+                          opacity: stage.litOpacity,
+                        },
+                      ]}
+                    />
+                  </View>
 
-                  {/* Left CS Schematic Module */}
+                  {/* Connected Rail Junction Node (Lights up on pass-through, unlights on scroll-back) */}
+                  <View
+                    style={[
+                      styles.railJunctionPinUnlit,
+                      { top: stage.pinWorldY - 5 },
+                      pinPos,
+                    ]}
+                  >
+                    <Animated.View
+                      style={[
+                        styles.railJunctionPinLitWrap,
+                        {
+                          opacity: stage.litOpacity,
+                          transform: [{ scale: stage.pinScale }],
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.railJunctionPinHalo,
+                          { backgroundColor: stageAccent },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.railJunctionPinLit,
+                          {
+                            borderColor: stageAccent,
+                            backgroundColor: StudioColors.yellow,
+                          },
+                        ]}
+                      />
+                    </Animated.View>
+                  </View>
+
+                  {/* Connected CS Schematic Module Card */}
                   <Animated.View
                     style={[
                       styles.csModuleCard,
                       {
-                        top: stage.worldY,
-                        left: moduleOffset,
+                        top: stage.cardWorldY,
                         borderColor: stageAccent,
-                        opacity: stageOpacity,
-                        transform: [{ scale: stageScale }],
+                        opacity: stage.cardOpacity,
+                        transform: [{ scale: stage.cardScale }],
                       },
+                      cardPos,
                     ]}
                   >
                     <View
@@ -373,11 +386,11 @@ export default function RoadmapScrollBackdrop({
                         { backgroundColor: stageAccent },
                       ]}
                     >
-                      <Text style={styles.csModuleTagText}>{stage.leftTag}</Text>
+                      <Text style={styles.csModuleTagText}>{stage.tag}</Text>
                     </View>
                     <View style={styles.csModuleBody}>
                       <Text style={styles.csModuleFormulaText}>
-                        {stage.leftTitle}
+                        {stage.title}
                       </Text>
                       {stage.kind === "variables" ? (
                         <View style={styles.miniBitRow}>
@@ -394,6 +407,22 @@ export default function RoadmapScrollBackdrop({
                             ]}
                           />
                           <View style={styles.miniBitCellOff} />
+                        </View>
+                      ) : stage.kind === "types" ? (
+                        <View style={styles.miniBitRow}>
+                          <View
+                            style={[
+                              styles.miniBitCell,
+                              { backgroundColor: accentColor },
+                            ]}
+                          />
+                          <View style={styles.miniBitCellOff} />
+                          <View
+                            style={[
+                              styles.miniBitCell,
+                              { backgroundColor: StudioColors.mint },
+                            ]}
+                          />
                         </View>
                       ) : stage.kind === "control_flow" ? (
                         <View style={styles.miniBranchRow}>
@@ -413,6 +442,53 @@ export default function RoadmapScrollBackdrop({
                             />
                           </View>
                         </View>
+                      ) : stage.kind === "loops" ? (
+                        <View style={styles.miniWaveRow}>
+                          <View style={styles.miniWaveStepLow} />
+                          <View
+                            style={[
+                              styles.miniWaveStepHigh,
+                              { borderColor: stageAccent },
+                            ]}
+                          />
+                          <View style={styles.miniWaveStepLow} />
+                        </View>
+                      ) : stage.kind === "arrays" ? (
+                        <View style={styles.miniBitRow}>
+                          <View
+                            style={[
+                              styles.miniArrayCell,
+                              { backgroundColor: StudioColors.mint },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.miniArrayCell,
+                              { backgroundColor: accentColor },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.miniArrayCell,
+                              { backgroundColor: StudioColors.mint },
+                            ]}
+                          />
+                        </View>
+                      ) : stage.kind === "hashmap" ? (
+                        <View style={styles.miniStackCol}>
+                          <View
+                            style={[
+                              styles.miniForkBar,
+                              { backgroundColor: accentColor },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.miniForkBar,
+                              { backgroundColor: StudioColors.mint },
+                            ]}
+                          />
+                        </View>
                       ) : stage.kind === "functions" ? (
                         <View style={styles.miniPipeRow}>
                           <View style={styles.miniPinDot} />
@@ -426,7 +502,22 @@ export default function RoadmapScrollBackdrop({
                           </View>
                           <View style={styles.miniPinDot} />
                         </View>
-                      ) : stage.kind === "data_structures" ? (
+                      ) : stage.kind === "stack" ? (
+                        <View style={styles.miniStackCol}>
+                          <View
+                            style={[
+                              styles.miniStackPlate,
+                              { backgroundColor: StudioColors.mint },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.miniStackPlate,
+                              { backgroundColor: accentColor },
+                            ]}
+                          />
+                        </View>
+                      ) : stage.kind === "tree" ? (
                         <View style={styles.miniTreeWrap}>
                           <View
                             style={[
@@ -449,7 +540,23 @@ export default function RoadmapScrollBackdrop({
                             />
                           </View>
                         </View>
-                      ) : stage.kind === "algorithms" ? (
+                      ) : stage.kind === "two_pointers" ? (
+                        <View style={styles.miniPipeRow}>
+                          <View
+                            style={[
+                              styles.miniPodDot,
+                              { backgroundColor: accentColor },
+                            ]}
+                          />
+                          <View style={styles.miniWindowTrack} />
+                          <View
+                            style={[
+                              styles.miniPodDot,
+                              { backgroundColor: StudioColors.mint },
+                            ]}
+                          />
+                        </View>
+                      ) : stage.kind === "sorting" ? (
                         <View style={styles.miniBarsRow}>
                           <View
                             style={[
@@ -471,167 +578,13 @@ export default function RoadmapScrollBackdrop({
                           />
                         </View>
                       ) : (
-                        <View style={styles.miniPodsRow}>
-                          <View
-                            style={[
-                              styles.miniPodDot,
-                              { backgroundColor: StudioColors.mint },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.miniPodDot,
-                              { backgroundColor: accentColor },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.miniPodDot,
-                              { backgroundColor: StudioColors.mint },
-                            ]}
-                          />
-                        </View>
-                      )}
-                    </View>
-                  </Animated.View>
-
-                  {/* Right Connector Trace + Pin */}
-                  <Animated.View
-                    style={[
-                      styles.moduleConnectorLine,
-                      {
-                        top: stage.worldY + 18,
-                        right: railInset + 2,
-                        width: 20,
-                        backgroundColor: stageAccent,
-                        opacity: stageOpacity,
-                      },
-                    ]}
-                  />
-                  <Animated.View
-                    style={[
-                      styles.railJunctionPin,
-                      {
-                        top: stage.worldY + 14,
-                        right: railInset - 3.5,
-                        borderColor: stageAccent,
-                        opacity: stageOpacity,
-                      },
-                    ]}
-                  />
-
-                  {/* Right CS Schematic Module */}
-                  <Animated.View
-                    style={[
-                      styles.csModuleCard,
-                      {
-                        top: stage.worldY,
-                        right: moduleOffset,
-                        borderColor: stageAccent,
-                        opacity: stageOpacity,
-                        transform: [{ scale: stageScale }],
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.csModuleHeaderStrip,
-                        { backgroundColor: stageAccent },
-                      ]}
-                    >
-                      <Text style={styles.csModuleTagText}>{stage.rightTag}</Text>
-                    </View>
-                    <View style={styles.csModuleBody}>
-                      <Text style={styles.csModuleFormulaText}>
-                        {stage.rightTitle}
-                      </Text>
-                      {stage.kind === "variables" ? (
-                        <View style={styles.miniBitRow}>
-                          <View
-                            style={[
-                              styles.miniBitCell,
-                              { backgroundColor: accentColor },
-                            ]}
-                          />
-                          <View style={styles.miniBitCellOff} />
-                          <View
-                            style={[
-                              styles.miniBitCell,
-                              { backgroundColor: StudioColors.mint },
-                            ]}
-                          />
-                        </View>
-                      ) : stage.kind === "control_flow" ? (
-                        <View style={styles.miniWaveRow}>
-                          <View style={styles.miniWaveStepLow} />
-                          <View
-                            style={[
-                              styles.miniWaveStepHigh,
-                              { borderColor: stageAccent },
-                            ]}
-                          />
-                          <View style={styles.miniWaveStepLow} />
-                        </View>
-                      ) : stage.kind === "functions" ? (
-                        <View style={styles.miniStackCol}>
-                          <View
-                            style={[
-                              styles.miniStackPlate,
-                              { backgroundColor: StudioColors.mint },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.miniStackPlate,
-                              { backgroundColor: accentColor },
-                            ]}
-                          />
-                        </View>
-                      ) : stage.kind === "data_structures" ? (
-                        <View style={styles.miniBitRow}>
-                          <View
-                            style={[
-                              styles.miniBitCell,
-                              { backgroundColor: StudioColors.mint },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.miniBitCell,
-                              { backgroundColor: StudioColors.mint },
-                            ]}
-                          />
-                          <View
-                            style={[
-                              styles.miniBitCell,
-                              { backgroundColor: accentColor },
-                            ]}
-                          />
-                        </View>
-                      ) : stage.kind === "algorithms" ? (
-                        <View style={styles.miniPipeRow}>
-                          <View
-                            style={[
-                              styles.miniPodDot,
-                              { backgroundColor: accentColor },
-                            ]}
-                          />
-                          <View style={styles.miniWindowTrack} />
-                          <View
-                            style={[
-                              styles.miniPodDot,
-                              { backgroundColor: StudioColors.mint },
-                            ]}
-                          />
-                        </View>
-                      ) : (
                         <View
                           style={[
                             styles.miniPassBadge,
                             { backgroundColor: StudioColors.mint },
                           ]}
                         >
-                          <Text style={styles.miniPassText}>100%</Text>
+                          <Text style={styles.miniPassText}>✓</Text>
                         </View>
                       )}
                     </View>
@@ -642,28 +595,7 @@ export default function RoadmapScrollBackdrop({
           : null}
       </Animated.View>
 
-      {/* 5. Trailing Secondary Signal Bead & Leading Spark Transceiver Head */}
-      <Animated.View
-        style={[
-          styles.trailingBead,
-          {
-            left: railInset - 2,
-            backgroundColor: StudioColors.mint,
-            transform: [{ translateY: animBindings.trailingPacketY }],
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.trailingBead,
-          {
-            right: railInset - 2,
-            backgroundColor: StudioColors.mint,
-            transform: [{ translateY: animBindings.trailingPacketY }],
-          },
-        ]}
-      />
-
+      {/* 4. Leading Spark Transceiver Head */}
       <Animated.View
         style={[
           styles.sparkHeadWrap,
@@ -730,13 +662,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
   },
-  inwardTick: {
-    position: "absolute",
-    height: 1.5,
-    backgroundColor: StudioColors.borderSubtle,
-    opacity: 0.32,
-    borderRadius: 1,
-  },
   mainRailBase: {
     position: "absolute",
     top: 0,
@@ -745,14 +670,6 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.borderSubtle,
     opacity: 0.42,
   },
-  parallelBusLine: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    width: 1,
-    backgroundColor: StudioColors.borderSubtle,
-    opacity: 0.2,
-  },
   mainRailActive: {
     position: "absolute",
     top: 0,
@@ -760,31 +677,54 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     opacity: 0.88,
   },
-  interViaDot: {
-    position: "absolute",
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    backgroundColor: StudioColors.surface,
-    opacity: 0.65,
-  },
-  moduleConnectorLine: {
+  moduleConnectorBase: {
     position: "absolute",
     height: 2,
+    backgroundColor: StudioColors.borderSubtle,
+    opacity: 0.55,
     borderRadius: 1,
+    overflow: "hidden",
   },
-  railJunctionPin: {
+  connectorLitFill: {
     position: "absolute",
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  railJunctionPinUnlit: {
+    position: "absolute",
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     borderWidth: 2,
+    borderColor: StudioColors.borderSubtle,
     backgroundColor: StudioColors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  railJunctionPinLitWrap: {
+    width: 10,
+    height: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  railJunctionPinHalo: {
+    position: "absolute",
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    opacity: 0.28,
+  },
+  railJunctionPinLit: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
   },
   csModuleCard: {
     position: "absolute",
-    width: 94,
+    width: 96,
     borderRadius: 8,
     borderWidth: 1.5,
     backgroundColor: StudioColors.surface,
@@ -837,6 +777,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: StudioColors.borderSubtle,
     backgroundColor: StudioColors.bg,
+  },
+  miniArrayCell: {
+    width: 5,
+    height: 6,
+    borderRadius: 1,
+    borderWidth: 1,
+    borderColor: StudioColors.ink,
   },
   miniBranchRow: {
     flexDirection: "row",
@@ -917,11 +864,6 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: StudioColors.ink,
   },
-  miniPodsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2.5,
-  },
   miniPodDot: {
     width: 5,
     height: 5,
@@ -950,37 +892,29 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   miniStackPlate: {
-    width: 12,
-    height: 3.5,
+    width: 11,
+    height: 3,
     borderRadius: 1,
     borderWidth: 0.5,
     borderColor: StudioColors.ink,
   },
   miniWindowTrack: {
-    width: 7,
+    width: 6,
     height: 2,
     backgroundColor: StudioColors.borderSubtle,
   },
   miniPassBadge: {
-    paddingHorizontal: 3,
+    paddingHorizontal: 3.5,
     paddingVertical: 1,
     borderRadius: 3,
     borderWidth: 1,
     borderColor: StudioColors.ink,
   },
   miniPassText: {
-    fontSize: 7,
+    fontSize: 7.5,
     fontWeight: "900",
     fontFamily: MonoFont,
     color: StudioColors.ink,
-  },
-  trailingBead: {
-    position: "absolute",
-    top: 0,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    opacity: 0.75,
   },
   sparkHeadWrap: {
     position: "absolute",
