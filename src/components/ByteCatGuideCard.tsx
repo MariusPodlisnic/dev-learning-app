@@ -236,18 +236,18 @@ const PET_LEVEL_TIERS: PetLevelTier[] = [
     minXp: 0,
     title: "KEYBOARD NAPPER",
     icon: "🐾",
-    perkTitle: "Animated Stage",
-    perkDesc: "Idle float, ear tilt & orbiting sparkles",
-    accent: "#FFDE59",
+    perkTitle: "Cozy Rainy Study",
+    perkDesc: "Rainy night window, steaming mug & continuous lo-fi coding",
+    accent: "#F59E0B",
   },
   {
     level: 2,
     minXp: 30,
     title: "MERGE CONFLICT CAT",
-    icon: "🌈",
-    perkTitle: "Prism Halo",
-    perkDesc: "Cycles vibrant neon stage rings & unlocks 🐾 orbit badge",
-    accent: "#FF90E8",
+    icon: "☕",
+    perkTitle: "Espresso Flow",
+    perkDesc: "Warm amber desk glow & extra cozy coffee break vibes",
+    accent: "#FDBA74",
   },
   {
     level: 3,
@@ -265,7 +265,7 @@ const PET_LEVEL_TIERS: PetLevelTier[] = [
     title: "BUG WHACKER 9000",
     icon: "🪲",
     perkTitle: "Double Burst",
-    perkDesc: "Upgrades sparkles to 🪲/💎 & triggers dual celebratory popups",
+    perkDesc: "Triggers dual celebratory XP popups on every daily treat",
     accent: "#A3E635",
   },
   {
@@ -273,8 +273,8 @@ const PET_LEVEL_TIERS: PetLevelTier[] = [
     minXp: 210,
     title: "10X SENIOR CHONK",
     icon: "👑",
-    perkTitle: "Golden Crown",
-    perkDesc: "Floating 👑 crown sticker & gleaming gold portrait trim",
+    perkTitle: "Golden Brass Trim",
+    perkDesc: "Royal 👑 crown badge & gleaming antique brass window frame",
     accent: "#FBBF24",
   },
   {
@@ -282,8 +282,8 @@ const PET_LEVEL_TIERS: PetLevelTier[] = [
     minXp: 300,
     title: "PROD OVERLORD CAT",
     icon: "🚀",
-    perkTitle: "Rainbow Legend",
-    perkDesc: "Cycling rainbow arcade frame & ★ LEGEND trim on top bar",
+    perkTitle: "Master Lo-Fi Suite",
+    perkDesc: "Master studio plaque & ★ LEGEND badge on the study header",
     accent: "#C4B5FD",
   },
 ];
@@ -535,8 +535,6 @@ const CYBER_WHISPERS = [
   "[O(1) SNACK CACHED]",
   "BYTE-OS // OVERDRIVE",
 ];
-
-const HALO_CYCLE = ["#FFDE59", "#A3E635", "#6EE7B7", "#FF90E8", "#C4B5FD"];
 
 type CompanionMode = "wisdom" | "snack" | "quiz" | "perks";
 type IdleBreakAction = "sip" | "stretch" | "swat" | "jam" | null;
@@ -1477,7 +1475,6 @@ export default function ByteCatGuideCard({
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
   const [savedQuoteIds, setSavedQuoteIds] = useState<number[]>([]);
   const [quoteFilter, setQuoteFilter] = useState<"all" | "saved">("all");
-  const [quoteVibeCount, setQuoteVibeCount] = useState<number>(0);
   const [snackIndex, setSnackIndex] = useState<number>(0);
   const [quizIndex, setQuizIndex] = useState<number>(0);
   const [quizSelection, setQuizSelection] = useState<{
@@ -1490,7 +1487,6 @@ export default function ByteCatGuideCard({
   const [treatsGiven, setTreatsGiven] = useState<number>(0);
   const [lastTreatDate, setLastTreatDate] = useState<string | null>(null);
   const [todayKey, setTodayKey] = useState<string>("");
-  const [haloIdx, setHaloIdx] = useState<number>(0);
   const [whisperText, setWhisperText] = useState<string>("⌨️ CODING IN THE ZONE");
   const [hyperPurrActive, setHyperPurrActive] = useState<boolean>(false);
   const [idleBreakAction, setIdleBreakAction] = useState<IdleBreakAction>(null);
@@ -1523,8 +1519,6 @@ export default function ByteCatGuideCard({
   const [squishYAnim] = useState(() => new Animated.Value(1));
   const [hoverScaleAnim] = useState(() => new Animated.Value(1));
   const [cardLiftAnim] = useState(() => new Animated.Value(0));
-  const [haloPulseAnim] = useState(() => new Animated.Value(0));
-  const [ringWaveAnim] = useState(() => new Animated.Value(0));
   const [ledPulseAnim] = useState(() => new Animated.Value(0));
   const [sparkleAnim] = useState(() => new Animated.Value(0));
   const [eqAnim1] = useState(() => new Animated.Value(0.35));
@@ -1545,41 +1539,8 @@ export default function ByteCatGuideCard({
   const trackPct =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Halo pulse, expanding outer wave ring, LED pulse, and sparkles
+  // Top bar LED pulse and subtle crown/ambient drift
   useEffect(() => {
-    const haloLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(haloPulseAnim, {
-          toValue: 1,
-          duration: 1700,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: false,
-        }),
-        Animated.timing(haloPulseAnim, {
-          toValue: 0,
-          duration: 1700,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: false,
-        }),
-      ]),
-    );
-
-    const ringWaveLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(ringWaveAnim, {
-          toValue: 1,
-          duration: 2000,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: false,
-        }),
-        Animated.timing(ringWaveAnim, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: false,
-        }),
-      ]),
-    );
-
     const ledLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(ledPulseAnim, {
@@ -1601,31 +1562,27 @@ export default function ByteCatGuideCard({
       Animated.sequence([
         Animated.timing(sparkleAnim, {
           toValue: 1,
-          duration: 2200,
+          duration: 2400,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: false,
         }),
         Animated.timing(sparkleAnim, {
           toValue: 0,
-          duration: 2200,
+          duration: 2400,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: false,
         }),
       ]),
     );
 
-    haloLoop.start();
-    ringWaveLoop.start();
     ledLoop.start();
     sparkleLoop.start();
 
     return () => {
-      haloLoop.stop();
-      ringWaveLoop.stop();
       ledLoop.stop();
       sparkleLoop.stop();
     };
-  }, [haloPulseAnim, ledPulseAnim, ringWaveAnim, sparkleAnim]);
+  }, [ledPulseAnim, sparkleAnim]);
 
   // Mini equalizer waveform loop (speeds up in Hyper Purr or Level 3+ Cyber Whisker)
   useEffect(() => {
@@ -1968,15 +1925,11 @@ export default function ByteCatGuideCard({
 
       const savedPrefs = readLocalJson<{
         savedIds?: number[];
-        vibeCount?: number;
       }>(STORAGE_BYTECAT_QUOTE_PREFS_KEY, {});
       if (Array.isArray(savedPrefs.savedIds)) {
         setSavedQuoteIds(
           savedPrefs.savedIds.filter((id) => typeof id === "number"),
         );
-      }
-      if (typeof savedPrefs.vibeCount === "number" && savedPrefs.vibeCount > 0) {
-        setQuoteVibeCount(savedPrefs.vibeCount);
       }
 
       const currentDayKey = getTodayDateKey();
@@ -2088,7 +2041,6 @@ export default function ByteCatGuideCard({
     }
     writeLocalJson(STORAGE_BYTECAT_QUOTE_PREFS_KEY, {
       savedIds: nextSaved,
-      vibeCount: quoteVibeCount,
     });
     if (exists) {
       playKeyClick();
@@ -2118,19 +2070,6 @@ export default function ByteCatGuideCard({
     );
     setQuoteIndex(firstSavedGlobalIdx);
     setWhisperText(`★ ${savedQuotes.length} SAVED`);
-  }
-
-  function handleVibeQuote() {
-    const nextCount = quoteVibeCount + 1;
-    setQuoteVibeCount(nextCount);
-    writeLocalJson(STORAGE_BYTECAT_QUOTE_PREFS_KEY, {
-      savedIds: savedQuoteIds,
-      vibeCount: nextCount,
-    });
-    playKeyClick();
-    triggerPlayfulBounce(false);
-    setWhisperText("🐾 PURR-APPROVED!");
-    spawnFloatingPopup("🐾 +1 VIBE");
   }
 
   function activateHyperPurr(durationMs = 1800) {
@@ -2179,10 +2118,6 @@ export default function ByteCatGuideCard({
       treatsGiven: nextTreats,
       lastTreatDate: currentDayKey,
     });
-
-    if (nextProgress.level >= 2) {
-      setHaloIdx((h) => (h + 1) % HALO_CYCLE.length);
-    }
 
     if (leveledUp) {
       playVictoryFanfare();
@@ -2234,9 +2169,6 @@ export default function ByteCatGuideCard({
     playKeyClick();
     triggerPlayfulBounce(false);
     triggerContentTransition();
-    if (petLevel >= 2) {
-      setHaloIdx((h) => (h + 1) % HALO_CYCLE.length);
-    }
 
     if (mode === "wisdom" || mode === "perks") {
       if (mode === "perks") setMode("wisdom");
@@ -2313,40 +2245,22 @@ export default function ByteCatGuideCard({
           ? "CONSOLE STALKER"
           : "KEYCAP INTERN";
 
-  // Prism Halo (Lvl 2+) & Legend Rainbow Frame (Lvl 6+)
-  const activeHaloColor = hyperPurrActive
-    ? "#B8FF3B"
-    : petLevel >= 2
-      ? HALO_CYCLE[haloIdx % HALO_CYCLE.length]
-      : mode === "snack"
-        ? currentSnack.accentBg
-        : mode === "wisdom"
-          ? currentQuote.accentBg
-          : activeTier.accent;
-
-  const frameRimColor =
-    petLevel >= 6
-      ? HALO_CYCLE[(haloIdx + 2) % HALO_CYCLE.length]
-      : petLevel >= 5
-        ? "#FFDE59"
-        : StudioColors.ink;
-
-  // Upgraded orbiting glyphs per level
-  const leftOrbitGlyph =
-    petLevel >= 6
-      ? "🚀"
-      : petLevel >= 4
-        ? "🪲"
-        : petLevel >= 2
-          ? "🐾"
-          : "{ }";
-  const rightOrbitGlyph = hyperPurrActive
-    ? "⚡"
-    : petLevel >= 4
-      ? "💎"
-      : petLevel >= 3
-        ? "⚡"
-        : "✦";
+  // Stationary, cozy twilight studio window frame colors (matches StudioColors & rainy room palette)
+  const cozyOuterFrameBg = hyperPurrActive
+    ? "#23293A"
+    : petLevel >= 5
+      ? "#26213A"
+      : "#1E1B2E";
+  const cozyOuterBorderColor = hyperPurrActive
+    ? StudioColors.mint
+    : petLevel >= 5
+      ? StudioColors.yellow
+      : StudioColors.border;
+  const cozyInnerBezelColor = hyperPurrActive
+    ? StudioColors.mint
+    : petLevel >= 5
+      ? StudioColors.yellow
+      : "#3D3656";
 
   const guideStatusText =
     totalCount > 0 && completedCount === totalCount
@@ -2363,18 +2277,6 @@ export default function ByteCatGuideCard({
   const combinedScaleX = Animated.multiply(squishXAnim, hoverScaleAnim);
   const combinedScaleY = Animated.multiply(squishYAnim, hoverScaleAnim);
 
-  const haloScale = haloPulseAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.97, 1.05],
-  });
-  const waveRingScale = ringWaveAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.95, 1.2],
-  });
-  const waveRingOpacity = ringWaveAnim.interpolate({
-    inputRange: [0, 0.3, 1],
-    outputRange: [0.75, 0.45, 0],
-  });
   const ledRingScale = ledPulseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 2.1],
@@ -2385,11 +2287,7 @@ export default function ByteCatGuideCard({
   });
   const sparkleDriftY1 = sparkleAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [2, -7],
-  });
-  const sparkleDriftY2 = sparkleAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-5, 4],
+    outputRange: [1, -4],
   });
   const eqHeight1 = eqAnim1.interpolate({
     inputRange: [0, 1],
@@ -2426,19 +2324,15 @@ export default function ByteCatGuideCard({
       style={[
         styles.card,
         cardHovered && styles.cardHovered,
-        hyperPurrActive && { borderColor: StudioColors.lime },
+        hyperPurrActive && { borderColor: StudioColors.mint },
         { transform: [{ translateY: cardLiftAnim }] },
       ]}
     >
-      {/* Top Companion Ribbon */}
+      {/* Top Cozy Lo-Fi Study Ribbon */}
       <View
         style={[
           styles.companionTopBar,
-          {
-            backgroundColor: hyperPurrActive
-              ? StudioColors.lime
-              : activeTrackAccent,
-          },
+          hyperPurrActive && { borderBottomColor: StudioColors.mint },
         ]}
       >
         <View style={styles.companionBarLeft}>
@@ -2457,10 +2351,10 @@ export default function ByteCatGuideCard({
             </View>
             <Text style={styles.liveDotText}>
               {hyperPurrActive
-                ? "HYPER PURR"
+                ? "☕ HYPER PURR FLOW"
                 : petLevel >= 3
-                  ? "BYTE-OS ONLINE"
-                  : "CO-PILOT ONLINE"}
+                  ? "🎧 BYTE-OS CHILLHOP"
+                  : "🎧 LO-FI STUDY · LIVE"}
             </Text>
             <View style={styles.eqWrap}>
               <Animated.View style={[styles.eqBar, { height: eqHeight1 }]} />
@@ -2480,10 +2374,18 @@ export default function ByteCatGuideCard({
             </Text>
           </View>
         </View>
+
+        <View style={styles.cozyAmbiancePill}>
+          <Text style={styles.cozyAmbianceText}>
+            {petLevel >= 3
+              ? "🌧️ RAINY STUDY · 🔮 LAVA LAMP"
+              : "🌧️ RAINY NIGHT · ☕ LO-FI DESK"}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.cardBodyRow}>
-        {/* Left Column: Interactive Animated Byte-Cat Stage */}
+        {/* Left Column: Cozy Wooden Framed Animated Byte-Cat Stage */}
         <View style={styles.avatarColumn}>
           <Pressable
             onHoverIn={() => setAvatarHovered(true)}
@@ -2529,54 +2431,26 @@ export default function ByteCatGuideCard({
               </Animated.View>
             )}
 
-            {/* High-Contrast Ambient Orbiting Code Sparkles (visible in both dark & light themes) */}
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.sparkleBadgeTopLeft,
-                { transform: [{ translateY: sparkleDriftY1 }] },
-              ]}
-            >
-              <Text style={styles.sparkleBadgeText}>{leftOrbitGlyph}</Text>
-            </Animated.View>
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.sparkleBadgeTopRight,
-                { transform: [{ translateY: sparkleDriftY2 }] },
-              ]}
-            >
-              <Text style={styles.sparkleBadgeText}>{rightOrbitGlyph}</Text>
-            </Animated.View>
-
-            {/* Expanding Glowing Pulse Ring Behind Avatar (vivid on dark theme) */}
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.stagePulseRing,
-                {
-                  borderColor: activeHaloColor,
-                  opacity: waveRingOpacity,
-                  transform: [{ scale: waveRingScale }],
-                },
-              ]}
-            />
-
-            {/* Pulsing Halo & Animated Portrait Frame */}
-            <Animated.View
+            {/* Calm, Stationary Cozy Walnut & Brass Window Frame */}
+            <View
               style={[
                 styles.avatarStageHalo,
                 {
-                  backgroundColor: activeHaloColor,
-                  borderColor: frameRimColor,
-                  transform: [{ scale: haloScale }],
+                  backgroundColor: cozyOuterFrameBg,
+                  borderColor: cozyOuterBorderColor,
                 },
               ]}
             >
+              {/* Warm Brass Corner Rivets */}
+              <View style={[styles.cozyFrameRivet, styles.cozyFrameRivetTL]} />
+              <View style={[styles.cozyFrameRivet, styles.cozyFrameRivetTR]} />
+              <View style={[styles.cozyFrameRivet, styles.cozyFrameRivetBL]} />
+              <View style={[styles.cozyFrameRivet, styles.cozyFrameRivetBR]} />
+
               <Animated.View
                 style={[
                   styles.avatarFrame,
-                  { borderColor: frameRimColor },
+                  { borderColor: cozyInnerBezelColor },
                   {
                     transform: [
                       { rotate: wiggleRotate },
@@ -2593,7 +2467,16 @@ export default function ByteCatGuideCard({
                   activeKeyStep={activeKeyStep}
                 />
               </Animated.View>
-            </Animated.View>
+
+              {/* Cozy Wooden Windowsill Ledge */}
+              <View style={styles.cozyWindowSill}>
+                <View style={styles.cozyWindowSillPlaque}>
+                  <Text style={styles.cozyWindowSillText}>
+                    BYTE-CAT STUDIO · EST. 1998
+                  </Text>
+                </View>
+              </View>
+            </View>
           </Pressable>
 
           <View style={styles.cozyWhisperStrip}>
@@ -2620,7 +2503,7 @@ export default function ByteCatGuideCard({
                   styles.bondMeterFill,
                   {
                     width: animatedPetBarWidth,
-                    backgroundColor: activeHaloColor,
+                    backgroundColor: activeTier.accent,
                   },
                 ]}
               />
@@ -2689,7 +2572,7 @@ export default function ByteCatGuideCard({
           </View>
         </View>
 
-        {/* Right Column: Interactive Speech Bubble */}
+        {/* Right Column: Cozy Study Notebook & Interactive Speech Bubble */}
         <View style={styles.speechBubble}>
           {/* Mode Tabs + Next Trigger */}
           <View style={styles.bubbleTopRow}>
@@ -2708,10 +2591,7 @@ export default function ByteCatGuideCard({
                     key={tab.id}
                     style={[
                       styles.modeTabBtn,
-                      isSelected && [
-                        styles.modeTabBtnActive,
-                        { backgroundColor: activeHaloColor },
-                      ],
+                      isSelected && styles.modeTabBtnActive,
                     ]}
                     onPress={() => handleSwitchMode(tab.id)}
                   >
@@ -2853,18 +2733,6 @@ export default function ByteCatGuideCard({
                       </Text>
                     </Pressable>
                   </View>
-
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.quoteVibeBtn,
-                      pressed && { transform: [{ translateY: 1 }] },
-                    ]}
-                    onPress={handleVibeQuote}
-                  >
-                    <Text style={styles.quoteVibeBtnText}>
-                      🐾 PURR{quoteVibeCount > 0 ? ` · ${quoteVibeCount}` : " +1"}
-                    </Text>
-                  </Pressable>
                 </View>
               </>
             ) : mode === "snack" ? (
@@ -2902,7 +2770,7 @@ export default function ByteCatGuideCard({
                   <View
                     style={[
                       styles.moodSticker,
-                      { backgroundColor: StudioColors.lime },
+                      { backgroundColor: "#FDBA74" },
                     ]}
                   >
                     <Text style={styles.moodStickerText}>
@@ -3106,19 +2974,26 @@ export default function ByteCatGuideCard({
   );
 }
 
-const getStyles = () =>
-  StyleSheet.create({
+const getStyles = () => {
+  const cozyCardBg = StudioColors.surface;
+  const cozyCardBorder = StudioColors.border;
+  const cozyStudySurface = StudioColors.surfaceElevated;
+  const cozyStudySubtleBg = StudioColors.bg;
+  const cozyNotebookBg = StudioColors.surface;
+  const cozyPanelBorder = StudioColors.border;
+
+  return StyleSheet.create({
     card: {
-      backgroundColor: StudioColors.surface,
+      backgroundColor: cozyCardBg,
       borderRadius: 18,
       borderWidth: 2.5,
-      borderColor: StudioColors.border,
+      borderColor: cozyCardBorder,
       marginBottom: 20,
       overflow: "hidden",
       ...HardShadow,
     },
     cardHovered: {
-      borderColor: StudioColors.yellow,
+      borderColor: StudioColors.violet,
     },
     companionTopBar: {
       flexDirection: "row",
@@ -3127,9 +3002,10 @@ const getStyles = () =>
       flexWrap: "wrap",
       gap: 8,
       paddingHorizontal: 14,
-      paddingVertical: 8,
+      paddingVertical: 9,
+      backgroundColor: "#171522",
       borderBottomWidth: 2,
-      borderBottomColor: StudioColors.ink,
+      borderBottomColor: StudioColors.border,
     },
     companionBarLeft: {
       flexDirection: "row",
@@ -3137,19 +3013,34 @@ const getStyles = () =>
       gap: 8,
       flexWrap: "wrap",
     },
-    rankBadge: {
-      backgroundColor: StudioColors.surface,
+    cozyAmbiancePill: {
+      backgroundColor: "#242034",
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
+      borderColor: "#3D3656",
       borderRadius: 6,
       paddingHorizontal: 8,
-      paddingVertical: 2,
+      paddingVertical: 3,
+    },
+    cozyAmbianceText: {
+      color: "#C4B5FD",
+      fontSize: 8.5,
+      fontWeight: "800",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+    },
+    rankBadge: {
+      backgroundColor: "#242034",
+      borderWidth: 1.5,
+      borderColor: "#3D3656",
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 2.5,
     },
     rankBadgeLegend: {
-      borderColor: "#FFDE59",
+      borderColor: StudioColors.yellow,
     },
     rankBadgeText: {
-      color: StudioColors.textPrimary,
+      color: StudioColors.yellow,
       fontSize: 9,
       fontWeight: "900",
       fontFamily: MonoFont,
@@ -3165,21 +3056,21 @@ const getStyles = () =>
     avatarColumn: {
       alignItems: "center",
       justifyContent: "center",
-      gap: 7,
+      gap: 8,
       width: 214,
     },
     stageTapTarget: {
       alignItems: "center",
       justifyContent: "center",
       position: "relative",
-      paddingTop: 18,
-      paddingHorizontal: 6,
+      paddingTop: 10,
+      paddingHorizontal: 4,
       paddingBottom: 2,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     popupAnchor: {
       position: "absolute",
-      top: 4,
+      top: 0,
       left: 0,
       right: 0,
       alignItems: "center",
@@ -3203,9 +3094,9 @@ const getStyles = () =>
     },
     crownBadge: {
       position: "absolute",
-      top: 0,
+      top: -2,
       zIndex: 35,
-      backgroundColor: "#FFDE59",
+      backgroundColor: StudioColors.yellow,
       borderWidth: 1.5,
       borderColor: StudioColors.ink,
       borderRadius: 999,
@@ -3216,75 +3107,87 @@ const getStyles = () =>
     crownBadgeText: {
       fontSize: 11,
     },
-    sparkleBadgeTopLeft: {
-      position: "absolute",
-      top: 16,
-      left: -2,
-      zIndex: 30,
-      backgroundColor: StudioColors.violet,
-      borderWidth: 1.5,
-      borderColor: StudioColors.textPrimary,
-      borderRadius: 6,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      ...HardShadowSm,
-    },
-    sparkleBadgeTopRight: {
-      position: "absolute",
-      top: 28,
-      right: -4,
-      zIndex: 30,
-      backgroundColor: StudioColors.lime,
-      borderWidth: 1.5,
-      borderColor: StudioColors.textPrimary,
-      borderRadius: 6,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      ...HardShadowSm,
-    },
-    sparkleBadgeText: {
-      color: StudioColors.ink,
-      fontSize: 9.5,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
-    stagePulseRing: {
-      position: "absolute",
-      top: 18,
-      width: 204,
-      height: 164,
-      borderRadius: 24,
-      borderWidth: 2.5,
-    },
     avatarStageHalo: {
-      padding: 6,
-      borderRadius: 20,
+      paddingTop: 7,
+      paddingHorizontal: 7,
+      paddingBottom: 6,
+      borderRadius: 16,
       borderWidth: 2,
-      borderColor: StudioColors.textPrimary,
+      borderColor: StudioColors.border,
+      backgroundColor: "#1E1B2E",
+      position: "relative",
+      alignItems: "center",
       ...HardShadowSm,
+    },
+    cozyFrameRivet: {
+      position: "absolute",
+      width: 5,
+      height: 5,
+      borderRadius: 2.5,
+      backgroundColor: "#C4B5FD",
+      borderWidth: 1,
+      borderColor: "#111111",
+      zIndex: 10,
+    },
+    cozyFrameRivetTL: {
+      top: 4,
+      left: 4,
+    },
+    cozyFrameRivetTR: {
+      top: 4,
+      right: 4,
+    },
+    cozyFrameRivetBL: {
+      bottom: 18,
+      left: 4,
+    },
+    cozyFrameRivetBR: {
+      bottom: 18,
+      right: 4,
     },
     avatarFrame: {
       width: 190,
       height: 150,
-      borderRadius: 14,
-      borderWidth: 2.5,
-      borderColor: StudioColors.ink,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: "#3D3656",
       backgroundColor: "#171522",
       overflow: "hidden",
       position: "relative",
     },
+    cozyWindowSill: {
+      width: "100%",
+      marginTop: 5,
+      paddingVertical: 2,
+      backgroundColor: "#151320",
+      borderRadius: 5,
+      borderWidth: 1,
+      borderColor: "#2E2942",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    cozyWindowSillPlaque: {
+      paddingHorizontal: 6,
+    },
+    cozyWindowSillText: {
+      color: "#C4B5FD",
+      fontSize: 7,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.8,
+    },
     cozyWhisperStrip: {
       width: "100%",
-      backgroundColor: StudioColors.ink,
-      borderRadius: 6,
+      backgroundColor: "#171522",
+      borderRadius: 7,
       paddingHorizontal: 8,
-      paddingVertical: 3,
+      paddingVertical: 4,
       alignItems: "center",
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: StudioColors.border,
     },
     avatarWhisperText: {
-      color: "#FFDE59",
+      color: StudioColors.yellow,
       fontSize: 8.5,
       fontWeight: "900",
       fontFamily: MonoFont,
@@ -3294,9 +3197,11 @@ const getStyles = () =>
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      backgroundColor: StudioColors.ink,
+      backgroundColor: "#242034",
+      borderWidth: 1.5,
+      borderColor: "#3D3656",
       paddingHorizontal: 8,
-      paddingVertical: 3,
+      paddingVertical: 3.5,
       borderRadius: 6,
     },
     liveDotWrap: {
@@ -3310,20 +3215,20 @@ const getStyles = () =>
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: "#A3E635",
+      backgroundColor: "#6EE7B7",
     },
     liveDot: {
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: "#A3E635",
+      backgroundColor: "#6EE7B7",
     },
     liveDotText: {
-      color: "#FFFFFF",
+      color: "#F8FAFC",
       fontSize: 8.5,
       fontWeight: "900",
       fontFamily: MonoFont,
-      letterSpacing: 0.6,
+      letterSpacing: 0.5,
     },
     eqWrap: {
       flexDirection: "row",
@@ -3335,7 +3240,7 @@ const getStyles = () =>
     eqBar: {
       width: 2.5,
       borderRadius: 1.5,
-      backgroundColor: "#A3E635",
+      backgroundColor: "#6EE7B7",
     },
     bondMeterWrap: {
       width: "100%",
@@ -3363,21 +3268,21 @@ const getStyles = () =>
     bondMeterTrack: {
       height: 6,
       borderRadius: 3,
-      backgroundColor: StudioColors.bg,
+      backgroundColor: cozyStudySubtleBg,
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       overflow: "hidden",
     },
     bondMeterFill: {
       height: "100%",
     },
     perkPeekPill: {
-      backgroundColor: StudioColors.surfaceElevated,
+      backgroundColor: cozyStudySurface,
       borderWidth: 1,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       borderRadius: 6,
       paddingHorizontal: 6,
-      paddingVertical: 3,
+      paddingVertical: 3.5,
       alignItems: "center",
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
@@ -3410,6 +3315,7 @@ const getStyles = () =>
     treatProBtn: {
       flex: 1,
       backgroundColor: StudioColors.yellow,
+      borderColor: StudioColors.ink,
     },
     treatDoneTodayBtn: {
       flex: 1,
@@ -3423,12 +3329,12 @@ const getStyles = () =>
     },
     treatLockedBtn: {
       flex: 1,
-      backgroundColor: StudioColors.surfaceElevated,
-      borderColor: StudioColors.border,
+      backgroundColor: cozyStudySurface,
+      borderColor: cozyPanelBorder,
     },
     rollBtn: {
-      backgroundColor: StudioColors.surfaceElevated,
-      borderColor: StudioColors.border,
+      backgroundColor: cozyStudySurface,
+      borderColor: cozyPanelBorder,
       paddingHorizontal: 9,
     },
     miniActionBtnTextDark: {
@@ -3460,10 +3366,10 @@ const getStyles = () =>
     speechBubble: {
       flex: 1,
       minWidth: 260,
-      backgroundColor: StudioColors.surfaceElevated,
+      backgroundColor: cozyStudySurface,
       borderRadius: 14,
       borderWidth: 2,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       padding: 14,
       gap: 11,
     },
@@ -3477,11 +3383,11 @@ const getStyles = () =>
     modeTabsBar: {
       flexDirection: "row",
       flexWrap: "wrap",
-      backgroundColor: StudioColors.bg,
-      borderRadius: 7,
+      backgroundColor: cozyStudySubtleBg,
+      borderRadius: 8,
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
-      padding: 2.5,
+      borderColor: cozyPanelBorder,
+      padding: 3,
       gap: 3,
     },
     modeTabBtn: {
@@ -3491,6 +3397,7 @@ const getStyles = () =>
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     modeTabBtnActive: {
+      backgroundColor: StudioColors.yellow,
       borderWidth: 1.5,
       borderColor: StudioColors.ink,
     },
@@ -3532,12 +3439,12 @@ const getStyles = () =>
       letterSpacing: 0.6,
     },
     nextQuoteBtn: {
-      backgroundColor: StudioColors.surface,
+      backgroundColor: cozyNotebookBg,
       paddingHorizontal: 10,
       paddingVertical: 5,
       borderRadius: 8,
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
@@ -3549,9 +3456,9 @@ const getStyles = () =>
       letterSpacing: 0.6,
     },
     quoteFilterPill: {
-      backgroundColor: StudioColors.surface,
+      backgroundColor: cozyNotebookBg,
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       borderRadius: 6,
       paddingHorizontal: 7,
       paddingVertical: 2.5,
@@ -3572,10 +3479,10 @@ const getStyles = () =>
       color: StudioColors.ink,
     },
     quoteSpotlightBox: {
-      backgroundColor: StudioColors.surface,
+      backgroundColor: cozyNotebookBg,
       borderRadius: 11,
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       borderLeftWidth: 5,
       paddingHorizontal: 14,
       paddingVertical: 13,
@@ -3620,7 +3527,7 @@ const getStyles = () =>
     quoteInteractiveBar: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
+      justifyContent: "flex-start",
       flexWrap: "wrap",
       gap: 8,
     },
@@ -3631,9 +3538,9 @@ const getStyles = () =>
       flexWrap: "wrap",
     },
     quoteStepBtn: {
-      backgroundColor: StudioColors.surface,
+      backgroundColor: cozyNotebookBg,
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       borderRadius: 7,
       paddingHorizontal: 9,
       paddingVertical: 4.5,
@@ -3647,9 +3554,9 @@ const getStyles = () =>
       fontFamily: MonoFont,
     },
     quoteActionChip: {
-      backgroundColor: StudioColors.surface,
+      backgroundColor: cozyNotebookBg,
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       borderRadius: 7,
       paddingHorizontal: 9,
       paddingVertical: 4.5,
@@ -3670,23 +3577,6 @@ const getStyles = () =>
     quoteActionChipTextInk: {
       color: StudioColors.ink,
     },
-    quoteVibeBtn: {
-      backgroundColor: StudioColors.bg,
-      borderWidth: 1.5,
-      borderColor: StudioColors.border,
-      borderRadius: 7,
-      paddingHorizontal: 10,
-      paddingVertical: 4.5,
-      ...HardShadowSm,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    quoteVibeBtnText: {
-      color: StudioColors.textPrimary,
-      fontSize: 9.5,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.4,
-    },
     snackPanel: {
       gap: 9,
     },
@@ -3696,15 +3586,15 @@ const getStyles = () =>
       fontWeight: "900",
     },
     snackCodeBox: {
-      backgroundColor: StudioColors.codeBg,
-      borderRadius: 8,
+      backgroundColor: "#171522",
+      borderRadius: 9,
       borderWidth: 1.5,
-      borderColor: StudioColors.ink,
+      borderColor: "#3D3656",
       paddingHorizontal: 12,
       paddingVertical: 10,
     },
     snackCodeText: {
-      color: StudioColors.lime,
+      color: "#6EE7B7",
       fontSize: 12.5,
       fontWeight: "700",
       fontFamily: MonoFont,
@@ -3727,9 +3617,9 @@ const getStyles = () =>
     quizOptionBtn: {
       flex: 1,
       minWidth: 100,
-      backgroundColor: StudioColors.surface,
+      backgroundColor: cozyNotebookBg,
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       borderRadius: 8,
       paddingHorizontal: 10,
       paddingVertical: 8,
@@ -3755,10 +3645,10 @@ const getStyles = () =>
       color: StudioColors.ink,
     },
     quizFeedbackBox: {
-      backgroundColor: StudioColors.surface,
+      backgroundColor: cozyNotebookBg,
       borderRadius: 8,
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       paddingHorizontal: 10,
       paddingVertical: 7,
     },
@@ -3817,9 +3707,9 @@ const getStyles = () =>
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
-      backgroundColor: StudioColors.surface,
+      backgroundColor: cozyNotebookBg,
       borderWidth: 1.5,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       borderRadius: 8,
       paddingHorizontal: 9,
       paddingVertical: 7,
@@ -3890,9 +3780,9 @@ const getStyles = () =>
     miniTrackMeterBg: {
       height: 6,
       borderRadius: 3,
-      backgroundColor: StudioColors.surface,
+      backgroundColor: cozyNotebookBg,
       borderWidth: 1,
-      borderColor: StudioColors.border,
+      borderColor: cozyPanelBorder,
       overflow: "hidden",
     },
     miniTrackMeterFill: {
@@ -3916,3 +3806,4 @@ const getStyles = () =>
       letterSpacing: 0.5,
     },
   });
+};
