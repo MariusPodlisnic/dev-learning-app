@@ -1,3 +1,5 @@
+"use no memo";
+
 import { Link } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -35,6 +37,7 @@ import {
 } from "../types/lesson";
 import { playCrtChannelSwitch, playKeyClick } from "../utils/soundEffects";
 import ByteCatGuideCard from "./ByteCatGuideCard";
+import RoadmapScrollBackdrop from "./RoadmapScrollBackdrop";
 import StreakAtRiskBanner from "./StreakAtRiskBanner";
 
 export interface Lesson {
@@ -637,7 +640,8 @@ export default function RoadmapTree({
   onOpenTrackCertificate,
   onOpenChapterCertificate,
 }: RoadmapTreeProps) {
-  const { height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const viewportWidth = windowWidth > 0 ? windowWidth : 1024;
   const viewportHeight = windowHeight > 0 ? windowHeight : 820;
 
   const [statusFilter, setStatusFilter] = useState<"all" | "unsolved" | "solved">("all");
@@ -697,11 +701,6 @@ export default function RoadmapTree({
   const crtScrollOpacity = scrollAnim.interpolate({
     inputRange: [0, 320],
     outputRange: [1, 0.88],
-    extrapolate: "clamp",
-  });
-  const scrollBarWidth = scrollAnim.interpolate({
-    inputRange: [0, maxScrollableDistance],
-    outputRange: ["0%", "100%"],
     extrapolate: "clamp",
   });
 
@@ -778,18 +777,13 @@ export default function RoadmapTree({
 
   return (
     <View style={styles.rootWrap}>
-      {/* Subtle Top Scroll Depth Progress Rail */}
-      <View style={styles.topScrollRailBg}>
-        <Animated.View
-          style={[
-            styles.topScrollRailFill,
-            {
-              width: scrollBarWidth,
-              backgroundColor: currentTrackMeta.stickerBg,
-            },
-          ]}
-        />
-      </View>
+      <RoadmapScrollBackdrop
+        scrollAnim={scrollAnim}
+        viewportWidth={viewportWidth}
+        viewportHeight={effectiveViewportHeight}
+        maxScrollableDistance={maxScrollableDistance}
+        accentColor={currentTrackMeta.stickerBg}
+      />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
@@ -1737,15 +1731,6 @@ const styles = StyleSheet.create({
   rootWrap: {
     flex: 1,
     position: "relative",
-  },
-  topScrollRailBg: {
-    height: 3,
-    width: "100%",
-    backgroundColor: StudioColors.borderSubtle,
-    zIndex: 20,
-  },
-  topScrollRailFill: {
-    height: "100%",
   },
   container: {
     flex: 1,
