@@ -34,10 +34,7 @@ export const PYTHON_BASICS_PRACTICE_DRILLS: Record<
         },
       ],
       initial_code: `def update_wallet(player_tag, starting_coins, spent_coins):
-    # Subtract spent_coins from starting_coins and return (player_tag, remaining, remaining > 0)
-    pass
-
-print(update_wallet("Nova", 50, 20))`,
+    pass`,
       expected_output: "('Nova', 30, True)",
       hidden_tests: `import json
 def __run_tests__():
@@ -77,11 +74,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def count_even_cells(cells):
-    count = 0
-    # Loop over cells and increment count when c % 2 == 0
-    return count
-
-print(count_even_cells([4, 7, 10, 3, 8]))`,
+    pass`,
       expected_output: "3",
       hidden_tests: `import json
 def __run_tests__():
@@ -115,11 +108,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def boost_speeds(speeds, bonus):
-    boosted = []
-    # Append s + bonus for each s in speeds
-    return boosted
-
-print(boost_speeds([100, 120, 90], 15))`,
+    pass`,
       expected_output: "[115, 135, 105]",
       hidden_tests: `import json
 def __run_tests__():
@@ -151,10 +140,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def sum_heavy_hits(hits):
-    # Sum only the numbers in hits that are strictly > 50
-    pass
-
-print(sum_heavy_hits([25, 60, 40, 80, 50]))`,
+    pass`,
       expected_output: "140",
       hidden_tests: `import json
 def __run_tests__():
@@ -194,10 +180,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def check_latency(ms):
-    # Return "CRITICAL" (> 500), "WARNING" (> 200), or "HEALTHY"
-    pass
-
-print(check_latency(320))`,
+    pass`,
       expected_output: "WARNING",
       hidden_tests: `import json
 def __run_tests__():
@@ -232,10 +215,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def can_enter_raid(level, has_key):
-    # Check level and has_key conditions
-    pass
-
-print(can_enter_raid(12, False))`,
+    pass`,
       expected_output: "MISSING_KEY",
       hidden_tests: `import json
 def __run_tests__():
@@ -276,10 +256,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def restore_mana(current_mana, potion_amount):
-    # Add potion_amount to current_mana, capped at 100 max
-    pass
-
-print(restore_mana(85, 30))`,
+    pass`,
       expected_output: "100",
       hidden_tests: `import json
 def __run_tests__():
@@ -311,10 +288,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def apply_discount(price, discount_pct):
-    # Return price after subtracting discount_pct percent
-    pass
-
-print(apply_discount(200, 15))`,
+    pass`,
       expected_output: "170.0",
       hidden_tests: `import json
 def __run_tests__():
@@ -346,14 +320,10 @@ __run_tests__()`,
         },
       ],
       initial_code: `def base_xp(kills):
-    # Return kills * 50
     pass
 
 def total_match_xp(kills, won_match):
-    # Call base_xp(kills) and add 100 if won_match is True
-    pass
-
-print(total_match_xp(4, True))`,
+    pass`,
       expected_output: "300",
       hidden_tests: `import json
 def __run_tests__():
@@ -393,10 +363,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def restock_potions(inventory, added):
-    # Update "potions" and set "full" boolean key
-    return inventory
-
-print(restock_potions({"potions": 7}, 5))`,
+    pass`,
       expected_output: "{'potions': 12, 'full': True}",
       hidden_tests: `import json
 def __run_tests__():
@@ -429,10 +396,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def make_server_card(host, port, active):
-    # Build and return {"endpoint": f"{host}:{port}", "online": active}
-    pass
-
-print(make_server_card("api.dev", 8080, True))`,
+    pass`,
       expected_output: "{'endpoint': 'api.dev:8080', 'online': True}",
       hidden_tests: `import json
 def __run_tests__():
@@ -471,10 +435,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def clean_coupon(raw_code):
-    # Strip spaces and convert raw_code to UPPERCASE
-    pass
-
-print(clean_coupon("   save20now  "))`,
+    pass`,
       expected_output: "SAVE20NOW",
       hidden_tests: `import json
 def __run_tests__():
@@ -507,10 +468,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def emails_match(input_email, saved_email):
-    # Return True if both emails match after .strip().lower()
-    pass
-
-print(emails_match("  Aria@Dev.io ", "aria@dev.io"))`,
+    pass`,
       expected_output: "True",
       hidden_tests: `import json
 def __run_tests__():
@@ -548,10 +506,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def keep_vip_tags(tags):
-    # Return only tags with len(t) >= 5
-    pass
-
-print(keep_vip_tags(["pro", "architect", "dev", "coder"]))`,
+    pass`,
       expected_output: "['architect', 'coder']",
       hidden_tests: `import json
 def __run_tests__():
@@ -583,10 +538,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def in_budget(prices, min_p, max_p):
-    # Return prices where min_p <= p <= max_p
-    pass
-
-print(in_budget([5, 15, 25, 40, 12], 10, 30))`,
+    pass`,
       expected_output: "[15, 25, 12]",
       hidden_tests: `import json
 def __run_tests__():
@@ -618,10 +570,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def amplify_positive(signals):
-    # Keep only n > 0 and multiply each kept number by 10
-    pass
-
-print(amplify_positive([-3, 2, 0, 5, -1]))`,
+    pass`,
       expected_output: "[20, 50]",
       hidden_tests: `import json
 def __run_tests__():
@@ -659,10 +608,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def parse_port(raw_text):
-    # Convert raw_text with int(), or return 8080 on ValueError
-    pass
-
-print(parse_port("3000"), parse_port("invalid"))`,
+    pass`,
       expected_output: "3000 8080",
       hidden_tests: `import json
 def __run_tests__():
@@ -694,10 +640,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def safe_pick(items, idx):
-    # Return items[idx] or "EMPTY" if IndexError happens
-    pass
-
-print(safe_pick(["sword", "shield"], 5))`,
+    pass`,
       expected_output: "EMPTY",
       hidden_tests: `import json
 def __run_tests__():
@@ -729,10 +672,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def safe_average(numbers):
-    # Return sum(numbers) / len(numbers), or 0.0 if numbers is empty
-    pass
-
-print(safe_average([10, 20, 30]), safe_average([]))`,
+    pass`,
       expected_output: "20.0 0.0",
       hidden_tests: `import json
 def __run_tests__():
@@ -770,10 +710,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def has_more_wins(results):
-    # Return True if "W" count is greater than "L" count
-    pass
-
-print(has_more_wins(["W", "L", "W", "W", "L"]))`,
+    pass`,
       expected_output: "True",
       hidden_tests: `import json
 def __run_tests__():
@@ -811,10 +748,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def count_unique_ips(ips):
-    # Return the count of unique IPs in the list
-    pass
-
-print(count_unique_ips(["10.0.1", "10.0.2", "10.0.1", "10.0.3"]))`,
+    pass`,
       expected_output: "3",
       hidden_tests: `import json
 def __run_tests__():
@@ -846,10 +780,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def merge_rosters(team_a, team_b):
-    # Combine both lists, remove duplicates, and return sorted A-Z
-    pass
-
-print(merge_rosters(["Zoe", "Kai"], ["Kai", "Aria"]))`,
+    pass`,
       expected_output: "['Aria', 'Kai', 'Zoe']",
       hidden_tests: `import json
 def __run_tests__():
@@ -887,10 +818,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def build_file_path(folders):
-    # Return "/users/aria/projects" from ["users", "aria", "projects"]
-    pass
-
-print(build_file_path(["users", "aria", "projects"]))`,
+    pass`,
       expected_output: "/users/aria/projects",
       hidden_tests: `import json
 def __run_tests__():
@@ -928,10 +856,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def get_last_two(logs):
-    # Return the last 2 items of logs using negative slicing
-    pass
-
-print(get_last_two(["boot", "auth", "sync", "ready"]))`,
+    pass`,
       expected_output: "['sync', 'ready']",
       hidden_tests: `import json
 def __run_tests__():
@@ -963,10 +888,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def trim_extremes(scores):
-    # Sort scores and slice off the lowest (first) and highest (last) values
-    pass
-
-print(trim_extremes([100, 50, 70, 60, 10]))`,
+    pass`,
       expected_output: "[50, 60, 70]",
       hidden_tests: `import json
 def __run_tests__():
@@ -1004,10 +926,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def to_snake_case(title):
-    # Lowercase title and replace spaces with underscores
-    pass
-
-print(to_snake_case("High Score Table"))`,
+    pass`,
       expected_output: "high_score_table",
       hidden_tests: `import json
 def __run_tests__():
@@ -1045,10 +964,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def net_payout(earnings, platform_fee):
-    # Return sum of earnings minus platform_fee
-    pass
-
-print(net_payout([40, 60, 25], 15))`,
+    pass`,
       expected_output: "110",
       hidden_tests: `import json
 def __run_tests__():
@@ -1087,10 +1003,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def is_test_script(filename):
-    # Return True if filename starts with "test_" and ends with ".py"
-    pass
-
-print(is_test_script("test_auth.py"))`,
+    pass`,
       expected_output: "True",
       hidden_tests: `import json
 def __run_tests__():
@@ -1130,10 +1043,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def get_remaining_lives(save_data):
-    # Return "lives" from save_data or default to 3
-    pass
-
-print(get_remaining_lives({"lives": 5}), get_remaining_lives({}))`,
+    pass`,
       expected_output: "5 3",
       hidden_tests: `import json
 def __run_tests__():
@@ -1165,10 +1075,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def record_vote(counts, candidate):
-    # Increment counts[candidate] safely using .get(candidate, 0) + 1
-    return counts
-
-print(record_vote({"Aria": 2}, "Aria"))`,
+    pass`,
       expected_output: "{'Aria': 3}",
       hidden_tests: `import json
 def __run_tests__():
@@ -1205,10 +1112,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def format_ping(service, ms):
-    # Return "[{service}] responded in {ms}ms"
-    pass
-
-print(format_ping("AUTH", 12))`,
+    pass`,
       expected_output: "[AUTH] responded in 12ms",
       hidden_tests: `import json
 def __run_tests__():
@@ -1240,10 +1144,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def xp_banner(current_xp, target_xp):
-    # Return "{current_xp}/{target_xp} XP ({missing} to next level)"
-    pass
-
-print(xp_banner(350, 500))`,
+    pass`,
       expected_output: "350/500 XP (150 to next level)",
       hidden_tests: `import json
 def __run_tests__():
@@ -1281,10 +1182,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def get_command(line):
-    # Split line and return the first word
-    pass
-
-print(get_command("DEPLOY production us-east-1"))`,
+    pass`,
       expected_output: "DEPLOY",
       hidden_tests: `import json
 def __run_tests__():
@@ -1316,10 +1214,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def parse_csv_tags(csv_line):
-    # Split csv_line by comma "," and return the list
-    pass
-
-print(parse_csv_tags("python,algorithms,backend"))`,
+    pass`,
       expected_output: "['python', 'algorithms', 'backend']",
       hidden_tests: `import json
 def __run_tests__():
@@ -1357,10 +1252,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def is_username_allowed(username, banned_list):
-    # Return True if username is NOT in banned_list
-    pass
-
-print(is_username_allowed("aria", ["root", "admin"]))`,
+    pass`,
       expected_output: "True",
       hidden_tests: `import json
 def __run_tests__():
@@ -1398,10 +1290,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def win_percentage(wins, total):
-    # Calculate (wins / total) * 100 rounded to 2 decimal places
-    pass
-
-print(win_percentage(2, 3))`,
+    pass`,
       expected_output: "66.67",
       hidden_tests: `import json
 def __run_tests__():
@@ -1439,10 +1328,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def elemental_damage(base_dmg, attack_elem, target_weakness):
-    # Triple base_dmg if attack_elem matches target_weakness
-    pass
-
-print(elemental_damage(40, "fire", "fire"))`,
+    pass`,
       expected_output: "120",
       hidden_tests: `import json
 def __run_tests__():
@@ -1475,10 +1361,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def flurry_total(swings, defense):
-    # Sum max(atk - defense, 1) for every atk in swings
-    pass
-
-print(flurry_total([30, 10, 45], 15))`,
+    pass`,
       expected_output: "46",
       hidden_tests: `import json
 def __run_tests__():
@@ -1511,10 +1394,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def battle_outcome(boss_hp, attack, is_crit, defense):
-    # Calculate damage, subtract from boss_hp, and return "DEFEATED" or "HP: {remaining}"
-    pass
-
-print(battle_outcome(70, 50, True, 20))`,
+    pass`,
       expected_output: "DEFEATED",
       hidden_tests: `import json
 def __run_tests__():
@@ -1553,10 +1433,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def count_digits(password):
-    # Return how many characters in password are digits
-    pass
-
-print(count_digits("Dev2026Pro9"))`,
+    pass`,
       expected_output: "5",
       hidden_tests: `import json
 def __run_tests__():
@@ -1588,10 +1465,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def is_leaked_password(password, leaked_list):
-    # Return True if cleaned password is in leaked_list
-    pass
-
-print(is_leaked_password("  Password123 ", ["password123", "qwerty"]))`,
+    pass`,
       expected_output: "True",
       hidden_tests: `import json
 def __run_tests__():
@@ -1624,10 +1498,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def security_score(password):
-    # Calculate and return security score from 0 to 3
-    pass
-
-print(security_score("Arcade99"))`,
+    pass`,
       expected_output: "3",
       hidden_tests: `import json
 def __run_tests__():
@@ -1666,10 +1537,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def tip_rate_for_service(rating):
-    # Return 20 for "great", 15 for "good", else 10
-    pass
-
-print(tip_rate_for_service("great"))`,
+    pass`,
       expected_output: "20",
       hidden_tests: `import json
 def __run_tests__():
@@ -1703,10 +1571,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def receipt_with_tax(item_prices, tax_pct):
-    # Sum item_prices, add tax_pct %, and round to 2 decimal places
-    pass
-
-print(receipt_with_tax([12.0, 18.0, 20.0], 8))`,
+    pass`,
       expected_output: "54.0",
       hidden_tests: `import json
 def __run_tests__():
@@ -1738,10 +1603,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def format_split_receipt(total, tip_percent, people):
-    # Calculate rounded share and return "{people} guests pay $\{each} each"
-    pass
-
-print(format_split_receipt(100.0, 20, 4))`,
+    pass`,
       expected_output: "4 guests pay $30.0 each",
       hidden_tests: `import json
 def __run_tests__():
@@ -1780,10 +1642,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def sanitize_chat(raw_msg):
-    # Strip spaces, lowercase, and remove all "!" characters
-    pass
-
-print(sanitize_chat("  HAPPY!! "))`,
+    pass`,
       expected_output: "happy",
       hidden_tests: `import json
 def __run_tests__():
@@ -1816,10 +1675,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def detect_mood_in_sentence(sentence, mood_map):
-    # Check each word in sentence.lower().split() against mood_map
-    pass
-
-print(detect_mood_in_sentence("I feel super happy today", {"happy": "🎉 Awesome!"}))`,
+    pass`,
       expected_output: "🎉 Awesome!",
       hidden_tests: `import json
 def __run_tests__():
@@ -1853,11 +1709,7 @@ __run_tests__()`,
         },
       ],
       initial_code: `def smart_bot(text, mood_map):
-    # Handle "/command" inputs or fallback to mood_map lookup
-    pass
-
-moods = {"happy": "🎉 Yay!"}
-print(f"{smart_bot('/help', moods)} | {smart_bot('happy', moods)}")`,
+    pass`,
       expected_output: "CMD: HELP | Bot: 🎉 Yay!",
       hidden_tests: `import json
 def __run_tests__():

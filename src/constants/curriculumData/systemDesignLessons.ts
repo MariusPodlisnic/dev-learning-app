@@ -32,10 +32,7 @@ export const SYSTEM_DESIGN_EXPANSION_LESSONS = [
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def compute_backoff(attempt, base_ms, max_ms, jitter_ms):
-    # 👉 Compute exponential backoff + jitter and clamp between 0 and max_ms:
-    return 0
-
-print(compute_backoff(2, 100, 1000, 50), compute_backoff(4, 100, 1000, 50))`,
+    pass`,
     expected_output: "450 1000",
     hidden_tests: `import json
 results = []
@@ -88,13 +85,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def triage_jobs(jobs, max_attempts):
-    retry = []
-    dlq = []
-    # 👉 Route each job['id'] to dlq if attempts >= max_attempts, else retry:
-    return {"retry": retry, "dlq": dlq}
-
-sample = [{"id": "j1", "attempts": 1}, {"id": "j2", "attempts": 3}]
-print(triage_jobs(sample, 3))`,
+    pass`,
     expected_output: "{'retry': ['j1'], 'dlq': ['j2']}",
     hidden_tests: `import json
 results = []
@@ -146,15 +137,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def pick_healthy_server(servers):
-    # 👉 Filter healthy servers and pick the one with minimum load, else "UNAVAILABLE":
-    return "UNAVAILABLE"
-
-fleet = [
-    {"name": "us-1", "healthy": False, "load": 10},
-    {"name": "us-2", "healthy": True, "load": 45},
-    {"name": "eu-1", "healthy": True, "load": 20},
-]
-print(pick_healthy_server(fleet))`,
+    pass`,
     expected_output: "eu-1",
     hidden_tests: `import json
 results = []
@@ -207,16 +190,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def pick_cdn_server(edges, region):
-    # 👉 1. Filter to healthy edges (return "origin" if none)
-    # 👉 2. Prefer lowest-latency edge matching region, else lowest-latency overall
-    return "origin"
-
-pops = [
-    {"id": "eu-1", "region": "eu", "latency_ms": 15, "healthy": False},
-    {"id": "us-1", "region": "us", "latency_ms": 85, "healthy": True},
-    {"id": "uk-1", "region": "uk", "latency_ms": 35, "healthy": True},
-]
-print(pick_cdn_server(pops, "eu"))`,
+    pass`,
     expected_output: "uk-1",
     hidden_tests: `import json
 results = []
@@ -274,11 +248,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def evaluate_ram_alarm(samples, threshold, consecutive_needed):
-    streak = 0
-    # 👉 Track consecutive samples >= threshold, resetting on drops:
-    return "OK"
-
-print(evaluate_ram_alarm([95, 70, 88, 92], 90, 2), evaluate_ram_alarm([95, 70, 92, 94], 90, 2))`,
+    pass`,
     expected_output: "OK WARN",
     hidden_tests: `import json
 results = []
@@ -331,11 +301,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def is_feature_enabled(flags, feature, user_id):
-    # 👉 Check feature existence & enabled kill-switch, then user_id % 100 < rollout_pct:
-    return False
-
-cfg = {"ai_search": {"enabled": True, "rollout_pct": 25}, "old_ui": {"enabled": False, "rollout_pct": 100}}
-print(is_feature_enabled(cfg, "ai_search", 110), is_feature_enabled(cfg, "ai_search", 140))`,
+    pass`,
     expected_output: "True False",
     hidden_tests: `import json
 results = []
@@ -389,10 +355,7 @@ except Exception as e:
     ],
     complexities: { time: "O(k) allowed types", space: "O(1)" },
     initial_code: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
-    # 👉 Enforce size_mb <= 0 ("EMPTY_FILE"), > max_mb ("TOO_LARGE"), and MIME allowlist ("BAD_TYPE"):
-    return {"ok": False, "reason": "UNIMPLEMENTED"}
-
-print(validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"]))`,
+    pass`,
     expected_output: "{'ok': True, 'reason': 'OK'}",
     hidden_tests: `import json
 results = []
@@ -448,10 +411,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def scale_workers(queue_len, target_per_worker, max_workers):
-    # 👉 Compute ceiling(queue_len / target_per_worker) clamped to [1, max_workers]:
-    return 1
-
-print(scale_workers(12, 5, 10), scale_workers(0, 5, 10), scale_workers(100, 5, 8))`,
+    pass`,
     expected_output: "3 1 8",
     hidden_tests: `import json
 results = []
@@ -504,14 +464,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1) key lookup", space: "O(1)" },
     initial_code: `def authorize_request(key_store, api_key, required_scope, now_ts):
-    # 👉 Verify key exists, is active, now_ts < expires_at, and required_scope is in scopes:
-    return False
-
-keys = {
-    "k1": {"active": True, "expires_at": 100, "scopes": ["read", "write"]},
-    "k2": {"active": False, "expires_at": 200, "scopes": ["read"]},
-}
-print(authorize_request(keys, "k1", "write", 50), authorize_request(keys, "k1", "write", 100))`,
+    pass`,
     expected_output: "True False",
     hidden_tests: `import json
 results = []
@@ -566,10 +519,7 @@ except Exception as e:
     ],
     complexities: { time: "O(k) slice", space: "O(k)" },
     initial_code: `def paginate_items(items, page, page_size):
-    # 👉 Slice items[offset : offset + page_size] and compute has_next + total_pages:
-    return {"items": [], "has_next": False, "total_pages": 0}
-
-print(paginate_items(["a", "b", "c", "d", "e"], 2, 2))`,
+    pass`,
     expected_output: "{'items': ['c', 'd'], 'has_next': True, 'total_pages': 3}",
     hidden_tests: `import json
 results = []
@@ -622,14 +572,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def fetch_user_profile(cache, db, user_id):
-    key = f"user:{user_id}:profile"
-    # 👉 1. Return cache hit if key in cache
-    # 👉 2. Else query db, warm cache[key] if found, or return miss:
-    return {"source": "miss", "data": None}
-
-c = {}
-d = {42: "Aria"}
-print(fetch_user_profile(c, d, 42), fetch_user_profile(c, d, 42))`,
+    pass`,
     expected_output: "{'source': 'db', 'data': 'Aria'} {'source': 'cache', 'data': 'Aria'}",
     hidden_tests: `import json
 results = []
@@ -684,10 +627,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def build_batches(user_ids, batch_size):
-    # 👉 Guard batch_size <= 0, then slice chunks of batch_size:
-    return []
-
-print(build_batches([1, 2, 3, 4, 5], 2))`,
+    pass`,
     expected_output: "[[1, 2], [3, 4], [5]]",
     hidden_tests: `import json
 results = []
@@ -740,11 +680,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def evaluate_sliding_window(timestamps, now, window_sec, limit):
-    # 👉 1. Filter timestamps within the active window (now - t < window_sec)
-    # 👉 2. Return {"allowed": True/False, "active_count": ...}
-    return {"allowed": False, "active_count": 0}
-
-print(evaluate_sliding_window([10, 45, 55], 70, 30, 3))`,
+    pass`,
     expected_output: "{'allowed': True, 'active_count': 3}",
     hidden_tests: `import json
 results = []
@@ -798,11 +734,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def consume_token(tokens, last_ts, now_ts, refill_rate, capacity):
-    # 👉 1. Refill tokens using elapsed time capped at capacity
-    # 👉 2. If refilled >= 1, spend 1 and allow; else deny
-    return {"allowed": False, "tokens": tokens}
-
-print(consume_token(1, 10, 13, 2, 5))`,
+    pass`,
     expected_output: "{'allowed': True, 'tokens': 4}",
     hidden_tests: `import json
 results = []
@@ -860,11 +792,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def route_hash_ring(ring_nodes, key_hash):
-    ordered = sorted(ring_nodes, key=lambda item: item[0])
-    # 👉 Return first server where node_hash >= key_hash, else wrap around to ordered[0][1]:
-    return ""
-
-print(route_hash_ring([(90, "db-c"), (20, "db-a"), (55, "db-b")], 60))`,
+    pass`,
     expected_output: "db-c",
     hidden_tests: `import json
 results = []
@@ -918,11 +846,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def read_ttl_cache(cache, key, now_ts):
-    # 👉 Handle missing key -> "MISS", expired -> del & "EXPIRED", valid -> value:
-    return "MISS"
-
-store = {"u1": {"value": "Alice", "expires_at": 100}}
-print(read_ttl_cache(store, "u1", 80), read_ttl_cache(store, "u1", 100))`,
+    pass`,
     expected_output: "Alice EXPIRED",
     hidden_tests: `import json
 results = []

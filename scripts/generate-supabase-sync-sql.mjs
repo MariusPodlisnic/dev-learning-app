@@ -83,7 +83,13 @@ const pyDrillsMod = loadTsModule(
   path.join(DATA_DIR, "pythonBasicsPracticeDrills.ts"),
 );
 const algMod = loadTsModule(path.join(DATA_DIR, "algorithmsLessons.ts"));
+const algDrillsMod = loadTsModule(
+  path.join(DATA_DIR, "algorithmsPracticeDrills.ts"),
+);
 const sysMod = loadTsModule(path.join(DATA_DIR, "systemDesignLessons.ts"));
+const sysDrillsMod = loadTsModule(
+  path.join(DATA_DIR, "systemDesignPracticeDrills.ts"),
+);
 const recapMod = loadTsModule(path.join(DATA_DIR, "chapterRecapLessons.ts"));
 
 const pyLessons = (pyMod.PYTHON_BASICS_EXPANSION_LESSONS || []).map((l) => ({
@@ -96,13 +102,19 @@ const pyLessons = (pyMod.PYTHON_BASICS_EXPANSION_LESSONS || []).map((l) => ({
 const algLessons = (algMod.ALGORITHMS_EXPANSION_LESSONS || []).map((l) => ({
   ...l,
   slug: l.id,
-  practice_challenges: l.practiceChallenges || [],
+  practice_challenges:
+    l.practiceChallenges ||
+    (algDrillsMod.ALGORITHMS_PRACTICE_DRILLS || {})[l.lesson_order] ||
+    [],
 }));
 
 const sysLessons = (sysMod.SYSTEM_DESIGN_EXPANSION_LESSONS || []).map((l) => ({
   ...l,
   slug: l.id,
-  practice_challenges: l.practiceChallenges || [],
+  practice_challenges:
+    l.practiceChallenges ||
+    (sysDrillsMod.SYSTEM_DESIGN_PRACTICE_DRILLS || {})[l.lesson_order] ||
+    [],
 }));
 
 const recapLessons = (recapMod.CHAPTER_RECAP_LESSONS || []).map((l) => ({
@@ -117,6 +129,22 @@ const allExportedLessons = [
   ...sysLessons,
   ...recapLessons,
 ];
+
+const proBaseDrillsMappings = [];
+for (let order = 1; order <= 8; order += 1) {
+  const algDrills = (algDrillsMod.ALGORITHMS_PRACTICE_DRILLS || {})[order];
+  if (algDrills && algDrills.length > 0) {
+    proBaseDrillsMappings.push(
+      `  UPDATE public.lessons SET practice_challenges = ${sqlJsonb(algDrills, [])} WHERE track = 'algorithms' AND lesson_order = ${order};`,
+    );
+  }
+  const sysDrills = (sysDrillsMod.SYSTEM_DESIGN_PRACTICE_DRILLS || {})[order];
+  if (sysDrills && sysDrills.length > 0) {
+    proBaseDrillsMappings.push(
+      `  UPDATE public.lessons SET practice_challenges = ${sqlJsonb(sysDrills, [])} WHERE track = 'system_design' AND lesson_order = ${order};`,
+    );
+  }
+}
 
 const slugSyncMappings = allExportedLessons.map((l) => {
   return `  UPDATE public.lessons
@@ -241,10 +269,11 @@ CREATE POLICY "Users delete own curriculum progress"
   FOR DELETE
   USING (auth.uid() = user_id);
 
--- 4. Tag existing DB rows with canonical slugs (preserves existing UUIDs & user_progress FKs)
+-- 4. Tag existing DB rows with canonical slugs & attach Pro drills to base rows (1..8)
 DO $$
 BEGIN
 ${slugSyncMappings.join("\n")}
+${proBaseDrillsMappings.join("\n")}
 END $$;
 
 -- 5. Idempotently upsert all ${allExportedLessons.length} curriculum modules & multi-stage practice drills

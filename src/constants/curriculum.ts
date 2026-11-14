@@ -1,5 +1,6 @@
 import { ALGORITHMS_ENRICHMENTS } from "./curriculumData/algorithmsEnrichments";
 import { ALGORITHMS_EXPANSION_LESSONS } from "./curriculumData/algorithmsLessons";
+import { ALGORITHMS_PRACTICE_DRILLS } from "./curriculumData/algorithmsPracticeDrills";
 import { getCurriculumLessonSortKey } from "./certificates";
 import { CHAPTER_RECAP_LESSONS } from "./curriculumData/chapterRecapLessons";
 import { PYTHON_BASICS_ENRICHMENTS } from "./curriculumData/pythonBasicsEnrichments";
@@ -7,6 +8,7 @@ import { PYTHON_BASICS_EXPANSION_LESSONS } from "./curriculumData/pythonBasicsLe
 import { PYTHON_BASICS_PRACTICE_DRILLS } from "./curriculumData/pythonBasicsPracticeDrills";
 import { SYSTEM_DESIGN_ENRICHMENTS } from "./curriculumData/systemDesignEnrichments";
 import { SYSTEM_DESIGN_EXPANSION_LESSONS } from "./curriculumData/systemDesignLessons";
+import { SYSTEM_DESIGN_PRACTICE_DRILLS } from "./curriculumData/systemDesignPracticeDrills";
 import {
   CommonPitfall,
   EnrichedLessonData,
@@ -199,8 +201,6 @@ const TWO_SUM_SANITIZED_PATCH = {
   ],
   initial_code: `class Solution:
     def twoSum(self, nums, target):
-        seen = {}
-        # Loop with enumerate(nums), check needed = target - num
         pass`,
   hidden_tests: `import json
 def __run_tests__():
@@ -231,6 +231,114 @@ def __run_tests__():
 __run_tests__()`,
 };
 
+function stripTrailingCommentOutsideStrings(line: string): string {
+  let quote: '"' | "'" | null = null;
+  let escaped = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (quote) {
+      if (ch === "\\") escaped = true;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === "#") {
+      return line.slice(0, i).trimEnd();
+    }
+  }
+  return line.trimEnd();
+}
+
+function measureParenBalance(text: string): number {
+  let balance = 0;
+  let quote: '"' | "'" | null = null;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (quote) {
+      if (ch === "\\") escaped = true;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === "(" || ch === "[" || ch === "{") balance += 1;
+    else if (ch === ")" || ch === "]" || ch === "}") balance -= 1;
+  }
+  return balance;
+}
+
+/**
+ * Strip starter boilerplate down to just the function/class signature(s) and `pass`
+ * so learners write solutions without pre-filled comments, hints, or sample calls.
+ */
+export function minimizeStarterCode(rawCode?: string): string {
+  if (!rawCode) return "";
+  const normalized = rawCode.replace(/\\n/g, "\n").replace(/\r\n?/g, "\n");
+  const lines = normalized.split("\n");
+  const out: string[] = [];
+  let inClass = false;
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const noComment = stripTrailingCommentOutsideStrings(line);
+    const trimmed = noComment.trim();
+    const indentLen = (line.match(/^(\s*)/)?.[1] || "").length;
+
+    if (/^class\s+[A-Za-z_][A-Za-z0-9_]*\b/.test(trimmed)) {
+      let header = trimmed;
+      let balance = measureParenBalance(header);
+      while (i + 1 < lines.length && (!header.endsWith(":") || balance > 0)) {
+        i += 1;
+        const nextPart = stripTrailingCommentOutsideStrings(lines[i]).trim();
+        if (nextPart) {
+          header = `${header} ${nextPart}`;
+          balance = measureParenBalance(header);
+        }
+      }
+      if (header.endsWith(":")) {
+        if (out.length > 0) out.push("");
+        out.push(header);
+        inClass = true;
+      }
+    } else if (/^(?:async\s+)?def\s+[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(trimmed)) {
+      let header = trimmed;
+      let balance = measureParenBalance(header);
+      while (i + 1 < lines.length && (!header.endsWith(":") || balance > 0)) {
+        i += 1;
+        const nextPart = stripTrailingCommentOutsideStrings(lines[i]).trim();
+        if (nextPart) {
+          header = `${header} ${nextPart}`;
+          balance = measureParenBalance(header);
+        }
+      }
+      if (header.endsWith(":")) {
+        if (inClass && indentLen > 0) {
+          out.push(`    ${header}`);
+          out.push("        pass");
+        } else {
+          inClass = false;
+          if (out.length > 0) out.push("");
+          out.push(header);
+          out.push("    pass");
+        }
+      }
+    }
+    i += 1;
+  }
+
+  return out.length > 0 ? out.join("\n") : normalized;
+}
+
 const ORPHANED_DUPLICATE_LESSON_IDS = new Set([
   "ff06e344-6648-49a3-80a6-22b34f2faee3",
 ]);
@@ -242,6 +350,7 @@ export function mergeCurriculumLessons<
     track: string;
     lesson_order: number;
     title: string;
+    initial_code?: string;
     practiceChallenges?: any[];
     practice_challenges?: any[];
   },
@@ -255,11 +364,16 @@ export function mergeCurriculumLessons<
     if (seenTrackOrders.has(key)) continue;
     seenTrackOrders.add(key);
 
-    const dbPracticeChallenges = Array.isArray(row.practiceChallenges)
+    const rawDbPracticeChallenges = Array.isArray(row.practiceChallenges)
       ? row.practiceChallenges
       : Array.isArray(row.practice_challenges)
         ? row.practice_challenges
         : undefined;
+    const dbPracticeChallenges = rawDbPracticeChallenges?.map((ch) =>
+      ch && typeof ch === "object" && typeof ch.initial_code === "string"
+        ? { ...ch, initial_code: minimizeStarterCode(ch.initial_code) }
+        : ch,
+    );
 
     if (row.track === "algorithms" && row.lesson_order === 1) {
       merged.push({
@@ -273,6 +387,9 @@ export function mergeCurriculumLessons<
 
     merged.push({
       ...row,
+      ...(typeof row.initial_code === "string"
+        ? { initial_code: minimizeStarterCode(row.initial_code) }
+        : {}),
       slug: row.slug || `${row.track}:${row.lesson_order}`,
       ...(dbPracticeChallenges ? { practiceChallenges: dbPracticeChallenges } : {}),
     });
@@ -307,21 +424,45 @@ export function mergeCurriculumLessons<
     }
   }
 
+  const drillsByTrack: Record<string, typeof PYTHON_BASICS_PRACTICE_DRILLS> = {
+    python_basics: PYTHON_BASICS_PRACTICE_DRILLS,
+    algorithms: ALGORITHMS_PRACTICE_DRILLS,
+    system_design: SYSTEM_DESIGN_PRACTICE_DRILLS,
+  };
+
   for (let i = 0; i < merged.length; i++) {
     const item = merged[i];
-    if (item.track === "python_basics") {
-      const localDrills = PYTHON_BASICS_PRACTICE_DRILLS[item.lesson_order];
-      if (
-        (!item.practiceChallenges || item.practiceChallenges.length === 0) &&
-        localDrills &&
-        localDrills.length > 0
-      ) {
-        merged[i] = {
-          ...item,
-          practiceChallenges: localDrills,
-        };
-      }
+    if ((item as any).is_recap) continue;
+    const trackDrills = drillsByTrack[item.track];
+    const localDrills = trackDrills?.[item.lesson_order];
+    if (
+      (!item.practiceChallenges || item.practiceChallenges.length === 0) &&
+      localDrills &&
+      localDrills.length > 0
+    ) {
+      merged[i] = {
+        ...item,
+        practiceChallenges: localDrills,
+      };
     }
+  }
+
+  for (let i = 0; i < merged.length; i++) {
+    const item = merged[i];
+    const cleanInitial =
+      typeof item.initial_code === "string"
+        ? minimizeStarterCode(item.initial_code)
+        : item.initial_code;
+    const cleanChallenges = item.practiceChallenges?.map((ch) =>
+      ch && typeof ch === "object" && typeof ch.initial_code === "string"
+        ? { ...ch, initial_code: minimizeStarterCode(ch.initial_code) }
+        : ch,
+    );
+    merged[i] = {
+      ...item,
+      ...(typeof cleanInitial === "string" ? { initial_code: cleanInitial } : {}),
+      ...(cleanChallenges ? { practiceChallenges: cleanChallenges } : {}),
+    };
   }
 
   return merged.sort(

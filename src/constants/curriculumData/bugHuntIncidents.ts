@@ -891,4 +891,261 @@ json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results}
 `,
     expectedSummary: "sliding_window_allow([10, 40], 70, 60, 2) → True",
   },
+  {
+    id: "bug-209",
+    codeId: "MISSION 19",
+    title: "Upper-Bound Insert Index Bug",
+    track: "algorithms",
+    difficulty: "Medium",
+    timeLimitSec: 75,
+    baseXp: 115,
+    symptom:
+      "Binary search skips duplicate matches instead of stopping at the leftmost lower-bound index when `nums[mid] == target`.",
+    rootCauseHint:
+      "Treat `nums[mid] >= target` (not `>`) as moving `high = mid - 1` so `low` lands on the first insertion slot.",
+    buggyCode: `def lower_bound(nums, target):
+    low, high = 0, len(nums) - 1
+    while low <= high:
+        mid = (low + high) // 2
+        if nums[mid] > target:
+            high = mid - 1
+        else:
+            low = mid + 1
+    return low
+
+print(lower_bound([10, 20, 20, 30], 20))`,
+    testHarness: `
+import json
+results = []
+cases = [(([10, 20, 20, 30], 20), 1), (([10, 25, 42], 30), 2), (([5, 10], 1), 0)]
+all_passed = True
+for idx, ((arr, t), exp) in enumerate(cases):
+    actual = lower_bound(arr, t)
+    passed = actual == exp
+    if not passed:
+        all_passed = False
+    results.append({"id": idx + 1, "input": f"lower_bound({arr}, {t})", "expected": str(exp), "actual": str(actual), "passed": passed})
+json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
+`,
+    expectedSummary: "lower_bound([10, 20, 20, 30], 20) → 1",
+  },
+  {
+    id: "bug-210",
+    codeId: "MISSION 20",
+    title: "Prefix Sum Off-by-One Slice",
+    track: "algorithms",
+    difficulty: "Medium",
+    timeLimitSec: 75,
+    baseXp: 115,
+    symptom:
+      "Includes `nums[left - 1]` or drops `nums[right]` when answering `[left, right]` inclusive queries from prefix sums.",
+    rootCauseHint:
+      "Return `prefix[right + 1] - prefix[left]` when `prefix` starts with `[0]`.",
+    buggyCode: `def query_range(nums, left, right):
+    prefix = [0]
+    for x in nums:
+        prefix.append(prefix[-1] + x)
+    return prefix[right] - prefix[left]
+
+print(query_range([10, 20, 15, 5], 0, 2))`,
+    testHarness: `
+import json
+results = []
+cases = [(([10, 20, 15, 5], 0, 2), 45), (([10, 20, 15, 5], 1, 3), 40), (([7], 0, 0), 7)]
+all_passed = True
+for idx, ((arr, l, r), exp) in enumerate(cases):
+    actual = query_range(arr, l, r)
+    passed = actual == exp
+    if not passed:
+        all_passed = False
+    results.append({"id": idx + 1, "input": f"query_range({arr}, {l}, {r})", "expected": str(exp), "actual": str(actual), "passed": passed})
+json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
+`,
+    expectedSummary: "query_range([10, 20, 15, 5], 0, 2) → 45",
+  },
+  {
+    id: "bug-211",
+    codeId: "MISSION 21",
+    title: "Duplicate Winner in Runner-Up Scan",
+    track: "algorithms",
+    difficulty: "Medium",
+    timeLimitSec: 80,
+    baseXp: 120,
+    symptom:
+      "Tied top scores (`[450, 450, 310]`) overwrite `second` with `450` instead of returning the second *distinct* highest score `310`.",
+    rootCauseHint:
+      "Only update `second` when `s < first` (strictly below `first`) and `(second is None or s > second)`.",
+    buggyCode: `def runner_up(scores):
+    first = None
+    second = None
+    for s in scores:
+        if first is None or s > first:
+            second = first
+            first = s
+        elif second is None or s > second:
+            second = s
+    return second
+
+print(runner_up([450, 450, 310, 200]))`,
+    testHarness: `
+import json
+results = []
+cases = [([450, 450, 310, 200], 310), ([99, 99], None), ([10, 50, 30], 30)]
+all_passed = True
+for idx, (inp, exp) in enumerate(cases):
+    actual = runner_up(inp)
+    passed = actual == exp
+    if not passed:
+        all_passed = False
+    results.append({"id": idx + 1, "input": f"runner_up({inp})", "expected": str(exp), "actual": str(actual), "passed": passed})
+json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
+`,
+    expectedSummary: "runner_up([450, 450, 310, 200]) → 310",
+  },
+  {
+    id: "bug-212",
+    codeId: "MISSION 22",
+    title: "Dropped Disjoint Interval on Merge",
+    track: "algorithms",
+    difficulty: "Hard",
+    timeLimitSec: 90,
+    baseXp: 135,
+    symptom:
+      "Merged intervals overwrite previous end unconditionally or merge touching intervals incorrectly with `<` vs `<=`.",
+    rootCauseHint:
+      "Merge when `iv[0] <= merged[-1][1]` by setting `merged[-1][1] = max(merged[-1][1], iv[1])`, else append `iv[:]`.",
+    buggyCode: `def merge_ranges(intervals):
+    if not intervals:
+        return []
+    ordered = sorted(intervals, key=lambda x: x[0])
+    merged = [ordered[0][:]]
+    for start, end in ordered[1:]:
+        if start <= merged[-1][1]:
+            merged[-1][1] = end
+        else:
+            merged.append([start, end])
+    return merged
+
+print(merge_ranges([[1, 10], [2, 6], [12, 15]]))`,
+    testHarness: `
+import json
+results = []
+cases = [([[1, 10], [2, 6], [12, 15]], [[1, 10], [12, 15]]), ([[1, 3], [2, 5]], [[1, 5]])]
+all_passed = True
+for idx, (inp, exp) in enumerate(cases):
+    actual = merge_ranges(inp)
+    passed = actual == exp
+    if not passed:
+        all_passed = False
+    results.append({"id": idx + 1, "input": f"merge_ranges({inp})", "expected": str(exp), "actual": str(actual), "passed": passed})
+json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
+`,
+    expectedSummary: "merge_ranges([[1, 10], [2, 6], [12, 15]]) → [[1, 10], [12, 15]]",
+  },
+  {
+    id: "bug-309",
+    codeId: "MISSION 23",
+    title: "Over-Eager Feature Rollout Off-by-One",
+    track: "system_design",
+    difficulty: "Medium",
+    timeLimitSec: 70,
+    baseXp: 115,
+    symptom:
+      "Users with `user_id % 100 == rollout_pct` leak into the beta bucket (giving 26% traffic when `rollout_pct` is 25, or leaking users when `rollout_pct == 0`).",
+    rootCauseHint:
+      "Use strict `(user_id % 100) < rollout_pct` instead of `<=`.",
+    buggyCode: `def flag_enabled(enabled, rollout_pct, user_id):
+    if not enabled:
+        return False
+    return (user_id % 100) <= rollout_pct
+
+print(flag_enabled(True, 0, 100), flag_enabled(True, 25, 125))`,
+    testHarness: `
+import json
+results = []
+cases = [((True, 0, 100), False), ((True, 25, 125), False), ((True, 25, 124), True), ((False, 100, 101), False)]
+all_passed = True
+for idx, ((en, pct, uid), exp) in enumerate(cases):
+    actual = flag_enabled(en, pct, uid)
+    passed = actual is exp
+    if not passed:
+        all_passed = False
+    results.append({"id": idx + 1, "input": f"enabled={en}, pct={pct}, uid={uid}", "expected": str(exp), "actual": str(actual), "passed": passed})
+json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
+`,
+    expectedSummary: "flag_enabled(True, 0, 100) → False",
+  },
+  {
+    id: "bug-310",
+    codeId: "MISSION 24",
+    title: "Modulo Hash Ring Wrap-Around Drop",
+    track: "system_design",
+    difficulty: "Hard",
+    timeLimitSec: 90,
+    baseXp: 135,
+    symptom:
+      "Keys with `key_hash` higher than the largest ring node return `''` instead of wrapping clockwise to `ordered[0][1]`.",
+    rootCauseHint:
+      "Return `ordered[0][1]` as the wrap-around fallback after the loop finishes without finding `node_hash >= key_hash`.",
+    buggyCode: `def hash_ring_route(ring_nodes, key_hash):
+    if not ring_nodes:
+        return ""
+    ordered = sorted(ring_nodes, key=lambda n: n[0])
+    for node_hash, name in ordered:
+        if node_hash >= key_hash:
+            return name
+    return ""
+
+print(hash_ring_route([(20, "db-a"), (55, "db-b"), (90, "db-c")], 95))`,
+    testHarness: `
+import json
+results = []
+ring = [(20, "db-a"), (55, "db-b"), (90, "db-c")]
+cases = [((ring, 95), "db-a"), ((ring, 55), "db-b"), ((ring, 60), "db-c")]
+all_passed = True
+for idx, ((r, kh), exp) in enumerate(cases):
+    actual = hash_ring_route(r, kh)
+    passed = actual == exp
+    if not passed:
+        all_passed = False
+    results.append({"id": idx + 1, "input": f"key_hash={kh}", "expected": repr(exp), "actual": repr(actual), "passed": passed})
+json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
+`,
+    expectedSummary: 'hash_ring_route(ring, 95) → "db-a"',
+  },
+  {
+    id: "bug-311",
+    codeId: "MISSION 25",
+    title: "Stale Token Bucket Overflow",
+    track: "system_design",
+    difficulty: "Hard",
+    timeLimitSec: 90,
+    baseXp: 135,
+    symptom:
+      "Token bucket accumulates unbounded tokens during quiet periods instead of capping at `capacity` before spending 1.",
+    rootCauseHint:
+      "Clamp `refilled = min(capacity, tokens + max(0, now_ts - last_ts) * refill_rate)` before checking `>= 1`.",
+    buggyCode: `def spend_token(tokens, last_ts, now_ts, refill_rate, capacity):
+    elapsed = max(0, now_ts - last_ts)
+    refilled = tokens + elapsed * refill_rate
+    if refilled >= 1:
+        return {"allowed": True, "tokens": refilled - 1}
+    return {"allowed": False, "tokens": refilled}
+
+print(spend_token(1, 0, 100, 2, 5))`,
+    testHarness: `
+import json
+results = []
+cases = [((1, 0, 100, 2, 5), {"allowed": True, "tokens": 4}), ((0, 10, 10, 2, 5), {"allowed": False, "tokens": 0})]
+all_passed = True
+for idx, (args, exp) in enumerate(cases):
+    actual = spend_token(*args)
+    passed = actual == exp
+    if not passed:
+        all_passed = False
+    results.append({"id": idx + 1, "input": f"args={args}", "expected": str(exp), "actual": str(actual), "passed": passed})
+json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
+`,
+    expectedSummary: "spend_token(1, 0, 100, 2, 5) → {'allowed': True, 'tokens': 4}",
+  },
 ];

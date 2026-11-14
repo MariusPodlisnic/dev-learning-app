@@ -17,6 +17,7 @@ export interface CloudProgressState {
   lastLessonId?: string;
   themeMode?: "light" | "dark";
   codeDrafts: Record<string, string>;
+  draftsVersion?: number;
   updatedAt: string;
 }
 
@@ -325,9 +326,11 @@ export function mergeCloudAndLocalState(
       ? c.streakShields
       : localState.streakShields;
 
+  const cloudDraftsMigrated = (c.draftsVersion ?? 1) >= 2;
+  const effectiveCloudDrafts = cloudDraftsMigrated ? c.codeDrafts || {} : {};
   const mergedDrafts = localIsNewer
-    ? { ...(c.codeDrafts || {}), ...localState.codeDrafts }
-    : { ...localState.codeDrafts, ...(c.codeDrafts || {}) };
+    ? { ...effectiveCloudDrafts, ...localState.codeDrafts }
+    : { ...localState.codeDrafts, ...effectiveCloudDrafts };
 
   const merged: CloudProgressState = {
     completedLessons: mergedCompletedLessons,
@@ -351,6 +354,7 @@ export function mergeCloudAndLocalState(
       ? localState.themeMode || c.themeMode
       : c.themeMode || localState.themeMode,
     codeDrafts: mergedDrafts,
+    draftsVersion: 2,
     updatedAt: new Date().toISOString(),
   };
 
@@ -367,6 +371,7 @@ export function mergeCloudAndLocalState(
     Object.keys(localState.claimedChapters).some((k) => localState.claimedChapters[k] && !cloudChapKeys[k]) ||
     mergedXp > cloudXp ||
     mergedStreak > (typeof c.streakCount === "number" ? c.streakCount : 0) ||
+    !cloudDraftsMigrated ||
     !c.updatedAt;
 
   return { merged, needsCloudBackfill: hasNewLocalItems };

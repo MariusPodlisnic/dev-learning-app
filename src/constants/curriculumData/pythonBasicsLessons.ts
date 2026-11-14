@@ -28,10 +28,7 @@ export const PYTHON_BASICS_EXPANSION_LESSONS = [
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def create_hero_profile(name, bonus_hp):
-    # Calculate total_hp (100 + bonus_hp) and return (name, total_hp, True)
-    pass
-
-print(create_hero_profile("Aria", 50))`,
+    pass`,
     expected_output: "('Aria', 150, True)",
     hidden_tests: `import json
 results = []
@@ -83,11 +80,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def sum_doubled_xp(quests):
-    total = 0
-    # Loop over quests, add xp * 2 to total, and return total
-    return total
-
-print(sum_doubled_xp([10, 20, 5]))`,
+    pass`,
     expected_output: "70",
     hidden_tests: `import json
 results = []
@@ -141,10 +134,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def get_rank_tier(score):
-    # Return "GOLD" (>= 1000), "SILVER" (>= 500), or "BRONZE"
-    pass
-
-print(get_rank_tier(750))`,
+    pass`,
     expected_output: "SILVER",
     hidden_tests: `import json
 results = []
@@ -197,10 +187,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def calc_final_score(base_pts, streak_bonus, multiplier):
-    # Add base_pts and streak_bonus, multiply by multiplier, and return
-    pass
-
-print(calc_final_score(100, 25, 2))`,
+    pass`,
     expected_output: "250",
     hidden_tests: `import json
 results = []
@@ -251,10 +238,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def promote_user(user, bonus_xp):
-    # Set user["role"] = "admin", add bonus_xp to user["xp"], and return user
-    return user
-
-print(promote_user({"username": "nova", "xp": 100}, 50))`,
+    pass`,
     expected_output: "{'username': 'nova', 'xp': 150, 'role': 'admin'}",
     hidden_tests: `import json
 results = []
@@ -306,10 +290,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def normalize_handle(raw_handle):
-    # Strip outer whitespace and convert raw_handle to lowercase
-    return raw_handle
-
-print(normalize_handle("  Py_Ninja99  "))`,
+    pass`,
     expected_output: "py_ninja99",
     hidden_tests: `import json
 results = []
@@ -360,11 +341,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def filter_passing_scores(scores, min_score):
-    passed = []
-    # Loop through scores and append any score >= min_score
-    return passed
-
-print(filter_passing_scores([65, 92, 80, 45, 99], 80))`,
+    pass`,
     expected_output: "[92, 80, 99]",
     hidden_tests: `import json
 results = []
@@ -416,10 +393,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def safe_win_rate(wins, matches):
-    # Use try / except ZeroDivisionError to return wins / matches or 0.0
-    pass
-
-print(safe_win_rate(6, 10), safe_win_rate(0, 0))`,
+    pass`,
     expected_output: "0.6 0.0",
     hidden_tests: `import json
 results = []
@@ -470,10 +444,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def count_reactions(reactions, target):
-    # Count how many times target appears in reactions and return it
-    return 0
-
-print(count_reactions(["🔥", "❤️", "🔥", "👍", "🔥"], "🔥"))`,
+    pass`,
     expected_output: "3",
     hidden_tests: `import json
 results = []
@@ -526,10 +497,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def clean_guest_list(guests):
-    # Remove duplicate names and return them in sorted A-Z order
-    return []
-
-print(clean_guest_list(["Sam", "Alex", "Sam", "Zoe", "Alex"]))`,
+    pass`,
     expected_output: "['Alex', 'Sam', 'Zoe']",
     hidden_tests: `import json
 results = []
@@ -579,10 +547,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def make_url_slug(words):
-    # Join all words in the list with "-" and return the slug string
-    return ""
-
-print(make_url_slug(["pixel", "arcade", "game"]))`,
+    pass`,
     expected_output: "pixel-arcade-game",
     hidden_tests: `import json
 results = []
@@ -636,10 +601,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def get_top_three(players):
-    # Slice and return only the first 3 players from the list
-    return []
-
-print(get_top_three(["Aria", "Kai", "Nova", "Leo", "Max"]))`,
+    pass`,
     expected_output: "['Aria', 'Kai', 'Nova']",
     hidden_tests: `import json
 results = []
@@ -688,10 +650,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def hide_spoilers(message):
-    # Replace every "spoiler" with "[HIDDEN]" and return the updated string
-    return message
-
-print(hide_spoilers("Alert: spoiler ahead!"))`,
+    pass`,
     expected_output: "Alert: [HIDDEN] ahead!",
     hidden_tests: `import json
 results = []
@@ -746,10 +705,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def get_cart_total(prices):
-    # Return the total sum of all numbers in prices
-    return 0
-
-print(get_cart_total([15, 25, 10]))`,
+    pass`,
     expected_output: "50",
     hidden_tests: `import json
 results = []
@@ -798,10 +754,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def is_secure_link(url):
-    # Return True if url starts with "https://", otherwise False
-    return False
-
-print(is_secure_link("https://arcade.dev"), is_secure_link("http://old.site"))`,
+    pass`,
     expected_output: "True False",
     hidden_tests: `import json
 results = []
@@ -861,10 +814,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def get_user_theme(settings):
-    # Safely read "theme" from settings with a fallback of "light"
-    return ""
-
-print(get_user_theme({"theme": "dark"}), get_user_theme({}))`,
+    pass`,
     expected_output: "dark light",
     hidden_tests: `import json
 results = []
@@ -922,10 +872,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def make_badge(name, level):
-    # Return a formatted f-string: "Player {name} - Level {level}"
-    return ""
-
-print(make_badge("Aria", 5))`,
+    pass`,
     expected_output: "Player Aria - Level 5",
     hidden_tests: `import json
 results = []
@@ -981,10 +928,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def count_words(sentence):
-    # Split sentence into words and return the word count
-    return 0
-
-print(count_words("Python is super fun"))`,
+    pass`,
     expected_output: "4",
     hidden_tests: `import json
 results = []
@@ -1033,11 +977,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def has_item(backpack, item):
-    # Return True if item is inside backpack, otherwise False
-    return False
-
-bag = ["torch", "map", "potion"]
-print(has_item(bag, "map"), has_item(bag, "key"))`,
+    pass`,
     expected_output: "True False",
     hidden_tests: `import json
 results = []
@@ -1086,10 +1026,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def format_rating(rating):
-    # Round rating to 1 decimal place and return it
-    return 0.0
-
-print(format_rating(4.66667))`,
+    pass`,
     expected_output: "4.7",
     hidden_tests: `import json
 results = []
@@ -1148,11 +1085,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def calc_damage(attack, is_crit, defense):
-    # 1. Double attack if is_crit is True, else use normal attack
-    # 2. Subtract defense and return at least 1 damage using max(..., 1)
-    return 1
-
-print(calc_damage(50, True, 20))`,
+    pass`,
     expected_output: "80",
     hidden_tests: `import json
 results = []
@@ -1212,10 +1145,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def check_password(password):
-    # Return "STRONG" if len(password) >= 8 and it has at least 1 digit, else "WEAK"
-    return "WEAK"
-
-print(check_password("Python99"))`,
+    pass`,
     expected_output: "STRONG",
     hidden_tests: `import json
 results = []
@@ -1276,11 +1206,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def split_bill(total, tip_percent, people):
-    # 1. Calculate each person's share including tip_percent
-    # 2. Return the share rounded to 2 decimal places
-    return 0.0
-
-print(split_bill(100.0, 20, 4))`,
+    pass`,
     expected_output: "30.0",
     hidden_tests: `import json
 results = []
@@ -1339,12 +1265,7 @@ except Exception as e:
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def bot_reply(message, mood_map):
-    # 1. Normalize message with .lower() and look it up in mood_map (fallback "🤖 I hear you!")
-    # 2. Return formatted f-string: f"Bot: {reply}"
-    return "Bot: 🤖 I hear you!"
-
-moods = {"happy": "🎉 Yay!", "tired": "☕ Grab coffee!"}
-print(bot_reply("HAPPY", moods))`,
+    pass`,
     expected_output: "Bot: 🎉 Yay!",
     hidden_tests: `import json
 results = []

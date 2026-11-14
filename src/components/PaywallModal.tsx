@@ -136,6 +136,20 @@ export default function PaywallModal({
   return (
     <View style={styles.card}>
       <View style={styles.topAccentBar} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close unlock pro dialog"
+        onPress={() => {
+          playKeyClick();
+          onClose();
+        }}
+        style={({ pressed }) => [
+          styles.topCloseBtn,
+          pressed && { transform: [{ translateY: 1 }] },
+        ]}
+      >
+        <Text style={styles.topCloseBtnText}>✕</Text>
+      </Pressable>
 
       <ScrollView
         style={styles.scrollArea}
@@ -341,6 +355,30 @@ const styles = StyleSheet.create({
     backgroundColor: StudioColors.yellow,
     borderBottomWidth: 2,
     borderBottomColor: StudioColors.border,
+  },
+  topCloseBtn: {
+    position: "absolute",
+    top: 16,
+    right: 14,
+    zIndex: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: StudioColors.surfaceElevated,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    ...HardShadowSm,
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
+  },
+  topCloseBtnText: {
+    color: StudioColors.textPrimary,
+    fontSize: 15,
+    fontWeight: "900",
+    lineHeight: 18,
   },
   scrollArea: {
     width: "100%",

@@ -223,6 +223,7 @@ export default function HomeScreen() {
     activeTrack: "python_basics",
     themeMode: "dark",
     codeDrafts: {},
+    draftsVersion: 2,
     updatedAt: "",
   });
 
@@ -244,6 +245,7 @@ export default function HomeScreen() {
       lastLessonId: selectedLesson?.id,
       themeMode,
       codeDrafts: codeDraftsRef.current,
+      draftsVersion: 2,
       updatedAt: new Date().toISOString(),
     };
   }, [
@@ -416,6 +418,7 @@ export default function HomeScreen() {
       lastLessonId: savedState.lastLessonId as string | undefined,
       themeMode: initialTheme,
       codeDrafts: savedDrafts,
+      draftsVersion: 2,
       updatedAt: (savedState as any).updatedAt || "",
     };
     hydratedRef.current = true;
@@ -1647,6 +1650,12 @@ export default function HomeScreen() {
 
       {showPaywallModal && (
         <View style={styles.modalOverlay}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close upgrade modal"
+            style={StyleSheet.absoluteFill}
+            onPress={() => setShowPaywallModal(false)}
+          />
           <PaywallModal
             onClose={() => setShowPaywallModal(false)}
             onUpgrade={handleUpgradeToPro}

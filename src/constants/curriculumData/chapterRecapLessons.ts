@@ -41,11 +41,7 @@ export const CHAPTER_RECAP_LESSONS = [
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def audit_guild_party(party):
-    # Combine variables, for-loop unpacking, conditionals, and return tuple
-    pass
-
-sample = [("Aria", 80, 30), ("Kai", 45, 10), ("Neo", 90, 25)]
-print(audit_guild_party(sample))`,
+    pass`,
     expected_output: "(280, 2, 'Elite')",
     hidden_tests: `import json
 def __run_tests__():
@@ -107,11 +103,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def build_qualified_roster(entries, min_score):
-    # Clean handles, safely parse scores with try/except, filter >= min_score into dict
-    pass
-
-raw = [("  Aria ", "120"), ("bob", "ERR"), (" KAI", "75")]
-print(build_qualified_roster(raw, 80))`,
+    pass`,
     expected_output: "{'aria': 120}",
     hidden_tests: `import json
 def __run_tests__():
@@ -171,11 +163,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def build_trending_digest(tags):
-    # Count tags, deduplicate & sort by (-count, tag), slice top 3, join with " | "
-    pass
-
-sample = [" Python", "ai", "python", "loops", "AI", "python", "lists"]
-print(build_trending_digest(sample))`,
+    pass`,
     expected_output: "python | ai | lists",
     hidden_tests: `import json
 def __run_tests__():
@@ -235,14 +223,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def process_stream_events(events, tier_rates):
-    # Filter https://, replace "spoiler" -> "[REDACTED]", lookup .get(..., 5), sum payouts
-    pass
-
-sample_events = [
-    {"url": "https://ok", "text": "no spoiler", "tier": "vip"},
-    {"url": "http://bad", "text": "ignore me", "tier": "vip"},
-]
-print(process_stream_events(sample_events, {"vip": 20}))`,
+    pass`,
     expected_output: "(20, ['no [REDACTED]'])",
     hidden_tests: `import json
 def __run_tests__():
@@ -311,10 +292,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def format_review_badge(comment, scores, banned_words):
-    # Use .split(), 'in' check, round(..., 1), and f-string formatting
-    pass
-
-print(format_review_badge("Fast app great UI", [5, 4, 5], ["spam"]))`,
+    pass`,
     expected_output: "APPROVED | avg 4.7/5 (4 words)",
     hidden_tests: `import json
 def __run_tests__():
@@ -379,11 +357,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(k)", space: "O(k)" },
     initial_code: `def run_arcade_command(command, mood_map):
-    # Parse command parts and route CRIT, PASS, SPLIT, BOT safely
-    pass
-
-moods = {"happy": "🎉 Yay!", "focus": "🎧 Deep Work"}
-print(run_arcade_command("SPLIT 100 20 4", moods))`,
+    pass`,
     expected_output: "30.0",
     hidden_tests: `import json
 def __run_tests__():
@@ -450,10 +424,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def analyze_signal_window(nums, k, target):
-    # Combine O(n) sliding window max + O(n) hash-set pair lookup
-    pass
-
-print(analyze_signal_window([2, 1, 5, 1, 3, 2], 3, 8))`,
+    pass`,
     expected_output: "(9, True)",
     hidden_tests: `import json
 def __run_tests__():
@@ -506,10 +477,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def validate_and_measure_depth(expr):
-    # Use a LIFO stack to validate brackets and measure max nesting depth
-    pass
-
-print(validate_and_measure_depth("({[x]})()"))`,
+    pass`,
     expected_output: "(True, 3)",
     hidden_tests: `import json
 def __run_tests__():
@@ -564,10 +532,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n + m)", space: "O(n)" },
     initial_code: `def summarize_candidates(sorted_scores, threshold, team_a, team_b):
-    # Combine binary search lower_bound + prefix sums + sorted set intersection
-    pass
-
-print(summarize_candidates([10, 25, 40, 55], 25, [3, 1, 2], [2, 4, 3]))`,
+    pass`,
     expected_output: "(3, 120, [2, 3])",
     hidden_tests: `import json
 def __run_tests__():
@@ -620,10 +585,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def rank_vip_telemetry(records, vip_ids):
-    # O(1) set filter, multi-key sort (-score, id), and distinct runner-up
-    pass
-
-print(rank_vip_telemetry([(2, 90), (1, 90), (3, 75), (4, 99)], [1, 2, 3]))`,
+    pass`,
     expected_output: "([1, 2, 3], 75)",
     hidden_tests: `import json
 def __run_tests__():
@@ -681,11 +643,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n * k)", space: "O(n * k)" },
     initial_code: `def audit_palindromic_tags(items):
-    # First duplicate scan + two-pointer palindrome filter + inverted index
-    pass
-
-sample = [("api", "Race car!"), ("db", "hello"), ("api", "A man, a plan, a canal: Panama")]
-print(audit_palindromic_tags(sample))`,
+    pass`,
     expected_output: "('api', {'racecar': ['api'], 'amanaplanacanalpanama': ['api']})",
     hidden_tests: `import json
 def __run_tests__():
@@ -742,10 +700,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def run_algo_suite(windows, prices, events, k):
-    # Merge intervals + greedy max stock profit + top-k frequent events
-    pass
-
-print(run_algo_suite([[1,3],[2,6],[8,10]], [7,1,5,3,6,4], ["a","b","a","c","b","a"], 2))`,
+    pass`,
     expected_output: "{'intervals': [[1, 6], [8, 10]], 'max_profit': 5, 'top_k': ['a', 'b']}",
     hidden_tests: `import json
 def __run_tests__():
@@ -805,10 +760,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def route_edge_request(user_id, num_shards, used_reqs, limit, cache):
-    # Gate rate limit (429), check cache (200 CACHE), else modulo shard (200 ORIGIN)
-    pass
-
-print(route_edge_request(14, 4, 2, 5, {}))`,
+    pass`,
     expected_output: "(200, 'ORIGIN', 'shard-2')",
     hidden_tests: `import json
 def __run_tests__():
@@ -863,10 +815,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def commit_with_breaker(recent_failures, failure_threshold, replica_acks):
-    # Enforce circuit breaker threshold + strict majority replica quorum
-    pass
-
-print(commit_with_breaker(1, 3, [True, False, True]))`,
+    pass`,
     expected_output: "(True, 'COMMITTED')",
     hidden_tests: `import json
 def __run_tests__():
@@ -921,11 +870,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def dispatch_resilient_job(edges, attempt, max_attempts, base_ms, max_ms):
-    # Healthy lowest-latency edge, else DLQ when attempts exhausted, else capped backoff
-    pass
-
-sample_edges = [{"name": "eu", "healthy": False, "latency": 10}, {"name": "us", "healthy": True, "latency": 45}]
-print(dispatch_resilient_job(sample_edges, 0, 3, 100, 500))`,
+    pass`,
     expected_output: "('SENT', 'us')",
     hidden_tests: `import json
 def __run_tests__():
@@ -980,10 +925,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def evaluate_service_controller(cpu_samples, cpu_limit, user_bucket, rollout_pct, kill_switch, queue_depth, capacity_per_worker):
-    # Compute (alert_firing, canary_on, workers_needed)
-    pass
-
-print(evaluate_service_controller([50, 90, 92, 95], 85, 15, 25, False, 11, 5))`,
+    pass`,
     expected_output: "(True, True, 3)",
     hidden_tests: `import json
 def __run_tests__():
@@ -1036,11 +978,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(k)", space: "O(k)" },
     initial_code: `def serve_paginated_feed(token_expires_at, now_ts, cache_key, cache, db_records, cursor, page_size):
-    # Auth expiry guard -> cache-aside read/fill -> cursor pagination slice
-    pass
-
-c = {}
-print(serve_paginated_feed(200, 150, "feed", c, ["p1", "p2", "p3"], 0, 2))`,
+    pass`,
     expected_output: "{'status': 200, 'items': ['p1', 'p2'], 'has_more': True}",
     hidden_tests: `import json
 def __run_tests__():
@@ -1095,11 +1033,7 @@ __run_tests__()`,
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def process_kernel_request(now_ts, window_log, window_sec, max_reqs, ttl_cache, key, ring_nodes, key_hash):
-    # Prune sliding window log -> check TTL cache -> wrap-around consistent hash ring fallback
-    pass
-
-res = process_kernel_request(100, [50, 95], 10, 3, {"cfg": ("dark", 150)}, "cfg", [(10, "n1"), (50, "n2")], 30)
-print(res)`,
+    pass`,
     expected_output: "(True, 'dark', [95, 100])",
     hidden_tests: `import json
 def __run_tests__():

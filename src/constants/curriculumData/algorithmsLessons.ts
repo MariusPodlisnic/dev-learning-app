@@ -33,11 +33,7 @@ export const ALGORITHMS_EXPANSION_LESSONS = [
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def find_cheapest_flight(prices):
-    best = None
-    # 👉 Scan prices once, skipping None or <= 0, and return -1 if none valid:
-    return -1
-
-print(find_cheapest_flight([320, 0, 195, None, 160, 410]))`,
+    pass`,
     expected_output: "160",
     hidden_tests: `import json
 results = []
@@ -96,11 +92,7 @@ except Exception as e:
     ],
     complexities: { time: "O(log n)", space: "O(1)" },
     initial_code: `def find_insert_pos(nums, target):
-    low, high = 0, len(nums) - 1
-    # 👉 Halve the search space with while low <= high and return low:
-    return 0
-
-print(find_insert_pos([10, 25, 42, 70, 99], 50))`,
+    pass`,
     expected_output: "3",
     hidden_tests: `import json
 results = []
@@ -153,10 +145,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n + m + k log k)", space: "O(n + m)" },
     initial_code: `def find_mutual_friends(friends_a, friends_b):
-    # 👉 Intersect sets of friends_a and friends_b and return them sorted:
-    return []
-
-print(find_mutual_friends(["Sam", "Mia", "Leo", "Sam"], ["Mia", "Zoe", "Sam"]))`,
+    pass`,
     expected_output: "['Mia', 'Sam']",
     hidden_tests: `import json
 results = []
@@ -209,12 +198,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n + q)", space: "O(n)" },
     initial_code: `def range_sums(numbers, queries):
-    prefix = [0]
-    # 👉 1. Build cumulative prefix sums
-    # 👉 2. Answer each [left, right] in O(1) via prefix[right + 1] - prefix[left]
-    return []
-
-print(range_sums([10, 20, 15, 5], [[0, 2], [1, 3]]))`,
+    pass`,
     expected_output: "[45, 40]",
     hidden_tests: `import json
 results = []
@@ -267,12 +251,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def find_top_two_scores(scores):
-    first = None
-    second = None
-    # 👉 Update first and second highest distinct values in one pass:
-    return [first, second]
-
-print(find_top_two_scores([120, 450, 450, 310, 290]))`,
+    pass`,
     expected_output: "[450, 310]",
     hidden_tests: `import json
 results = []
@@ -325,15 +304,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def rank_leaderboard(players):
-    # 👉 Sort by (-score, time, name) and return list of player names:
-    return []
-
-sample = [
-    {"name": "Kai", "score": 95, "time": 40},
-    {"name": "Aria", "score": 95, "time": 30},
-    {"name": "Leo", "score": 70, "time": 20},
-]
-print(rank_leaderboard(sample))`,
+    pass`,
     expected_output: "['Aria', 'Kai', 'Leo']",
     hidden_tests: `import json
 results = []
@@ -386,12 +357,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def partition_by_parity(nums):
-    left, right = 0, len(nums) - 1
-    # 👉 Swap misplaced odd/even elements inward while left < right:
-    return nums
-
-res = partition_by_parity([3, 1, 2, 4])
-print(all(x % 2 == 0 for x in res[:2]) and all(x % 2 == 1 for x in res[2:]))`,
+    pass`,
     expected_output: "True",
     hidden_tests: `import json
 def is_valid_parity(arr):
@@ -453,12 +419,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n + m)", space: "O(n + m)" },
     initial_code: `def filter_valid_badges(vip_list, arrivals):
-    allowed = set(vip_list)
-    seen = set()
-    # 👉 Admit unique arriving VIPs in order:
-    return []
-
-print(filter_valid_badges(["Aria", "Kai", "Nova"], ["Leo", "Kai", "Aria", "Kai"]))`,
+    pass`,
     expected_output: "['Kai', 'Aria']",
     hidden_tests: `import json
 results = []
@@ -509,11 +470,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def is_palindrome(text):
-    left, right = 0, len(text) - 1
-    # 👉 Skip non-alphanumeric characters and compare text[left].lower() vs text[right].lower():
-    return True
-
-print(is_palindrome("A man, a plan, a canal: Panama"), is_palindrome("race a car"))`,
+    pass`,
     expected_output: "True False",
     hidden_tests: `import json
 results = []
@@ -566,11 +523,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def first_duplicate(names):
-    seen = set()
-    # 👉 Return the first name already in seen, or None at the end:
-    return None
-
-print(first_duplicate(["aria", "kai", "mia", "kai", "aria"]), first_duplicate(["aria", "kai"]))`,
+    pass`,
     expected_output: "kai None",
     hidden_tests: `import json
 results = []
@@ -622,13 +575,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def min_abs_diff(nums):
-    if len(nums) < 2:
-        return 0
-    ordered = sorted(nums)
-    # 👉 Scan adjacent elements in ordered to track the smallest abs difference:
-    return 0
-
-print(min_abs_diff([42, 15, 25, 9]))`,
+    pass`,
     expected_output: "6",
     hidden_tests: `import json
 results = []
@@ -681,11 +628,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def build_role_index(names, roles):
-    index = {}
-    # 👉 Zip names and roles and append each name into index[role]:
-    return index
-
-print(build_role_index(["Aria", "Kai", "Mia"], ["admin", "dev", "admin"]))`,
+    pass`,
     expected_output: "{'admin': ['Aria', 'Mia'], 'dev': ['Kai']}",
     hidden_tests: `import json
 results = []
@@ -741,12 +684,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def max_profit(prices):
-    min_price = float("inf")
-    best_profit = 0
-    # 👉 Loop through prices and update min_price and best_profit:
-    return best_profit
-
-print(max_profit([7, 1, 5, 3, 6, 4]))`,
+    pass`,
     expected_output: "5",
     hidden_tests: `import json
 results = []
@@ -800,11 +738,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n * k log k)", space: "O(n * k)" },
     initial_code: `def group_anagrams(words):
-    groups = {}
-    # 👉 Build signature key = "".join(sorted(word)) and append word to groups[key]:
-    return list(groups.values())
-
-print(group_anagrams(["eat", "tea", "tan", "ate", "nat", "bat"]))`,
+    pass`,
     expected_output: "[['eat', 'tea', 'ate'], ['tan', 'nat'], ['bat']]",
     hidden_tests: `import json
 results = []
@@ -859,14 +793,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def merge_intervals(intervals):
-    if not intervals:
-        return []
-    ordered = sorted(intervals, key=lambda x: x[0])
-    merged = []
-    # 👉 Sweep ordered intervals and merge overlaps into merged:
-    return merged
-
-print(merge_intervals([[1, 3], [2, 6], [8, 10], [15, 18]]))`,
+    pass`,
     expected_output: "[[1, 6], [8, 10], [15, 18]]",
     hidden_tests: `import json
 results = []
@@ -920,12 +847,7 @@ except Exception as e:
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def top_k_frequent(nums, k):
-    counts = {}
-    # 👉 1. Count occurrences of each num in nums
-    # 👉 2. Sort counts.keys() by frequency descending and return [:k]
-    return []
-
-print(top_k_frequent([1, 1, 1, 2, 2, 3], 2))`,
+    pass`,
     expected_output: "[1, 2]",
     hidden_tests: `import json
 results = []
