@@ -233,7 +233,15 @@ const ORPHANED_DUPLICATE_LESSON_IDS = new Set([
 ]);
 
 export function mergeCurriculumLessons<
-  T extends { id: string; track: string; lesson_order: number; title: string },
+  T extends {
+    id: string;
+    slug?: string;
+    track: string;
+    lesson_order: number;
+    title: string;
+    practiceChallenges?: any[];
+    practice_challenges?: any[];
+  },
 >(dbLessons: T[]): T[] {
   const seenTrackOrders = new Set<string>();
   const merged: T[] = [];
@@ -244,32 +252,54 @@ export function mergeCurriculumLessons<
     if (seenTrackOrders.has(key)) continue;
     seenTrackOrders.add(key);
 
+    const dbPracticeChallenges = Array.isArray(row.practiceChallenges)
+      ? row.practiceChallenges
+      : Array.isArray(row.practice_challenges)
+        ? row.practice_challenges
+        : undefined;
+
     if (row.track === "algorithms" && row.lesson_order === 1) {
       merged.push({
         ...row,
         ...TWO_SUM_SANITIZED_PATCH,
+        slug: row.slug || "exp-alg-01",
+        ...(dbPracticeChallenges ? { practiceChallenges: dbPracticeChallenges } : {}),
       } as T);
       continue;
     }
 
-    merged.push(row);
+    merged.push({
+      ...row,
+      slug: row.slug || `${row.track}:${row.lesson_order}`,
+      ...(dbPracticeChallenges ? { practiceChallenges: dbPracticeChallenges } : {}),
+    });
   }
 
   for (const exp of EXPANSION_LESSONS) {
     const existingIdx = merged.findIndex(
       (item) =>
         item.id === exp.id ||
+        item.slug === exp.id ||
         (item.track === exp.track &&
           (item.lesson_order === exp.lesson_order ||
             item.title.toLowerCase() === exp.title.toLowerCase())),
     );
     if (existingIdx === -1) {
-      merged.push(exp as unknown as T);
+      merged.push({
+        ...exp,
+        slug: exp.id,
+      } as unknown as T);
     } else {
-      // Upgrade older DB rows with rich local curriculum while keeping DB id for user_progress continuity.
+      // Upgrade older DB rows with rich local curriculum while keeping DB id & any DB practice challenges.
+      const existing = merged[existingIdx];
+      const existingChallenges = existing.practiceChallenges;
       merged[existingIdx] = {
         ...exp,
-        id: merged[existingIdx].id,
+        id: existing.id,
+        slug: existing.slug || exp.id,
+        ...(existingChallenges && existingChallenges.length > 0
+          ? { practiceChallenges: existingChallenges }
+          : {}),
       } as unknown as T;
     }
   }
@@ -277,11 +307,15 @@ export function mergeCurriculumLessons<
   for (let i = 0; i < merged.length; i++) {
     const item = merged[i];
     if (item.track === "python_basics") {
-      const drills = PYTHON_BASICS_PRACTICE_DRILLS[item.lesson_order];
-      if (drills && drills.length > 0) {
+      const localDrills = PYTHON_BASICS_PRACTICE_DRILLS[item.lesson_order];
+      if (
+        (!item.practiceChallenges || item.practiceChallenges.length === 0) &&
+        localDrills &&
+        localDrills.length > 0
+      ) {
         merged[i] = {
           ...item,
-          practiceChallenges: drills,
+          practiceChallenges: localDrills,
         };
       }
     }

@@ -41,7 +41,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "db:sync-sql": "node ./scripts/generate-supabase-sync-sql.mjs"
   },
   "private": true
 }

@@ -83,6 +83,13 @@ import {
   loadPyodideScript,
 } from "../utils/pyodideRunner";
 import { playVictoryFanfare } from "../utils/soundEffects";
+import {
+  CloudProgressState,
+  CurriculumProgressDeltaItem,
+  pullAndMergeCloudState,
+  pushCloudProgressState,
+  remapProgressKeysForLessons,
+} from "../utils/supabaseSync";
 
 export function generateMetadata(): Metadata {
   return {
@@ -194,27 +201,66 @@ export default function HomeScreen() {
 
   const pyodideRef = useRef<any>(null);
   const codeDraftsRef = useRef<Record<string, string>>({});
+  const lessonsRef = useRef<Lesson[]>([]);
+  const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydratedRef = useRef<boolean>(false);
+  const cloudSyncCompletedRef = useRef<boolean>(false);
   const resumePaywallAfterAuthRef = useRef<boolean>(false);
   const handledDeepLinkRef = useRef<boolean>(false);
-  const latestGuestStateRef = useRef<{
-    xpPoints: number;
-    streakCount: number;
-    completedLessons: Record<string, boolean>;
-  }>({
+  const latestGuestStateRef = useRef<CloudProgressState>({
     xpPoints: 0,
     streakCount: 0,
     completedLessons: {},
+    completedChallenges: {},
+    peekedSolutions: {},
+    solvedIncidents: {},
+    claimedChapters: {},
+    claimedStreakMilestones: {},
+    streakShields: 1,
+    dailyCompletedDate: null,
+    lastActiveDate: null,
+    activeTrack: "python_basics",
+    themeMode: "dark",
+    codeDrafts: {},
+    updatedAt: "",
   });
 
   useEffect(() => {
     if (!hydratedRef.current) return;
     latestGuestStateRef.current = {
+      completedLessons,
+      completedChallenges,
+      peekedSolutions,
+      solvedIncidents,
+      claimedChapters,
+      claimedStreakMilestones,
+      streakShields,
+      dailyCompletedDate,
+      lastActiveDate,
       xpPoints,
       streakCount,
-      completedLessons,
+      activeTrack,
+      lastLessonId: selectedLesson?.id,
+      themeMode,
+      codeDrafts: codeDraftsRef.current,
+      updatedAt: new Date().toISOString(),
     };
-  }, [xpPoints, streakCount, completedLessons]);
+  }, [
+    completedLessons,
+    completedChallenges,
+    peekedSolutions,
+    solvedIncidents,
+    claimedChapters,
+    claimedStreakMilestones,
+    streakShields,
+    dailyCompletedDate,
+    lastActiveDate,
+    xpPoints,
+    streakCount,
+    activeTrack,
+    selectedLesson?.id,
+    themeMode,
+  ]);
   const searchParams = useLocalSearchParams<{
     lesson?: string;
     mode?: string;
@@ -263,6 +309,14 @@ export default function HomeScreen() {
       usedSolutionInAttemptRef.current = false;
     }
     writeLocalJson(STORAGE_DRAFTS_KEY, codeDraftsRef.current);
+    latestGuestStateRef.current = {
+      ...latestGuestStateRef.current,
+      codeDrafts: codeDraftsRef.current,
+      updatedAt: new Date().toISOString(),
+    };
+    if (session?.user?.id && cloudSyncCompletedRef.current) {
+      scheduleBackgroundCloudSync(latestGuestStateRef.current);
+    }
   }
 
   useEffect(() => {
@@ -341,11 +395,27 @@ export default function HomeScreen() {
         : "python_basics";
     setActiveTrack(safeInitialTrack);
     latestGuestStateRef.current = {
+      completedLessons: savedState.completedLessons || {},
+      completedChallenges: savedState.completedChallenges || {},
+      peekedSolutions: savedState.peekedSolutions || {},
+      solvedIncidents: savedState.solvedIncidents || {},
+      claimedChapters: savedState.claimedChapters || {},
+      claimedStreakMilestones: savedState.claimedStreakMilestones || {},
+      streakShields:
+        typeof savedState.streakShields === "number"
+          ? savedState.streakShields
+          : 1,
+      dailyCompletedDate: savedState.dailyCompletedDate || null,
+      lastActiveDate: savedState.lastActiveDate || null,
       xpPoints:
         typeof savedState.xpPoints === "number" ? savedState.xpPoints : 0,
       streakCount:
         typeof savedState.streakCount === "number" ? savedState.streakCount : 0,
-      completedLessons: savedState.completedLessons || {},
+      activeTrack: safeInitialTrack,
+      lastLessonId: savedState.lastLessonId as string | undefined,
+      themeMode: initialTheme,
+      codeDrafts: savedDrafts,
+      updatedAt: (savedState as any).updatedAt || "",
     };
     hydratedRef.current = true;
 
@@ -372,6 +442,7 @@ export default function HomeScreen() {
           }
           syncCloudAndGuestAccount(session.user.id, session.user.email);
         } else {
+          cloudSyncCompletedRef.current = false;
           setIsPremium(false);
           setActiveTrack("python_basics");
         }
@@ -459,6 +530,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!hydratedRef.current) return;
+    const updatedAt = new Date().toISOString();
     writeLocalJson(STORAGE_STATE_KEY, {
       completedLessons,
       completedChallenges,
@@ -475,6 +547,7 @@ export default function HomeScreen() {
       activeTrack,
       lastLessonId: selectedLesson?.id,
       themeMode,
+      updatedAt,
     });
   }, [
     completedLessons,
@@ -494,6 +567,47 @@ export default function HomeScreen() {
     themeMode,
   ]);
 
+  function applyCloudSnapshotToState(snapshot: CloudProgressState) {
+    latestGuestStateRef.current = snapshot;
+    setCompletedLessons(snapshot.completedLessons);
+    setCompletedChallenges(snapshot.completedChallenges);
+    setPeekedSolutions(snapshot.peekedSolutions);
+    setSolvedIncidents(snapshot.solvedIncidents);
+    setClaimedChapters(snapshot.claimedChapters);
+    setClaimedStreakMilestones(snapshot.claimedStreakMilestones);
+    setStreakShields(snapshot.streakShields);
+    setDailyCompletedDate(snapshot.dailyCompletedDate);
+    setLastActiveDate(snapshot.lastActiveDate);
+    setXpPoints(snapshot.xpPoints);
+    setStreakCount(snapshot.streakCount);
+
+    codeDraftsRef.current = snapshot.codeDrafts || {};
+    writeLocalJson(STORAGE_DRAFTS_KEY, codeDraftsRef.current);
+
+    if (snapshot.activeTrack && TrackThemes[snapshot.activeTrack]) {
+      setActiveTrack(snapshot.activeTrack);
+    }
+    if (snapshot.themeMode === "light" || snapshot.themeMode === "dark") {
+      setThemeMode(snapshot.themeMode);
+    }
+  }
+
+  function scheduleBackgroundCloudSync(snapshot: CloudProgressState) {
+    if (!session?.user?.id) return;
+    if (cloudSyncTimerRef.current) {
+      clearTimeout(cloudSyncTimerRef.current);
+    }
+    const uid = session.user.id;
+    const email = session.user.email;
+    cloudSyncTimerRef.current = setTimeout(() => {
+      void pushCloudProgressState({
+        userId: uid,
+        userEmail: email,
+        state: snapshot,
+      });
+    }, 1200);
+  }
+
   async function fetchLessons(
     preferredTrack?: string,
     preferredLessonId?: string,
@@ -506,19 +620,32 @@ export default function HomeScreen() {
         .select("*")
         .order("lesson_order", { ascending: true });
 
+      const all = error
+        ? mergeCurriculumLessons<Lesson>([])
+        : mergeCurriculumLessons<Lesson>((data as Lesson[]) || []);
       if (error) {
         console.error("Error fetching lessons:", error);
-        const fallbackAll = mergeCurriculumLessons<Lesson>([]);
-        setLessons(fallbackAll);
-      } else {
-        const all = mergeCurriculumLessons<Lesson>((data as Lesson[]) || []);
-        setLessons(all);
+      }
+
+      lessonsRef.current = all;
+      setLessons(all);
+
+      const remappedSnapshot = remapProgressKeysForLessons(
+        all,
+        latestGuestStateRef.current,
+      );
+      if (remappedSnapshot !== latestGuestStateRef.current) {
+        applyCloudSnapshotToState(remappedSnapshot);
+      }
+
+      if (!error) {
         const targetTrack =
           preferredTrack && TrackThemes[preferredTrack]
             ? preferredTrack
             : "python_basics";
-        const candidateById = preferredLessonId
-          ? all.find((l) => l.id === preferredLessonId)
+        const resolvedPreferredId = remappedSnapshot.lastLessonId || preferredLessonId;
+        const candidateById = resolvedPreferredId
+          ? all.find((l) => l.id === resolvedPreferredId)
           : undefined;
         const allowedCandidate =
           candidateById && !isLessonLockedForUser(candidateById, canUnlockAll)
@@ -551,70 +678,17 @@ export default function HomeScreen() {
 
   async function syncCloudAndGuestAccount(userId: string, userEmail?: string) {
     try {
-      const guest = latestGuestStateRef.current;
-      const [{ data: profileData }, { data: progressRows }] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("is_premium, xp_points, streak_count")
-          .eq("id", userId)
-          .single(),
-        supabase
-          .from("user_progress")
-          .select("lesson_id, completed")
-          .eq("user_id", userId),
-      ]);
-
-      const cloudProgressMap: Record<string, boolean> = {};
-      progressRows?.forEach((row) => {
-        if (row.completed) cloudProgressMap[row.lesson_id] = true;
-      });
-
-      const cloudXp = profileData?.xp_points || 0;
-      const cloudStreak = profileData?.streak_count || 0;
-      const mergedXp = Math.max(cloudXp, guest.xpPoints);
-      const mergedStreak = Math.max(cloudStreak, guest.streakCount);
-
-      if (profileData) {
-        setIsPremium(profileData.is_premium || false);
-      }
-      setXpPoints(mergedXp);
-      setStreakCount(mergedStreak);
-      setCompletedLessons((prev) => ({ ...prev, ...cloudProgressMap }));
-
-      const shouldSyncProfileToCloud =
-        guest.xpPoints > cloudXp ||
-        guest.streakCount > cloudStreak ||
-        (!profileData && (guest.xpPoints > 0 || guest.streakCount > 0));
-
-      if (shouldSyncProfileToCloud) {
-        await supabase.from("profiles").upsert({
-          id: userId,
-          email: userEmail,
-          xp_points: mergedXp,
-          streak_count: mergedStreak,
-          last_completed_at: new Date().toISOString(),
+      const { isPremium: cloudIsPremium, mergedState } =
+        await pullAndMergeCloudState({
+          userId,
+          userEmail,
+          localState: latestGuestStateRef.current,
+          lessons: lessonsRef.current,
         });
-      }
 
-      const missingLessonIds = Object.keys(guest.completedLessons).filter(
-        (id) =>
-          guest.completedLessons[id] &&
-          !id.startsWith("exp-") &&
-          !cloudProgressMap[id],
-      );
-      if (missingLessonIds.length > 0) {
-        const timestamp = new Date().toISOString();
-        await Promise.all(
-          missingLessonIds.map((lessonId) =>
-            supabase.from("user_progress").upsert({
-              user_id: userId,
-              lesson_id: lessonId,
-              completed: true,
-              updated_at: timestamp,
-            }),
-          ),
-        );
-      }
+      setIsPremium(cloudIsPremium);
+      applyCloudSnapshotToState(mergedState);
+      cloudSyncCompletedRef.current = true;
     } catch (err) {
       console.error("Failed to sync account state:", err);
     }
@@ -718,6 +792,8 @@ export default function HomeScreen() {
   }
 
   function handleSwitchTrack(trackName: string) {
+    usedSolutionInAttemptRef.current = false;
+    setActiveChallengeIdx(0);
     setActiveTrack(trackName);
     const firstInTrack = lessons.find(
       (l) =>
@@ -876,7 +952,7 @@ export default function HomeScreen() {
             (activeChallengeIdx === 0 && completedLessons[selectedLesson.id]),
         );
         const stageXp = activePractice?.xpReward || 50;
-        const { newXp, newStreak } = recordActiveDevSession(
+        const { newXp, newStreak, newLastActiveDate } = recordActiveDevSession(
           isStageAlreadyCompleted ? 0 : stageXp,
         );
 
@@ -902,42 +978,66 @@ export default function HomeScreen() {
               ),
             ));
 
+        const nextPeekedSolutions = { ...peekedSolutions };
         if (usedSolutionInAttemptRef.current) {
-          setPeekedSolutions((prev) => ({
-            ...prev,
-            [selectedLesson.id]: true,
-          }));
-        } else if (allStagesNowDone && peekedSolutions[selectedLesson.id]) {
-          setPeekedSolutions((prev) => {
-            const next = { ...prev };
-            delete next[selectedLesson.id];
-            return next;
-          });
+          nextPeekedSolutions[selectedLesson.id] = true;
+          setPeekedSolutions(nextPeekedSolutions);
+        } else if (allStagesNowDone && nextPeekedSolutions[selectedLesson.id]) {
+          delete nextPeekedSolutions[selectedLesson.id];
+          setPeekedSolutions(nextPeekedSolutions);
         }
 
+        const nextCompletedLessons = allStagesNowDone
+          ? { ...completedLessons, [selectedLesson.id]: true }
+          : completedLessons;
         if (allStagesNowDone) {
-          setCompletedLessons((prev) => ({
-            ...prev,
-            [selectedLesson.id]: true,
-          }));
+          setCompletedLessons(nextCompletedLessons);
         }
+
+        const nextSnapshot: CloudProgressState = {
+          ...latestGuestStateRef.current,
+          completedLessons: nextCompletedLessons,
+          completedChallenges: nextCompletedChallenges,
+          peekedSolutions: nextPeekedSolutions,
+          xpPoints: newXp,
+          streakCount: newStreak,
+          lastActiveDate: newLastActiveDate,
+          codeDrafts: codeDraftsRef.current,
+          updatedAt: new Date().toISOString(),
+        };
+        latestGuestStateRef.current = nextSnapshot;
 
         if (session) {
-          if (allStagesNowDone && !selectedLesson.id.startsWith("exp-")) {
-            await supabase.from("user_progress").upsert({
-              user_id: session.user.id,
-              lesson_id: selectedLesson.id,
+          const deltaItems: CurriculumProgressDeltaItem[] = [
+            {
+              itemKey: stageKey,
+              itemType: "stage",
+              lessonId: selectedLesson.id,
               completed: true,
-              updated_at: new Date().toISOString(),
-            });
-          }
-
-          await supabase.from("profiles").upsert({
-            id: session.user.id,
-            email: session.user.email,
-            xp_points: newXp,
-            streak_count: newStreak,
-            last_completed_at: new Date().toISOString(),
+            },
+          ];
+          const updatedLessonObj = {
+            ...selectedLesson,
+          };
+          const lessonStars = getLessonStarRating(
+            updatedLessonObj,
+            nextCompletedLessons,
+            nextCompletedChallenges,
+            nextPeekedSolutions,
+          );
+          deltaItems.push({
+            itemKey: selectedLesson.id,
+            itemType: "lesson",
+            lessonId: selectedLesson.id,
+            completed: allStagesNowDone,
+            peekedSolution: Boolean(nextPeekedSolutions[selectedLesson.id]),
+            stars: lessonStars,
+          });
+          await pushCloudProgressState({
+            userId: session.user.id,
+            userEmail: session.user.email,
+            state: nextSnapshot,
+            deltaItems,
           });
         }
       }
@@ -948,38 +1048,57 @@ export default function HomeScreen() {
 
   async function handleAwardBugHuntXp(xpEarned: number, incidentId: string) {
     const alreadySolved = solvedIncidents[incidentId];
-    setSolvedIncidents((prev) => ({ ...prev, [incidentId]: true }));
+    const nextSolvedIncidents = { ...solvedIncidents, [incidentId]: true };
+    setSolvedIncidents(nextSolvedIncidents);
     if (alreadySolved) return;
 
-    const { newXp, newStreak } = recordActiveDevSession(xpEarned);
+    const { newXp, newStreak, newLastActiveDate } =
+      recordActiveDevSession(xpEarned);
+    const nextSnapshot: CloudProgressState = {
+      ...latestGuestStateRef.current,
+      solvedIncidents: nextSolvedIncidents,
+      xpPoints: newXp,
+      streakCount: newStreak,
+      lastActiveDate: newLastActiveDate,
+      updatedAt: new Date().toISOString(),
+    };
+    latestGuestStateRef.current = nextSnapshot;
 
     if (session) {
-      try {
-        await supabase.from("profiles").upsert({
-          id: session.user.id,
-          email: session.user.email,
-          xp_points: newXp,
-          streak_count: newStreak,
-          last_completed_at: new Date().toISOString(),
-        });
-      } catch (_e) {}
+      await pushCloudProgressState({
+        userId: session.user.id,
+        userEmail: session.user.email,
+        state: nextSnapshot,
+        deltaItems: [
+          {
+            itemKey: incidentId,
+            itemType: "bug_incident",
+            completed: true,
+          },
+        ],
+      });
     }
   }
 
   async function handleAwardBlitzXp(xpEarned: number) {
     if (xpEarned <= 0) return;
-    const { newXp, newStreak } = recordActiveDevSession(xpEarned);
+    const { newXp, newStreak, newLastActiveDate } =
+      recordActiveDevSession(xpEarned);
+    const nextSnapshot: CloudProgressState = {
+      ...latestGuestStateRef.current,
+      xpPoints: newXp,
+      streakCount: newStreak,
+      lastActiveDate: newLastActiveDate,
+      updatedAt: new Date().toISOString(),
+    };
+    latestGuestStateRef.current = nextSnapshot;
 
     if (session) {
-      try {
-        await supabase.from("profiles").upsert({
-          id: session.user.id,
-          email: session.user.email,
-          xp_points: newXp,
-          streak_count: newStreak,
-          last_completed_at: new Date().toISOString(),
-        });
-      } catch (_e) {}
+      await pushCloudProgressState({
+        userId: session.user.id,
+        userEmail: session.user.email,
+        state: nextSnapshot,
+      });
     }
   }
 
@@ -1034,7 +1153,8 @@ export default function HomeScreen() {
     playVictoryFanfare();
     const newXp = xpPoints + bonusXp;
     const newStreak = streakCount === 0 ? 1 : streakCount;
-    setClaimedChapters((prev) => ({ ...prev, [chapterKey]: true }));
+    const nextClaimedChapters = { ...claimedChapters, [chapterKey]: true };
+    setClaimedChapters(nextClaimedChapters);
     setXpPoints(newXp);
     setStreakCount(newStreak);
 
@@ -1046,16 +1166,28 @@ export default function HomeScreen() {
       openChapterCertificate(trackKey, chapterMeta, newXp, newStreak);
     }
 
+    const nextSnapshot: CloudProgressState = {
+      ...latestGuestStateRef.current,
+      claimedChapters: nextClaimedChapters,
+      xpPoints: newXp,
+      streakCount: newStreak,
+      updatedAt: new Date().toISOString(),
+    };
+    latestGuestStateRef.current = nextSnapshot;
+
     if (session) {
-      try {
-        await supabase.from("profiles").upsert({
-          id: session.user.id,
-          email: session.user.email,
-          xp_points: newXp,
-          streak_count: newStreak,
-          last_completed_at: new Date().toISOString(),
-        });
-      } catch (_e) {}
+      await pushCloudProgressState({
+        userId: session.user.id,
+        userEmail: session.user.email,
+        state: nextSnapshot,
+        deltaItems: [
+          {
+            itemKey: chapterKey,
+            itemType: "chapter",
+            completed: true,
+          },
+        ],
+      });
     }
   }
 
@@ -1412,10 +1544,15 @@ export default function HomeScreen() {
                     lessonEnrichment={lessonEnrichment}
                     onLoadGuidedSteps={(guidedCode) => {
                       usedSolutionInAttemptRef.current = true;
-                      setPeekedSolutions((prev) => ({
-                        ...prev,
+                      const nextPeeked = {
+                        ...peekedSolutions,
                         [selectedLesson.id]: true,
-                      }));
+                      };
+                      setPeekedSolutions(nextPeeked);
+                      latestGuestStateRef.current = {
+                        ...latestGuestStateRef.current,
+                        peekedSolutions: nextPeeked,
+                      };
                       updateCodeWithDraft(
                         guidedCode,
                         selectedLesson,

@@ -38,6 +38,7 @@ export interface PracticeChallenge {
 
 export interface Lesson {
   id: string;
+  slug?: string;
   title: string;
   track: string;
   category?: string;
