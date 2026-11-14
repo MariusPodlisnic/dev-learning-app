@@ -1,6 +1,7 @@
 "use no memo";
 
 import { Session } from "@supabase/supabase-js";
+import { router } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Animated,
@@ -519,6 +520,19 @@ export default function AppHeader({
               >
                 {isPremium ? "🔬 ALGO LAB" : "🔒 ALGO LAB"}
               </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.modeBtn,
+                pressed && { transform: [{ translateY: 1 }] },
+              ]}
+              onPress={() => {
+                playKeyClick();
+                router.push("/explore");
+              }}
+            >
+              <Text style={styles.modeBtnText}>📖 SHOWCASE</Text>
             </Pressable>
           </View>
         </View>
