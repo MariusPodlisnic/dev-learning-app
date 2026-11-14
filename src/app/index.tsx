@@ -210,6 +210,7 @@ export default function HomeScreen() {
     lesson?: string;
     mode?: string;
     track?: string;
+    paywall?: string;
     utm_source?: string;
     utm_medium?: string;
     utm_campaign?: string;
@@ -374,9 +375,15 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (handledDeepLinkRef.current) return;
-    const { lesson, mode, track } = searchParams;
-    if (!lesson && !mode && !track) return;
+    const { lesson, mode, track, paywall } = searchParams;
+    if (!lesson && !mode && !track && !paywall) return;
 
+    if (paywall === "1") {
+      handledDeepLinkRef.current = true;
+      setPaywallContext({ source: "header" });
+      setShowPaywallModal(true);
+      return;
+    }
     if (mode === "bughunt") {
       handledDeepLinkRef.current = true;
       setViewMode("bughunt");
@@ -390,6 +397,11 @@ export default function HomeScreen() {
     if (mode === "algolab") {
       handledDeepLinkRef.current = true;
       setViewMode("algolab");
+      return;
+    }
+    if (mode === "achievements") {
+      handledDeepLinkRef.current = true;
+      setViewMode("achievements");
       return;
     }
     if (lessons.length === 0) return;

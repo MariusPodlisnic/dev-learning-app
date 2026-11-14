@@ -547,7 +547,10 @@ export default function AppHeader({
                   transform: [{ translateX: 1 }, { translateY: 1 }],
                 },
               ]}
-              onPress={onOpenProfile}
+              onPress={() => {
+                playKeyClick();
+                onOpenProfile();
+              }}
             >
               {/* 1. Profile & Developer Rank Box */}
               <View style={styles.rankPill}>
@@ -632,7 +635,10 @@ export default function AppHeader({
                     transform: [{ translateX: 2 }, { translateY: 2 }],
                   },
                 ]}
-                onPress={onOpenPaywall}
+                onPress={() => {
+                  playKeyClick();
+                  onOpenPaywall();
+                }}
               >
                 <View style={styles.headerBtnTextStack}>
                   {!isCompactHeader && (
@@ -660,7 +666,10 @@ export default function AppHeader({
                       transform: [{ translateX: 1 }, { translateY: 1 }],
                     },
                   ]}
-                  onPress={onSignOut}
+                  onPress={() => {
+                    playKeyClick();
+                    onSignOut();
+                  }}
                 >
                   <View style={styles.headerBtnTextStack}>
                     {!isCompactHeader && (
@@ -681,7 +690,10 @@ export default function AppHeader({
                     transform: [{ translateX: 2 }, { translateY: 2 }],
                   },
                 ]}
-                onPress={onOpenAuth}
+                onPress={() => {
+                  playKeyClick();
+                  onOpenAuth();
+                }}
               >
                 <View style={styles.headerBtnTextStack}>
                   {!isCompactHeader && (

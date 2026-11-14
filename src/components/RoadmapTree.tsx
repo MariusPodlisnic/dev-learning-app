@@ -466,7 +466,10 @@ function InteractiveLessonNode({
         }}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
-        onPress={onPress}
+        onPress={() => {
+          playKeyClick();
+          onPress();
+        }}
         style={[
           styles.nodeCard,
           isDone && styles.nodeCardDone,
@@ -541,7 +544,10 @@ function TrackPathCard({
           hovered && !isSelected && styles.trackPathCardHover,
           pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
         ]}
-        onPress={onPress}
+        onPress={() => {
+          playKeyClick();
+          onPress();
+        }}
       >
         <View style={styles.trackPathTopRow}>
           <View
@@ -1118,7 +1124,10 @@ export default function RoadmapTree({
                       { backgroundColor: currentTrackMeta.stickerBg },
                     ],
                   ]}
-                  onPress={() => setStatusFilter(f.id)}
+                  onPress={() => {
+                    playKeyClick();
+                    setStatusFilter(f.id);
+                  }}
                 >
                   <Text
                     style={[
@@ -1154,9 +1163,10 @@ export default function RoadmapTree({
                       { backgroundColor: StudioColors.yellow },
                     ],
                   ]}
-                  onPress={() =>
-                    setChapterFilter((prev) => (prev === ch.id ? null : ch.id))
-                  }
+                  onPress={() => {
+                    playKeyClick();
+                    setChapterFilter((prev) => (prev === ch.id ? null : ch.id));
+                  }}
                 >
                   <Text
                     style={[
