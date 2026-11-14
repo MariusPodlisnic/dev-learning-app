@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "./StudioIcon";
 import {
   CertificateData,
   getUnlockedCertificates,
@@ -237,7 +238,7 @@ export default function ProfileStatsModal({
               </View>
             </View>
             <Text style={styles.rankTagline} numberOfLines={2}>
-              "{rank.tagline}"
+              &ldquo;{rank.tagline}&rdquo;
             </Text>
             <Text style={styles.emailText} numberOfLines={1}>
               {userEmail ? userEmail : "Guest Profile · Not synced to cloud"}

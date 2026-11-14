@@ -4,9 +4,9 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
+import { Text } from "./StudioIcon";
 import { LessonEnrichment } from "../constants/curriculum";
 import { getLessonToolbox } from "../constants/curriculumData/lessonToolboxes";
 import {
@@ -191,7 +191,7 @@ export default function LessonProblemPanel({
               activeTab === "problem" && styles.activeTabText,
             ]}
           >
-            02. LEARN & TOOLS
+            02. 🧰 LEARN & TOOLS
           </Text>
         </Pressable>
         <Pressable
@@ -207,7 +207,7 @@ export default function LessonProblemPanel({
               activeTab === "visual" && styles.activeTabText,
             ]}
           >
-            03. MEMORY SIM
+            03. 💾 MEMORY SIM
           </Text>
         </Pressable>
       </View>
@@ -289,14 +289,16 @@ export default function LessonProblemPanel({
           >
             <View style={styles.conceptTopRow}>
               <View style={styles.sectionStickerBadge}>
-                <Text style={styles.sectionHeaderLabel}>LEARN THE CONCEPT</Text>
+                <Text style={styles.sectionHeaderLabel}>
+                  📖 LEARN THE CONCEPT
+                </Text>
               </View>
               <View style={styles.explainStyleSwitcher}>
                 {(
                   [
-                    { id: "guide", label: "FULL GUIDE" },
-                    { id: "analogy", label: "SIMPLE ANALOGY" },
-                    { id: "cheatsheet", label: "CHEAT SHEET" },
+                    { id: "guide", label: "📖 FULL GUIDE" },
+                    { id: "analogy", label: "💡 SIMPLE ANALOGY" },
+                    { id: "cheatsheet", label: "⚡ CHEAT SHEET" },
                   ] as const
                 ).map((mode) => {
                   const isActiveStyle = explainStyle === mode.id;
@@ -327,7 +329,7 @@ export default function LessonProblemPanel({
               <View style={styles.analogyContainer}>
                 <View style={styles.realWorldBanner}>
                   <Text style={styles.realWorldLabel}>
-                    WHY THIS MATTERS IN REAL APPS
+                    🚀 WHY THIS MATTERS IN REAL APPS
                   </Text>
                   <Text style={styles.realWorldText}>
                     {lessonEnrichment.realWorldUse}
@@ -351,7 +353,7 @@ export default function LessonProblemPanel({
                 <View style={styles.codeBlockContainer}>
                   <View style={styles.codeBlockHeader}>
                     <Text style={styles.codeBlockLang}>
-                      PYTHON SYNTAX PATTERN
+                      🐍 PYTHON SYNTAX PATTERN
                     </Text>
                   </View>
                   <Text style={styles.codeBlockText}>

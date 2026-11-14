@@ -7,9 +7,9 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
+import { Text } from "./StudioIcon";
 import {
   getHoursUntilMidnight,
   getTodayDateKey,
@@ -550,10 +550,10 @@ const IDLE_BREAK_META: Record<
   Exclude<IdleBreakAction, null>,
   { bubble: string; whisper: string }
 > = {
-  sip: { bubble: "☕ SIP... AHH!", whisper: "☕ SIPPING COFFEE..." },
-  stretch: { bubble: "✨ BIIIG STRETCH!", whisper: "🙆‍♂️ BIG COZY STRETCH!" },
-  swat: { bubble: "💥 BUG BOOPED!", whisper: "🪲 SWATTED A BUG!" },
-  jam: { bubble: "✓ TESTS PASSED!", whisper: "🎧 CODE COMPILED JAM!" },
+  sip: { bubble: "SIP... AHH!", whisper: "☕ SIPPING COFFEE..." },
+  stretch: { bubble: "BIIIG STRETCH!", whisper: "🙆‍♂️ BIG COZY STRETCH!" },
+  swat: { bubble: "BUG BOOPED!", whisper: "🪲 SWATTED A BUG!" },
+  jam: { bubble: "TESTS PASSED!", whisper: "🎧 CODE COMPILED JAM!" },
 };
 
 const KEYCAP_PALETTE = ["#FFDE59", "#6EE7B7", "#FF90E8", "#A3E635", "#38BDF8"];
@@ -1420,20 +1420,42 @@ function CozyCodingByteCatStage({
         {bubbleLabel && (
           <g>
             <rect
-              x="58"
+              x="54"
               y="14"
-              width="124"
+              width="132"
               height="22"
               rx="11"
               fill="#FFDE59"
               stroke="#111111"
               strokeWidth="2.2"
             />
+            <circle
+              cx="69"
+              cy="25"
+              r="6"
+              fill={
+                effectiveAction === "sip"
+                  ? "#FF90E8"
+                  : effectiveAction === "swat"
+                    ? "#FF6B6B"
+                    : "#6EE7B7"
+              }
+              stroke="#111111"
+              strokeWidth="1.5"
+            />
+            <path
+              d="M66.5 25 L68.5 27 L72 23"
+              fill="none"
+              stroke="#111111"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
             <text
-              x="120"
+              x="126"
               y="29"
               textAnchor="middle"
-              fontSize="12"
+              fontSize="11.5"
               fontWeight="900"
               fill="#111111"
             >

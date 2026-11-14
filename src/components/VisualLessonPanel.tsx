@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./StudioIcon";
 import {
   HardShadow,
   HardShadowSm,
@@ -26,8 +27,8 @@ interface VisualLessonPanelProps {
 function getTraceMeta(type: string) {
   if (type === "memory") {
     return {
-      badge: "VARIABLE MAP",
-      title: "HOW VALUES ARE STORED",
+      badge: "💾 VARIABLE MAP",
+      title: "🧠 HOW VALUES ARE STORED",
       guide:
         "Each row shows a variable or expression on the left and the value it holds on the right. Tap any row or use Step Next ▶.",
       leftHeader: "NAME / INPUT",
@@ -36,8 +37,8 @@ function getTraceMeta(type: string) {
   }
   if (type === "hashmap") {
     return {
-      badge: "KEY → VALUE TRACE",
-      title: "LOOKUP & MAPPING TRACE",
+      badge: "🔍 KEY → VALUE TRACE",
+      title: "⚡ LOOKUP & MAPPING TRACE",
       guide:
         "Follow each step in order to see how items are checked, grouped, or stored for instant O(1) lookup.",
       leftHeader: "KEY / INPUT",
@@ -45,8 +46,8 @@ function getTraceMeta(type: string) {
     };
   }
   return {
-    badge: "STEP-BY-STEP TRACE",
-    title: "EXECUTION WALKTHROUGH",
+    badge: "🔬 STEP-BY-STEP TRACE",
+    title: "🚀 EXECUTION WALKTHROUGH",
     guide:
       "Follow how the logic progresses from Step 1 to the final answer. Past steps show ✓ so you can track what already ran.",
     leftHeader: "STEP INPUT",
@@ -202,7 +203,9 @@ export default function VisualLessonPanel({
 
         {/* Beginner Friendly Guide Banner */}
         <View style={styles.beginnerBanner}>
-          <Text style={styles.beginnerBannerLabel}>HOW TO READ THIS TRACE</Text>
+          <Text style={styles.beginnerBannerLabel}>
+            💡 HOW TO READ THIS TRACE
+          </Text>
           <Text style={styles.beginnerBannerText}>{meta.guide}</Text>
         </View>
 

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./StudioIcon";
 import { getTodayDateKey } from "../constants/streaks";
 import { getLessonEnrichment } from "../constants/curriculum";
 import {

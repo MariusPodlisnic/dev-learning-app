@@ -9,10 +9,10 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
 } from "react-native";
+import { Text } from "../components/StudioIcon";
 import ExplorePythonSandbox from "../components/ExplorePythonSandbox";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
 import {

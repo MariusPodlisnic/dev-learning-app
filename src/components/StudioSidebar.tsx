@@ -7,10 +7,10 @@ import {
   ScrollView,
   StyleProp,
   StyleSheet,
-  Text,
   View,
   ViewStyle,
 } from "react-native";
+import { Text } from "./StudioIcon";
 import {
   HardShadow,
   HardShadowSm,

@@ -4,10 +4,10 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
+import { Text } from "./StudioIcon";
 import { supabase } from "../../lib/supabase";
 import { StudioColors } from "../constants/theme";
 import {

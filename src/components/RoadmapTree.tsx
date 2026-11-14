@@ -9,11 +9,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
+import { Text } from "./StudioIcon";
 import {
   ChapterTierMeta,
   TRACK_CHAPTERS,

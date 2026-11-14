@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "./StudioIcon";
 import {
   HardShadow,
   HardShadowHero,
@@ -152,7 +153,9 @@ export default function SuccessModal({
         </View>
 
         <Text style={styles.rankTitleText}>{currentRank.title}</Text>
-        <Text style={styles.rankTaglineText}>"{currentRank.tagline}"</Text>
+        <Text style={styles.rankTaglineText}>
+          &ldquo;{currentRank.tagline}&rdquo;
+        </Text>
 
         <View style={styles.rankBarTrack}>
           <View
@@ -181,7 +184,7 @@ export default function SuccessModal({
               ☁️ SAVE YOUR {totalXp} XP PROGRESS
             </Text>
             <Text style={styles.guestSaveSub}>
-              You've solved {totalSolvedCount} modules—lock your streak into a
+              You&apos;ve solved {totalSolvedCount} modules—lock your streak into a
               free cloud account.
             </Text>
           </View>
