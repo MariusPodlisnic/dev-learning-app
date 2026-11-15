@@ -608,56 +608,95 @@ export default function AppHeader({
               }}
             >
               {/* 1. Profile & Developer Rank Box */}
-              <View style={styles.rankPill}>
+              <View
+                style={[
+                  styles.rankPill,
+                  themeMode === "light"
+                    ? styles.rankPillLight
+                    : styles.rankPillDark,
+                ]}
+              >
                 <View style={styles.rankAvatarFrame}>
                   <StudioIcon
                     name={devRank.avatarIcon ?? getLevelAvatarIcon(devRank.level)}
-                    size={isCompactHeader ? 24 : 28}
+                    size={isCompactHeader ? 20 : 22}
                   />
                 </View>
                 <View style={styles.rankLevelBadge}>
-                  <StudioIcon name="menu_account_rank" size={14} />
+                  <StudioIcon name="menu_account_rank" size={12} />
                   <Text style={styles.rankLevelBadgeText}>
                     LVL {devRank.level}
                   </Text>
                 </View>
                 <View style={styles.headerBtnTextStack}>
                   {!isCompactHeader && (
-                    <Text style={styles.headerBtnMicroLabel}>
+                    <Text
+                      style={[
+                        styles.headerMicroBase,
+                        themeMode === "light"
+                          ? styles.rankMicroLight
+                          : styles.rankMicroDark,
+                      ]}
+                    >
                       MY PROFILE &amp; STATS ↗
                     </Text>
                   )}
-                  <Text style={styles.rankPillText}>
+                  <Text style={[styles.headerMainBase, styles.rankPillText]}>
                     {isCompactHeader ? "PROFILE ↗" : devRank.title.toUpperCase()}
                   </Text>
                 </View>
               </View>
 
               {/* 2. Daily Streak Telemetry Box */}
-              <View style={styles.statPill}>
+              <View
+                style={[
+                  styles.statPill,
+                  themeMode === "light"
+                    ? styles.statPillLight
+                    : styles.statPillDark,
+                ]}
+              >
+                <StudioIcon
+                  name="flame"
+                  size={isCompactHeader ? 16 : 18}
+                />
                 <View style={styles.headerBtnTextStack}>
                   {!isCompactHeader && (
-                    <Text style={styles.headerBtnMicroLabel}>DAILY STREAK</Text>
+                    <Text
+                      style={[
+                        styles.headerMicroBase,
+                        themeMode === "light"
+                          ? styles.statMicroLight
+                          : styles.statMicroDark,
+                      ]}
+                    >
+                      DAILY STREAK
+                    </Text>
                   )}
-                  <Text style={styles.statText}>
-                    🔥 {streakCount}{" "}
+                  <Text
+                    style={[
+                      styles.headerMainBase,
+                      styles.statText,
+                      themeMode === "light"
+                        ? styles.statTextLight
+                        : styles.statTextDark,
+                    ]}
+                  >
+                    {streakCount}{" "}
                     {isCompactHeader ? "D" : streakCount === 1 ? "DAY" : "DAYS"}
                   </Text>
                 </View>
               </View>
-
-              {isPremium && (
-                <View style={styles.proBadge}>
-                  <StudioIcon name="pro_member" size={18} />
-                  <Text style={styles.proBadgeText}>PRO MEMBER</Text>
-                </View>
-              )}
             </Pressable>
 
             {/* 2b. Dedicated Achievements Tab Button */}
             <Pressable
               style={({ pressed }) => [
                 styles.achievementsTabBtn,
+                themeMode === "light"
+                  ? styles.achievementsTabBtnCalmLight
+                  : styles.achievementsTabBtnCalmDark,
+                isCompactHeader && styles.headerActionBoxCompact,
                 viewMode === "achievements" && styles.achievementsTabBtnActive,
                 pressed && {
                   transform: [{ translateX: 1 }, { translateY: 1 }],
@@ -666,12 +705,18 @@ export default function AppHeader({
               onPress={() => handleSwitchMode("achievements")}
             >
               <View style={styles.achievementsBtnRow}>
-                <StudioIcon name="nav_achievements" size={18} />
+                <StudioIcon
+                  name="nav_achievements"
+                  size={isCompactHeader ? 16 : 18}
+                />
                 <View style={styles.headerBtnTextStack}>
                   {!isCompactHeader && (
                     <Text
                       style={[
-                        styles.headerBtnMicroLabelMuted,
+                        styles.headerMicroBase,
+                        themeMode === "light"
+                          ? styles.achievementsCalmMicroLight
+                          : styles.achievementsCalmMicroDark,
                         viewMode === "achievements" &&
                           styles.headerBtnMicroLabel,
                       ]}
@@ -681,6 +726,7 @@ export default function AppHeader({
                   )}
                   <Text
                     style={[
+                      styles.headerMainBase,
                       styles.achievementsTabBtnText,
                       viewMode === "achievements" &&
                         styles.achievementsTabBtnTextActive,
@@ -692,11 +738,57 @@ export default function AppHeader({
               </View>
             </Pressable>
 
-            {/* 3. Unlock Pro Primary CTA Box */}
-            {!isPremium && (
+            {/* 3. Pro Membership Box (stays in place between Free & Pro) */}
+            {isPremium ? (
+              <View
+                style={[
+                  styles.proBadge,
+                  themeMode === "light"
+                    ? styles.proBadgeLight
+                    : styles.proBadgeDark,
+                  isCompactHeader && styles.headerActionBoxCompact,
+                ]}
+              >
+                <StudioIcon
+                  name="pro_member"
+                  size={isCompactHeader ? 16 : 18}
+                />
+                <View style={styles.headerBtnTextStack}>
+                  {!isCompactHeader && (
+                    <Text
+                      style={[
+                        styles.headerMicroBase,
+                        themeMode === "light"
+                          ? styles.proBadgeMicroLight
+                          : styles.proBadgeMicroDark,
+                      ]}
+                    >
+                      ALL TRACKS UNLOCKED
+                    </Text>
+                  )}
+                  <Text style={[styles.headerMainBase, styles.proBadgeText]}>
+                    PRO MEMBER
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.proStatusKeycap,
+                    themeMode === "light"
+                      ? styles.proStatusKeycapLight
+                      : styles.proStatusKeycapDark,
+                  ]}
+                >
+                  <Text style={styles.proStatusKeycapText}>PRO ✓</Text>
+                </View>
+              </View>
+            ) : (
               <Pressable
                 style={({ pressed }) => [
                   styles.upgradeHeaderBtn,
+                  themeMode === "light"
+                    ? styles.upgradeHeaderBtnLight
+                    : styles.upgradeHeaderBtnDark,
+                  isCompactHeader && styles.headerActionBoxCompact,
                   pressed && {
                     transform: [{ translateX: 2 }, { translateY: 2 }],
                   },
@@ -706,19 +798,35 @@ export default function AppHeader({
                   onOpenPaywall();
                 }}
               >
-                <StudioIcon name="pro_member" size={19} />
+                <StudioIcon
+                  name="pro_member"
+                  size={isCompactHeader ? 16 : 18}
+                />
                 <View style={styles.headerBtnTextStack}>
                   {!isCompactHeader && (
-                    <Text style={styles.headerBtnMicroLabel}>
+                    <Text
+                      style={[
+                        styles.headerMicroBase,
+                        themeMode === "light"
+                          ? styles.upgradeMicroLight
+                          : styles.upgradeMicroDark,
+                      ]}
+                    >
                       UNLOCK ALL 3 TRACKS
                     </Text>
                   )}
-                  <Text style={styles.upgradeHeaderBtnText}>
+                  <Text
+                    style={[styles.headerMainBase, styles.upgradeHeaderBtnText]}
+                  >
                     {isCompactHeader ? "GET PRO" : "UPGRADE TO PRO"}
                   </Text>
                 </View>
-                <View style={styles.headerCtaKeycap}>
-                  <StudioIcon name="pro_member" size={14} />
+                <View
+                  style={[
+                    styles.headerCtaKeycap,
+                    themeMode === "dark" && styles.headerCtaKeycapPinkDark,
+                  ]}
+                >
                   <Text style={styles.headerCtaKeycapPinkText}>PRO →</Text>
                 </View>
               </Pressable>
@@ -730,6 +838,10 @@ export default function AppHeader({
                 <Pressable
                   style={({ pressed }) => [
                     styles.authBtn,
+                    themeMode === "light"
+                      ? styles.saveBtnLight
+                      : styles.saveBtnDark,
+                    isCompactHeader && styles.headerActionBoxCompact,
                     pressed && {
                       transform: [{ translateX: 1 }, { translateY: 1 }],
                     },
@@ -739,13 +851,23 @@ export default function AppHeader({
                     onSignOut();
                   }}
                 >
+                  <StudioIcon name="lock" size={isCompactHeader ? 16 : 18} />
                   <View style={styles.headerBtnTextStack}>
                     {!isCompactHeader && (
-                      <Text style={styles.headerBtnMicroLabelMuted}>
-                        ☁️ CLOUD SYNCED ✓
+                      <Text
+                        style={[
+                          styles.headerMicroBase,
+                          themeMode === "light"
+                            ? styles.saveMicroLight
+                            : styles.saveMicroDark,
+                        ]}
+                      >
+                        CLOUD SYNCED ✓
                       </Text>
                     )}
-                    <Text style={styles.authBtnText}>🔒 SIGN OUT</Text>
+                    <Text style={[styles.headerMainBase, styles.authBtnText]}>
+                      SIGN OUT
+                    </Text>
                   </View>
                 </Pressable>
               </View>
@@ -754,6 +876,10 @@ export default function AppHeader({
                 style={({ pressed }) => [
                   styles.authBtn,
                   styles.loginBtn,
+                  themeMode === "light"
+                    ? styles.saveBtnLight
+                    : styles.saveBtnDark,
+                  isCompactHeader && styles.headerActionBoxCompact,
                   pressed && {
                     transform: [{ translateX: 2 }, { translateY: 2 }],
                   },
@@ -763,17 +889,30 @@ export default function AppHeader({
                   onOpenAuth();
                 }}
               >
+                <StudioIcon name="cloud" size={isCompactHeader ? 16 : 18} />
                 <View style={styles.headerBtnTextStack}>
                   {!isCompactHeader && (
-                    <Text style={styles.headerBtnMicroLabel}>
-                      ☁️ FREE CLOUD BACKUP
+                    <Text
+                      style={[
+                        styles.headerMicroBase,
+                        themeMode === "light"
+                          ? styles.saveMicroLight
+                          : styles.saveMicroDark,
+                      ]}
+                    >
+                      FREE CLOUD BACKUP
                     </Text>
                   )}
-                  <Text style={styles.loginBtnText}>
-                    💾 {isCompactHeader ? "SAVE" : "SAVE PROGRESS"}
+                  <Text style={[styles.headerMainBase, styles.loginBtnText]}>
+                    {isCompactHeader ? "SAVE" : "SAVE PROGRESS"}
                   </Text>
                 </View>
-                <View style={styles.headerCtaKeycap}>
+                <View
+                  style={[
+                    styles.headerCtaKeycap,
+                    themeMode === "dark" && styles.headerCtaKeycapLimeDark,
+                  ]}
+                >
                   <Text style={styles.headerCtaKeycapLimeText}>SIGN IN →</Text>
                 </View>
               </Pressable>
@@ -826,8 +965,12 @@ export default function AppHeader({
               ]}
               onPress={handleToggleSfx}
             >
+              <StudioIcon
+                name={sfxOn ? "sound_on" : "sound_off"}
+                size={14}
+              />
               <Text style={styles.themeToggleBtnText}>
-                {sfxOn ? "🔊 SFX" : "🔇 MUTE"}
+                {sfxOn ? "SFX" : "MUTE"}
               </Text>
             </Pressable>
 
@@ -842,7 +985,7 @@ export default function AppHeader({
                 onPress={handleToggleHaptics}
               >
                 <Text style={styles.themeToggleBtnText}>
-                  {hapticsOn ? "📳 HAPTIC" : "📴 NO HAPTIC"}
+                  {hapticsOn ? "HAPTIC" : "NO HAPTIC"}
                 </Text>
               </Pressable>
             ) : null}
@@ -859,8 +1002,12 @@ export default function AppHeader({
                 onToggleTheme();
               }}
             >
+              <StudioIcon
+                name={themeMode === "light" ? "moon" : "sun"}
+                size={14}
+              />
               <Text style={styles.themeToggleBtnText}>
-                {themeMode === "light" ? "☾ DARK" : "☀ LIGHT"}
+                {themeMode === "light" ? "DARK" : "LIGHT"}
               </Text>
             </Pressable>
           </View>
@@ -1075,7 +1222,7 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     },
     categoryItemsRow: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "stretch",
       flexWrap: "wrap",
       gap: 6,
     },
@@ -1117,6 +1264,8 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     modeBtnText: {
       color: StudioColors.textPrimary,
       fontSize: 10.5,
+      lineHeight: 13,
+      includeFontPadding: false,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.5,
@@ -1149,6 +1298,8 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     statusText: {
       color: StudioColors.textPrimary,
       fontSize: 10,
+      lineHeight: 12,
+      includeFontPadding: false,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,
@@ -1160,12 +1311,18 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       borderRadius: 7,
       borderWidth: 1.5,
       borderColor: StudioColors.border,
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 5,
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     themeToggleBtnText: {
       color: StudioColors.textPrimary,
       fontSize: 10,
+      lineHeight: 12,
+      includeFontPadding: false,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.5,
@@ -1179,36 +1336,70 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     headerBtnTextStack: {
       flexDirection: "column",
       justifyContent: "center",
-      gap: 1,
+      alignItems: "flex-start",
+      gap: 2,
+    },
+    headerMicroBase: {
+      fontSize: 7.5,
+      lineHeight: 10,
+      includeFontPadding: false,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+      textAlign: "left",
+    },
+    headerMainBase: {
+      fontSize: 9.5,
+      lineHeight: 12,
+      includeFontPadding: false,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+      textAlign: "left",
     },
     headerBtnMicroLabel: {
       color: "rgba(17, 17, 17, 0.72)",
-      fontSize: 8,
+      fontSize: 7.5,
+      lineHeight: 10,
+      includeFontPadding: false,
       fontWeight: "900",
       fontFamily: MonoFont,
-      letterSpacing: 0.5,
-    },
-    headerBtnMicroLabelMuted: {
-      color: StudioColors.textMuted,
-      fontSize: 8,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.5,
+      letterSpacing: 0.45,
     },
     rankPill: {
-      backgroundColor: StudioColors.violet,
-      paddingHorizontal: 9,
-      paddingVertical: 5,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
       borderRadius: 7,
       borderWidth: 2,
-      borderColor: StudioColors.ink,
       flexDirection: "row",
       alignItems: "center",
-      gap: 7,
+      gap: 6,
       ...HardShadowSm,
     },
+    rankPillDark: {
+      backgroundColor: "#252138",
+      borderColor: "#7D6BC4",
+    },
+    rankPillLight: {
+      backgroundColor: "#EDE9FE",
+      borderColor: StudioColors.ink,
+    },
+    rankMicroDark: {
+      color: "#C4B5FD",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    rankMicroLight: {
+      color: "#5B21B6",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
     rankAvatarFrame: {
-      borderRadius: 6,
+      borderRadius: 5,
       borderWidth: 1.5,
       borderColor: StudioColors.ink,
       backgroundColor: StudioColors.ink,
@@ -1217,72 +1408,175 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     rankLevelBadge: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 4,
+      gap: 3,
       backgroundColor: StudioColors.ink,
-      paddingHorizontal: 6,
-      paddingVertical: 3,
-      borderRadius: 5,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      borderRadius: 4,
     },
     rankLevelBadgeText: {
       color: StudioColors.violet,
-      fontSize: 9.5,
+      fontSize: 8.5,
+      lineHeight: 11,
+      includeFontPadding: false,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,
     },
     rankPillText: {
-      color: StudioColors.ink,
-      fontSize: 10.5,
+      color: StudioColors.textPrimary,
+      fontSize: 9.5,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,
     },
     statPill: {
-      backgroundColor: StudioColors.yellow,
-      paddingHorizontal: 10,
-      paddingVertical: 5,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
       borderRadius: 7,
       borderWidth: 2,
-      borderColor: StudioColors.ink,
-      justifyContent: "center",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
       ...HardShadowSm,
     },
+    statPillDark: {
+      backgroundColor: "#2C2219",
+      borderColor: "#B47B38",
+    },
+    statPillLight: {
+      backgroundColor: StudioColors.amberSoft,
+      borderColor: StudioColors.ink,
+    },
+    statMicroDark: {
+      color: "#F3C677",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    statMicroLight: {
+      color: "#92400E",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
     statText: {
-      color: StudioColors.ink,
-      fontSize: 10.5,
+      fontSize: 9.5,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,
     },
+    statTextDark: {
+      color: StudioColors.textPrimary,
+    },
+    statTextLight: {
+      color: StudioColors.ink,
+    },
+    headerActionBoxCompact: {
+      minHeight: 32,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
     proBadge: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 5,
-      backgroundColor: StudioColors.ink,
-      paddingHorizontal: 9,
-      paddingVertical: 5,
+      gap: 6,
+      paddingLeft: 10,
+      paddingRight: 7,
+      paddingVertical: 4,
+      minHeight: 36,
       borderRadius: 7,
-      borderWidth: 1.5,
-      borderColor: StudioColors.lime,
+      borderWidth: 2,
       justifyContent: "center",
+      ...HardShadowSm,
+    },
+    proBadgeDark: {
+      backgroundColor: "#1D2B1F",
+      borderColor: "#72A83B",
+    },
+    proBadgeLight: {
+      backgroundColor: "#ECFCCB",
+      borderColor: StudioColors.ink,
+    },
+    proBadgeMicroDark: {
+      color: StudioColors.lime,
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    proBadgeMicroLight: {
+      color: "#3F6212",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
     },
     proBadgeText: {
+      color: StudioColors.textPrimary,
+      fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+    },
+    proStatusKeycap: {
+      borderWidth: 1,
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      borderRadius: 5,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    proStatusKeycapDark: {
+      backgroundColor: "rgba(184, 255, 59, 0.16)",
+      borderColor: "rgba(184, 255, 59, 0.45)",
+    },
+    proStatusKeycapLight: {
+      backgroundColor: StudioColors.ink,
+      borderColor: StudioColors.ink,
+    },
+    proStatusKeycapText: {
       color: StudioColors.lime,
-      fontSize: 10,
+      fontSize: 8.5,
+      lineHeight: 11,
+      includeFontPadding: false,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,
     },
     achievementsTabBtn: {
-      backgroundColor: StudioColors.surface,
       paddingHorizontal: 10,
-      paddingVertical: 5,
+      paddingVertical: 4,
+      minHeight: 36,
       borderRadius: 7,
       borderWidth: 2,
-      borderColor: StudioColors.border,
       justifyContent: "center",
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    achievementsTabBtnCalmDark: {
+      backgroundColor: "#1F2E2B",
+      borderColor: "#4C796F",
+    },
+    achievementsTabBtnCalmLight: {
+      backgroundColor: "#E0F2EA",
+      borderColor: StudioColors.ink,
+    },
+    achievementsCalmMicroDark: {
+      color: "#9FD8C7",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    achievementsCalmMicroLight: {
+      color: "#295A4C",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
     },
     achievementsBtnRow: {
       flexDirection: "row",
@@ -1295,7 +1589,7 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     },
     achievementsTabBtnText: {
       color: StudioColors.textPrimary,
-      fontSize: 10.5,
+      fontSize: 9.5,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,
@@ -1304,22 +1598,43 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       color: StudioColors.ink,
     },
     upgradeHeaderBtn: {
-      backgroundColor: StudioColors.pink,
       paddingLeft: 10,
       paddingRight: 7,
-      paddingVertical: 5,
+      paddingVertical: 4,
+      minHeight: 36,
       borderRadius: 7,
       borderWidth: 2,
-      borderColor: StudioColors.ink,
       flexDirection: "row",
       alignItems: "center",
-      gap: 7,
+      gap: 6,
       ...HardShadow,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
+    upgradeHeaderBtnDark: {
+      backgroundColor: "#2E1F2B",
+      borderColor: "#B9639E",
+    },
+    upgradeHeaderBtnLight: {
+      backgroundColor: "#FCE7F3",
+      borderColor: StudioColors.ink,
+    },
+    upgradeMicroDark: {
+      color: StudioColors.pink,
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    upgradeMicroLight: {
+      color: "#9D174D",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
     upgradeHeaderBtnText: {
-      color: StudioColors.ink,
-      fontSize: 10.5,
+      color: StudioColors.textPrimary,
+      fontSize: 9.5,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,
@@ -1328,58 +1643,92 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       flexDirection: "row",
       gap: 4,
       backgroundColor: StudioColors.ink,
-      paddingHorizontal: 7,
-      paddingVertical: 4,
+      paddingHorizontal: 6,
+      paddingVertical: 3,
       borderRadius: 5,
       justifyContent: "center",
       alignItems: "center",
     },
+    headerCtaKeycapPinkDark: {
+      borderWidth: 1,
+      borderColor: "rgba(255, 144, 232, 0.4)",
+    },
+    headerCtaKeycapLimeDark: {
+      borderWidth: 1,
+      borderColor: "rgba(184, 255, 59, 0.35)",
+    },
     headerCtaKeycapPinkText: {
       color: StudioColors.pink,
-      fontSize: 9.5,
+      fontSize: 8.5,
+      lineHeight: 11,
+      includeFontPadding: false,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,
     },
     headerCtaKeycapLimeText: {
       color: StudioColors.lime,
+      fontSize: 8.5,
+      lineHeight: 11,
+      includeFontPadding: false,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+    },
+    userSection: {
+      flexDirection: "row",
+      alignItems: "stretch",
+      gap: 6,
+    },
+    authBtn: {
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      minHeight: 36,
+      borderRadius: 7,
+      borderWidth: 2,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    loginBtn: {
+      paddingLeft: 9,
+      paddingRight: 6,
+      ...HardShadow,
+    },
+    saveBtnDark: {
+      backgroundColor: "#1E292E",
+      borderColor: "#4B8396",
+    },
+    saveBtnLight: {
+      backgroundColor: "#E0F2FE",
+      borderColor: StudioColors.ink,
+    },
+    saveMicroDark: {
+      color: "#93D5EA",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    saveMicroLight: {
+      color: "#075985",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    authBtnText: {
+      color: StudioColors.textPrimary,
       fontSize: 9.5,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,
     },
-    userSection: { flexDirection: "row", alignItems: "center", gap: 8 },
-    authBtn: {
-      backgroundColor: StudioColors.surfaceElevated,
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 7,
-      borderWidth: 2,
-      borderColor: StudioColors.border,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 7,
-      ...HardShadowSm,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    loginBtn: {
-      backgroundColor: StudioColors.lime,
-      paddingLeft: 10,
-      paddingRight: 7,
-      borderWidth: 2,
-      borderColor: StudioColors.ink,
-      ...HardShadow,
-    },
-    authBtnText: {
-      color: StudioColors.textPrimary,
-      fontSize: 10.5,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.4,
-    },
     loginBtnText: {
-      color: StudioColors.ink,
-      fontSize: 10.5,
+      color: StudioColors.textPrimary,
+      fontSize: 9.5,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,

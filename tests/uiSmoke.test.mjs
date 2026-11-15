@@ -132,6 +132,10 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
   assert.ok(desktopText.includes("UPGRADE TO PRO"));
   assert.ok(desktopText.includes("ACCOUNT & RANK"));
   assert.ok(desktopText.includes("SETTINGS"));
+  assert.ok(
+    desktopText.indexOf("ACHIEVEMENTS") < desktopText.indexOf("UPGRADE TO PRO"),
+    "Achievements should precede the Pro box in Free mode",
+  );
 
   const proHeaderHtml = renderThemed(
     React.createElement(AppHeader, {
@@ -140,7 +144,12 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
       isPremium: true,
     }),
   );
-  assert.ok(visibleText(proHeaderHtml).includes("PRO MEMBER"));
+  const proDesktopText = visibleText(proHeaderHtml);
+  assert.ok(proDesktopText.includes("PRO MEMBER"));
+  assert.ok(
+    proDesktopText.indexOf("ACHIEVEMENTS") < proDesktopText.indexOf("PRO MEMBER"),
+    "Achievements and Pro boxes should keep their order when switching to Pro",
+  );
   const headerSvgs = proHeaderHtml.match(/<svg[\s\S]*?<\/svg>/g) || [];
   assert.ok(
     new Set(headerSvgs).size >= 11,
