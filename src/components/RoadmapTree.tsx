@@ -4,6 +4,7 @@ import { Link } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Animated,
+  Easing,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
@@ -13,7 +14,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Text } from "./StudioIcon";
+import { StudioIcon, type StudioIconName, Text } from "./StudioIcon";
 import {
   ChapterTierMeta,
   getChapterForTrackLesson,
@@ -136,13 +137,84 @@ export default function RoadmapTree({
   >("all");
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [crtChannel, setCrtChannel] = useState<0 | 1 | 2>(0);
+  const [crtChannel, setCrtChannel] = useState<0 | 1 | 2 | 3 | 4>(0);
   const [quickstartDismissed, setQuickstartDismissed] = useState<boolean>(false);
   const [treeOffsetY, setTreeOffsetY] = useState<number>(620);
   const [maxScrollBottomY, setMaxScrollBottomY] = useState<number>(viewportHeight);
   const [contentHeight, setContentHeight] = useState<number>(2000);
   const [scrollViewHeight, setScrollViewHeight] = useState<number>(viewportHeight);
   const [scrollAnim] = useState(() => new Animated.Value(0));
+  const [cozyFloatAnim] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(cozyFloatAnim, {
+          toValue: 1,
+          duration: 2800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+        Animated.timing(cozyFloatAnim, {
+          toValue: 0,
+          duration: 2800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+    floatLoop.start();
+    return () => floatLoop.stop();
+  }, [cozyFloatAnim]);
+
+  const cozyOrbTranslateY = cozyFloatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, -6],
+  });
+  const cozyOrbRotate = cozyFloatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["-3deg", "4deg"],
+  });
+  const cozyOrbOpacity = cozyFloatAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.88, 1, 0.88],
+  });
+  const cozySparkTranslateY = cozyFloatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-3, 3],
+  });
+  const cozyCharmByChannel: {
+    icon: StudioIconName;
+    tintBg: string;
+    tintBorder: string;
+  }[] = [
+    {
+      icon: "crt_ch_kernel",
+      tintBg: "rgba(255, 222, 89, 0.16)",
+      tintBorder: "rgba(255, 222, 89, 0.5)",
+    },
+    {
+      icon: "crt_ch_telemetry",
+      tintBg: "rgba(184, 255, 59, 0.14)",
+      tintBorder: "rgba(184, 255, 59, 0.45)",
+    },
+    {
+      icon: "crt_ch_bytecat",
+      tintBg: "rgba(196, 181, 253, 0.18)",
+      tintBorder: "rgba(196, 181, 253, 0.52)",
+    },
+    {
+      icon: "crt_ch_lofi",
+      tintBg: "rgba(255, 144, 232, 0.16)",
+      tintBorder: "rgba(255, 144, 232, 0.5)",
+    },
+    {
+      icon: "crt_ch_brew",
+      tintBg: "rgba(110, 231, 183, 0.16)",
+      tintBorder: "rgba(110, 231, 183, 0.48)",
+    },
+  ];
+  const activeCozyCharm = cozyCharmByChannel[crtChannel];
 
   const effectiveViewportHeight = Math.max(scrollViewHeight, viewportHeight);
   const scrollThresholdY = Math.max(maxScrollBottomY, effectiveViewportHeight);
@@ -338,7 +410,7 @@ export default function RoadmapTree({
               ]}
               onPress={() => {
                 playCrtChannelSwitch();
-                setCrtChannel((prev) => ((prev + 1) % 3) as 0 | 1 | 2);
+                setCrtChannel((prev) => ((prev + 1) % 5) as 0 | 1 | 2 | 3 | 4);
               }}
             >
             {/* Inserted ROM Cartridge on Top */}
@@ -364,14 +436,18 @@ export default function RoadmapTree({
                       ? "SYS_TELEMETRY.SH"
                       : crtChannel === 2
                         ? "BYTE_CAT_OS.EXE"
-                        : activeTrack === "python_basics"
-                          ? "PYTHON_KERNEL.PY"
-                          : activeTrack === "algorithms"
-                            ? "GRAPH_ENGINE.PY"
-                            : "CLUSTER_MESH.PY"}
+                        : crtChannel === 3
+                          ? "LOFI_MIXER.SYS"
+                          : crtChannel === 4
+                            ? "COZY_BREW.MD"
+                            : activeTrack === "python_basics"
+                              ? "PYTHON_KERNEL.PY"
+                              : activeTrack === "algorithms"
+                                ? "GRAPH_ENGINE.PY"
+                                : "CLUSTER_MESH.PY"}
                   </Text>
                   <Text style={styles.crtScreenFps}>
-                    CH 0{crtChannel + 1}/03
+                    CH 0{crtChannel + 1}/05
                   </Text>
                 </View>
 
@@ -455,6 +531,38 @@ export default function RoadmapTree({
                     </Text>
                   </View>
                 )}
+
+                {crtChannel === 3 && (
+                  <View style={styles.crtCodeBlock}>
+                    <Text style={styles.crtCodeLineViolet}>
+                      {"♪ BEAT : ▂ ▄ ▆ ▃ ▇ ▅ ▂ ▄"}
+                    </Text>
+                    <Text style={styles.crtCodeLineYellow}>
+                      {"  TAPE : LATE NIGHT 72BPM"}
+                    </Text>
+                    <Text style={styles.crtCodeLineLime}>
+                      {"  MOOD : COZY RAIN · FLOW"}
+                    </Text>
+                  </View>
+                )}
+
+                {crtChannel === 4 && (
+                  <View style={styles.crtCodeBlock}>
+                    <Text style={styles.crtCodeLinePink}>
+                      {"☕ BREW : MATCHA + WARM CUP"}
+                    </Text>
+                    <Text style={styles.crtCodeLineYellow}>
+                      {completedCount >= 10
+                        ? '  NOTE : "Quiet mastery grows"'
+                        : '  NOTE : "Small steps build big"'}
+                    </Text>
+                    <Text style={styles.crtCodeLineLime}>
+                      {nextUpLesson
+                        ? `  NEXT : ${nextUpLesson.title.slice(0, 18)}`
+                        : "  MODE : CALM & CURIOUS ✦"}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               <View style={styles.crtMonitorChin}>
@@ -470,13 +578,43 @@ export default function RoadmapTree({
               </View>
             </View>
 
-            {/* Decorative Floating Arcade Stickers */}
+            {/* Decorative Top-Left Sticker + Dynamic Floating Calm Cozy Charm */}
             <View style={styles.heroArtStickerTopLeft}>
               <Text style={styles.heroArtStickerText}>✦ {currentTrackMeta.icon}</Text>
             </View>
-            <View style={styles.heroArtStickerBottomRight}>
-              <Text style={styles.heroArtStickerText}>⚡ XP+50</Text>
-            </View>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.heroArtStickerBottomRight,
+                {
+                  opacity: cozyOrbOpacity,
+                  transform: [
+                    { translateY: cozyOrbTranslateY },
+                    { rotate: cozyOrbRotate },
+                  ],
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.cozyFloatOrb,
+                  {
+                    backgroundColor: activeCozyCharm.tintBg,
+                    borderColor: activeCozyCharm.tintBorder,
+                  },
+                ]}
+              >
+                <StudioIcon name={activeCozyCharm.icon} size={22} />
+              </View>
+              <Animated.Text
+                style={[
+                  styles.cozyFloatSpark,
+                  { transform: [{ translateY: cozySparkTranslateY }] },
+                ]}
+              >
+                ✦
+              </Animated.Text>
+            </Animated.View>
             </Pressable>
           </Animated.View>
         </View>
