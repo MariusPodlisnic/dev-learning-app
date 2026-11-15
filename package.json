@@ -45,9 +45,11 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "lint:ci": "eslint . --max-warnings=0",
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint && npm test",
+    "content:audit": "node ./scripts/audit-content.mjs",
+    "check": "npm run typecheck && npm run lint:ci && npm test && npm run content:audit",
     "db:sync-sql": "node ./scripts/generate-supabase-sync-sql.mjs"
   },
   "private": true

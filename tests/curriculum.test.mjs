@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
+import { resolvePythonBinary } from "../scripts/contentAuditCore.mjs";
 import { loadTsModule } from "./helpers/loadTs.mjs";
 
 const {
-  EXPANSION_LESSONS,
   LESSON_ENRICHMENTS,
   mergeCurriculumLessons,
   minimizeStarterCode,
@@ -56,7 +56,7 @@ for entry in payload:
     out.append({"id": entry["id"], "parsed": parsed, "err": err, "stdout": buf.getvalue()})
 print(json.dumps(out))
 `;
-  const proc = spawnSync("/usr/bin/python3", ["-c", pyRunner], {
+  const proc = spawnSync(resolvePythonBinary(), ["-c", pyRunner], {
     input: JSON.stringify(items),
     encoding: "utf8",
     maxBuffer: 16 * 1024 * 1024,
