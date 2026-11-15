@@ -241,7 +241,7 @@ export default function VisualLessonPanel({
                 visualMode === "live" && styles.visualModeBtnTextActive,
               ]}
             >
-              🔬 LIVE TRACE (sys.settrace)
+              🔬 LIVE TRACE
             </Text>
           </Pressable>
         )}
@@ -650,14 +650,16 @@ const createStyles = (StudioColors: StudioThemeColors) =>
   },
   visualModeBtn: {
     flex: 1,
-    minWidth: 140,
+    minWidth: 112,
+    minHeight: 38,
     backgroundColor: StudioColors.surface,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: StudioColors.border,
     borderRadius: 9,
     paddingHorizontal: 10,
     paddingVertical: 8,
     alignItems: "center",
+    justifyContent: "center",
     ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
   },
   visualModeBtnActive: {
@@ -672,6 +674,8 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.5,
+    textAlign: "center",
+    lineHeight: 15,
   },
   visualModeBtnTextActive: {
     color: StudioColors.ink,
