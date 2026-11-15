@@ -361,6 +361,8 @@ except Exception as e:
     expected_output: "True",
     hidden_tests: `import json
 def is_valid_parity(arr):
+    if not isinstance(arr, list):
+        return False
     seen_odd = False
     for x in arr:
         if x % 2 == 1:
@@ -744,11 +746,11 @@ except Exception as e:
 results = []
 try:
     r1 = group_anagrams(["eat", "tea", "tan", "ate", "nat", "bat"])
-    norm1 = sorted([sorted(g) for g in r1])
+    norm1 = sorted([sorted(g) for g in r1]) if isinstance(r1, list) and all(isinstance(g, list) for g in r1) else r1
     exp1 = sorted([sorted(["eat", "tea", "ate"]), sorted(["tan", "nat"]), sorted(["bat"])])
     results.append({"id": 1, "input": "6 mixed words", "expected": str(exp1), "actual": str(norm1), "passed": norm1 == exp1})
     r2 = group_anagrams(["listen", "silent", "hello"])
-    norm2 = sorted([sorted(g) for g in r2])
+    norm2 = sorted([sorted(g) for g in r2]) if isinstance(r2, list) and all(isinstance(g, list) for g in r2) else r2
     exp2 = sorted([["hello"], ["listen", "silent"]])
     results.append({"id": 2, "input": "['listen', 'silent', 'hello']", "expected": str(exp2), "actual": str(norm2), "passed": norm2 == exp2})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
@@ -853,7 +855,7 @@ except Exception as e:
 results = []
 try:
     r1 = top_k_frequent([1, 1, 1, 2, 2, 3], 2)
-    results.append({"id": 1, "input": "[1,1,1,2,2,3], k=2", "expected": "[1, 2]", "actual": str(r1), "passed": sorted(r1) == [1, 2] and len(r1) == 2})
+    results.append({"id": 1, "input": "[1,1,1,2,2,3], k=2", "expected": "[1, 2]", "actual": str(r1), "passed": isinstance(r1, list) and sorted(r1) == [1, 2] and len(r1) == 2})
     r2 = top_k_frequent([5, 5, 9, 9, 9, 1], 1)
     results.append({"id": 2, "input": "[5,5,9,9,9,1], k=1", "expected": "[9]", "actual": str(r2), "passed": r2 == [9]})
     r3 = top_k_frequent(["py", "go", "py", "rs", "py", "go"], 2)

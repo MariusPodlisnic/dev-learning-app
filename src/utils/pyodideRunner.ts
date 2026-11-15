@@ -185,7 +185,11 @@ export async function executeLessonVerification(
       const resultsList: TestCaseResult[] = [...parsedResult.results];
       let allPassed = Boolean(parsedResult.all_passed);
 
-      if (expectedStdout && selectedLesson?.track === "python_basics") {
+      if (
+        resultsList.length === 0 &&
+        expectedStdout &&
+        selectedLesson?.track === "python_basics"
+      ) {
         const stdoutMatch = rawOutput === expectedStdout;
         resultsList.push({
           id: resultsList.length + 1,
