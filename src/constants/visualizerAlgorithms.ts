@@ -1,50 +1,20 @@
 import { StudioColors } from "./theme";
+import {
+  type AlgoId,
+  type AlgoStep,
+  type RecursionFrame,
+  type SystemDesignNode,
+  buildCacheFlowSteps,
+  buildCoinChangeDpSteps,
+  buildFactorialRecursionSteps,
+  buildFibMemoSteps,
+  buildKnapsackDpSteps,
+  buildMinHeapInsertSteps,
+  buildMinHeapPopSteps,
+  buildRateLimitFailoverSteps,
+} from "../utils/visualizerEngines";
 
-export type AlgoId =
-  | "binary_search"
-  | "two_pointers"
-  | "sliding_window"
-  | "bubble_sort"
-  | "hash_lookup"
-  | "bfs_graph";
-
-export interface AlgoStep {
-  title: string;
-  explanation: string;
-  rule: string;
-  vars: { label: string; value: string; highlight?: boolean }[];
-  arr?: number[];
-  targetVal?: number;
-  lo?: number;
-  hi?: number;
-  mid?: number | null;
-  foundIdx?: number | null;
-  left?: number;
-  right?: number;
-  matchedPair?: [number, number] | null;
-  winStart?: number;
-  winEnd?: number;
-  bestStart?: number;
-  bestEnd?: number;
-  winSum?: number;
-  bestSum?: number;
-  droppedVal?: number | null;
-  addedVal?: number | null;
-  isNewBest?: boolean;
-  comparePair?: [number, number] | null;
-  swapped?: boolean;
-  sortedFrom?: number;
-  activeIdx?: number;
-  needVal?: number;
-  hashMap?: Record<string, number>;
-  lookupHit?: { need: number; idx: number } | null;
-  currentNode?: string | null;
-  newlyQueued?: string[];
-  queue?: string[];
-  visited?: string[];
-  targetNode?: string;
-  foundTarget?: boolean;
-}
+export type { AlgoId, AlgoStep, RecursionFrame, SystemDesignNode };
 
 export interface AlgoMeta {
   id: AlgoId;
@@ -673,6 +643,62 @@ export const ALGORITHMS: AlgoMeta[] = [
     presets: [
       { label: 'Reach "F" (3 Hops)', build: () => buildBfsSteps("F") },
       { label: 'Reach "E" (2 Hops)', build: () => buildBfsSteps("E") },
+    ],
+  },
+  {
+    id: "recursion_stack",
+    name: "Recursion & Call Stack",
+    category: "STACK & MEMO",
+    speedLabel: "Depth O(n)",
+    memoryLabel: "Call Frames",
+    accent: StudioColors.orange,
+    intro:
+      "Every recursive call pauses its parent on a stack of frames until a base case returns—then frames unwind and multiply back up.",
+    presets: [
+      { label: "Factorial(4)", build: () => buildFactorialRecursionSteps(4) },
+      { label: "Fib(4) + Memo", build: () => buildFibMemoSteps() },
+    ],
+  },
+  {
+    id: "min_heap",
+    name: "Min-Heap Priority Queue",
+    category: "HEAPIFY / TOP-K",
+    speedLabel: "O(log n) Push/Pop",
+    memoryLabel: "Compact Tree",
+    accent: StudioColors.lime,
+    intro:
+      "Keep the smallest value pinned at index 0 by storing a complete binary tree inside a flat array and bubbling elements up or down.",
+    presets: [
+      { label: "Insert [14,9,22,5,11]", build: () => buildMinHeapInsertSteps([14, 9, 22, 5, 11]) },
+      { label: "Pop Min Twice", build: () => buildMinHeapPopSteps([5, 9, 22, 14, 11]) },
+    ],
+  },
+  {
+    id: "dp_table",
+    name: "Dynamic Programming Grid",
+    category: "DP TABLE / SUBPROBLEMS",
+    speedLabel: "Avoid Rework",
+    memoryLabel: "Tabulation Grid",
+    accent: StudioColors.yellow,
+    intro:
+      "Solve small subproblems once and cache them in a grid so bigger choices combine proven answers instead of guessing blindly.",
+    presets: [
+      { label: "0/1 Knapsack (Cap 5)", build: () => buildKnapsackDpSteps() },
+      { label: "Coin Change [1,3,4]→6", build: () => buildCoinChangeDpSteps([1, 3, 4], 6) },
+    ],
+  },
+  {
+    id: "system_design",
+    name: "System Design Flow",
+    category: "DISTRIBUTED ARCHITECTURE",
+    speedLabel: "3ms Cache Hit",
+    memoryLabel: "Edge + Replica",
+    accent: StudioColors.mint,
+    intro:
+      "Trace live traffic across Load Balancers, Redis Caches, Token-Bucket Rate Limiters, and Database Read Replicas under load.",
+    presets: [
+      { label: "Read-Through Cache", build: () => buildCacheFlowSteps() },
+      { label: "Rate Limit & Failover", build: () => buildRateLimitFailoverSteps() },
     ],
   },
 ];

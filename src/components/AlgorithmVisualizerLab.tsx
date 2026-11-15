@@ -23,6 +23,7 @@ import {
   AnimatedTile,
   PointerBadge,
 } from "./VisualizerPrimitives";
+import VisualizerExtendedStages from "./VisualizerExtendedStages";
 import { createVisualizerStyles } from "./visualizerStyles";
 
 export type { AlgoId };
@@ -1321,6 +1322,12 @@ export default function AlgorithmVisualizerLab({
               </View>
             </View>
           )}
+
+          <VisualizerExtendedStages
+            algoId={activeAlgo.id}
+            step={step}
+            styles={styles}
+          />
         </Animated.View>
 
         {/* Short Step-by-Step Explanation Card + Live Variables */}
