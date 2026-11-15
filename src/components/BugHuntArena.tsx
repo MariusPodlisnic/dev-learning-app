@@ -25,6 +25,22 @@ import {
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 import { playKeyClick } from "../utils/soundEffects";
+import {
+  readLocalJson,
+  readLocalJsonAsync,
+  writeLocalJson,
+} from "../types/lesson";
+import {
+  calculateBugHuntReward,
+  clearMistakeId,
+  getBugHuntTimeLimit,
+  getDailyDateKey,
+  pickDailyBugIncident,
+  recordMistakeId,
+} from "../utils/arenaReplayability";
+
+const BUGHUNT_DAILY_KEY = "devlearn_bughunt_daily_v1";
+const BUGHUNT_REVIEW_KEY = "devlearn_bughunt_review_v1";
 
 export type { BugIncident };
 
@@ -67,10 +83,41 @@ export default function BugHuntArena({
   // null = Mission Select Lobby; number = Active Game Mission
   const [activeMissionIdx, setActiveMissionIdx] = useState<number | null>(null);
   const [trackFilter, setTrackFilter] = useState<
-    "all" | "python_basics" | "algorithms" | "system_design"
+    "all" | "python_basics" | "algorithms" | "system_design" | "review"
   >("all");
+  const [hardMode, setHardMode] = useState<boolean>(false);
+  const [isDailySession, setIsDailySession] = useState<boolean>(false);
+  const [dailyCompletedDate, setDailyCompletedDate] = useState<string>(() =>
+    readLocalJson<string>(BUGHUNT_DAILY_KEY, ""),
+  );
+  const [reviewIds, setReviewIds] = useState<string[]>(() =>
+    readLocalJson<string[]>(BUGHUNT_REVIEW_KEY, []),
+  );
   const currentIncident =
     activeMissionIdx !== null ? BUG_INCIDENTS[activeMissionIdx] : null;
+  const activeTimeLimitSec = currentIncident
+    ? getBugHuntTimeLimit(currentIncident.timeLimitSec, hardMode)
+    : 60;
+  const todayDateKey = getDailyDateKey();
+  const dailyIncident = pickDailyBugIncident(
+    BUG_INCIDENTS,
+    todayDateKey,
+    isPremium,
+  );
+  const isDailySolvedToday = dailyCompletedDate === todayDateKey;
+
+  useEffect(() => {
+    let cancelled = false;
+    readLocalJsonAsync<string>(BUGHUNT_DAILY_KEY, "").then((savedDate) => {
+      if (!cancelled && savedDate) setDailyCompletedDate(savedDate);
+    });
+    readLocalJsonAsync<string[]>(BUGHUNT_REVIEW_KEY, []).then((savedIds) => {
+      if (!cancelled && Array.isArray(savedIds)) setReviewIds(savedIds);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [code, setCode] = useState<string>("");
   const [secondsLeft, setSecondsLeft] = useState<number>(60);
@@ -85,7 +132,7 @@ export default function BugHuntArena({
   const [earnedXp, setEarnedXp] = useState<number>(0);
   const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
 
-  function startMission(index: number) {
+  function startMission(index: number, options?: { isDaily?: boolean }) {
     const inc = BUG_INCIDENTS[index];
     if (!inc) return;
     if (TrackThemes[inc.track]?.isPro && !isPremium) {
@@ -93,8 +140,9 @@ export default function BugHuntArena({
       return;
     }
     setActiveMissionIdx(index);
+    setIsDailySession(Boolean(options?.isDaily));
     setCode(inc.buggyCode);
-    setSecondsLeft(inc.timeLimitSec);
+    setSecondsLeft(getBugHuntTimeLimit(inc.timeLimitSec, hardMode));
     setShowHint(false);
     setFailedCase(null);
     setErrorMessage("");
@@ -109,6 +157,14 @@ export default function BugHuntArena({
       setSecondsLeft((prev) => {
         if (prev <= 1) {
           setPatchStatus("timeout");
+          const timedOutInc = BUG_INCIDENTS[activeMissionIdx];
+          if (timedOutInc) {
+            setReviewIds((curr) => {
+              const next = recordMistakeId(curr, timedOutInc.id);
+              writeLocalJson(BUGHUNT_REVIEW_KEY, next);
+              return next;
+            });
+          }
           return 0;
         }
         return prev - 1;
@@ -124,7 +180,9 @@ export default function BugHuntArena({
   const visibleIncidents =
     trackFilter === "all"
       ? BUG_INCIDENTS
-      : BUG_INCIDENTS.filter((inc) => inc.track === trackFilter);
+      : trackFilter === "review"
+        ? BUG_INCIDENTS.filter((inc) => reviewIds.includes(inc.id))
+        : BUG_INCIDENTS.filter((inc) => inc.track === trackFilter);
 
   // ============================================================================
   // PHASE 1: MISSION SELECT LOBBY (Timer does NOT run until user picks a card)
@@ -151,6 +209,77 @@ export default function BugHuntArena({
           </View>
         </View>
 
+        {dailyIncident && (
+          <View style={styles.dailySpotlightCard}>
+            <View style={styles.dailyLeft}>
+              <View style={styles.dailyPillRow}>
+                <View style={styles.dailyPill}>
+                  <Text style={styles.dailyPillText}>
+                    📅 DAILY SEED · {todayDateKey}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.dailyBonusPill,
+                    isDailySolvedToday && { backgroundColor: StudioColors.mint },
+                  ]}
+                >
+                  <Text style={styles.dailyPillText}>
+                    {isDailySolvedToday ? "✓ PATCHED TODAY" : "+40 BONUS XP"}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.dailyTitle}>
+                {dailyIncident.codeId}: {dailyIncident.title}
+              </Text>
+              <Text style={styles.dailyDesc} numberOfLines={2}>
+                {dailyIncident.symptom}
+              </Text>
+            </View>
+            <Pressable
+              style={({ pressed }) => [
+                styles.dailyPlayBtn,
+                pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+              ]}
+              onPress={() => {
+                playKeyClick();
+                const idx = BUG_INCIDENTS.findIndex(
+                  (item) => item.id === dailyIncident.id,
+                );
+                if (idx >= 0) startMission(idx, { isDaily: true });
+              }}
+            >
+              <Text style={styles.dailyPlayBtnText}>
+                {isDailySolvedToday ? "REPLAY DAILY ↻" : "PATCH DAILY BUG →"}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        <View style={styles.modeToggleRow}>
+          <Pressable
+            style={[
+              styles.hardModeToggle,
+              hardMode && styles.hardModeToggleActive,
+            ]}
+            onPress={() => {
+              playKeyClick();
+              setHardMode((prev) => !prev);
+            }}
+          >
+            <Text
+              style={[
+                styles.hardModeToggleText,
+                hardMode && { color: StudioColors.ink },
+              ]}
+            >
+              {hardMode
+                ? "🔥 HARD MODE ON (0.55× CLOCK · NO CLUES · 1.5x XP)"
+                : "🔥 HARD MODE OFF (TAP FOR 1.5x XP CHALLENGE)"}
+            </Text>
+          </Pressable>
+        </View>
+
         <View style={styles.filterRow}>
           {(
             [
@@ -169,6 +298,10 @@ export default function BugHuntArena({
               {
                 key: "system_design",
                 label: `🏛️ SYSTEM DESIGN (${BUG_INCIDENTS.filter((i) => i.track === "system_design").length})${!isPremium ? " 🔒" : ""}`,
+              },
+              {
+                key: "review",
+                label: `🔁 REVIEW QUEUE (${reviewIds.length})`,
               },
             ] as const
           ).map((f) => {
@@ -193,6 +326,17 @@ export default function BugHuntArena({
         </View>
 
         <View style={styles.missionGrid}>
+          {visibleIncidents.length === 0 && trackFilter === "review" ? (
+            <View style={styles.emptyReviewCard}>
+              <Text style={styles.emptyReviewTitle}>
+                ✓ NO FAILED INCIDENTS QUEUED
+              </Text>
+              <Text style={styles.emptyReviewDesc}>
+                Any Bug Hunt you miss or time out on is automatically saved
+                here for targeted retry.
+              </Text>
+            </View>
+          ) : null}
           {visibleIncidents.map((inc) => {
             const origIdx = BUG_INCIDENTS.findIndex(
               (item) => item.id === inc.id,
@@ -256,10 +400,10 @@ export default function BugHuntArena({
 
                 <View style={styles.missionMetaRow}>
                   <Text style={styles.missionMetaItem}>
-                    ⏱ {inc.timeLimitSec}s
+                    ⏱ {getBugHuntTimeLimit(inc.timeLimitSec, hardMode)}s
                   </Text>
                   <Text style={styles.missionMetaItem}>
-                    ⚡ +{inc.baseXp} XP
+                    ⚡ +{hardMode ? Math.round(inc.baseXp * 1.5) : inc.baseXp} XP
                   </Text>
                 </View>
 
@@ -291,7 +435,7 @@ export default function BugHuntArena({
   // ============================================================================
   const timeRatio = Math.max(
     0,
-    Math.min(1, secondsLeft / currentIncident.timeLimitSec),
+    Math.min(1, secondsLeft / activeTimeLimitSec),
   );
   const timerColor =
     patchStatus === "resolved"
@@ -319,22 +463,41 @@ export default function BugHuntArena({
       if (outcome.error) {
         setPatchStatus("failed");
         setErrorMessage(outcome.error);
+        setReviewIds((curr) => {
+          const next = recordMistakeId(curr, currentIncident.id);
+          writeLocalJson(BUGHUNT_REVIEW_KEY, next);
+          return next;
+        });
       } else if (outcome.allPassed) {
-        const speedBonus =
-          secondsLeft >= Math.floor(currentIncident.timeLimitSec * 0.5)
-            ? 25
-            : 0;
-        const total =
-          secondsLeft > 0
-            ? currentIncident.baseXp + speedBonus
-            : Math.round(currentIncident.baseXp * 0.5);
-        setEarnedXp(total);
+        const reward = calculateBugHuntReward({
+          baseXp: currentIncident.baseXp,
+          timeLimitSec: activeTimeLimitSec,
+          secondsLeft,
+          hardMode,
+          isDailyChallenge: isDailySession,
+          dailyAlreadyCompleted: isDailySolvedToday,
+        });
+        setEarnedXp(reward.totalXp);
         setPatchStatus("resolved");
-        onAwardBugHuntXp(total, currentIncident.id);
+        setReviewIds((curr) => {
+          const next = clearMistakeId(curr, currentIncident.id);
+          writeLocalJson(BUGHUNT_REVIEW_KEY, next);
+          return next;
+        });
+        if (isDailySession && !isDailySolvedToday) {
+          setDailyCompletedDate(todayDateKey);
+          writeLocalJson(BUGHUNT_DAILY_KEY, todayDateKey);
+        }
+        onAwardBugHuntXp(reward.totalXp, currentIncident.id);
       } else {
         setPatchStatus("failed");
         const firstFail = outcome.results.find((r) => !r.passed) || null;
         setFailedCase(firstFail);
+        setReviewIds((curr) => {
+          const next = recordMistakeId(curr, currentIncident.id);
+          writeLocalJson(BUGHUNT_REVIEW_KEY, next);
+          return next;
+        });
       }
     } finally {
       setIsDeploying(false);
@@ -344,11 +507,17 @@ export default function BugHuntArena({
   async function handleSharePatch() {
     if (!currentIncident) return;
     playKeyClick();
-    const isFast = secondsLeft >= Math.floor(currentIncident.timeLimitSec * 0.5);
+    const isFast = secondsLeft >= Math.floor(activeTimeLimitSec * 0.5);
     const speedBar = isFast ? "🟩🟩🟩 ⚡" : secondsLeft > 0 ? "🟩🟩🟨 🛠️" : "🟩🟨🟨 ⏱️";
+    const modeTags = [
+      isDailySession ? `📅 Daily ${todayDateKey}` : "",
+      hardMode ? "🔥 Hard Mode" : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
     const url = buildChallengeUrl({ mode: "bughunt", ref: "bughunt_card" });
     const message = [
-      `🪲 DevLearn Bug Hunt — ${currentIncident.codeId}: ${currentIncident.title}`,
+      `🪲 DevLearn Bug Hunt — ${currentIncident.codeId}: ${currentIncident.title}${modeTags ? ` [${modeTags}]` : ""}`,
       `${speedBar} Defect Patched! (+${earnedXp} XP)`,
       `⏱ ${formattedTime} remaining · ${currentIncident.difficulty}`,
       `Can you fix this production bug faster? 👉 ${url}`,
@@ -379,7 +548,11 @@ export default function BugHuntArena({
         </Pressable>
 
         <View style={styles.hudCenter}>
-          <Text style={styles.hudCode}>{currentIncident.codeId}</Text>
+          <Text style={styles.hudCode}>
+            {currentIncident.codeId}
+            {isDailySession ? " · 📅 DAILY SEED" : ""}
+            {hardMode ? " · 🔥 HARD MODE" : ""}
+          </Text>
           <Text style={styles.hudTitle}>{currentIncident.title}</Text>
         </View>
 
@@ -417,14 +590,20 @@ export default function BugHuntArena({
           </Text>
         </View>
 
-        <Pressable
-          style={styles.hintPillBtn}
-          onPress={() => setShowHint((prev) => !prev)}
-        >
-          <Text style={styles.hintPillText}>
-            {showHint ? "Hide Clue" : "+ Reveal Clue"}
-          </Text>
-        </Pressable>
+        {hardMode ? (
+          <View style={styles.hardClueLockedPill}>
+            <Text style={styles.hardClueLockedText}>🔥 NO CLUES</Text>
+          </View>
+        ) : (
+          <Pressable
+            style={styles.hintPillBtn}
+            onPress={() => setShowHint((prev) => !prev)}
+          >
+            <Text style={styles.hintPillText}>
+              {showHint ? "Hide Clue" : "+ Reveal Clue"}
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       {showHint && (
@@ -1205,6 +1384,144 @@ const createStyles = (StudioColors: StudioThemeColors) =>
   deployShortcutText: {
     color: StudioColors.lime,
     fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  dailySpotlightCard: {
+    width: "100%",
+    maxWidth: 920,
+    backgroundColor: StudioColors.surface,
+    borderRadius: 12,
+    borderWidth: 2.5,
+    borderColor: StudioColors.ink,
+    padding: 16,
+    marginBottom: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 14,
+    ...HardShadow,
+  },
+  dailyLeft: {
+    flex: 1,
+    minWidth: 240,
+    gap: 6,
+  },
+  dailyPillRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  dailyPill: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
+  },
+  dailyBonusPill: {
+    backgroundColor: StudioColors.lime,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 5,
+  },
+  dailyPillText: {
+    color: StudioColors.ink,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  dailyTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  dailyDesc: {
+    color: StudioColors.textSecondary,
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
+  },
+  dailyPlayBtn: {
+    backgroundColor: StudioColors.lime,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 9,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  dailyPlayBtnText: {
+    color: StudioColors.ink,
+    fontSize: 12,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  modeToggleRow: {
+    width: "100%",
+    maxWidth: 920,
+    marginBottom: 12,
+    alignItems: "flex-start",
+  },
+  hardModeToggle: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  hardModeToggleActive: {
+    backgroundColor: StudioColors.orange,
+    borderColor: StudioColors.ink,
+    ...HardShadowSm,
+  },
+  hardModeToggleText: {
+    color: StudioColors.textPrimary,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  emptyReviewCard: {
+    width: "100%",
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    borderRadius: 12,
+    padding: 24,
+    alignItems: "center",
+    gap: 6,
+  },
+  emptyReviewTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 14,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  emptyReviewDesc: {
+    color: StudioColors.textSecondary,
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  hardClueLockedPill: {
+    backgroundColor: StudioColors.coral,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  hardClueLockedText: {
+    color: StudioColors.ink,
+    fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
   },

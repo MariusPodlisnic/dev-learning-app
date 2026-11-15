@@ -28,6 +28,13 @@ import {
   writeLocalJson,
 } from "../types/lesson";
 import {
+  buildMistakeReviewDeck,
+  buildSeededDeck,
+  clearMistakeId,
+  getDailyDateKey,
+  recordMistakeId,
+} from "../utils/arenaReplayability";
+import {
   playErrorBuzz,
   playKeyClick,
   playSuccessChime,
@@ -36,7 +43,11 @@ import {
 
 export type { BlitzDeckKey };
 
+type BlitzMode = "standard" | "daily" | "mistakes";
+
 const BLITZ_HIGHSCORE_KEY = "devlearn_blitz_highscore_v1";
+const BLITZ_MISTAKES_KEY = "devlearn_blitz_mistakes_v1";
+const BLITZ_DAILY_KEY = "devlearn_blitz_daily_v1";
 
 interface SyntaxBlitzArenaProps {
   isPremium: boolean;
@@ -106,6 +117,7 @@ export default function SyntaxBlitzArena({
   const styles = useThemedStyles(createStyles);
   const [selectedDeck, setSelectedDeck] =
     useState<BlitzDeckKey>("python_basics");
+  const [blitzMode, setBlitzMode] = useState<BlitzMode>("standard");
   const [gameState, setGameState] = useState<"lobby" | "playing" | "finished">(
     "lobby",
   );
@@ -126,12 +138,38 @@ export default function SyntaxBlitzArena({
     const saved = Number(readLocalJson<number>(BLITZ_HIGHSCORE_KEY, 0));
     return Number.isFinite(saved) ? saved : 0;
   });
+  const [mistakeIds, setMistakeIds] = useState<string[]>(() =>
+    readLocalJson<string[]>(BLITZ_MISTAKES_KEY, []),
+  );
+  const todayDateKey = getDailyDateKey();
+  const [dailyRecord, setDailyRecord] = useState<{ date: string; xp: number }>(
+    () =>
+      readLocalJson<{ date: string; xp: number }>(BLITZ_DAILY_KEY, {
+        date: "",
+        xp: 0,
+      }),
+  );
+  const dailyBestXp =
+    dailyRecord.date === todayDateKey ? dailyRecord.xp : 0;
 
   useEffect(() => {
     let cancelled = false;
     readLocalJsonAsync<number>(BLITZ_HIGHSCORE_KEY, 0).then((saved) => {
       if (!cancelled && Number.isFinite(saved) && saved > 0) {
         setHighScore((prev) => Math.max(prev, saved));
+      }
+    });
+    readLocalJsonAsync<string[]>(BLITZ_MISTAKES_KEY, []).then((savedIds) => {
+      if (!cancelled && Array.isArray(savedIds)) {
+        setMistakeIds(savedIds);
+      }
+    });
+    readLocalJsonAsync<{ date: string; xp: number }>(BLITZ_DAILY_KEY, {
+      date: "",
+      xp: 0,
+    }).then((savedDaily) => {
+      if (!cancelled && savedDaily?.date) {
+        setDailyRecord(savedDaily);
       }
     });
     return () => {
@@ -144,31 +182,57 @@ export default function SyntaxBlitzArena({
     scoreXpRef.current = scoreXp;
   }, [scoreXp]);
 
+  const accessiblePool = useMemo(
+    () =>
+      isPremium
+        ? BLITZ_CARDS
+        : BLITZ_CARDS.filter((c) => c.deck === "python_basics"),
+    [isPremium],
+  );
+
   const filteredPool = useMemo(() => {
     if (selectedDeck === "all") {
-      return isPremium
-        ? BLITZ_CARDS
-        : BLITZ_CARDS.filter((c) => c.deck === "python_basics");
+      return accessiblePool;
     }
     return BLITZ_CARDS.filter((c) => c.deck === selectedDeck);
-  }, [selectedDeck, isPremium]);
+  }, [selectedDeck, accessiblePool]);
 
-  function startRound(deckKey: BlitzDeckKey = selectedDeck) {
+  const mistakeReviewPool = useMemo(
+    () => buildMistakeReviewDeck(accessiblePool, mistakeIds),
+    [accessiblePool, mistakeIds],
+  );
+
+  function startRound(
+    deckKey: BlitzDeckKey = selectedDeck,
+    modeOverride: BlitzMode = blitzMode,
+  ) {
     if (
+      modeOverride !== "mistakes" &&
       (deckKey === "algorithms" || deckKey === "system_design") &&
       !isPremium
     ) {
       onRequirePro();
       return;
     }
+
     const pool =
       deckKey === "all"
-        ? isPremium
-          ? BLITZ_CARDS
-          : BLITZ_CARDS.filter((c) => c.deck === "python_basics")
+        ? accessiblePool
         : BLITZ_CARDS.filter((c) => c.deck === deckKey);
 
-    setDeckQueue(shuffleCards(pool));
+    let queue: BlitzCardItem[];
+    if (modeOverride === "mistakes") {
+      if (mistakeReviewPool.length === 0) {
+        return;
+      }
+      queue = buildSeededDeck(mistakeReviewPool, `review:${mistakeIds.join(",")}`);
+    } else if (modeOverride === "daily") {
+      queue = buildSeededDeck(pool, `${todayDateKey}:${deckKey}`);
+    } else {
+      queue = shuffleCards(pool);
+    }
+
+    setDeckQueue(queue);
     setCardIndex(0);
     setPickedOption(null);
     setScoreXp(0);
@@ -191,6 +255,11 @@ export default function SyntaxBlitzArena({
     if (finalXp > highScore) {
       setHighScore(finalXp);
       writeLocalJson(BLITZ_HIGHSCORE_KEY, finalXp);
+    }
+    if (blitzMode === "daily" && finalXp > dailyBestXp) {
+      const nextDaily = { date: todayDateKey, xp: finalXp };
+      setDailyRecord(nextDaily);
+      writeLocalJson(BLITZ_DAILY_KEY, nextDaily);
     }
   }
 
@@ -238,6 +307,14 @@ export default function SyntaxBlitzArena({
       setCorrectCount((prev) => prev + 1);
       setScoreXp(nextXp);
 
+      if (blitzMode === "mistakes") {
+        setMistakeIds((prev) => {
+          const next = clearMistakeId(prev, currentCard.id);
+          writeLocalJson(BLITZ_MISTAKES_KEY, next);
+          return next;
+        });
+      }
+
       if (nextCombo % 3 === 0) {
         setTimeLeft((prev) => Math.min(60, prev + 2));
         setBonusSecondsToast(true);
@@ -246,6 +323,11 @@ export default function SyntaxBlitzArena({
     } else {
       playErrorBuzz();
       setCombo(0);
+      setMistakeIds((prev) => {
+        const next = recordMistakeId(prev, currentCard.id);
+        writeLocalJson(BLITZ_MISTAKES_KEY, next);
+        return next;
+      });
     }
   }
 
@@ -254,7 +336,18 @@ export default function SyntaxBlitzArena({
     playKeyClick();
     setPickedOption(null);
     if (cardIndex + 1 >= deckQueue.length) {
-      setDeckQueue((prev) => [...prev, ...shuffleCards(filteredPool)]);
+      if (blitzMode === "daily") {
+        setDeckQueue((prev) => [
+          ...prev,
+          ...buildSeededDeck(filteredPool, `${todayDateKey}:${selectedDeck}:${prev.length}`),
+        ]);
+      } else if (blitzMode === "mistakes") {
+        if (mistakeReviewPool.length > 0) {
+          setDeckQueue((prev) => [...prev, ...mistakeReviewPool]);
+        }
+      } else {
+        setDeckQueue((prev) => [...prev, ...shuffleCards(filteredPool)]);
+      }
     }
     setCardIndex((prev) => prev + 1);
   }
@@ -299,8 +392,14 @@ export default function SyntaxBlitzArena({
   async function handleShareScore() {
     playKeyClick();
     const url = buildChallengeUrl({ mode: "blitz", ref: "blitz_card" });
+    const modeLabel =
+      blitzMode === "daily"
+        ? ` [📅 DAILY SEED ${todayDateKey}]`
+        : blitzMode === "mistakes"
+          ? " [🔁 MISTAKE DRILL]"
+          : "";
     const message = [
-      `⚡ DevLearn Speed Blitz — ${rating.badge}`,
+      `⚡ DevLearn Speed Blitz${modeLabel} — ${rating.badge}`,
       `🏆 ${rating.title}`,
       `+${scoreXp} XP · ${correctCount} cleared · ${maxCombo}x streak · ${accuracyPct}% accuracy`,
       ...(formattedEmojiGrid ? [formattedEmojiGrid] : []),
@@ -340,9 +439,48 @@ export default function SyntaxBlitzArena({
         </View>
 
         <View style={styles.highScoreBox}>
-          <Text style={styles.highScoreLabel}>PERSONAL BEST</Text>
-          <Text style={styles.highScoreValue}>⚡ {highScore} XP</Text>
+          <Text style={styles.highScoreLabel}>
+            {blitzMode === "daily" ? `DAILY BEST (${todayDateKey})` : "PERSONAL BEST"}
+          </Text>
+          <Text style={styles.highScoreValue}>
+            ⚡ {blitzMode === "daily" ? dailyBestXp : highScore} XP
+          </Text>
         </View>
+      </View>
+
+      {/* Replay Mode Switcher */}
+      <View style={styles.blitzModeRow}>
+        {(
+          [
+            { key: "standard", label: "⚡ STANDARD SHUFFLE" },
+            { key: "daily", label: `📅 DAILY SEED (${todayDateKey})` },
+            { key: "mistakes", label: `🔁 MISTAKE REVIEW (${mistakeReviewPool.length})` },
+          ] as const
+        ).map((m) => {
+          const active = blitzMode === m.key;
+          return (
+            <Pressable
+              key={m.key}
+              style={[styles.modePill, active && styles.modePillActive]}
+              onPress={() => {
+                playKeyClick();
+                setBlitzMode(m.key);
+                if (gameState === "playing") {
+                  startRound(selectedDeck, m.key);
+                }
+              }}
+            >
+              <Text
+                style={[
+                  styles.modePillText,
+                  active && styles.modePillTextActive,
+                ]}
+              >
+                {m.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* Deck Selector Bar */}
@@ -449,14 +587,23 @@ export default function SyntaxBlitzArena({
           </View>
 
           <Pressable
+            disabled={blitzMode === "mistakes" && mistakeReviewPool.length === 0}
             style={({ pressed }) => [
               styles.startBlitzBtn,
+              blitzMode === "mistakes" &&
+                mistakeReviewPool.length === 0 && { opacity: 0.5 },
               pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
             ]}
-            onPress={() => startRound(selectedDeck)}
+            onPress={() => startRound(selectedDeck, blitzMode)}
           >
             <Text style={styles.startBlitzBtnText}>
-              INSERT COIN · START 60s BLITZ →
+              {blitzMode === "daily"
+                ? `PLAY TODAY'S SEEDED BLITZ (${todayDateKey}) →`
+                : blitzMode === "mistakes"
+                  ? mistakeReviewPool.length === 0
+                    ? "✓ ZERO MISTAKES QUEUED YET"
+                    : `DRILL ${mistakeReviewPool.length} MISSED CARD${mistakeReviewPool.length === 1 ? "" : "S"} →`
+                  : "INSERT COIN · START 60s BLITZ →"}
             </Text>
           </Pressable>
         </View>
@@ -705,10 +852,19 @@ export default function SyntaxBlitzArena({
                 styles.startBlitzBtn,
                 pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
               ]}
-              onPress={() => startRound(selectedDeck)}
+              onPress={() => {
+                if (blitzMode === "mistakes" && mistakeReviewPool.length === 0) {
+                  setBlitzMode("standard");
+                  startRound(selectedDeck, "standard");
+                } else {
+                  startRound(selectedDeck);
+                }
+              }}
             >
               <Text style={styles.startBlitzBtnText}>
-                PLAY ANOTHER 60s ROUND ↻
+                {blitzMode === "mistakes" && mistakeReviewPool.length === 0
+                  ? "ALL MISTAKES CLEARED · PLAY STANDARD ↻"
+                  : "PLAY ANOTHER 60s ROUND ↻"}
               </Text>
             </Pressable>
           </View>
@@ -1282,5 +1438,36 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.7,
+  },
+  blitzModeRow: {
+    width: "100%",
+    maxWidth: 760,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+  modePill: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  modePillActive: {
+    backgroundColor: StudioColors.yellow,
+    borderColor: StudioColors.ink,
+    ...HardShadowSm,
+  },
+  modePillText: {
+    color: StudioColors.textPrimary,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  modePillTextActive: {
+    color: StudioColors.ink,
   },
 });
