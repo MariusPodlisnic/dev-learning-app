@@ -8,13 +8,16 @@ import React, {
   useSyncExternalStore,
 } from "react";
 import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
 import AchievementsHall from "../components/AchievementsHall";
 import AlgorithmVisualizerLab from "../components/AlgorithmVisualizerLab";
@@ -25,6 +28,13 @@ import CertificateModal from "../components/CertificateModal";
 import { renderHighlightedPython } from "../components/FormattedText";
 import LessonProblemPanel from "../components/LessonProblemPanel";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
+import MobileThumbNav from "../components/MobileThumbNav";
+import {
+  getKeyboardAvoidingBehavior,
+  isCompactHeaderWidth,
+  isCompactStudioWidth,
+  shouldShowBottomThumbNav,
+} from "../utils/mobileLayout";
 import PaywallModal, {
   PaywallPlanId,
   PaywallTriggerContext,
@@ -133,8 +143,29 @@ export default function HomeScreen() {
   const { width: rawWindowWidth } = useWindowDimensions();
   const viewportWidth =
     isMounted && rawWindowWidth > 0 ? rawWindowWidth : 1280;
-  const isCompactStudio = viewportWidth < 920;
-  const isCompactHeader = viewportWidth < 720;
+  const isCompactStudio = isCompactStudioWidth(viewportWidth);
+  const isCompactHeader = isCompactHeaderWidth(viewportWidth);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const showSub = Keyboard.addListener("keyboardDidShow", () => {
+      setIsKeyboardVisible(true);
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      setIsKeyboardVisible(false);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const showMobileThumbNav = shouldShowBottomThumbNav({
+    isCompactHeader,
+    isKeyboardVisible,
+  });
+  const keyboardBehavior = getKeyboardAvoidingBehavior(Platform.OS);
 
   const [code, setCode] = useState<string>("");
   const [output, setOutput] = useState<string>("");
@@ -929,7 +960,14 @@ export default function HomeScreen() {
         : "arena";
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      edges={
+        showMobileThumbNav
+          ? ["top", "left", "right"]
+          : ["top", "bottom", "left", "right"]
+      }
+      style={styles.container}
+    >
       <Head>
         <title>{seoTitle}</title>
         <meta name="description" content={seoDescription} />
@@ -968,6 +1006,12 @@ export default function HomeScreen() {
         onOpenAuth={() => openAuthModal()}
         onSignOut={() => supabase.auth.signOut()}
       />
+
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={keyboardBehavior}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 6 : 0}
+      >
 
       {viewMode === "roadmap" ? (
         <RoadmapTree
@@ -1083,7 +1127,12 @@ export default function HomeScreen() {
             onSelectLesson={handleSelectLesson}
           />
 
-          <View style={styles.workspaceContainer}>
+          <View
+            style={[
+              styles.workspaceContainer,
+              isCompactHeader && styles.workspaceContainerCompact,
+            ]}
+          >
             {/* Studio Subheader Bar */}
             <View style={styles.studioTopBar}>
               <View style={styles.studioTopBarLeft}>
@@ -1271,9 +1320,21 @@ export default function HomeScreen() {
           </View>
         </View>
       )}
+      </KeyboardAvoidingView>
+
+      {showMobileThumbNav && (
+        <MobileThumbNav
+          viewMode={viewMode}
+          isPremium={effectiveIsPremium}
+          onChangeViewMode={setViewMode}
+        />
+      )}
 
       {showAuthModal && (
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={keyboardBehavior}
+        >
           <View style={styles.modalContent}>
             <Auth
               defaultMode={authDefaultMode}
@@ -1298,7 +1359,7 @@ export default function HomeScreen() {
               <Text style={styles.closeModalText}>Cancel</Text>
             </Pressable>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       )}
 
       {showPaywallModal && (

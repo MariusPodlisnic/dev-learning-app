@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -619,10 +620,22 @@ export default function StudioCodeEditor({
               {showScratchpad ? "⚡ EVAL ON" : "⚡ EVAL"}
             </Text>
           </Pressable>
+          {Platform.OS !== "web" && (
+            <Pressable
+              onPress={() => {
+                playKeyClick();
+                Keyboard.dismiss();
+              }}
+              style={styles.symbolChip}
+            >
+              <Text style={styles.symbolText}>⌨️ DONE</Text>
+            </Pressable>
+          )}
         </View>
 
         <ScrollView
           style={styles.editorScroll}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
             styles.editorBody,
             { minHeight: lineCount * 21 + 32 },
@@ -882,9 +895,11 @@ export default function StudioCodeEditor({
           ]}
         >
           <Text style={styles.secondaryRunBtnText}>▶ TEST RUN</Text>
-          <View style={styles.shortcutBadgeDark}>
-            <Text style={styles.shortcutBadgeDarkText}>⌘↵</Text>
-          </View>
+          {Platform.OS === "web" && (
+            <View style={styles.shortcutBadgeDark}>
+              <Text style={styles.shortcutBadgeDarkText}>⌘↵</Text>
+            </View>
+          )}
         </HoverLiftButton>
 
         <HoverLiftButton
@@ -900,7 +915,7 @@ export default function StudioCodeEditor({
           <Text style={styles.runButtonText}>
             {isExecuting ? "CHECKING CODE..." : "SUBMIT CODE (+50 XP)"}
           </Text>
-          {!isExecuting && (
+          {!isExecuting && Platform.OS === "web" && (
             <View style={styles.shortcutBadgeLight}>
               <Text style={styles.shortcutBadgeLightText}>→ ⇧⌘↵</Text>
             </View>

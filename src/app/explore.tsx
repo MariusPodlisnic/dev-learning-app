@@ -5,13 +5,16 @@ import Head from "expo-router/head";
 import type { Metadata } from "expo-router/server";
 import React, { useEffect, useState } from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { getKeyboardAvoidingBehavior } from "../utils/mobileLayout";
 import ExploreByteCatStage from "../components/ExploreByteCatStage";
 import ExplorePythonSandbox from "../components/ExplorePythonSandbox";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
@@ -145,13 +148,18 @@ export default function ExploreScreen() {
 
       <MinimalPcbBackground themeMode={themeMode} />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.container,
-          isCompact && styles.containerCompact,
-        ]}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={getKeyboardAvoidingBehavior(Platform.OS)}
       >
+        <ScrollView
+          style={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.container,
+            isCompact && styles.containerCompact,
+          ]}
+        >
         {/* Top Bar */}
         <View style={styles.topBar}>
           <View style={styles.topBarLeft}>
@@ -1011,7 +1019,8 @@ export default function ExploreScreen() {
             </View>
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

@@ -12,6 +12,7 @@ export const getStudioScreenStyles = (StudioColors: StudioThemeColors) =>
       backgroundColor: StudioColors.bg,
       position: "relative",
     },
+    keyboardContainer: { flex: 1 },
     content: { flex: 1, flexDirection: "row", zIndex: 1, position: "relative" },
     workspaceContainer: {
       flex: 1,
@@ -20,6 +21,11 @@ export const getStudioScreenStyles = (StudioColors: StudioThemeColors) =>
       paddingBottom: 12,
       backgroundColor: "transparent",
       overflow: "hidden",
+    },
+    workspaceContainerCompact: {
+      paddingHorizontal: 10,
+      paddingTop: 6,
+      paddingBottom: 6,
     },
     studioTopBar: {
       flexDirection: "row",

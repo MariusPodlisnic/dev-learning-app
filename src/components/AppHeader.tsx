@@ -447,20 +447,14 @@ export default function AppHeader({
           </View>
         </Pressable>
 
-        {/* CATEGORY 1: CODING & LABS */}
-        <View
-          style={[
-            styles.categoryGroupTray,
-            isCompactHeader && styles.categoryGroupTrayCompact,
-          ]}
-        >
-          {!isCompactHeader && (
+        {/* CATEGORY 1: CODING & LABS (desktop/tablet header; mobile uses MobileThumbNav) */}
+        {!isCompactHeader && (
+          <View style={styles.categoryGroupTray}>
             <View style={styles.categoryLabelPill}>
               <Text style={styles.categoryLabelText}>🧩 CODING &amp; LABS</Text>
             </View>
-          )}
 
-          <View style={styles.modeSwitcher}>
+            <View style={styles.modeSwitcher}>
             <Pressable
               style={({ pressed }) => [
                 styles.modeBtn,
@@ -563,8 +557,9 @@ export default function AppHeader({
             >
               <Text style={styles.modeBtnText}>📖 SHOWCASE</Text>
             </Pressable>
+            </View>
           </View>
-        </View>
+        )}
       </View>
 
       {/* Right Cluster: Category 2 (Account & Rank) + Category 3 (Settings & Engine) */}

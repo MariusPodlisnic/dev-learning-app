@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -537,6 +538,7 @@ export default function BugHuntArena({
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.gameContent}
+      keyboardShouldPersistTaps="handled"
     >
       {/* Clean Game HUD Bar */}
       <View style={styles.hudBar}>
@@ -690,16 +692,30 @@ export default function BugHuntArena({
       <View style={styles.ideFrame}>
         <View style={styles.ideHeader}>
           <Text style={styles.ideFilename}>patch.py</Text>
-          <Pressable
-            style={styles.resetCodeBtn}
-            onPress={() => setCode(currentIncident.buggyCode)}
-          >
-            <Text style={styles.resetCodeBtnText}>↺ Reset Code</Text>
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {Platform.OS !== "web" && (
+              <Pressable
+                style={styles.resetCodeBtn}
+                onPress={() => {
+                  playKeyClick();
+                  Keyboard.dismiss();
+                }}
+              >
+                <Text style={styles.resetCodeBtnText}>⌨️ Done</Text>
+              </Pressable>
+            )}
+            <Pressable
+              style={styles.resetCodeBtn}
+              onPress={() => setCode(currentIncident.buggyCode)}
+            >
+              <Text style={styles.resetCodeBtnText}>↺ Reset Code</Text>
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView
           style={styles.editorScroll}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
             styles.editorBody,
             { minHeight: lineCount * 21 + 32 },
@@ -774,9 +790,11 @@ export default function BugHuntArena({
                 ? "Verifying Patch..."
                 : `Verify & Deploy Patch (+${currentIncident.baseXp} XP) →`}
             </Text>
-            <View style={styles.deployShortcutBadge}>
-              <Text style={styles.deployShortcutText}>⌘↵</Text>
-            </View>
+            {Platform.OS === "web" && (
+              <View style={styles.deployShortcutBadge}>
+                <Text style={styles.deployShortcutText}>⌘↵</Text>
+              </View>
+            )}
           </Pressable>
         );
       })()}
