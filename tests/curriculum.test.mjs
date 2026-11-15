@@ -235,6 +235,14 @@ test("all local lessons, drills, and recaps have unique IDs, minimal starter stu
       seenIds.add(drill.id);
       assert.ok(drill.hidden_tests?.trim(), `${drill.id} missing hidden_tests`);
       assert.ok(drill.initial_code?.trim(), `${drill.id} missing initial_code`);
+      assert.ok(
+        Array.isArray(drill.examples) && drill.examples.length > 0,
+        `${drill.id} missing examples`,
+      );
+      for (const ex of drill.examples) {
+        assert.ok(String(ex.input ?? "").trim(), `${drill.id} example missing input`);
+        assert.ok(String(ex.output ?? "").trim(), `${drill.id} example missing output`);
+      }
 
       for (const line of drill.initial_code.split("\n")) {
         const t = line.trim();
@@ -262,6 +270,14 @@ test("all local lessons, drills, and recaps have unique IDs, minimal starter stu
       seenIds.add(drill.id);
       assert.ok(drill.hidden_tests?.trim(), `${drill.id} missing hidden_tests`);
       assert.ok(drill.initial_code?.trim(), `${drill.id} missing initial_code`);
+      assert.ok(
+        Array.isArray(drill.examples) && drill.examples.length > 0,
+        `${drill.id} missing examples`,
+      );
+      for (const ex of drill.examples) {
+        assert.ok(String(ex.input ?? "").trim(), `${drill.id} example missing input`);
+        assert.ok(String(ex.output ?? "").trim(), `${drill.id} example missing output`);
+      }
       for (const line of drill.initial_code.split("\n")) {
         const t = line.trim();
         assert.ok(

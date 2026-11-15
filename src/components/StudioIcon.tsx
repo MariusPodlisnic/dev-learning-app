@@ -66,7 +66,11 @@ export type StudioIconName =
   | "terminal"
   | "cross_box"
   | "yellow_box"
-  | "algo";
+  | "algo"
+  | "practice_1"
+  | "practice_2"
+  | "practice_3"
+  | "practice_4";
 
 const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
   crown: `
@@ -473,6 +477,30 @@ const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
     <circle cx="15" cy="9" r="1.2" fill="#A3E635"/>
     <polyline points="9,16.5 13,19.5 9,22.5" fill="none" stroke="#B8FF3B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
     <line x1="15.5" y1="22.5" x2="22.5" y2="22.5" stroke="#B8FF3B" stroke-width="2.4" stroke-linecap="round"/>
+  `,
+  practice_1: `
+    <rect x="4" y="4" width="24" height="24" rx="6" fill="#111111" transform="translate(1.8,1.8)"/>
+    <rect x="4" y="4" width="24" height="24" rx="6" fill="#6EE7B7" stroke="#111111" stroke-width="2.2"/>
+    <polyline points="12.5,11 8.5,16 12.5,21" fill="none" stroke="#111111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="19.5,11 23.5,16 19.5,21" fill="none" stroke="#111111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="16" cy="16" r="2.2" fill="#FFDE59" stroke="#111111" stroke-width="1.5"/>
+  `,
+  practice_2: `
+    <polygon points="16,3 28.5,16 16,29 3.5,16" fill="#111111" transform="translate(1.8,1.8)"/>
+    <polygon points="16,3 28.5,16 16,29 3.5,16" fill="#38BDF8" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
+    <polyline points="10.5,12 15.5,16 10.5,20" fill="none" stroke="#111111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="16.5,12 21.5,16 16.5,20" fill="none" stroke="#B8FF3B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  `,
+  practice_3: `
+    <polygon points="16,3 27,9.2 27,22.8 16,29 5,22.8 5,9.2" fill="#111111" transform="translate(1.8,1.8)"/>
+    <polygon points="16,3 27,9.2 27,22.8 16,29 5,22.8 5,9.2" fill="#C4B5FD" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
+    <polygon points="17.5,7.5 11,17 15.8,17 14,24.5 21.5,14.5 16.5,14.5" fill="#FFDE59" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+  `,
+  practice_4: `
+    <path d="M5 7 H27 V17 C27 23 16 29 16 29 C16 29 5 23 5 17 Z" fill="#111111" transform="translate(1.8,1.8)"/>
+    <path d="M5 7 H27 V17 C27 23 16 29 16 29 C16 29 5 23 5 17 Z" fill="#FF6B6B" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
+    <polygon points="10,12 13,8.5 16,12 19,8.5 22,12 21,17 11,17" fill="#FFDE59" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+    <polygon points="16,19.5 19.2,22 16,25 12.8,22" fill="#FFFBEB" stroke="#111111" stroke-width="1.5" stroke-linejoin="round"/>
   `,
 };
 

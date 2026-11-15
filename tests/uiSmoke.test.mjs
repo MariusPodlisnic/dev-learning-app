@@ -358,8 +358,34 @@ test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) 
       }),
     ),
   );
+  assert.ok(missionText.includes("EXAMPLE 01"));
   assert.ok(missionText.includes("GUIDED SCAFFOLDING MODE"));
   assert.ok(missionText.includes("LOAD SKELETON"));
+  assert.ok(
+    missionText.indexOf("EXAMPLE 01") <
+      missionText.indexOf("GUIDED SCAFFOLDING MODE"),
+    "Core Mission Brief should show examples before Guided Scaffolding Mode",
+  );
+
+  const practiceHtml = renderThemed(
+    React.createElement(LessonProblemPanel, {
+      ...baseProps,
+      activeTab: "mission",
+      activeChallengeIdx: 1,
+      userCode: firstLesson.practiceChallenges?.[0]?.initial_code || "",
+      onApplyScaffold: () => {},
+    }),
+  );
+  const practiceText = visibleText(practiceHtml);
+  assert.ok(practiceText.includes("EXAMPLE 01"));
+  assert.ok(
+    practiceText.indexOf("EXAMPLE 01") <
+      practiceText.indexOf("GUIDED SCAFFOLDING MODE"),
+    "Practice stage should show examples before Guided Scaffolding Mode",
+  );
+  // Core Lesson + Practice stages render distinct custom inline SVG icons
+  const stageSvgs = practiceHtml.match(/<svg[\s\S]*?<\/svg>/g) || [];
+  assert.ok(new Set(stageSvgs).size >= 4);
 
   const liveTraceText = visibleText(
     renderThemed(

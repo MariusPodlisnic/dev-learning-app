@@ -126,11 +126,17 @@ export const getLessonProblemStyles = (StudioColors: StudioThemeColors) =>
       fontSize: 10,
       fontWeight: "900",
     },
+    practiceStagePillLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
     practiceStagePillLabel: {
       color: StudioColors.textPrimary,
       fontFamily: MonoFont,
       fontSize: 11,
       fontWeight: "900",
+      flexShrink: 1,
     },
     practiceStagePillTextActive: {
       color: StudioColors.ink,
@@ -716,6 +722,9 @@ export const getLessonProblemStyles = (StudioColors: StudioThemeColors) =>
       marginBottom: 12,
     },
     missionSticker: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
       backgroundColor: StudioColors.mint,
       borderWidth: 1.5,
       borderColor: StudioColors.ink,

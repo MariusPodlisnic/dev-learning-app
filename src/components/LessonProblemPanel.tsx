@@ -305,15 +305,18 @@ export default function LessonProblemPanel({
                   >
                     {isStage0Solved ? "✓ 01" : "01"}
                   </Text>
-                  <Text
-                    style={[
-                      styles.practiceStagePillLabel,
-                      isStage0Selected && styles.practiceStagePillTextActive,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    📖 Core Lesson
-                  </Text>
+                  <View style={styles.practiceStagePillLabelRow}>
+                    <StudioIcon name="practice_1" size={16} />
+                    <Text
+                      style={[
+                        styles.practiceStagePillLabel,
+                        isStage0Selected && styles.practiceStagePillTextActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      Core Lesson
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })()}
@@ -329,12 +332,18 @@ export default function LessonProblemPanel({
                 completedChallenges,
               );
               const stageNumber = String(stageIdx + 1).padStart(2, "0");
+              const stageIconName =
+                stageIdx === 1
+                  ? "practice_2"
+                  : stageIdx === 2
+                    ? "practice_3"
+                    : "practice_4";
               const shortTag =
                 stageIdx === 1
-                  ? "🎯 Practice I"
+                  ? "Practice I"
                   : stageIdx === 2
-                    ? "⚡ Practice II"
-                    : "🔥 Boss Drill";
+                    ? "Practice II"
+                    : "Boss Drill";
               return (
                 <Pressable
                   key={drill.id}
@@ -356,15 +365,18 @@ export default function LessonProblemPanel({
                   >
                     {isSolved ? `✓ ${stageNumber}` : stageNumber}
                   </Text>
-                  <Text
-                    style={[
-                      styles.practiceStagePillLabel,
-                      isSelected && styles.practiceStagePillTextActive,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {shortTag}
-                  </Text>
+                  <View style={styles.practiceStagePillLabelRow}>
+                    <StudioIcon name={stageIconName} size={16} />
+                    <Text
+                      style={[
+                        styles.practiceStagePillLabel,
+                        isSelected && styles.practiceStagePillTextActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {shortTag}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}
@@ -379,8 +391,18 @@ export default function LessonProblemPanel({
             <View style={styles.missionCommandTopBar} />
             <View style={styles.assignmentHeaderRow}>
               <View style={styles.missionSticker}>
+                <StudioIcon
+                  name={
+                    activeChallengeIdx === 1
+                      ? "practice_2"
+                      : activeChallengeIdx === 2
+                        ? "practice_3"
+                        : "practice_4"
+                  }
+                  size={14}
+                />
                 <Text style={styles.assignmentHeaderLabel}>
-                  ⚡ {activePracticeDrill.difficultyLabel} · STAGE{" "}
+                  {activePracticeDrill.difficultyLabel} · STAGE{" "}
                   {activeChallengeIdx + 1}/{totalChallengeStages}
                 </Text>
               </View>
@@ -454,17 +476,20 @@ export default function LessonProblemPanel({
                 </Text>
               </View>
             ) : null}
-
-            <GuidedScaffoldingCard
-              selectedLesson={selectedLesson}
-              lessonEnrichment={lessonEnrichment}
-              activePracticeDrill={activePracticeDrill}
-              userCode={userCode}
-              onLoadScaffold={(scaffold) => onApplyScaffold?.(scaffold)}
-            />
           </View>
 
-          {activePracticeDrill.examples.map((ex, i) => (
+          {(activePracticeDrill.examples &&
+          activePracticeDrill.examples.length > 0
+            ? activePracticeDrill.examples
+            : activePracticeDrill.expected_output
+              ? [
+                  {
+                    input: "Refer to starter function arguments in prompt",
+                    output: activePracticeDrill.expected_output,
+                  },
+                ]
+              : []
+          ).map((ex, i) => (
             <View key={i} style={styles.exampleBlock}>
               <Text style={styles.exampleTitle}>EXAMPLE 0{i + 1}</Text>
               <View style={styles.exampleBox}>
@@ -485,6 +510,14 @@ export default function LessonProblemPanel({
               </View>
             </View>
           ))}
+
+          <GuidedScaffoldingCard
+            selectedLesson={selectedLesson}
+            lessonEnrichment={lessonEnrichment}
+            activePracticeDrill={activePracticeDrill}
+            userCode={userCode}
+            onLoadScaffold={(scaffold) => onApplyScaffold?.(scaffold)}
+          />
 
           {/* Quick Refresher Button back to Stage 1 Concept Guide if needed */}
           <Pressable
@@ -885,13 +918,6 @@ export default function LessonProblemPanel({
                 </Text>
               </View>
             ) : null}
-
-            <GuidedScaffoldingCard
-              selectedLesson={selectedLesson}
-              lessonEnrichment={lessonEnrichment}
-              userCode={userCode}
-              onLoadScaffold={(scaffold) => onApplyScaffold?.(scaffold)}
-            />
           </View>
 
           {selectedLesson.examples?.map((ex, i) => (
@@ -915,6 +941,13 @@ export default function LessonProblemPanel({
               </View>
             </View>
           ))}
+
+          <GuidedScaffoldingCard
+            selectedLesson={selectedLesson}
+            lessonEnrichment={lessonEnrichment}
+            userCode={userCode}
+            onLoadScaffold={(scaffold) => onApplyScaffold?.(scaffold)}
+          />
 
           {/* Pro Official Solution & Line-by-Line Walkthrough */}
           <ProSolutionCard

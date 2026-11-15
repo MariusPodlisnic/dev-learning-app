@@ -213,15 +213,16 @@ export default function GuidedScaffoldingCard({
 const createStyles = (StudioColors: StudioThemeColors) =>
   StyleSheet.create({
     card: {
-      marginTop: 12,
-      backgroundColor: StudioColors.bg,
+      marginBottom: 16,
+      backgroundColor: StudioColors.surface,
       borderRadius: 10,
-      borderWidth: 1.5,
+      borderWidth: 2,
       borderColor: StudioColors.border,
       borderLeftWidth: 4,
       borderLeftColor: StudioColors.mint,
-      padding: 12,
+      padding: 14,
       gap: 9,
+      ...HardShadowSm,
     },
     topRow: {
       flexDirection: "row",

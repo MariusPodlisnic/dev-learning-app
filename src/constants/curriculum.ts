@@ -437,15 +437,37 @@ export function mergeCurriculumLessons<
     if ((item as any).is_recap) continue;
     const trackDrills = drillsByTrack[item.track];
     const localDrills = trackDrills?.[item.lesson_order];
-    if (
-      (!item.practiceChallenges || item.practiceChallenges.length === 0) &&
-      localDrills &&
-      localDrills.length > 0
-    ) {
-      merged[i] = {
-        ...item,
-        practiceChallenges: localDrills,
-      };
+    if (localDrills && localDrills.length > 0) {
+      if (!item.practiceChallenges || item.practiceChallenges.length === 0) {
+        merged[i] = {
+          ...item,
+          practiceChallenges: localDrills,
+        };
+      } else {
+        // Backfill missing examples/hints/constraints when DB rows carry older practiceChallenges JSON
+        const enrichedChallenges = item.practiceChallenges.map((ch, idx) => {
+          const fallback =
+            localDrills.find((d) => d.id === ch?.id) || localDrills[idx];
+          if (!fallback || !ch || typeof ch !== "object") return ch;
+          const hasExamples =
+            Array.isArray(ch.examples) && ch.examples.length > 0;
+          const hasHints = Array.isArray(ch.hints) && ch.hints.length > 0;
+          const hasConstraints =
+            Array.isArray(ch.constraints) && ch.constraints.length > 0;
+          return {
+            ...fallback,
+            ...ch,
+            examples: hasExamples ? ch.examples : fallback.examples,
+            hints: hasHints ? ch.hints : fallback.hints,
+            constraints: hasConstraints ? ch.constraints : fallback.constraints,
+            expected_output: ch.expected_output || fallback.expected_output,
+          };
+        });
+        merged[i] = {
+          ...item,
+          practiceChallenges: enrichedChallenges,
+        };
+      }
     }
   }
 
