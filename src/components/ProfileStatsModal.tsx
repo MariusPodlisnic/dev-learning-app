@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Text } from "./StudioIcon";
+import {
+  getLevelAvatarIcon,
+  StudioIcon,
+  StudioIconName,
+  Text,
+} from "./StudioIcon";
 import {
   CertificateData,
   getUnlockedCertificates,
@@ -35,6 +40,8 @@ interface ProfileStatsModalProps {
 
 const TRACK_KEYS = ["python_basics", "algorithms", "system_design"] as const;
 
+export const MAX_DEVELOPER_LEVEL = 10;
+
 export interface DeveloperRankInfo {
   level: number;
   title: string;
@@ -42,94 +49,125 @@ export interface DeveloperRankInfo {
   nextTitle: string;
   badge: string;
   accent: string;
+  avatarIcon: StudioIconName;
+  isMaxLevel: boolean;
   xpIntoLevel: number;
   xpForNext: number;
   xpRemaining: number;
   progressPercent: number;
 }
 
-const FUNNY_RANKS: {
+const DEVELOPER_RANKS: {
+  level: number;
+  minXp: number;
   title: string;
   tagline: string;
-  badge: string;
   accent: string;
 }[] = [
   {
+    level: 1,
+    minXp: 0,
     title: "Copy-Paste Apprentice",
     tagline: "Professional StackOverflow archaeologist & Ctrl+C specialist",
-    badge: "I",
     accent: "#7CA5B8",
   },
   {
+    level: 2,
+    minXp: 500,
     title: "Indentation Wrangler",
     tagline: "Finally stopped mixing tabs and spaces (mostly)",
-    badge: "II",
     accent: "#FFDE59",
   },
   {
+    level: 3,
+    minXp: 1500,
     title: "Print-Statement Detective",
     tagline: "Debugging the universe one print('HERE 3') at a time",
-    badge: "III",
     accent: "#FF90E8",
   },
   {
+    level: 4,
+    minXp: 3000,
     title: "Infinite Loop Survivor",
     tagline: "Battle-tested veteran who knows where Ctrl+C lives",
-    badge: "IV",
     accent: "#6EE7B7",
   },
   {
+    level: 5,
+    minXp: 5500,
     title: "Bug Whisperer",
     tagline: "It is not a bug — it is an undocumented surprise feature",
-    badge: "V",
     accent: "#C4B5FD",
   },
   {
+    level: 6,
+    minXp: 9000,
     title: "O(1) Sorcerer",
     tagline: "Severely allergic to nested loops and slow lookups",
-    badge: "VI",
     accent: "#A3E635",
   },
   {
+    level: 7,
+    minXp: 14000,
     title: "Production Cowboy",
     tagline: "Ships clean code on Fridays without breaking a sweat",
-    badge: "VII",
     accent: "#FB923C",
   },
   {
+    level: 8,
+    minXp: 21000,
     title: "10x Keyboard Overlord",
     tagline: "Speaks fluent bytecode and dreams in hash maps",
-    badge: "VIII",
     accent: "#38BDF8",
+  },
+  {
+    level: 9,
+    minXp: 30000,
+    title: "Principal Chaos Tamer",
+    tagline: "Orbits failing microservices into harmonious uptime",
+    accent: "#F472B6",
+  },
+  {
+    level: 10,
+    minXp: 45000,
+    title: "Supreme Code Architect",
+    tagline: "Bends distributed systems, algorithms & space-time at will",
+    accent: "#B8FF3B",
   },
 ];
 
 export function getDeveloperRank(xp: number): DeveloperRankInfo {
-  const xpPerLevel = 100;
-  const level = Math.floor(xp / xpPerLevel) + 1;
-  const xpIntoLevel = xp % xpPerLevel;
-  const xpForNext = xpPerLevel;
-  const xpRemaining = xpForNext - xpIntoLevel;
-  const progressPercent = Math.min(
-    100,
-    Math.round((xpIntoLevel / xpForNext) * 100),
-  );
+  const safeXp = Math.max(0, Math.floor(xp || 0));
+  let currentIdx = 0;
+  for (let i = DEVELOPER_RANKS.length - 1; i >= 0; i -= 1) {
+    if (safeXp >= DEVELOPER_RANKS[i].minXp) {
+      currentIdx = i;
+      break;
+    }
+  }
 
-  const currentIdx = Math.min(level - 1, FUNNY_RANKS.length - 1);
-  const nextIdx = Math.min(level, FUNNY_RANKS.length - 1);
-  const currentMeta = FUNNY_RANKS[currentIdx];
-  const nextMeta = FUNNY_RANKS[nextIdx];
+  const currentMeta = DEVELOPER_RANKS[currentIdx];
+  const isMaxLevel = currentMeta.level >= MAX_DEVELOPER_LEVEL;
+  const nextMeta = isMaxLevel
+    ? currentMeta
+    : DEVELOPER_RANKS[currentIdx + 1];
+
+  const xpIntoLevel = safeXp - currentMeta.minXp;
+  const xpForNext = isMaxLevel ? 0 : nextMeta.minXp - currentMeta.minXp;
+  const xpRemaining = isMaxLevel ? 0 : Math.max(0, nextMeta.minXp - safeXp);
+  const progressPercent = isMaxLevel
+    ? 100
+    : Math.min(100, Math.round((xpIntoLevel / xpForNext) * 100));
 
   return {
-    level,
+    level: currentMeta.level,
     title: currentMeta.title,
     tagline: currentMeta.tagline,
-    nextTitle:
-      level >= FUNNY_RANKS.length
-        ? "Supreme Architect of the Multiverse"
-        : nextMeta.title,
-    badge: currentMeta.badge,
+    nextTitle: isMaxLevel ? "MAX LEVEL REACHED" : nextMeta.title,
+    badge: `LVL ${currentMeta.level}`,
     accent: currentMeta.accent,
+    avatarIcon: getLevelAvatarIcon(currentMeta.level),
+    isMaxLevel,
     xpIntoLevel,
     xpForNext,
     xpRemaining,
@@ -193,12 +231,32 @@ export default function ProfileStatsModal({
 
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
-          <View style={styles.levelBadgeCircle}>
-            <Text style={styles.levelNumberText}>L{rank.level}</Text>
+          <View
+            style={[
+              styles.levelBadgeCircle,
+              { backgroundColor: rank.accent },
+            ]}
+          >
+            <StudioIcon name={rank.avatarIcon} size={56} />
           </View>
           <View style={styles.headerTextCol}>
             <View style={styles.rankTitleRow}>
               <Text style={styles.rankTitle}>{rank.title}</Text>
+              <View
+                style={[
+                  styles.tierBadge,
+                  { backgroundColor: rank.accent },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tierBadgeText,
+                    { color: StudioColors.ink },
+                  ]}
+                >
+                  LVL {rank.level}{rank.isMaxLevel ? " · MAX" : ""}
+                </Text>
+              </View>
               <View
                 style={[
                   styles.tierBadge,
@@ -258,23 +316,37 @@ export default function ProfileStatsModal({
         <View style={styles.levelProgressBox}>
           <View style={styles.levelProgressHeader}>
             <Text style={styles.levelProgressLabel}>
-              LEVEL {rank.level} · {rank.title.toUpperCase()}
+              LVL {rank.level} · {rank.title.toUpperCase()}
             </Text>
             <Text style={styles.levelProgressCount}>
-              {rank.xpIntoLevel} / {rank.xpForNext} XP
+              {rank.isMaxLevel
+                ? "MAX LEVEL"
+                : `${rank.xpIntoLevel.toLocaleString()} / ${rank.xpForNext.toLocaleString()} XP`}
             </Text>
           </View>
           <View style={styles.levelBarTrack}>
             <View
               style={[
                 styles.levelBarFill,
-                { width: `${Math.max(rank.progressPercent, 5)}%` },
+                {
+                  width: `${Math.max(rank.progressPercent, 5)}%`,
+                  backgroundColor: rank.accent,
+                },
               ]}
             />
           </View>
           <Text style={styles.nextRankHintText}>
-            ⚡ {rank.xpRemaining} XP until Level {rank.level + 1}:{" "}
-            <Text style={styles.nextRankHighlight}>{rank.nextTitle}</Text>
+            {rank.isMaxLevel ? (
+              <>
+                ★ MAX LEVEL 10 REACHED ({xpPoints.toLocaleString()} TOTAL XP)
+              </>
+            ) : (
+              <>
+                ⚡ {rank.xpRemaining.toLocaleString()} XP until LVL{" "}
+                {rank.level + 1}:{" "}
+                <Text style={styles.nextRankHighlight}>{rank.nextTitle}</Text>
+              </>
+            )}
           </Text>
         </View>
 
@@ -492,22 +564,17 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     minWidth: 0,
   },
   levelBadgeCircle: {
-    width: 46,
-    height: 46,
+    width: 60,
+    height: 60,
     flexShrink: 0,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: StudioColors.violet,
     borderWidth: 2,
     borderColor: StudioColors.border,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
     ...HardShadowSm,
-  },
-  levelNumberText: {
-    color: StudioColors.ink,
-    fontSize: 16,
-    fontWeight: "900",
-    fontFamily: MonoFont,
   },
   rankTitleRow: {
     flexDirection: "row",

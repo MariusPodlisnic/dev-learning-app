@@ -46,6 +46,12 @@ const { getLessonEnrichment, mergeCurriculumLessons } = loadTsModule(
 const { renderHighlightedPython } = loadTsModule(
   "src/components/FormattedText.tsx",
 );
+const { getDeveloperRank, MAX_DEVELOPER_LEVEL, default: ProfileStatsModal } = loadTsModule(
+  "src/components/ProfileStatsModal.tsx",
+);
+const { default: SuccessModal } = loadTsModule(
+  "src/components/SuccessModal.tsx",
+);
 const { StudioColors } = loadTsModule("src/constants/theme.ts");
 
 function renderThemed(element) {
@@ -516,4 +522,100 @@ test("RoadmapReviewCard and SystemDesignLabPanel render spaced review and archit
     ),
   );
   assert.ok(panelWithLabText.includes("ARCH LAB"));
+});
+
+test("10-level developer rank system enforces wider XP gaps, caps at Level 10, and renders unique profile avatars", () => {
+  assert.equal(MAX_DEVELOPER_LEVEL, 10);
+
+  const l1 = getDeveloperRank(0);
+  assert.equal(l1.level, 1);
+  assert.equal(l1.badge, "LVL 1");
+  assert.equal(l1.xpRemaining, 500);
+  assert.equal(l1.avatarIcon, "level_avatar_1");
+  assert.equal(l1.isMaxLevel, false);
+
+  const almostL2 = getDeveloperRank(499);
+  assert.equal(almostL2.level, 1);
+  assert.equal(almostL2.xpRemaining, 1);
+
+  const l2 = getDeveloperRank(500);
+  assert.equal(l2.level, 2);
+  assert.equal(l2.badge, "LVL 2");
+  assert.equal(l2.xpForNext, 1000);
+  assert.equal(l2.avatarIcon, "level_avatar_2");
+
+  const l8 = getDeveloperRank(21000);
+  assert.equal(l8.level, 8);
+  assert.equal(l8.avatarIcon, "level_avatar_8");
+
+  const l10 = getDeveloperRank(45000);
+  assert.equal(l10.level, 10);
+  assert.equal(l10.badge, "LVL 10");
+  assert.equal(l10.avatarIcon, "level_avatar_10");
+  assert.equal(l10.isMaxLevel, true);
+  assert.equal(l10.xpRemaining, 0);
+  assert.equal(l10.progressPercent, 100);
+
+  const capped = getDeveloperRank(999999);
+  assert.equal(capped.level, 10);
+  assert.equal(capped.isMaxLevel, true);
+
+  // Verify ProfileStatsModal & SuccessModal render Level 10 MAX without Level 11 overflow or Roman numerals
+  const profileHtml = renderThemed(
+    React.createElement(ProfileStatsModal, {
+      xpPoints: 52000,
+      streakCount: 12,
+      isPremium: true,
+      lessons: [],
+      completedLessons: {},
+      onSelectTrack: () => {},
+      onOpenAuth: () => {},
+      onClose: () => {},
+    }),
+  );
+  const profileText = visibleText(profileHtml);
+  assert.ok(profileText.includes("LVL 10 · MAX"));
+  assert.ok(profileText.includes("MAX LEVEL 10 REACHED"));
+  assert.ok(!profileText.includes("LVL 11"));
+
+  const successHtml = renderThemed(
+    React.createElement(SuccessModal, {
+      xpEarned: 50,
+      totalXp: 45020,
+      lessonTitle: "Two Sum",
+      hasNextLesson: false,
+      onNextLesson: () => {},
+      onClose: () => {},
+    }),
+  );
+  const successText = visibleText(successHtml);
+  assert.ok(successText.includes("LVL 10 · MAX"));
+  assert.ok(successText.includes("MAX LEVEL 10 REACHED"));
+
+  // Ensure all 10 levels produce unique avatar SVGs in AppHeader
+  const headerAvatars = Array.from({ length: 10 }, (_, idx) => {
+    const rank = { level: idx + 1, title: `Rank ${idx + 1}` };
+    const html = renderThemed(
+      React.createElement(AppHeader, {
+        viewMode: "roadmap",
+        onChangeViewMode: () => {},
+        isCompactHeader: false,
+        pyodideReady: true,
+        themeMode: "dark",
+        onToggleTheme: () => {},
+        devRank: rank,
+        streakCount: 1,
+        isPremium: false,
+        session: null,
+        onOpenProfile: () => {},
+        onOpenPaywall: () => {},
+        onOpenAuth: () => {},
+        onSignOut: () => {},
+      }),
+    );
+    assert.ok(visibleText(html).includes(`LVL ${idx + 1}`));
+    assert.ok(!visibleText(html).includes(`LVL 0${idx + 1}`));
+    return html.match(/viewBox="0 0 64 64"[\s\S]*?<\/svg>/)?.[0];
+  });
+  assert.equal(new Set(headerAvatars.filter(Boolean)).size, 10);
 });

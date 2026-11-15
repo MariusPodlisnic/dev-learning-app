@@ -11,7 +11,12 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { StudioIcon, Text } from "./StudioIcon";
+import {
+  getLevelAvatarIcon,
+  StudioIcon,
+  StudioIconName,
+  Text,
+} from "./StudioIcon";
 import {
   HardShadow,
   HardShadowSm,
@@ -42,7 +47,7 @@ interface AppHeaderProps {
   pyodideReady: boolean;
   themeMode: ThemeMode;
   onToggleTheme: () => void;
-  devRank: { level: number; title: string };
+  devRank: { level: number; title: string; avatarIcon?: StudioIconName };
   streakCount: number;
   isPremium: boolean;
   session: Session | null;
@@ -604,10 +609,16 @@ export default function AppHeader({
             >
               {/* 1. Profile & Developer Rank Box */}
               <View style={styles.rankPill}>
+                <View style={styles.rankAvatarFrame}>
+                  <StudioIcon
+                    name={devRank.avatarIcon ?? getLevelAvatarIcon(devRank.level)}
+                    size={isCompactHeader ? 24 : 28}
+                  />
+                </View>
                 <View style={styles.rankLevelBadge}>
-                  <StudioIcon name="menu_account_rank" size={15} />
+                  <StudioIcon name="menu_account_rank" size={14} />
                   <Text style={styles.rankLevelBadgeText}>
-                    LVL 0{devRank.level}
+                    LVL {devRank.level}
                   </Text>
                 </View>
                 <View style={styles.headerBtnTextStack}>
@@ -1195,6 +1206,13 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       alignItems: "center",
       gap: 7,
       ...HardShadowSm,
+    },
+    rankAvatarFrame: {
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+      backgroundColor: StudioColors.ink,
+      overflow: "hidden",
     },
     rankLevelBadge: {
       flexDirection: "row",

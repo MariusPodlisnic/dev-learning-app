@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
-import { Text } from "./StudioIcon";
+import { StudioIcon, Text } from "./StudioIcon";
 import {
   HardShadow,
   HardShadowHero,
@@ -73,8 +73,8 @@ export default function SuccessModal({
     );
     const streakSegment = streakCount > 0 ? ` · 🔥 ${streakCount}d streak` : "";
     const message = didLevelUp
-      ? `🎉 Promoted to Level ${currentRank.level}: ${currentRank.title} in DevLearn!\n✅ Just solved "${lessonTitle}" (+${xpEarned} XP${streakSegment})\nTry this lab 👉 ${challengeUrl}`
-      : `✅ Solved "${lessonTitle}" in DevLearn (+${xpEarned} XP${streakSegment})!\n🏅 Rank: L${currentRank.level} ${currentRank.title}\nBeat my solution 👉 ${challengeUrl}`;
+      ? `🎉 Promoted to LVL ${currentRank.level}: ${currentRank.title} in DevLearn!\n✅ Just solved "${lessonTitle}" (+${xpEarned} XP${streakSegment})\nTry this lab 👉 ${challengeUrl}`
+      : `✅ Solved "${lessonTitle}" in DevLearn (+${xpEarned} XP${streakSegment})!\n🏅 Rank: LVL ${currentRank.level} · ${currentRank.title}\nBeat my solution 👉 ${challengeUrl}`;
 
     const outcome = await shareOrCopyText({
       title: `DevLearn — ${lessonTitle}`,
@@ -171,7 +171,7 @@ export default function SuccessModal({
               ]}
             >
               <Text style={styles.rankLevelPillText}>
-                LEVEL {currentRank.level}
+                LVL {currentRank.level}{currentRank.isMaxLevel ? " · MAX" : ""}
               </Text>
             </View>
             {didLevelUp ? (
@@ -183,14 +183,23 @@ export default function SuccessModal({
             ) : null}
           </View>
           <Text style={styles.rankXpFraction}>
-            {currentRank.xpIntoLevel} / {currentRank.xpForNext} XP
+            {currentRank.isMaxLevel
+              ? "MAX LEVEL"
+              : `${currentRank.xpIntoLevel.toLocaleString()} / ${currentRank.xpForNext.toLocaleString()} XP`}
           </Text>
         </View>
 
-        <Text style={styles.rankTitleText}>{currentRank.title}</Text>
-        <Text style={styles.rankTaglineText}>
-          &ldquo;{currentRank.tagline}&rdquo;
-        </Text>
+        <View style={styles.rankIdentityRow}>
+          <View style={[styles.rankAvatarBox, { backgroundColor: currentRank.accent }]}>
+            <StudioIcon name={currentRank.avatarIcon} size={38} />
+          </View>
+          <View style={styles.rankIdentityCopy}>
+            <Text style={styles.rankTitleText}>{currentRank.title}</Text>
+            <Text style={styles.rankTaglineText}>
+              &ldquo;{currentRank.tagline}&rdquo;
+            </Text>
+          </View>
+        </View>
 
         <View style={styles.rankBarTrack}>
           <View
@@ -205,10 +214,16 @@ export default function SuccessModal({
         </View>
 
         <Text style={styles.nextRankFooterText}>
-          ⚡ {currentRank.xpRemaining} XP until{" "}
-          <Text style={styles.nextRankBold}>
-            L{currentRank.level + 1}: {currentRank.nextTitle}
-          </Text>
+          {currentRank.isMaxLevel ? (
+            <>★ MAX LEVEL 10 REACHED ({totalXp.toLocaleString()} TOTAL XP)</>
+          ) : (
+            <>
+              ⚡ {currentRank.xpRemaining.toLocaleString()} XP until{" "}
+              <Text style={styles.nextRankBold}>
+                LVL {currentRank.level + 1}: {currentRank.nextTitle}
+              </Text>
+            </>
+          )}
         </Text>
       </View>
 
@@ -518,6 +533,27 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     fontSize: 10,
     fontWeight: "900",
     fontFamily: MonoFont,
+  },
+  rankIdentityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginVertical: 2,
+  },
+  rankAvatarBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    flexShrink: 0,
+  },
+  rankIdentityCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   rankTitleText: {
     color: StudioColors.textPrimary,
