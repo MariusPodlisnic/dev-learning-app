@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
+const React = require("react");
 
 export const ROOT_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -14,10 +15,16 @@ export const ROOT_DIR = path.resolve(
 
 const moduleCache = new Map();
 const mockPlatformState = { OS: "web" };
+const mockViewportState = { width: 1280, height: 800 };
 const mockAsyncStorageStore = new Map();
 
 export function setMockPlatformOS(os) {
   mockPlatformState.OS = os;
+}
+
+export function setMockViewport(width, height = 800) {
+  mockViewportState.width = width;
+  mockViewportState.height = height;
 }
 
 export function getMockAsyncStorageStore() {
@@ -27,6 +34,59 @@ export function getMockAsyncStorageStore() {
 export function clearModuleCache() {
   moduleCache.clear();
 }
+
+function createHostComponent(tagName) {
+  return function MockHost({ children, style, accessibilityLabel, accessibilityRole, accessibilityState, ...rest }) {
+    const resolvedStyle = typeof style === "function" ? style({ pressed: false }) : style;
+    const flatProps = {
+      ...(accessibilityLabel ? { "aria-label": accessibilityLabel } : {}),
+      ...(accessibilityRole ? { role: accessibilityRole } : {}),
+      ...(accessibilityState?.selected !== undefined
+        ? { "aria-selected": accessibilityState.selected }
+        : {}),
+      ...(resolvedStyle && !Array.isArray(resolvedStyle) && typeof resolvedStyle === "object"
+        ? {}
+        : {}),
+    };
+    if (tagName === "textarea") {
+      return React.createElement("textarea", {
+        ...flatProps,
+        defaultValue: rest.value ?? "",
+        readOnly: true,
+      });
+    }
+    const content =
+      typeof children === "function" ? children({ pressed: false }) : children;
+    return React.createElement(tagName, flatProps, content);
+  };
+}
+
+function createAnimatedValue(initial) {
+  return {
+    _value: initial,
+    setValue(v) {
+      this._value = v;
+    },
+    interpolate() {
+      return "0deg";
+    },
+  };
+}
+
+function createNoopAnimation() {
+  return {
+    start(cb) {
+      if (typeof cb === "function") cb({ finished: true });
+    },
+    stop() {},
+    reset() {},
+  };
+}
+
+const MockView = createHostComponent("div");
+const MockText = createHostComponent("span");
+const MockPressable = createHostComponent("button");
+const MockTextInput = createHostComponent("textarea");
 
 function resolveLocalFile(baseDir, specifier) {
   const mapped = specifier.startsWith("@/")
@@ -50,8 +110,8 @@ function resolveLocalFile(baseDir, specifier) {
 }
 
 /**
- * Loads a TypeScript module in Node for unit tests without needing Expo/Metro.
- * Stubs `.css`, `react-native`, and `lib/supabase` cleanly.
+ * Loads a TypeScript/TSX module in Node for unit and UI smoke tests without Expo/Metro.
+ * Stubs React Native primitives, Expo Router, `.css`, audio assets, and `lib/supabase`.
  */
 export function loadTsModule(relOrAbsPath) {
   const filePath = path.isAbsolute(relOrAbsPath)
@@ -65,6 +125,7 @@ export function loadTsModule(relOrAbsPath) {
   const source = fs.readFileSync(filePath, "utf8");
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
+      jsx: ts.JsxEmit.ReactJSX,
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2020,
       esModuleInterop: true,
@@ -78,14 +139,78 @@ export function loadTsModule(relOrAbsPath) {
     if (specifier.endsWith(".css")) {
       return {};
     }
+    if (/\.(wav|mp3|png|jpg|jpeg|svg|ttf|woff2?)$/i.test(specifier)) {
+      return 1;
+    }
     if (specifier === "expo-linking") {
       return {
-        createURL: (path = "", opts = {}) => {
+        createURL: (routePath = "", opts = {}) => {
           const query = opts?.queryParams
             ? `?${new URLSearchParams(opts.queryParams).toString()}`
             : "";
-          return `https://devlearn.local/${String(path).replace(/^\//, "")}${query}`;
+          return `https://devlearn.local/${String(routePath).replace(/^\//, "")}${query}`;
         },
+      };
+    }
+    if (specifier === "expo-router") {
+      const Passthrough = ({ children }) => React.createElement(React.Fragment, null, children);
+      return {
+        router: { push: () => {}, replace: () => {}, back: () => {} },
+        Link: Passthrough,
+        Stack: Object.assign(Passthrough, { Screen: () => null }),
+        useLocalSearchParams: () => ({}),
+      };
+    }
+    if (specifier === "expo-router/head") {
+      return {
+        __esModule: true,
+        default: ({ children }) => React.createElement(React.Fragment, null, children),
+      };
+    }
+    if (specifier === "expo-audio") {
+      return {
+        createAudioPlayer: () => ({
+          volume: 1,
+          play: () => {},
+          seekTo: async () => {},
+          remove: () => {},
+        }),
+        setAudioModeAsync: async () => {},
+      };
+    }
+    if (specifier === "expo-haptics") {
+      return {
+        ImpactFeedbackStyle: { Light: "Light", Medium: "Medium", Heavy: "Heavy" },
+        NotificationFeedbackType: {
+          Success: "Success",
+          Warning: "Warning",
+          Error: "Error",
+        },
+        selectionAsync: async () => {},
+        impactAsync: async () => {},
+        notificationAsync: async () => {},
+      };
+    }
+    if (specifier === "expo-device") {
+      return { isDevice: false, modelName: "TestDevice" };
+    }
+    if (specifier === "expo-image") {
+      return { Image: MockView };
+    }
+    if (specifier === "expo-symbols") {
+      return { SymbolView: MockView };
+    }
+    if (specifier === "expo-glass-effect") {
+      return { GlassView: MockView, isLiquidGlassAvailable: () => false };
+    }
+    if (specifier === "react-native-webview") {
+      return { WebView: MockView };
+    }
+    if (specifier === "react-native-safe-area-context") {
+      return {
+        SafeAreaProvider: MockView,
+        SafeAreaView: MockView,
+        useSafeAreaInsets: () => ({ top: 0, bottom: 16, left: 0, right: 0 }),
       };
     }
     if (specifier === "react-native") {
@@ -95,6 +220,53 @@ export function loadTsModule(relOrAbsPath) {
             return mockPlatformState.OS;
           },
           select: (obj) => obj[mockPlatformState.OS] ?? obj.default,
+        },
+        StyleSheet: {
+          create: (styles) => styles,
+          flatten: function flattenStyle(input) {
+            if (!input) return undefined;
+            if (!Array.isArray(input)) return input;
+            return Object.assign(
+              {},
+              ...input.map((item) => flattenStyle(item)).filter(Boolean),
+            );
+          },
+          absoluteFill: {},
+        },
+        View: MockView,
+        Text: MockText,
+        Pressable: MockPressable,
+        ScrollView: MockView,
+        SafeAreaView: MockView,
+        KeyboardAvoidingView: MockView,
+        TextInput: MockTextInput,
+        useWindowDimensions: () => ({
+          width: mockViewportState.width,
+          height: mockViewportState.height,
+        }),
+        Keyboard: {
+          addListener: () => ({ remove: () => {} }),
+          dismiss: () => {},
+        },
+        Easing: {
+          linear: (t) => t,
+          quad: (t) => t * t,
+          cubic: (t) => t * t * t,
+          inOut: (fn) => fn,
+          out: (fn) => fn,
+        },
+        Animated: {
+          View: MockView,
+          Text: MockText,
+          Value: function Value(init) {
+            return createAnimatedValue(init);
+          },
+          timing: createNoopAnimation,
+          spring: createNoopAnimation,
+          delay: createNoopAnimation,
+          sequence: createNoopAnimation,
+          parallel: createNoopAnimation,
+          loop: createNoopAnimation,
         },
       };
     }

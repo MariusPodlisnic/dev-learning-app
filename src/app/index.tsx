@@ -12,7 +12,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   useWindowDimensions,
   View,
@@ -22,9 +21,7 @@ import { supabase } from "../../lib/supabase";
 import AchievementsHall from "../components/AchievementsHall";
 import AlgorithmVisualizerLab from "../components/AlgorithmVisualizerLab";
 import AppHeader from "../components/AppHeader";
-import Auth from "../components/Auth";
 import BugHuntArena from "../components/BugHuntArena";
-import CertificateModal from "../components/CertificateModal";
 import { renderHighlightedPython } from "../components/FormattedText";
 import LessonProblemPanel from "../components/LessonProblemPanel";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
@@ -35,20 +32,19 @@ import {
   isCompactStudioWidth,
   shouldShowBottomThumbNav,
 } from "../utils/mobileLayout";
-import PaywallModal, {
+import {
   PaywallPlanId,
   PaywallTriggerContext,
 } from "../components/PaywallModal";
-import ProfileStatsModal, {
+import {
   getDeveloperRank,
 } from "../components/ProfileStatsModal";
 import RoadmapTree from "../components/RoadmapTree";
 import StudioCodeEditor from "../components/StudioCodeEditor";
 import StudioFocusBackground from "../components/StudioFocusBackground";
+import StudioModals from "../components/StudioModals";
 import StudioSidebar from "../components/StudioSidebar";
 import { getStudioScreenStyles } from "../components/studioScreenStyles";
-import SuccessModal from "../components/SuccessModal";
-import StreakMilestoneModal from "../components/StreakMilestoneModal";
 import SyntaxBlitzArena from "../components/SyntaxBlitzArena";
 import {
   computeStreakUpdate,
@@ -1330,207 +1326,74 @@ export default function HomeScreen() {
         />
       )}
 
-      {showAuthModal && (
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={keyboardBehavior}
-        >
-          <View style={styles.modalContent}>
-            <Auth
-              defaultMode={authDefaultMode}
-              guestXp={xpPoints}
-              guestSolvedCount={totalSolvedCount}
-              promptReason={authPromptReason}
-              onSuccess={() => {
-                setShowAuthModal(false);
-                if (resumePaywallAfterAuthRef.current) {
-                  resumePaywallAfterAuthRef.current = false;
-                  setShowPaywallModal(true);
-                }
-              }}
-            />
-            <Pressable
-              style={styles.closeModalBtn}
-              onPress={() => {
-                resumePaywallAfterAuthRef.current = false;
-                setShowAuthModal(false);
-              }}
-            >
-              <Text style={styles.closeModalText}>Cancel</Text>
-            </Pressable>
-          </View>
-        </KeyboardAvoidingView>
-      )}
-
-      {showPaywallModal && (
-        <View style={styles.modalOverlay}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close upgrade modal"
-            style={StyleSheet.absoluteFill}
-            onPress={() => setShowPaywallModal(false)}
-          />
-          <PaywallModal
-            onClose={() => setShowPaywallModal(false)}
-            onUpgrade={handleUpgradeToPro}
-            loading={upgrading}
-            totalModules={lessons.length || 64}
-            algoModulesCount={algoModulesCount || 20}
-            sysDesignModulesCount={sysDesignModulesCount || 20}
-            xpPoints={xpPoints}
-            completedCount={totalSolvedCount}
-            streakCount={streakCount}
-            hasSession={Boolean(session)}
-            triggerContext={paywallContext}
-            freePreviewLessonTitle={paywallFreePreviewLesson?.title}
-            onTryFreePreview={
-              paywallFreePreviewLesson
-                ? () => {
-                    setShowPaywallModal(false);
-                    openLessonInStudio(paywallFreePreviewLesson);
-                  }
-                : undefined
-            }
-          />
-        </View>
-      )}
-
-      {showSuccessModal && (
-        <View style={styles.modalOverlay}>
-          <SuccessModal
-            xpEarned={
-              activeChallengeIdx > 0 &&
-              selectedLesson?.practiceChallenges?.[activeChallengeIdx - 1]
-                ?.xpReward
-                ? selectedLesson.practiceChallenges[activeChallengeIdx - 1]
-                    .xpReward!
-                : 50
-            }
-            totalXp={xpPoints}
-            streakCount={streakCount}
-            lessonId={selectedLesson?.id}
-            lessonTitle={
-              activeChallengeIdx > 0 &&
-              selectedLesson?.practiceChallenges?.[activeChallengeIdx - 1]
-                ? `${selectedLesson.title} — ${selectedLesson.practiceChallenges[activeChallengeIdx - 1].title}`
-                : selectedLesson?.title || ""
-            }
-            challengeStepLabel={
-              selectedLesson?.practiceChallenges?.length
-                ? `STAGE ${activeChallengeIdx + 1} OF ${1 + selectedLesson.practiceChallenges.length} COMPLETE`
-                : undefined
-            }
-            keyTakeaway={
-              lessonEnrichment?.realWorldUse || selectedLesson?.description
-            }
-            nextLessonTitle={
-              selectedLesson?.practiceChallenges &&
-              activeChallengeIdx < selectedLesson.practiceChallenges.length
-                ? `Stage ${activeChallengeIdx + 2}: ${selectedLesson.practiceChallenges[activeChallengeIdx].title}`
-                : hasNextLesson
-                  ? currentLessons[currentLessonIndex + 1]?.title
-                  : undefined
-            }
-            nextActionLabel={
-              selectedLesson?.practiceChallenges &&
-              activeChallengeIdx < selectedLesson.practiceChallenges.length
-                ? `START PRACTICE STAGE ${activeChallengeIdx + 2} (${selectedLesson.practiceChallenges[activeChallengeIdx].title.toUpperCase()}) →`
-                : undefined
-            }
-            starRating={
-              selectedLesson
-                ? getLessonStarRating(
-                    selectedLesson,
-                    completedLessons,
-                    completedChallenges,
-                    peekedSolutions,
-                  )
-                : undefined
-            }
-            hasNextLesson={Boolean(
-              (selectedLesson?.practiceChallenges &&
-                activeChallengeIdx <
-                  selectedLesson.practiceChallenges.length) ||
-                hasNextLesson,
-            )}
-            isGuest={!session}
-            totalSolvedCount={totalSolvedCount}
-            onSaveProgress={() => {
-              setShowSuccessModal(false);
-              openAuthModal(
-                "signup",
-                `Save your ${xpPoints} XP and ${totalSolvedCount} solved modules before closing this browser.`,
-              );
-            }}
-            trackCertificateLabel={
-              currentLessons.length > 0 &&
-              completedCount === currentLessons.length
-                ? (TrackThemes[activeTrack] || TrackThemes.python_basics).label
-                : undefined
-            }
-            onViewCertificate={
-              currentLessons.length > 0 &&
-              completedCount === currentLessons.length
-                ? () => {
-                    setShowSuccessModal(false);
-                    openTrackCertificate(activeTrack);
-                  }
-                : undefined
-            }
-            onNextLesson={handleNextLesson}
-            onClose={() => setShowSuccessModal(false)}
-          />
-        </View>
-      )}
-
-      {showProfileModal && (
-        <View style={styles.modalOverlay}>
-          <ProfileStatsModal
-            xpPoints={xpPoints}
-            streakCount={streakCount}
-            isPremium={effectiveIsPremium}
-            userEmail={session?.user?.email}
-            lessons={lessons}
-            completedLessons={completedLessons}
-            onSelectTrack={(trackKey) => {
-              handleSwitchTrack(trackKey);
-            }}
-            onOpenCertificate={(cert) => setActiveCertificate(cert)}
-            onOpenAchievementsTab={() => {
-              setShowProfileModal(false);
-              setViewMode("achievements");
-            }}
-            onToggleDevPro={
-              IS_DEV_MODE
-                ? () => setDevProOverride((prev) => !(prev ?? true))
-                : undefined
-            }
-            onOpenAuth={() => openAuthModal()}
-            onClose={() => setShowProfileModal(false)}
-          />
-        </View>
-      )}
-
-      {activeCertificate && (
-        <View style={styles.modalOverlay}>
-          <CertificateModal
-            certificate={activeCertificate}
-            onClose={() => setActiveCertificate(null)}
-          />
-        </View>
-      )}
-
-      {activeStreakMilestone && (
-        <View style={styles.modalOverlay}>
-          <StreakMilestoneModal
-            milestone={activeStreakMilestone}
-            streakCount={streakCount}
-            xpPoints={xpPoints}
-            rankTitle={`L${devRank.level} ${devRank.title}`}
-            onClose={() => setActiveStreakMilestone(null)}
-          />
-        </View>
-      )}
+      <StudioModals
+        styles={styles}
+        keyboardBehavior={keyboardBehavior}
+        showAuthModal={showAuthModal}
+        authDefaultMode={authDefaultMode}
+        authPromptReason={authPromptReason}
+        onAuthSuccess={() => {
+          setShowAuthModal(false);
+          if (resumePaywallAfterAuthRef.current) {
+            resumePaywallAfterAuthRef.current = false;
+            setShowPaywallModal(true);
+          }
+        }}
+        onCloseAuth={() => {
+          resumePaywallAfterAuthRef.current = false;
+          setShowAuthModal(false);
+        }}
+        showPaywallModal={showPaywallModal}
+        onClosePaywall={() => setShowPaywallModal(false)}
+        onUpgradeToPro={handleUpgradeToPro}
+        upgrading={upgrading}
+        lessons={lessons}
+        algoModulesCount={algoModulesCount}
+        sysDesignModulesCount={sysDesignModulesCount}
+        xpPoints={xpPoints}
+        totalSolvedCount={totalSolvedCount}
+        streakCount={streakCount}
+        hasSession={Boolean(session)}
+        paywallContext={paywallContext}
+        paywallFreePreviewLesson={paywallFreePreviewLesson}
+        onTryFreePreviewLesson={openLessonInStudio}
+        showSuccessModal={showSuccessModal}
+        selectedLesson={selectedLesson}
+        activeChallengeIdx={activeChallengeIdx}
+        lessonEnrichment={lessonEnrichment}
+        hasNextLesson={hasNextLesson}
+        currentLessons={currentLessons}
+        currentLessonIndex={currentLessonIndex}
+        completedLessons={completedLessons}
+        completedChallenges={completedChallenges}
+        peekedSolutions={peekedSolutions}
+        activeTrack={activeTrack}
+        completedCount={completedCount}
+        onOpenAuthPrompt={openAuthModal}
+        onOpenTrackCertificate={openTrackCertificate}
+        onNextLesson={handleNextLesson}
+        onCloseSuccess={() => setShowSuccessModal(false)}
+        showProfileModal={showProfileModal}
+        effectiveIsPremium={effectiveIsPremium}
+        userEmail={session?.user?.email}
+        onSelectTrack={handleSwitchTrack}
+        onOpenCertificate={setActiveCertificate}
+        onOpenAchievementsTab={() => {
+          setShowProfileModal(false);
+          setViewMode("achievements");
+        }}
+        onToggleDevPro={
+          IS_DEV_MODE
+            ? () => setDevProOverride((prev) => !(prev ?? true))
+            : undefined
+        }
+        onCloseProfile={() => setShowProfileModal(false)}
+        activeCertificate={activeCertificate}
+        onCloseCertificate={() => setActiveCertificate(null)}
+        activeStreakMilestone={activeStreakMilestone}
+        devRank={devRank}
+        onCloseStreakMilestone={() => setActiveStreakMilestone(null)}
+      />
     </SafeAreaView>
   );
 }
