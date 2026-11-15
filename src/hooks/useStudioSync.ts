@@ -506,10 +506,13 @@ export function useStudioSync({
       },
     );
 
-    loadPyodideScript(pyodideRef, () => callbacksRef.current.onPyodideReady());
+    const unsubscribePyodide = loadPyodideScript(pyodideRef, () =>
+      callbacksRef.current.onPyodideReady(),
+    );
     return () => {
       cancelled = true;
       clearTimeout(mountTimer);
+      unsubscribePyodide();
       authListener.subscription.unsubscribe();
     };
   }, [pyodideRef]);

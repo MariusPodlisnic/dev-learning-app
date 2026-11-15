@@ -143,7 +143,7 @@ export default function ExplorePythonSandbox({
 
   useEffect(() => {
     mountedRef.current = true;
-    loadPyodideScript(
+    const unsubscribe = loadPyodideScript(
       pyodideRef,
       () => {
         if (!mountedRef.current) return;
@@ -157,6 +157,7 @@ export default function ExplorePythonSandbox({
     );
     return () => {
       mountedRef.current = false;
+      unsubscribe();
     };
   }, []);
 

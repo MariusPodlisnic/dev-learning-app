@@ -18,17 +18,60 @@ export interface PythonRuntimeStatus {
   unavailableMessage: string;
 }
 
+export type NativeBridgeLifecycleState =
+  | "unmounted"
+  | "initializing"
+  | "ready"
+  | "error";
+
 const NATIVE_UNAVAILABLE_MESSAGE =
   "Live in-app Python execution runs via Pyodide in Web browsers or via a connected native runtime bridge. You can still inspect lessons, hints, and draft solutions here.";
+const NATIVE_WARMING_MESSAGE =
+  "Native Python 3.11 bridge is warming up — try running again in a few seconds!";
 
 let sharedPyodideInstance: any = null;
 let sharedPyodidePromise: Promise<any> | null = null;
 let nativePythonExecutor: NativePythonExecutor | null = null;
+let nativeBridgeState: NativeBridgeLifecycleState = "unmounted";
+let nativeBridgeError: string | null = null;
+
+interface NativeRuntimeSubscriber {
+  onReady: () => void;
+  onError?: (err: unknown) => void;
+}
+
+const nativeSubscribers = new Set<NativeRuntimeSubscriber>();
+
+export function setNativeBridgeState(
+  state: Exclude<NativeBridgeLifecycleState, "ready">,
+  errorMessage?: string,
+): void {
+  nativeBridgeState = state;
+  nativeBridgeError = state === "error" ? errorMessage || null : null;
+  if (state === "error") {
+    nativePythonExecutor = null;
+    const errObj = new Error(
+      nativeBridgeError || "Native Python bridge failed to load.",
+    );
+    for (const sub of nativeSubscribers) {
+      sub.onError?.(errObj);
+    }
+  }
+}
 
 export function registerNativePythonExecutor(
   executor: NativePythonExecutor | null,
 ): void {
   nativePythonExecutor = executor;
+  if (executor) {
+    nativeBridgeState = "ready";
+    nativeBridgeError = null;
+    for (const sub of nativeSubscribers) {
+      sub.onReady();
+    }
+  } else if (nativeBridgeState === "ready") {
+    nativeBridgeState = "unmounted";
+  }
 }
 
 export function isNativePythonSupported(): boolean {
@@ -58,6 +101,26 @@ export function getPythonRuntimeStatus(
       badgeLabel: "🐍 PY BRIDGE",
       editorLabel: "NATIVE READY",
       unavailableMessage: NATIVE_UNAVAILABLE_MESSAGE,
+    };
+  }
+  if (nativeBridgeState === "initializing") {
+    return {
+      available: false,
+      mode: "native_bridge",
+      badgeLabel: "⏱️ PY BRIDGE...",
+      editorLabel: "WARMING UP",
+      unavailableMessage: NATIVE_WARMING_MESSAGE,
+    };
+  }
+  if (nativeBridgeState === "error") {
+    return {
+      available: false,
+      mode: "native_bridge",
+      badgeLabel: "⚠️ OFFLINE",
+      editorLabel: "BRIDGE OFFLINE",
+      unavailableMessage:
+        nativeBridgeError ||
+        "Could not load the native Python bridge (check internet connection).",
     };
   }
   return {
@@ -169,29 +232,48 @@ export function loadPyodideScript(
   pyodideRef: { current: any },
   onReady: () => void,
   onError?: (err: unknown) => void,
-) {
+): () => void {
   if (Platform.OS !== "web") {
+    const subscriber: NativeRuntimeSubscriber = { onReady, onError };
+    nativeSubscribers.add(subscriber);
     if (nativePythonExecutor) {
       onReady();
+    } else if (nativeBridgeState === "error") {
+      onError?.(
+        new Error(
+          nativeBridgeError || "Native Python runtime failed to initialize.",
+        ),
+      );
     }
-    return;
+    return () => {
+      nativeSubscribers.delete(subscriber);
+    };
   }
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    return () => {};
+  }
   if (sharedPyodideInstance) {
     pyodideRef.current = sharedPyodideInstance;
     onReady();
-    return;
+    return () => {};
   }
 
+  let cancelled = false;
   resolveSharedPyodide()
     .then((instance) => {
+      if (cancelled) return;
       pyodideRef.current = instance;
       onReady();
     })
     .catch((err) => {
+      if (cancelled) return;
       console.error("Failed to load Pyodide engine:", err);
       onError?.(err);
     });
+
+  return () => {
+    cancelled = true;
+  };
 }
 
 export async function executePlaygroundPython(

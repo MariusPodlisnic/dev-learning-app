@@ -9,8 +9,16 @@ const {
   executePlaygroundPython,
   getPythonRuntimeStatus,
   isNativePythonSupported,
+  loadPyodideScript,
   registerNativePythonExecutor,
+  setNativeBridgeState,
 } = loadTsModule("src/utils/pyodideRunner.ts");
+
+const {
+  PYODIDE_BRIDGE_HTML,
+  buildInjectedExecJs,
+  parseBridgeMessage,
+} = loadTsModule("src/utils/nativePythonProtocol.ts");
 
 function createPython3MockPyodide() {
   let stdoutHandler = null;
@@ -134,5 +142,71 @@ test("native Python runtime reports study notice without bridge and executes cle
   assert.equal(bridgeOut, "native-ok");
 
   registerNativePythonExecutor(null);
+  setMockPlatformOS("web");
+});
+
+test("nativePythonProtocol builds safe JS injection calls and parses WebView messages", () => {
+  assert.match(PYODIDE_BRIDGE_HTML, /window\.__devlearnRunPython/);
+  assert.match(PYODIDE_BRIDGE_HTML, /pyodide\.js/);
+
+  const jsCall = buildInjectedExecJs("py_req_1", 'print("hi")\nreturn 1 + 2');
+  assert.ok(jsCall.endsWith("; true;"));
+  assert.match(jsCall, /"py_req_1"/);
+  assert.match(jsCall, /"print\(\\"hi\\"\)\\nreturn 1 \+ 2"/);
+
+  assert.deepEqual(parseBridgeMessage('{"type":"ready"}'), { type: "ready" });
+  assert.deepEqual(
+    parseBridgeMessage('{"type":"init_error","error":"network down"}'),
+    { type: "init_error", error: "network down" },
+  );
+  assert.deepEqual(
+    parseBridgeMessage(
+      '{"type":"result","requestId":"py_req_1","stdout":"hi","result":3}',
+    ),
+    { type: "result", requestId: "py_req_1", stdout: "hi", result: 3 },
+  );
+  assert.deepEqual(
+    parseBridgeMessage(
+      '{"type":"error","requestId":"py_req_1","error":"SyntaxError"}',
+    ),
+    { type: "error", requestId: "py_req_1", error: "SyntaxError" },
+  );
+  assert.equal(parseBridgeMessage("not-json"), null);
+});
+
+test("native bridge lifecycle notifies subscribed listeners on ready and error transitions", () => {
+  setMockPlatformOS("android");
+  registerNativePythonExecutor(null);
+  setNativeBridgeState("initializing");
+
+  const warming = getPythonRuntimeStatus(false);
+  assert.equal(warming.available, false);
+  assert.equal(warming.mode, "native_bridge");
+  assert.equal(warming.badgeLabel, "⏱️ PY BRIDGE...");
+
+  let readyCount = 0;
+  let errorSeen = null;
+  const unsub = loadPyodideScript(
+    { current: null },
+    () => {
+      readyCount += 1;
+    },
+    (err) => {
+      errorSeen = err;
+    },
+  );
+  assert.equal(readyCount, 0);
+
+  registerNativePythonExecutor(async () => ({ stdout: "ok", result: "ok" }));
+  assert.equal(readyCount, 1);
+  assert.equal(getPythonRuntimeStatus(true).badgeLabel, "🐍 PY BRIDGE");
+
+  setNativeBridgeState("error", "Offline CDN");
+  assert.ok(errorSeen instanceof Error);
+  assert.equal(getPythonRuntimeStatus(false).badgeLabel, "⚠️ OFFLINE");
+
+  unsub();
+  registerNativePythonExecutor(null);
+  setNativeBridgeState("unmounted");
   setMockPlatformOS("web");
 });
