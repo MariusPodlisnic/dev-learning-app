@@ -691,6 +691,11 @@ export default function SyntaxBlitzArena({
                 }
                 playKeyClick();
                 setSelectedDeck(d.key);
+                if (blitzMode === "mistakes") {
+                  setBlitzMode("standard");
+                  resetArenaToLobby();
+                  return;
+                }
                 if (gameState !== "lobby") {
                   resetArenaToLobby();
                 }
