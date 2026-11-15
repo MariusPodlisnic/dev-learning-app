@@ -276,30 +276,64 @@ test("StudioCodeEditor renders editor chrome, quick inserts, scratchpad toggle, 
   assert.ok(editorText.includes("YOUR OUTPUT · MISMATCH"));
 });
 
-test("LessonProblemPanel renders inline Concept Check quiz in the Learn tab", () => {
+test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) and limits Concept Check to Full Guide", () => {
   const firstLesson = mergeCurriculumLessons([]).find(
     (l) => l.id === "exp-py-01",
   );
   assert.ok(firstLesson);
   const enrichment = getLessonEnrichment(firstLesson);
-  const panelText = visibleText(
+  const baseProps = {
+    selectedLesson: firstLesson,
+    activeTrack: firstLesson.track,
+    completedLessons: {},
+    activeTab: "problem",
+    onChangeActiveTab: () => {},
+    onChangeExplainStyle: () => {},
+    lessonEnrichment: enrichment,
+    onLoadGuidedSteps: () => {},
+    testResults: null,
+    isPremium: true,
+    onOpenPaywall: () => {},
+  };
+
+  const fullGuideHtml = renderThemed(
+    React.createElement(LessonProblemPanel, {
+      ...baseProps,
+      explainStyle: "guide",
+    }),
+  );
+  const fullGuideText = visibleText(fullGuideHtml);
+  assert.ok(fullGuideText.includes("SIMPLE EXAMPLE"));
+  assert.ok(fullGuideText.includes("COMMON PITFALL TO AVOID"));
+  assert.ok(fullGuideText.includes("CONCEPT CHECK · QUICK RECALL"));
+  assert.ok(fullGuideText.includes(enrichment.quiz.question));
+  assert.equal(fullGuideText.includes("WHY THIS MATTERS"), false);
+  assert.equal(fullGuideText.includes("TOOLS USED IN THIS LESSON"), false);
+  assert.equal(fullGuideText.includes("TOOLS NEEDED"), false);
+  assert.equal(fullGuideText.includes("TOOLBOX"), false);
+  assert.equal(fullGuideHtml.includes("💻"), false);
+
+  const analogyText = visibleText(
     renderThemed(
       React.createElement(LessonProblemPanel, {
-        selectedLesson: firstLesson,
-        activeTrack: firstLesson.track,
-        completedLessons: {},
-        activeTab: "problem",
-        onChangeActiveTab: () => {},
-        explainStyle: "guide",
-        onChangeExplainStyle: () => {},
-        lessonEnrichment: enrichment,
-        onLoadGuidedSteps: () => {},
-        testResults: null,
-        isPremium: true,
-        onOpenPaywall: () => {},
+        ...baseProps,
+        explainStyle: "analogy",
       }),
     ),
   );
-  assert.ok(panelText.includes("CONCEPT CHECK · QUICK RECALL"));
-  assert.ok(panelText.includes(enrichment.quiz.question));
+  assert.ok(analogyText.includes(enrichment.analogyTitle));
+  assert.equal(analogyText.includes("CONCEPT CHECK · QUICK RECALL"), false);
+  assert.equal(analogyText.includes("COMMON PITFALL TO AVOID"), false);
+
+  const cheatText = visibleText(
+    renderThemed(
+      React.createElement(LessonProblemPanel, {
+        ...baseProps,
+        explainStyle: "cheatsheet",
+      }),
+    ),
+  );
+  assert.ok(cheatText.includes("PYTHON SYNTAX PATTERN"));
+  assert.equal(cheatText.includes("CONCEPT CHECK · QUICK RECALL"), false);
+  assert.equal(cheatText.includes("COMMON PITFALL TO AVOID"), false);
 });

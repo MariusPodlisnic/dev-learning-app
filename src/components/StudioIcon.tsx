@@ -63,6 +63,7 @@ export type StudioIconName =
   | "timer"
   | "star"
   | "check_box"
+  | "terminal"
   | "cross_box"
   | "yellow_box";
 
@@ -442,6 +443,16 @@ const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
     <polygon points="16,4 19.6,11.6 28,12.8 22,18.7 23.4,27 16,23.1 8.6,27 10,18.7 4,12.8 12.4,11.6" fill="#FFDE59" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
     <circle cx="16" cy="16.5" r="2.6" fill="#FFFBEB" stroke="#111111" stroke-width="1.4"/>
   `,
+  terminal: `
+    <rect x="4" y="6" width="24" height="20" rx="4" fill="#111111" transform="translate(1.8,1.8)"/>
+    <rect x="4" y="6" width="24" height="20" rx="4" fill="#1A1A18" stroke="#111111" stroke-width="2.2"/>
+    <rect x="4" y="6" width="24" height="6" rx="3" fill="#2E2E2A" stroke="#111111" stroke-width="2"/>
+    <circle cx="8" cy="9" r="1.2" fill="#FF6B6B"/>
+    <circle cx="11.5" cy="9" r="1.2" fill="#FFDE59"/>
+    <circle cx="15" cy="9" r="1.2" fill="#A3E635"/>
+    <polyline points="9,16.5 13,19.5 9,22.5" fill="none" stroke="#B8FF3B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="15.5" y1="22.5" x2="22.5" y2="22.5" stroke="#B8FF3B" stroke-width="2.4" stroke-linecap="round"/>
+  `,
 };
 
 export const EMOJI_TO_STUDIO_ICON: Record<string, StudioIconName> = {
@@ -518,6 +529,9 @@ export const EMOJI_TO_STUDIO_ICON: Record<string, StudioIconName> = {
   "☀️": "sun",
   "⌨️": "keyboard",
   "⌨": "keyboard",
+  "💻": "terminal",
+  "🖥️": "terminal",
+  "🖥": "terminal",
   "⏱️": "timer",
   "⏱": "timer",
   "⏰": "timer",

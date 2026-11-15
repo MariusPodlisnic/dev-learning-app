@@ -1,12 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  View,
-} from "react-native";
-import { Text } from "./StudioIcon";
+import { Pressable, ScrollView, View } from "react-native";
+import { StudioIcon, Text } from "./StudioIcon";
 import { LessonEnrichment } from "../constants/curriculum";
-import { getLessonToolbox } from "../constants/curriculumData/lessonToolboxes";
 import {
   StudioColors,
   TrackThemes,
@@ -21,15 +16,15 @@ import {
   Lesson,
   TestCaseResult,
 } from "../types/lesson";
+import { buildOrganizedLearnView } from "../utils/lessonContent";
 import {
   playErrorBuzz,
   playKeyClick,
   playSuccessChime,
 } from "../utils/soundEffects";
-import FormattedText from "./FormattedText";
+import FormattedText, { renderHighlightedPython } from "./FormattedText";
 import HintAccordion from "./HintAccordion";
 import { getLessonProblemStyles } from "./lessonProblemStyles";
-import LessonToolboxCard from "./LessonToolboxCard";
 import ProSolutionCard from "./ProSolutionCard";
 import VisualLessonPanel from "./VisualLessonPanel";
 
@@ -72,28 +67,16 @@ export default function LessonProblemPanel({
 }: LessonProblemPanelProps) {
   const styles = useThemedStyles(getLessonProblemStyles);
   const scrollRef = useRef<any>(null);
-  const [toolSelection, setToolSelection] = useState<{
-    lessonId: string;
-    idx: number;
-  }>({ lessonId: selectedLesson.id, idx: 0 });
   const [quizAnswerByLesson, setQuizAnswerByLesson] = useState<
     Record<string, number>
   >({});
-  const selectedToolIdx =
-    toolSelection.lessonId === selectedLesson.id ? toolSelection.idx : 0;
   const selectedQuizOpt = quizAnswerByLesson[selectedLesson.id] ?? null;
-  const problemCardYRef = useRef<number>(0);
-  const conceptBoxYRef = useRef<number>(0);
-  const guideInnerYRef = useRef<number>(0);
-  const toolboxYRef = useRef<number>(0);
-  const pendingToolScrollRef = useRef<boolean>(false);
   const currentTrackTheme =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
-  const lessonTools = getLessonToolbox(selectedLesson);
-
-  function selectToolForLesson(idx: number) {
-    setToolSelection({ lessonId: selectedLesson.id, idx });
-  }
+  const learnView = buildOrganizedLearnView(
+    selectedLesson.content,
+    lessonEnrichment,
+  );
 
   function scrollToTop() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -102,39 +85,14 @@ export default function LessonProblemPanel({
     }, 0);
   }
 
-  function scrollToToolbox() {
-    const targetY = Math.max(
-      0,
-      problemCardYRef.current +
-        conceptBoxYRef.current +
-        guideInnerYRef.current +
-        toolboxYRef.current -
-        12,
-    );
-    scrollRef.current?.scrollTo({ y: targetY, animated: true });
-  }
-
-  function handleJumpToTool(idx: number) {
-    playKeyClick();
-    selectToolForLesson(idx);
-    if (explainStyle === "guide") {
-      scrollToToolbox();
-    } else {
-      pendingToolScrollRef.current = true;
-      onChangeExplainStyle("guide");
-    }
-  }
-
   function handleSwitchTab(tab: "problem" | "mission" | "visual") {
     playKeyClick();
-    pendingToolScrollRef.current = false;
     onChangeActiveTab(tab);
     scrollToTop();
   }
 
   useEffect(() => {
     scrollToTop();
-    pendingToolScrollRef.current = false;
   }, [activeTab, selectedLesson.id, activeChallengeIdx]);
 
   const practiceDrills = selectedLesson.practiceChallenges || [];
@@ -576,80 +534,9 @@ export default function LessonProblemPanel({
           </View>
 
       {activeTab === "problem" ? (
-        <View
-          style={styles.problemCard}
-          onLayout={(e) => {
-            problemCardYRef.current = e.nativeEvent.layout.y;
-          }}
-        >
-          {/* Slim Quick-Jump Tools Strip */}
-          {lessonTools.length > 0 && (
-            <View style={styles.toolsStripCard}>
-              <View style={styles.toolsStripHeaderRow}>
-                <Text style={styles.toolsStripLabel}>
-                  🧰 TOOLS USED IN THIS LESSON
-                </Text>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.toolsGuideHintBtn,
-                    explainStyle === "guide" && styles.toolsGuideHintBtnActive,
-                    pressed && {
-                      transform: [{ translateX: 1 }, { translateY: 1 }],
-                    },
-                  ]}
-                  onPress={() => handleJumpToTool(selectedToolIdx)}
-                >
-                  <Text
-                    style={[
-                      styles.toolsGuideHintText,
-                      explainStyle === "guide" &&
-                        styles.toolsGuideHintTextActive,
-                    ]}
-                  >
-                    {explainStyle === "guide" ? "TOOLBOX ↓" : "FULL GUIDE →"}
-                  </Text>
-                </Pressable>
-              </View>
-
-              <View style={styles.toolsChipRow}>
-                {lessonTools.map((tool, idx) => {
-                  const shortName = tool.toolName.split("—")[0].trim();
-                  const isFocusedTool =
-                    explainStyle === "guide" && selectedToolIdx === idx;
-                  return (
-                    <Pressable
-                      key={idx}
-                      style={({ pressed }) => [
-                        styles.toolQuickChip,
-                        isFocusedTool && styles.toolQuickChipActive,
-                        pressed && {
-                          transform: [{ translateX: 1 }, { translateY: 1 }],
-                        },
-                      ]}
-                      onPress={() => handleJumpToTool(idx)}
-                    >
-                      <Text
-                        style={[
-                          styles.toolQuickChipText,
-                          isFocusedTool && styles.toolQuickChipTextActive,
-                        ]}
-                      >
-                        {shortName}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          )}
-
+        <View style={styles.problemCard}>
           {/* 3-Style Explanation Card */}
-          <View
-            style={styles.conceptBox}
-            onLayout={(e) => {
-              conceptBoxYRef.current = e.nativeEvent.layout.y;
-            }}
-          >
+          <View style={styles.conceptBox}>
             <View style={styles.conceptTopRow}>
               <View style={styles.sectionStickerBadge}>
                 <Text style={styles.sectionHeaderLabel}>
@@ -710,8 +597,7 @@ export default function LessonProblemPanel({
             ) : explainStyle === "cheatsheet" && lessonEnrichment ? (
               <View style={styles.cheatSheetContainer}>
                 <Text style={styles.cheatSheetIntro}>
-                  Copy or reference this pattern while solving the mission on
-                  the right:
+                  Quick syntax pattern to reference while writing your solution:
                 </Text>
                 <View style={styles.codeBlockContainer}>
                   <View style={styles.codeBlockHeader}>
@@ -720,47 +606,48 @@ export default function LessonProblemPanel({
                     </Text>
                   </View>
                   <Text style={styles.codeBlockText}>
-                    {lessonEnrichment.cheatSheet}
+                    {renderHighlightedPython(learnView.cheatSheetCode)}
                   </Text>
                 </View>
               </View>
             ) : (
-              <View
-                onLayout={(e) => {
-                  guideInnerYRef.current = e.nativeEvent.layout.y;
-                }}
-              >
+              <View style={styles.analogyContainer}>
                 <FormattedText
-                  text={selectedLesson.content}
+                  text={learnView.explanationText}
                   style={styles.problemText}
                 />
-                {/* Tools Needed & Variations live exclusively inside Full Guide */}
-                <View
-                  onLayout={(e) => {
-                    toolboxYRef.current = e.nativeEvent.layout.y;
-                    if (pendingToolScrollRef.current) {
-                      setTimeout(() => {
-                        if (pendingToolScrollRef.current) {
-                          pendingToolScrollRef.current = false;
-                          scrollToToolbox();
-                        }
-                      }, 40);
-                    }
-                  }}
-                >
-                  <LessonToolboxCard
-                    key={selectedLesson.id}
-                    selectedLesson={selectedLesson}
-                    selectedToolIdx={selectedToolIdx}
-                    onSelectToolIdx={selectToolForLesson}
-                  />
-                </View>
+
+                {!!learnView.singleExampleCode && (
+                  <View style={styles.learnExampleSection}>
+                    <View style={styles.learnExampleMetaRow}>
+                      <View style={styles.learnExampleBadge}>
+                        <StudioIcon name="terminal" size={14} />
+                        <Text style={styles.learnExampleBadgeText}>
+                          SIMPLE EXAMPLE
+                        </Text>
+                      </View>
+                      <Text style={styles.learnExampleSub}>
+                        Matches this lesson&apos;s concept
+                      </Text>
+                    </View>
+                    <View style={styles.codeBlockContainer}>
+                      <View style={styles.codeBlockHeader}>
+                        <Text style={styles.codeBlockLang}>
+                          🐍 CONCEPT IN ACTION
+                        </Text>
+                      </View>
+                      <Text style={styles.codeBlockText}>
+                        {renderHighlightedPython(learnView.singleExampleCode)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
             )}
           </View>
 
-          {/* Common Pitfall Warning Card (Full Guide & Cheat Sheet only to keep Analogy uncluttered) */}
-          {explainStyle !== "analogy" && lessonEnrichment?.commonPitfall && (
+          {/* Common Pitfall Warning Card (Full Guide only — keeps Analogy and Cheat Sheet clean) */}
+          {explainStyle === "guide" && lessonEnrichment?.commonPitfall && (
             <View style={styles.pitfallCard}>
               <View style={styles.pitfallHeaderRow}>
                 <View style={styles.pitfallSticker}>
@@ -794,8 +681,8 @@ export default function LessonProblemPanel({
             </View>
           )}
 
-          {/* Inline Concept Check Quiz (Active Recall before writing code) */}
-          {lessonEnrichment?.quiz && (
+          {/* Inline Concept Check Quiz (Full Guide only) */}
+          {explainStyle === "guide" && lessonEnrichment?.quiz && (
             <View style={styles.conceptCheckCard}>
               <View style={styles.conceptCheckHeader}>
                 <View style={styles.conceptCheckBadge}>
@@ -884,7 +771,7 @@ export default function LessonProblemPanel({
           >
             <View>
               <Text style={styles.jumpToMissionSubLabel}>
-                DONE REVIEWING CONCEPTS & TOOLS?
+                READY TO WRITE YOUR SOLUTION?
               </Text>
               <Text style={styles.jumpToMissionMainText}>
                 ← BACK TO MISSION BRIEF & EXAMPLES
