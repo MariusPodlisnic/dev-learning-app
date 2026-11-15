@@ -1,11 +1,80 @@
 import { Platform } from "react-native";
 import { Lesson, TestCaseResult } from "../types/lesson";
 
+export interface NativePythonExecutionResult {
+  stdout: string;
+  result?: unknown;
+}
+
+export type NativePythonExecutor = (
+  code: string,
+) => Promise<NativePythonExecutionResult>;
+
+export interface PythonRuntimeStatus {
+  available: boolean;
+  mode: "web_pyodide" | "native_bridge" | "web_only_notice";
+  badgeLabel: string;
+  editorLabel: string;
+  unavailableMessage: string;
+}
+
+const NATIVE_UNAVAILABLE_MESSAGE =
+  "Live in-app Python execution runs via Pyodide in Web browsers or via a connected native runtime bridge. You can still inspect lessons, hints, and draft solutions here.";
+
 let sharedPyodideInstance: any = null;
 let sharedPyodidePromise: Promise<any> | null = null;
+let nativePythonExecutor: NativePythonExecutor | null = null;
+
+export function registerNativePythonExecutor(
+  executor: NativePythonExecutor | null,
+): void {
+  nativePythonExecutor = executor;
+}
+
+export function isNativePythonSupported(): boolean {
+  return Platform.OS !== "web" && nativePythonExecutor !== null;
+}
+
+export function isPythonExecutionAvailable(pyodideReady: boolean): boolean {
+  return Platform.OS === "web" ? pyodideReady : nativePythonExecutor !== null;
+}
+
+export function getPythonRuntimeStatus(
+  pyodideReady: boolean,
+): PythonRuntimeStatus {
+  if (Platform.OS === "web") {
+    return {
+      available: pyodideReady,
+      mode: "web_pyodide",
+      badgeLabel: pyodideReady ? "🐍 PY 3.11" : "⏱️ LOADING...",
+      editorLabel: pyodideReady ? "READY · ⌘↵" : "INITIALIZING",
+      unavailableMessage: "Python 3.11 WebAssembly runtime is initializing...",
+    };
+  }
+  if (nativePythonExecutor) {
+    return {
+      available: true,
+      mode: "native_bridge",
+      badgeLabel: "🐍 PY BRIDGE",
+      editorLabel: "NATIVE READY",
+      unavailableMessage: NATIVE_UNAVAILABLE_MESSAGE,
+    };
+  }
+  return {
+    available: false,
+    mode: "web_only_notice",
+    badgeLabel: "📱 STUDY MODE",
+    editorLabel: "WEB RUNTIME",
+    unavailableMessage: NATIVE_UNAVAILABLE_MESSAGE,
+  };
+}
 
 function resolveSharedPyodide(): Promise<any> {
-  if (typeof window === "undefined") {
+  if (
+    Platform.OS !== "web" ||
+    typeof window === "undefined" ||
+    typeof document === "undefined"
+  ) {
     return Promise.reject(new Error("Pyodide requires a browser runtime."));
   }
   if (sharedPyodideInstance) {
@@ -69,11 +138,44 @@ function resolveSharedPyodide(): Promise<any> {
   return sharedPyodidePromise;
 }
 
+async function runPythonScript(
+  pyodideInstance: any,
+  script: string,
+): Promise<NativePythonExecutionResult | null> {
+  if (Platform.OS === "web" && pyodideInstance) {
+    let stdoutBuffer = "";
+    pyodideInstance.setStdout({
+      batched: (str: string) => {
+        stdoutBuffer += str + "\n";
+      },
+    });
+    const result = await pyodideInstance.runPythonAsync(script);
+    return {
+      stdout: stdoutBuffer.trim(),
+      result,
+    };
+  }
+  if (Platform.OS !== "web" && nativePythonExecutor) {
+    const nativeRes = await nativePythonExecutor(script);
+    return {
+      stdout: (nativeRes.stdout || "").trim(),
+      result: nativeRes.result,
+    };
+  }
+  return null;
+}
+
 export function loadPyodideScript(
   pyodideRef: { current: any },
   onReady: () => void,
   onError?: (err: unknown) => void,
 ) {
+  if (Platform.OS !== "web") {
+    if (nativePythonExecutor) {
+      onReady();
+    }
+    return;
+  }
   if (typeof window === "undefined") return;
   if (sharedPyodideInstance) {
     pyodideRef.current = sharedPyodideInstance;
@@ -96,21 +198,19 @@ export async function executePlaygroundPython(
   pyodideInstance: any,
   code: string,
 ): Promise<string> {
-  if (Platform.OS !== "web" || !pyodideInstance) {
-    return "Python runtime is initializing...";
+  const status = getPythonRuntimeStatus(Boolean(pyodideInstance));
+  if (!status.available) {
+    return status.unavailableMessage;
   }
   try {
-    let stdoutBuffer = "";
-    pyodideInstance.setStdout({
-      batched: (str: string) => {
-        stdoutBuffer += str + "\n";
-      },
-    });
-    const result = await pyodideInstance.runPythonAsync(code);
+    const execRes = await runPythonScript(pyodideInstance, code);
+    if (!execRes) {
+      return status.unavailableMessage;
+    }
     return (
-      stdoutBuffer.trim() ||
-      (result !== undefined
-        ? String(result).trim()
+      execRes.stdout ||
+      (execRes.result !== undefined
+        ? String(execRes.result).trim()
         : "Code ran with no output. Use print() to see values!")
     );
   } catch (err: any) {
@@ -130,28 +230,32 @@ export async function executeLessonVerification(
   code: string,
   selectedLesson: Lesson | null,
 ): Promise<LessonVerificationOutcome> {
-  if (Platform.OS !== "web" || !pyodideInstance) {
+  const status = getPythonRuntimeStatus(Boolean(pyodideInstance));
+  if (!status.available) {
     return {
       allPassed: false,
       testResults: null,
-      consoleOutput: "Python runtime is still initializing.",
+      consoleOutput: status.unavailableMessage,
       targetTab: "console",
     };
   }
 
   try {
-    let stdoutBuffer = "";
-    pyodideInstance.setStdout({
-      batched: (str: string) => {
-        stdoutBuffer += str + "\n";
-      },
-    });
-
     const executionCode = selectedLesson?.hidden_tests
       ? `${code}\n${selectedLesson.hidden_tests}`
       : code;
-    const result = await pyodideInstance.runPythonAsync(executionCode);
-    let rawOutput = stdoutBuffer.trim();
+    const execRes = await runPythonScript(pyodideInstance, executionCode);
+    if (!execRes) {
+      return {
+        allPassed: false,
+        testResults: null,
+        consoleOutput: status.unavailableMessage,
+        targetTab: "console",
+      };
+    }
+
+    const result = execRes.result;
+    let rawOutput = execRes.stdout;
 
     let parsedResult: any = null;
     try {
@@ -252,28 +356,31 @@ export async function executeBugPatchVerification(
   stdout: string;
   error?: string;
 }> {
-  try {
-    if (Platform.OS === "web" && pyodideInstance) {
-      let stdoutBuffer = "";
-      pyodideInstance.setStdout({
-        batched: (str: string) => {
-          stdoutBuffer += str + "\n";
-        },
-      });
-      const fullScript = `${userCode}\n${testHarness}`;
-      const rawRes = await pyodideInstance.runPythonAsync(fullScript);
-      const parsed = JSON.parse(String(rawRes));
-      return {
-        allPassed: Boolean(parsed.all_passed),
-        results: parsed.results || [],
-        stdout: stdoutBuffer.trim(),
-      };
-    }
+  const status = getPythonRuntimeStatus(Boolean(pyodideInstance));
+  if (!status.available) {
     return {
       allPassed: false,
       results: [],
       stdout: "",
-      error: "Python engine is still initializing.",
+      error: status.unavailableMessage,
+    };
+  }
+  try {
+    const fullScript = `${userCode}\n${testHarness}`;
+    const execRes = await runPythonScript(pyodideInstance, fullScript);
+    if (!execRes) {
+      return {
+        allPassed: false,
+        results: [],
+        stdout: "",
+        error: status.unavailableMessage,
+      };
+    }
+    const parsed = JSON.parse(String(execRes.result));
+    return {
+      allPassed: Boolean(parsed.all_passed),
+      results: parsed.results || [],
+      stdout: execRes.stdout,
     };
   } catch (err: any) {
     return {

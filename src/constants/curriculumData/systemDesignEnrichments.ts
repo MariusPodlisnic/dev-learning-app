@@ -331,6 +331,52 @@ print(has_quorum([True, True, False, True, False]))`,
   },
   {
     matchTrack: "system_design",
+    matchOrder: 8,
+    matchKeywords: ["pub/sub", "topic", "event queue", "fanout", "stream"],
+    realWorldUse:
+      "Used by Apache Kafka consumer groups and AWS SNS topic subscriptions to route domain events to interested microservices without tight coupling.",
+    analogyTitle: "Magazine Subscriptions Instead of Polling Everyone",
+    analogyText:
+      "Producers publish `(topic, payload)` events into one shared stream; each worker filters cleanly for `topic == target_topic` while keeping FIFO ordering.",
+    cheatSheet: `return [payload for topic, payload in events if topic == target_topic]`,
+    commonPitfall: {
+      title: "Mutating or dropping arrival order by converting events into a set",
+      wrongCode: "return list({payload for t, payload in events if t == target_topic})",
+      rightCode: "return [payload for t, payload in events if t == target_topic]",
+      explanation:
+        "Message queues rely on deterministic FIFO delivery order and may carry duplicate payloads intentionally — keep a list, not a set.",
+    },
+    guidedCode: `def filter_topic_events(events, target_topic):
+    matched = []
+    for topic, payload in events:
+        # 👉 Append payload when topic matches target_topic:
+        if topic == target_topic:
+            matched.append(payload)
+    return matched`,
+    solutionCode: `def filter_topic_events(events, target_topic):
+    return [payload for topic, payload in events if topic == target_topic]`,
+    proInsights: {
+      timeComplexity: "O(n) events",
+      spaceComplexity: "O(k) matches",
+      tradeoff:
+        "Topic partitioning lets consumers skip unrelated events upstream via indexed topic queues rather than filtering at every client.",
+      followUp:
+        "How do Kafka consumer offsets guarantee at-least-once delivery if a worker crashes mid-batch?",
+    },
+    quiz: {
+      question: "Why must a Pub/Sub topic filter return a list rather than a Python `set`?",
+      options: [
+        "Sets lose arrival FIFO ordering and drop legitimate duplicate events",
+        "Python sets cannot store strings",
+        "Lists take O(n^2) space",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Preserving FIFO event order (including repeated domain events) requires an ordered list.",
+    },
+  },
+  {
+    matchTrack: "system_design",
     matchOrder: 9,
     matchKeywords: ["backoff", "jitter", "exponential", "retry", "thundering herd"],
     realWorldUse:

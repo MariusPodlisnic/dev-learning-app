@@ -17,14 +17,17 @@ import {
   HardShadowSm,
   MonoFont,
   StudioColors,
+  StudioThemeColors,
   ThemeMode,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import { ViewMode } from "../types/lesson";
 import {
   isSoundEnabled,
   playKeyClick,
   setSoundEnabled,
 } from "../utils/soundEffects";
+import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
@@ -90,7 +93,7 @@ function HeaderDynamicBackdrop({
   viewMode: ViewMode;
   themeMode: ThemeMode;
 }) {
-  const styles = getStyles();
+  const styles = useThemedStyles(getStyles);
   const isDark = themeMode === "dark";
   const { primary, secondary } = getModeAccent(viewMode);
 
@@ -385,7 +388,7 @@ export default function AppHeader({
   onOpenAuth,
   onSignOut,
 }: AppHeaderProps) {
-  const styles = getStyles();
+  const styles = useThemedStyles(getStyles);
   const [sfxOn, setSfxOn] = useState<boolean>(() => isSoundEnabled());
 
   function handleSwitchMode(mode: ViewMode) {
@@ -741,21 +744,26 @@ export default function AppHeader({
           )}
 
           <View style={styles.categoryItemsRow}>
-            {!isCompactHeader && (
-              <View style={styles.statusPill}>
-                <View
-                  style={[
-                    styles.pulseDot,
-                    pyodideReady
-                      ? { backgroundColor: "#10B981" }
-                      : { backgroundColor: "#F59E0B" },
-                  ]}
-                />
-                <Text style={styles.statusText}>
-                  {pyodideReady ? "🐍 PY 3.11" : "⏱️ LOADING..."}
-                </Text>
-              </View>
-            )}
+            {!isCompactHeader && (() => {
+              const runtimeStatus = getPythonRuntimeStatus(pyodideReady);
+              return (
+                <View style={styles.statusPill}>
+                  <View
+                    style={[
+                      styles.pulseDot,
+                      runtimeStatus.available
+                        ? { backgroundColor: "#10B981" }
+                        : runtimeStatus.mode === "web_only_notice"
+                          ? { backgroundColor: "#6366F1" }
+                          : { backgroundColor: "#F59E0B" },
+                    ]}
+                  />
+                  <Text style={styles.statusText}>
+                    {runtimeStatus.badgeLabel}
+                  </Text>
+                </View>
+              );
+            })()}
 
             <Pressable
               style={({ pressed }) => [
@@ -794,7 +802,7 @@ export default function AppHeader({
   );
 }
 
-const getStyles = () =>
+const getStyles = (StudioColors: StudioThemeColors) =>
   StyleSheet.create({
     header: {
       position: "relative",

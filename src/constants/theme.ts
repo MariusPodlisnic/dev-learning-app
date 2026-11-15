@@ -107,17 +107,7 @@ export function applyColorTheme(mode: ThemeMode) {
 
 const isWeb = Platform.OS === 'web';
 
-export const StudioColors = {
-  // Dynamic Theme Surfaces (default to Midnight Obsidian Dark, switchable to Warm Cream)
-  bg: isWeb ? 'var(--dl-bg, #111217)' : '#111217',
-  surface: isWeb ? 'var(--dl-surface, #1B1D24)' : '#1B1D24',
-  surfaceElevated: isWeb ? 'var(--dl-surface-elevated, #252833)' : '#252833',
-  surfaceHover: isWeb ? 'var(--dl-surface-hover, #2E3240)' : '#2E3240',
-  surfaceGlass: 'rgba(27, 29, 36, 0.95)',
-  cardDoneBg: isWeb ? 'var(--dl-card-done-bg, #162621)' : '#162621',
-  cardDoneBorder: isWeb ? 'var(--dl-card-done-border, #34D399)' : '#34D399',
-  cardLockedBg: isWeb ? 'var(--dl-card-locked-bg, #16171D)' : '#16171D',
-
+const SHARED_ACCENT_COLORS = {
   // Constant Jet Black Ink (for text/borders on bright neon stickers & buttons)
   ink: '#111111',
 
@@ -127,18 +117,6 @@ export const StudioColors = {
   codeBorder: '#2E2E36',
   codeText: '#F4F0E6',
   codeMuted: '#8E8B82',
-
-  // Crisp Neo-Brutalist Borders
-  border: isWeb ? 'var(--dl-border, #484D62)' : '#484D62',
-  borderSubtle: isWeb ? 'var(--dl-border-subtle, #2C2F3E)' : '#2C2F3E',
-  borderStrong: isWeb ? 'var(--dl-border, #484D62)' : '#484D62',
-  inkShadow: isWeb ? 'var(--dl-ink-shadow, #000000)' : '#000000',
-
-  // High-Contrast Typography on Surfaces
-  textPrimary: isWeb ? 'var(--dl-text-primary, #F4F0E6)' : '#F4F0E6',
-  textSecondary: isWeb ? 'var(--dl-text-secondary, #B9B5AC)' : '#B9B5AC',
-  textMuted: isWeb ? 'var(--dl-text-muted, #8B877E)' : '#8B877E',
-  textDim: isWeb ? 'var(--dl-text-dim, #68655E)' : '#68655E',
 
   // Tactile Sticker & Button Accents
   lime: '#B8FF3B',
@@ -177,6 +155,75 @@ export const StudioColors = {
   roseSoft: '#FFE4E6',
   roseBorder: '#111111',
 } as const;
+
+export type StudioThemeColors = {
+  bg: string;
+  surface: string;
+  surfaceElevated: string;
+  surfaceHover: string;
+  surfaceGlass: string;
+  cardDoneBg: string;
+  cardDoneBorder: string;
+  cardLockedBg: string;
+  border: string;
+  borderSubtle: string;
+  borderStrong: string;
+  inkShadow: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  textDim: string;
+} & typeof SHARED_ACCENT_COLORS;
+
+export function getStudioColors(mode: ThemeMode): StudioThemeColors {
+  const pal = ThemePalettes[mode];
+  return {
+    bg: pal.bg,
+    surface: pal.surface,
+    surfaceElevated: pal.surfaceElevated,
+    surfaceHover: pal.surfaceHover,
+    surfaceGlass:
+      mode === 'dark' ? 'rgba(27, 29, 36, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+    cardDoneBg: pal.cardDoneBg,
+    cardDoneBorder: pal.cardDoneBorder,
+    cardLockedBg: pal.cardLockedBg,
+    border: pal.border,
+    borderSubtle: pal.borderSubtle,
+    borderStrong: pal.border,
+    inkShadow: pal.inkShadow,
+    textPrimary: pal.textPrimary,
+    textSecondary: pal.textSecondary,
+    textMuted: pal.textMuted,
+    textDim: pal.textDim,
+    ...SHARED_ACCENT_COLORS,
+  };
+}
+
+export const StudioColors: StudioThemeColors = {
+  // Dynamic Theme Surfaces (CSS-var driven on web,Midnight Dark baseline statically)
+  bg: isWeb ? 'var(--dl-bg, #111217)' : '#111217',
+  surface: isWeb ? 'var(--dl-surface, #1B1D24)' : '#1B1D24',
+  surfaceElevated: isWeb ? 'var(--dl-surface-elevated, #252833)' : '#252833',
+  surfaceHover: isWeb ? 'var(--dl-surface-hover, #2E3240)' : '#2E3240',
+  surfaceGlass: 'rgba(27, 29, 36, 0.95)',
+  cardDoneBg: isWeb ? 'var(--dl-card-done-bg, #162621)' : '#162621',
+  cardDoneBorder: isWeb ? 'var(--dl-card-done-border, #34D399)' : '#34D399',
+  cardLockedBg: isWeb ? 'var(--dl-card-locked-bg, #16171D)' : '#16171D',
+
+  // Crisp Neo-Brutalist Borders
+  border: isWeb ? 'var(--dl-border, #484D62)' : '#484D62',
+  borderSubtle: isWeb ? 'var(--dl-border-subtle, #2C2F3E)' : '#2C2F3E',
+  borderStrong: isWeb ? 'var(--dl-border, #484D62)' : '#484D62',
+  inkShadow: isWeb ? 'var(--dl-ink-shadow, #000000)' : '#000000',
+
+  // High-Contrast Typography on Surfaces
+  textPrimary: isWeb ? 'var(--dl-text-primary, #F4F0E6)' : '#F4F0E6',
+  textSecondary: isWeb ? 'var(--dl-text-secondary, #B9B5AC)' : '#B9B5AC',
+  textMuted: isWeb ? 'var(--dl-text-muted, #8B877E)' : '#8B877E',
+  textDim: isWeb ? 'var(--dl-text-dim, #68655E)' : '#68655E',
+
+  ...SHARED_ACCENT_COLORS,
+};
 
 export const TrackThemes: Record<
   string,

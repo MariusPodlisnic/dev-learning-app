@@ -14,13 +14,16 @@ import {
   HardShadowSm,
   MonoFont,
   StudioColors,
+  StudioThemeColors,
   TrackThemes,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import {
   BUG_INCIDENTS,
   type BugIncident,
 } from "../constants/curriculumData/bugHuntIncidents";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
+import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 import { playKeyClick } from "../utils/soundEffects";
 
 export type { BugIncident };
@@ -60,6 +63,7 @@ export default function BugHuntArena({
   solvedIncidents,
   renderHighlightedPython,
 }: BugHuntArenaProps) {
+  const styles = useThemedStyles(createStyles);
   // null = Mission Select Lobby; number = Active Game Mission
   const [activeMissionIdx, setActiveMissionIdx] = useState<number | null>(null);
   const [trackFilter, setTrackFilter] = useState<
@@ -575,28 +579,34 @@ export default function BugHuntArena({
       </View>
 
       {/* Single Primary Action Button */}
-      <Pressable
-        style={[
-          styles.deployBtn,
-          (!pyodideReady || isDeploying) && styles.deployBtnDisabled,
-        ]}
-        onPress={handleDeployHotfix}
-        disabled={!pyodideReady || isDeploying}
-      >
-        <Text style={styles.deployBtnText}>
-          {isDeploying
-            ? "Verifying Patch..."
-            : `Verify & Deploy Patch (+${currentIncident.baseXp} XP) →`}
-        </Text>
-        <View style={styles.deployShortcutBadge}>
-          <Text style={styles.deployShortcutText}>⌘↵</Text>
-        </View>
-      </Pressable>
+      {(() => {
+        const runtimeStatus = getPythonRuntimeStatus(pyodideReady);
+        const deployDisabled =
+          isDeploying ||
+          (runtimeStatus.mode === "web_pyodide" && !runtimeStatus.available);
+        return (
+          <Pressable
+            style={[styles.deployBtn, deployDisabled && styles.deployBtnDisabled]}
+            onPress={handleDeployHotfix}
+            disabled={deployDisabled}
+          >
+            <Text style={styles.deployBtnText}>
+              {isDeploying
+                ? "Verifying Patch..."
+                : `Verify & Deploy Patch (+${currentIncident.baseXp} XP) →`}
+            </Text>
+            <View style={styles.deployShortcutBadge}>
+              <Text style={styles.deployShortcutText}>⌘↵</Text>
+            </View>
+          </Pressable>
+        );
+      })()}
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "transparent",

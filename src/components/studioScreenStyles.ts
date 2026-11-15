@@ -1,0 +1,138 @@
+import { Platform, StyleSheet } from "react-native";
+import {
+  HardShadowSm,
+  MonoFont,
+  StudioThemeColors,
+} from "../constants/theme";
+
+export const getStudioScreenStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: StudioColors.bg,
+      position: "relative",
+    },
+    content: { flex: 1, flexDirection: "row", zIndex: 1, position: "relative" },
+    workspaceContainer: {
+      flex: 1,
+      paddingHorizontal: 18,
+      paddingTop: 10,
+      paddingBottom: 12,
+      backgroundColor: "transparent",
+      overflow: "hidden",
+    },
+    studioTopBar: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10,
+      paddingBottom: 8,
+      borderBottomWidth: 2,
+      borderBottomColor: StudioColors.border,
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    studioTopBarLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+    },
+    sidebarToggleBtn: {
+      backgroundColor: StudioColors.surface,
+      paddingHorizontal: 11,
+      paddingVertical: 6,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    sidebarToggleText: {
+      color: StudioColors.textPrimary,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.6,
+    },
+    mobilePaneSwitcher: {
+      flexDirection: "row",
+      backgroundColor: StudioColors.surface,
+      padding: 3,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+    },
+    mobilePaneBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 4,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    mobilePaneBtnActive: {
+      backgroundColor: StudioColors.yellow,
+    },
+    mobilePaneText: {
+      color: StudioColors.textPrimary,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    mobilePaneTextActive: {
+      color: StudioColors.ink,
+    },
+    lessonNavBtns: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    lessonNavBtn: {
+      backgroundColor: StudioColors.surface,
+      paddingHorizontal: 11,
+      paddingVertical: 5,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    disabledNavBtn: {
+      opacity: 0.4,
+    },
+    lessonNavBtnText: {
+      color: StudioColors.textPrimary,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    lessonNavCounter: {
+      color: StudioColors.textPrimary,
+      fontSize: 11,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    workspaceGrid: {
+      flex: 1,
+      flexDirection: "row",
+      gap: 22,
+      overflow: "hidden",
+    },
+    modalOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(17, 17, 17, 0.7)",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    },
+    modalContent: { alignItems: "center" },
+    closeModalBtn: {
+      marginTop: 12,
+      padding: 8,
+      ...Platform.select({ web: { cursor: "pointer" } }),
+    },
+    closeModalText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  });

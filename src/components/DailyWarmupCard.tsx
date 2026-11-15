@@ -8,7 +8,9 @@ import {
   HardShadowSm,
   MonoFont,
   StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useTheme, useThemedStyles } from "../constants/themeContext";
 import { isLessonLockedForUser } from "../types/lesson";
 import {
   playErrorBuzz,
@@ -35,6 +37,8 @@ export default function DailyWarmupCard({
   onClaimDailyWarmup,
   onSelectLesson,
 }: DailyWarmupCardProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const todayKey = getTodayDateKey();
   const isClaimedToday = dailyCompletedDate === todayKey;
 
@@ -83,8 +87,8 @@ export default function DailyWarmupCard({
       style={[
         styles.card,
         isClaimedToday && {
-          borderColor: StudioColors.ink,
-          backgroundColor: StudioColors.surface,
+          borderColor: colors.ink,
+          backgroundColor: colors.surface,
         },
       ]}
     >
@@ -233,7 +237,8 @@ export default function DailyWarmupCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     borderRadius: 12,

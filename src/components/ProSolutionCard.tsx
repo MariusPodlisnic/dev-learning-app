@@ -11,8 +11,9 @@ import {
   HardShadow,
   HardShadowSm,
   MonoFont,
-  StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import { Lesson } from "../types/lesson";
 
 interface ProSolutionCardProps {
@@ -234,7 +235,7 @@ export default function ProSolutionCard({
   onLoadSolution,
   onOpenPaywall,
 }: ProSolutionCardProps) {
-  const styles = getStyles();
+  const styles = useThemedStyles(getStyles);
   const [revealedLessonId, setRevealedLessonId] = useState<string | null>(null);
   const revealed = revealedLessonId === selectedLesson.id;
 
@@ -450,7 +451,7 @@ export default function ProSolutionCard({
   );
 }
 
-const getStyles = () =>
+const getStyles = (StudioColors: StudioThemeColors) =>
   StyleSheet.create({
     card: {
       backgroundColor: StudioColors.surface,

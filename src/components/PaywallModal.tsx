@@ -14,7 +14,9 @@ import {
   HardShadowSm,
   MonoFont,
   StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import { playKeyClick } from "../utils/soundEffects";
 import { getDeveloperRank } from "./ProfileStatsModal";
 
@@ -95,6 +97,7 @@ export default function PaywallModal({
   freePreviewLessonTitle,
   onTryFreePreview,
 }: PaywallModalProps) {
+  const styles = useThemedStyles(createStyles);
   const [selectedPlan, setSelectedPlan] = useState<PaywallPlanId>("annual");
   const activePlan = PLANS.find((p) => p.id === selectedPlan) || PLANS[1];
   const devRank = getDeveloperRank(xpPoints);
@@ -336,7 +339,8 @@ export default function PaywallModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     borderRadius: 14,

@@ -91,7 +91,7 @@ export async function shareOrCopyText(options: {
         await navigator.clipboard.writeText(message);
         return recordSuccess("copied");
       }
-    } catch (_e) {}
+    } catch {}
 
     if (typeof document !== "undefined") {
       try {
@@ -105,7 +105,7 @@ export async function shareOrCopyText(options: {
         const ok = document.execCommand("copy");
         document.body.removeChild(el);
         if (ok) return recordSuccess("copied");
-      } catch (_e) {}
+      } catch {}
     }
 
     return "failed";
@@ -120,7 +120,7 @@ export async function shareOrCopyText(options: {
       return "failed";
     }
     return recordSuccess("shared");
-  } catch (_e) {
+  } catch {
     return "failed";
   }
 }

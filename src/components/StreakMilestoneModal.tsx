@@ -12,7 +12,9 @@ import {
   MonoFont,
   SerifFont,
   StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import { shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick, playVictoryFanfare } from "../utils/soundEffects";
 import PixelConfetti from "./PixelConfetti";
@@ -32,6 +34,7 @@ export default function StreakMilestoneModal({
   rankTitle,
   onClose,
 }: StreakMilestoneModalProps) {
+  const styles = useThemedStyles(createStyles);
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "shared">(
     "idle",
   );
@@ -160,7 +163,8 @@ export default function StreakMilestoneModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 480,

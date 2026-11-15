@@ -6,8 +6,9 @@ import {
   HardShadow,
   HardShadowSm,
   MonoFont,
-  StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import { Lesson } from "../types/lesson";
 import { playKeyClick } from "../utils/soundEffects";
 
@@ -22,6 +23,7 @@ export default function LessonToolboxCard({
   selectedToolIdx,
   onSelectToolIdx,
 }: LessonToolboxCardProps) {
+  const styles = useThemedStyles(createStyles);
   const tools = getLessonToolbox(selectedLesson);
   const [internalToolIdx, setInternalToolIdx] = useState<number>(0);
   const [variationSelection, setVariationSelection] = useState<{
@@ -200,7 +202,8 @@ export default function LessonToolboxCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     borderRadius: 10,

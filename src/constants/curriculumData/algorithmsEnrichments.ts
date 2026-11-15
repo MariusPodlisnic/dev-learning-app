@@ -254,6 +254,64 @@ return -1`,
   },
   {
     matchTrack: "algorithms",
+    matchOrder: 5,
+    matchKeywords: ["kadane", "subarray", "contiguous", "linear", "maxsubarray"],
+    realWorldUse:
+      "Used in financial analytics and server burst telemetry to find the strongest continuous rally window in a single linear scan.",
+    analogyTitle: "Drop Baggage That Drags Your Total Negative",
+    analogyText:
+      "At each number `x`, ask: is extending my running streak (`current + x`) better than starting fresh right at `x`? Always pick `max(x, current + x)` and keep `best = max(best, current)`.",
+    cheatSheet: `current = best = nums[0]
+for x in nums[1:]:
+    current = max(x, current + x)
+    best = max(best, current)`,
+    commonPitfall: {
+      title: "Clamping current to 0 and failing all-negative arrays",
+      wrongCode: "current = max(0, current + x)\nbest = max(best, current)  # Returns 0 on [-5, -2] instead of -2!",
+      rightCode: "current = max(x, current + x)\nbest = max(best, current)",
+      explanation:
+        "Initializing `current = best = nums[0]` and comparing `max(x, current + x)` naturally handles negative-only lists.",
+    },
+    guidedCode: `class Solution:
+    def maxSubArray(self, nums: list) -> int:
+        if not nums:
+            return 0
+        current = best = nums[0]
+        for x in nums[1:]:
+            # 👉 Extend current subarray or restart at x, then update best:
+            current = max(x, current + x)
+            best = max(best, current)
+        return best`,
+    solutionCode: `class Solution:
+    def maxSubArray(self, nums: list) -> int:
+        if not nums:
+            return 0
+        current = best = nums[0]
+        for x in nums[1:]:
+            current = max(x, current + x)
+            best = max(best, current)
+        return best`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Kadane's dynamic state transition computes the optimal contiguous sum in O(1) memory, beating O(n^2) prefix-difference scans.",
+      followUp:
+        "How would you also track the `(start_idx, end_idx)` bounds of the winning subarray?",
+    },
+    quiz: {
+      question: "Given `nums = [-2, 5, -1, 3]`, what happens when Kadane's algorithm reaches `5`?",
+      options: [
+        "Because `5 > (-2 + 5)`, it resets cleanly and starts a fresh subarray at `5`",
+        "It throws away `5` because the list started negative",
+        "It sorts the array descending first",
+      ],
+      correctIndex: 0,
+      explanation: "`max(5, 3) = 5` drops the negative prefix automatically!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
     matchOrder: 6,
     matchKeywords: ["frequency", "count", "most", "active", "tally"],
     realWorldUse: "Used by Spotify Wrapped to tally your most-played artist.",

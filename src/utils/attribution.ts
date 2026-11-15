@@ -1,8 +1,11 @@
+import { Platform } from "react-native";
 import {
   STORAGE_ATTRIBUTION_KEY,
   readLocalJson,
   writeLocalJson,
 } from "../types/lesson";
+
+let nativeSessionCounted = false;
 
 export interface AttributionTouch {
   utm_source?: string;
@@ -72,11 +75,11 @@ function sanitizeTag(raw: unknown, maxLen = 80): string | undefined {
 }
 
 function readProfile(): AttributionProfile {
-  if (typeof window !== "undefined" && window.localStorage) {
-    const stored = readLocalJson<Partial<AttributionProfile>>(
-      STORAGE_ATTRIBUTION_KEY,
-      {},
-    );
+  const stored = readLocalJson<Partial<AttributionProfile>>(
+    STORAGE_ATTRIBUTION_KEY,
+    {},
+  );
+  if (stored && (stored.updatedAt || stored.firstTouch || stored.lastTouch)) {
     return {
       firstTouch: stored.firstTouch ?? null,
       lastTouch: stored.lastTouch ?? null,
@@ -129,7 +132,9 @@ export function extractAttributionParams(
   searchParams?: Record<string, string | string[] | undefined>,
 ): Omit<AttributionTouch, "captured_at" | "landing_path" | "referrer_host"> {
   const fromQuery = new URLSearchParams(
-    typeof window !== "undefined" ? window.location.search : "",
+    Platform.OS === "web" && typeof window !== "undefined" && window.location
+      ? window.location.search
+      : "",
   );
 
   const pick = (key: string) =>
@@ -158,6 +163,11 @@ export function extractAttributionParams(
 }
 
 function shouldCountNewSession(): boolean {
+  if (Platform.OS !== "web") {
+    if (nativeSessionCounted) return false;
+    nativeSessionCounted = true;
+    return true;
+  }
   if (typeof window === "undefined" || !window.sessionStorage) return false;
   try {
     if (window.sessionStorage.getItem(SESSION_COUNTED_KEY)) {
@@ -185,7 +195,9 @@ export function captureLandingAttribution(options?: {
   const referrerHost = getExternalReferrerHost();
   const landingPath =
     options?.path ??
-    (typeof window !== "undefined" ? window.location.pathname : "/");
+    (Platform.OS === "web" && typeof window !== "undefined" && window.location
+      ? window.location.pathname
+      : "/");
 
   const hasExplicitCampaign = Boolean(
     params.utm_source ||

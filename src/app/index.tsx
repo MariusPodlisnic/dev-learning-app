@@ -1,10 +1,13 @@
-import { Session } from "@supabase/supabase-js";
 import { useLocalSearchParams } from "expo-router";
 import Head from "expo-router/head";
 import type { Metadata } from "expo-router/server";
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
-  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -33,6 +36,7 @@ import RoadmapTree from "../components/RoadmapTree";
 import StudioCodeEditor from "../components/StudioCodeEditor";
 import StudioFocusBackground from "../components/StudioFocusBackground";
 import StudioSidebar from "../components/StudioSidebar";
+import { getStudioScreenStyles } from "../components/studioScreenStyles";
 import SuccessModal from "../components/SuccessModal";
 import StreakMilestoneModal from "../components/StreakMilestoneModal";
 import SyntaxBlitzArena from "../components/SyntaxBlitzArena";
@@ -48,27 +52,20 @@ import {
   isLessonInChapter,
   TRACK_CHAPTERS,
 } from "../constants/certificates";
+import { getLessonEnrichment } from "../constants/curriculum";
 import {
-  getLessonEnrichment,
-  mergeCurriculumLessons,
-} from "../constants/curriculum";
-import {
-  applyColorTheme,
-  HardShadowSm,
-  MonoFont,
   StudioColors,
-  ThemeMode,
   TrackThemes,
 } from "../constants/theme";
+import { useTheme, useThemedStyles } from "../constants/themeContext";
+import { useStudioSync } from "../hooks/useStudioSync";
 import {
   ExplainStyle,
   getLessonStarRating,
   isLessonLockedForUser,
   isProTrackPreviewLesson,
   Lesson,
-  readLocalJson,
   STORAGE_DRAFTS_KEY,
-  STORAGE_STATE_KEY,
   TestCaseResult,
   ViewMode,
   writeLocalJson,
@@ -81,15 +78,12 @@ import {
   executeBugPatchVerification,
   executeLessonVerification,
   executePlaygroundPython,
-  loadPyodideScript,
 } from "../utils/pyodideRunner";
 import { playVictoryFanfare } from "../utils/soundEffects";
 import {
   CloudProgressState,
   CurriculumProgressDeltaItem,
-  pullAndMergeCloudState,
   pushCloudProgressState,
-  remapProgressKeysForLessons,
 } from "../utils/supabaseSync";
 
 export function generateMetadata(): Metadata {
@@ -114,10 +108,11 @@ export function generateMetadata(): Metadata {
   };
 }
 
+const EMPTY_SUBSCRIBE = () => () => {};
+const IS_DEV_MODE = typeof __DEV__ !== "undefined" && __DEV__;
+
 export default function HomeScreen() {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("roadmap");
-  const [activeTrack, setActiveTrack] = useState<string>("python_basics");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
   const [activeTab, setActiveTab] = useState<"problem" | "mission" | "visual">(
@@ -130,7 +125,11 @@ export default function HomeScreen() {
   const [mobileStudioPane, setMobileStudioPane] = useState<"learn" | "code">(
     "learn",
   );
-  const [isMounted, setIsMounted] = useState<boolean>(false);
+  const isMounted = useSyncExternalStore(
+    EMPTY_SUBSCRIBE,
+    () => true,
+    () => false,
+  );
   const { width: rawWindowWidth } = useWindowDimensions();
   const viewportWidth =
     isMounted && rawWindowWidth > 0 ? rawWindowWidth : 1280;
@@ -142,46 +141,14 @@ export default function HomeScreen() {
   const [testResults, setTestResults] = useState<TestCaseResult[] | null>(null);
   const [selectedTestIndex, setSelectedTestIndex] = useState<number>(0);
 
-  const [loading, setLoading] = useState<boolean>(true);
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
   const [pyodideReady, setPyodideReady] = useState<boolean>(false);
-  const [completedLessons, setCompletedLessons] = useState<
-    Record<string, boolean>
-  >({});
-  const [completedChallenges, setCompletedChallenges] = useState<
-    Record<string, boolean>
-  >({});
-  const [peekedSolutions, setPeekedSolutions] = useState<
-    Record<string, boolean>
-  >({});
   const usedSolutionInAttemptRef = useRef<boolean>(false);
   const [activeChallengeIdx, setActiveChallengeIdx] = useState<number>(0);
-  const [solvedIncidents, setSolvedIncidents] = useState<
-    Record<string, boolean>
-  >({});
-
-  const [xpPoints, setXpPoints] = useState<number>(0);
-  const [streakCount, setStreakCount] = useState<number>(0);
-  const [dailyCompletedDate, setDailyCompletedDate] = useState<string | null>(
-    null,
-  );
-  const [lastActiveDate, setLastActiveDate] = useState<string | null>(null);
-  const [claimedStreakMilestones, setClaimedStreakMilestones] = useState<
-    Record<number, boolean>
-  >({});
-  const [streakShields, setStreakShields] = useState<number>(1);
   const [activeStreakMilestone, setActiveStreakMilestone] =
     useState<StreakMilestone | null>(null);
-  const [claimedChapters, setClaimedChapters] = useState<
-    Record<string, boolean>
-  >({});
 
-  const [session, setSession] = useState<Session | null>(null);
-  const [isPremium, setIsPremium] = useState<boolean>(false);
-  const isDevMode = typeof __DEV__ !== "undefined" && __DEV__;
-  const [devProOverride, setDevProOverride] = useState<boolean | null>(null);
-  const effectiveIsPremium = isDevMode ? (devProOverride ?? true) : isPremium;
-  const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
+  const { themeMode, setThemeMode, toggleTheme } = useTheme();
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authDefaultMode, setAuthDefaultMode] = useState<"signup" | "signin">(
     "signin",
@@ -201,69 +168,66 @@ export default function HomeScreen() {
   const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(false);
 
   const pyodideRef = useRef<any>(null);
-  const codeDraftsRef = useRef<Record<string, string>>({});
-  const lessonsRef = useRef<Lesson[]>([]);
-  const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hydratedRef = useRef<boolean>(false);
-  const cloudSyncCompletedRef = useRef<boolean>(false);
-  const resumePaywallAfterAuthRef = useRef<boolean>(false);
-  const handledDeepLinkRef = useRef<boolean>(false);
-  const latestGuestStateRef = useRef<CloudProgressState>({
-    xpPoints: 0,
-    streakCount: 0,
-    completedLessons: {},
-    completedChallenges: {},
-    peekedSolutions: {},
-    solvedIncidents: {},
-    claimedChapters: {},
-    claimedStreakMilestones: {},
-    streakShields: 1,
-    dailyCompletedDate: null,
-    lastActiveDate: null,
-    activeTrack: "python_basics",
-    themeMode: "dark",
-    codeDrafts: {},
-    draftsVersion: 2,
-    updatedAt: "",
+  const studioActionsRef = useRef({
+    handleSelectLesson: (_lesson: { id: string }) => {},
+    handleSwitchTrack: (_trackName: string) => {},
   });
 
-  useEffect(() => {
-    if (!hydratedRef.current) return;
-    latestGuestStateRef.current = {
-      completedLessons,
-      completedChallenges,
-      peekedSolutions,
-      solvedIncidents,
-      claimedChapters,
-      claimedStreakMilestones,
-      streakShields,
-      dailyCompletedDate,
-      lastActiveDate,
-      xpPoints,
-      streakCount,
-      activeTrack,
-      lastLessonId: selectedLesson?.id,
-      themeMode,
-      codeDrafts: codeDraftsRef.current,
-      draftsVersion: 2,
-      updatedAt: new Date().toISOString(),
-    };
-  }, [
-    completedLessons,
-    completedChallenges,
-    peekedSolutions,
-    solvedIncidents,
-    claimedChapters,
-    claimedStreakMilestones,
-    streakShields,
-    dailyCompletedDate,
-    lastActiveDate,
-    xpPoints,
-    streakCount,
+  const resumePaywallAfterAuthRef = useRef<boolean>(false);
+  const handledDeepLinkRef = useRef<boolean>(false);
+
+  const {
+    lessons,
     activeTrack,
-    selectedLesson?.id,
+    setActiveTrack,
+    loading,
+    completedLessons,
+    setCompletedLessons,
+    completedChallenges,
+    setCompletedChallenges,
+    peekedSolutions,
+    setPeekedSolutions,
+    solvedIncidents,
+    setSolvedIncidents,
+    xpPoints,
+    setXpPoints,
+    streakCount,
+    setStreakCount,
+    lastActiveDate,
+    setLastActiveDate,
+    claimedStreakMilestones,
+    setClaimedStreakMilestones,
+    streakShields,
+    setStreakShields,
+    claimedChapters,
+    setClaimedChapters,
+    session,
+    setIsPremium,
+    setDevProOverride,
+    effectiveIsPremium,
+    codeDraftsRef,
+    cloudSyncCompletedRef,
+    latestGuestStateRef,
+    scheduleBackgroundCloudSync,
+  } = useStudioSync({
     themeMode,
-  ]);
+    setThemeMode,
+    selectedLessonId: selectedLesson?.id,
+    onInitialLessonResolved: (initialLesson, initialCode, draftExists) => {
+      setSelectedLesson(initialLesson);
+      setCode(initialCode);
+      setHasSavedDraft(draftExists);
+    },
+    onAuthSignedIn: () => {
+      setShowAuthModal(false);
+      if (resumePaywallAfterAuthRef.current) {
+        resumePaywallAfterAuthRef.current = false;
+        setShowPaywallModal(true);
+      }
+    },
+    pyodideRef,
+    onPyodideReady: () => setPyodideReady(true),
+  });
   const searchParams = useLocalSearchParams<{
     lesson?: string;
     mode?: string;
@@ -322,147 +286,6 @@ export default function HomeScreen() {
     }
   }
 
-  useEffect(() => {
-    setIsMounted(true);
-    const savedDrafts = readLocalJson<Record<string, string>>(
-      STORAGE_DRAFTS_KEY,
-      {},
-    );
-    codeDraftsRef.current = savedDrafts;
-
-    const savedState = readLocalJson<{
-      completedLessons?: Record<string, boolean>;
-      completedChallenges?: Record<string, boolean>;
-      peekedSolutions?: Record<string, boolean>;
-      solvedIncidents?: Record<string, boolean>;
-      claimedChapters?: Record<string, boolean>;
-      xpPoints?: number;
-      streakCount?: number;
-      dailyCompletedDate?: string | null;
-      lastActiveDate?: string | null;
-      claimedStreakMilestones?: Record<number, boolean>;
-      streakShields?: number;
-      devProOverride?: boolean | null;
-      activeTrack?: string;
-      lastLessonId?: string;
-      themeMode?: ThemeMode;
-    }>(STORAGE_STATE_KEY, {});
-
-    if (savedState.completedLessons) {
-      setCompletedLessons(savedState.completedLessons);
-    }
-    if (savedState.completedChallenges) {
-      setCompletedChallenges(savedState.completedChallenges);
-    }
-    if (savedState.peekedSolutions) {
-      setPeekedSolutions(savedState.peekedSolutions);
-    }
-    if (savedState.solvedIncidents) {
-      setSolvedIncidents(savedState.solvedIncidents);
-    }
-    if (savedState.claimedChapters) {
-      setClaimedChapters(savedState.claimedChapters);
-    }
-    if (typeof savedState.xpPoints === "number") {
-      setXpPoints(savedState.xpPoints);
-    }
-    if (typeof savedState.streakCount === "number") {
-      setStreakCount(savedState.streakCount);
-    }
-    if (savedState.dailyCompletedDate) {
-      setDailyCompletedDate(savedState.dailyCompletedDate);
-    }
-    if (savedState.lastActiveDate) {
-      setLastActiveDate(savedState.lastActiveDate);
-    }
-    if (savedState.claimedStreakMilestones) {
-      setClaimedStreakMilestones(savedState.claimedStreakMilestones);
-    }
-    if (typeof savedState.streakShields === "number") {
-      setStreakShields(savedState.streakShields);
-    }
-    if (typeof savedState.devProOverride === "boolean" || savedState.devProOverride === null) {
-      setDevProOverride(savedState.devProOverride);
-    }
-    const initialDevPremium = isDevMode
-      ? (savedState.devProOverride ?? true)
-      : false;
-    const initialTheme: ThemeMode =
-      savedState.themeMode === "light" ? "light" : "dark";
-    setThemeMode(initialTheme);
-    applyColorTheme(initialTheme);
-
-    const safeInitialTrack =
-      savedState.activeTrack && TrackThemes[savedState.activeTrack]
-        ? savedState.activeTrack
-        : "python_basics";
-    setActiveTrack(safeInitialTrack);
-    latestGuestStateRef.current = {
-      completedLessons: savedState.completedLessons || {},
-      completedChallenges: savedState.completedChallenges || {},
-      peekedSolutions: savedState.peekedSolutions || {},
-      solvedIncidents: savedState.solvedIncidents || {},
-      claimedChapters: savedState.claimedChapters || {},
-      claimedStreakMilestones: savedState.claimedStreakMilestones || {},
-      streakShields:
-        typeof savedState.streakShields === "number"
-          ? savedState.streakShields
-          : 1,
-      dailyCompletedDate: savedState.dailyCompletedDate || null,
-      lastActiveDate: savedState.lastActiveDate || null,
-      xpPoints:
-        typeof savedState.xpPoints === "number" ? savedState.xpPoints : 0,
-      streakCount:
-        typeof savedState.streakCount === "number" ? savedState.streakCount : 0,
-      activeTrack: safeInitialTrack,
-      lastLessonId: savedState.lastLessonId as string | undefined,
-      themeMode: initialTheme,
-      codeDrafts: savedDrafts,
-      draftsVersion: 2,
-      updatedAt: (savedState as any).updatedAt || "",
-    };
-    hydratedRef.current = true;
-
-    fetchLessons(
-      safeInitialTrack,
-      savedState.lastLessonId as string | undefined,
-      initialDevPremium,
-    );
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        syncCloudAndGuestAccount(session.user.id, session.user.email);
-      }
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        if (session) {
-          setShowAuthModal(false);
-          if (resumePaywallAfterAuthRef.current) {
-            resumePaywallAfterAuthRef.current = false;
-            setShowPaywallModal(true);
-          }
-          syncCloudAndGuestAccount(session.user.id, session.user.email);
-        } else {
-          cloudSyncCompletedRef.current = false;
-          setIsPremium(false);
-          setActiveTrack("python_basics");
-        }
-      },
-    );
-
-    if (Platform.OS === "web") {
-      loadPyodideScript(pyodideRef, () => setPyodideReady(true));
-    }
-    return () => authListener.subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    applyColorTheme(themeMode);
-  }, [themeMode]);
-
   const {
     utm_source,
     utm_medium,
@@ -494,209 +317,33 @@ export default function HomeScreen() {
 
     if (paywall === "1") {
       handledDeepLinkRef.current = true;
-      setPaywallContext({ source: "header" });
-      setShowPaywallModal(true);
+      queueMicrotask(() => {
+        setPaywallContext({ source: "header" });
+        setShowPaywallModal(true);
+      });
       return;
     }
-    if (mode === "bughunt") {
+    if (mode === "bughunt" || mode === "blitz" || mode === "algolab" || mode === "achievements") {
       handledDeepLinkRef.current = true;
-      setViewMode("bughunt");
-      return;
-    }
-    if (mode === "blitz") {
-      handledDeepLinkRef.current = true;
-      setViewMode("blitz");
-      return;
-    }
-    if (mode === "algolab") {
-      handledDeepLinkRef.current = true;
-      setViewMode("algolab");
-      return;
-    }
-    if (mode === "achievements") {
-      handledDeepLinkRef.current = true;
-      setViewMode("achievements");
+      const targetMode = mode;
+      queueMicrotask(() => setViewMode(targetMode));
       return;
     }
     if (lessons.length === 0) return;
 
     if (lesson) {
       handledDeepLinkRef.current = true;
-      handleSelectLesson({ id: lesson });
+      queueMicrotask(() => studioActionsRef.current.handleSelectLesson({ id: lesson }));
       return;
     }
     if (track && TrackThemes[track]) {
       handledDeepLinkRef.current = true;
-      handleSwitchTrack(track);
-      setViewMode("roadmap");
+      queueMicrotask(() => {
+        studioActionsRef.current.handleSwitchTrack(track);
+        setViewMode("roadmap");
+      });
     }
   }, [searchParams, lessons]);
-
-  useEffect(() => {
-    if (!hydratedRef.current) return;
-    const updatedAt = new Date().toISOString();
-    writeLocalJson(STORAGE_STATE_KEY, {
-      completedLessons,
-      completedChallenges,
-      peekedSolutions,
-      solvedIncidents,
-      claimedChapters,
-      xpPoints,
-      streakCount,
-      dailyCompletedDate,
-      lastActiveDate,
-      claimedStreakMilestones,
-      streakShields,
-      devProOverride,
-      activeTrack,
-      lastLessonId: selectedLesson?.id,
-      themeMode,
-      updatedAt,
-    });
-  }, [
-    completedLessons,
-    completedChallenges,
-    peekedSolutions,
-    solvedIncidents,
-    claimedChapters,
-    xpPoints,
-    streakCount,
-    dailyCompletedDate,
-    lastActiveDate,
-    claimedStreakMilestones,
-    streakShields,
-    devProOverride,
-    activeTrack,
-    selectedLesson?.id,
-    themeMode,
-  ]);
-
-  function applyCloudSnapshotToState(snapshot: CloudProgressState) {
-    latestGuestStateRef.current = snapshot;
-    setCompletedLessons(snapshot.completedLessons);
-    setCompletedChallenges(snapshot.completedChallenges);
-    setPeekedSolutions(snapshot.peekedSolutions);
-    setSolvedIncidents(snapshot.solvedIncidents);
-    setClaimedChapters(snapshot.claimedChapters);
-    setClaimedStreakMilestones(snapshot.claimedStreakMilestones);
-    setStreakShields(snapshot.streakShields);
-    setDailyCompletedDate(snapshot.dailyCompletedDate);
-    setLastActiveDate(snapshot.lastActiveDate);
-    setXpPoints(snapshot.xpPoints);
-    setStreakCount(snapshot.streakCount);
-
-    codeDraftsRef.current = snapshot.codeDrafts || {};
-    writeLocalJson(STORAGE_DRAFTS_KEY, codeDraftsRef.current);
-
-    if (snapshot.activeTrack && TrackThemes[snapshot.activeTrack]) {
-      setActiveTrack(snapshot.activeTrack);
-    }
-    if (snapshot.themeMode === "light" || snapshot.themeMode === "dark") {
-      setThemeMode(snapshot.themeMode);
-    }
-  }
-
-  function scheduleBackgroundCloudSync(snapshot: CloudProgressState) {
-    if (!session?.user?.id) return;
-    if (cloudSyncTimerRef.current) {
-      clearTimeout(cloudSyncTimerRef.current);
-    }
-    const uid = session.user.id;
-    const email = session.user.email;
-    cloudSyncTimerRef.current = setTimeout(() => {
-      void pushCloudProgressState({
-        userId: uid,
-        userEmail: email,
-        state: snapshot,
-      });
-    }, 1200);
-  }
-
-  async function fetchLessons(
-    preferredTrack?: string,
-    preferredLessonId?: string,
-    initialPremiumFlag?: boolean,
-  ) {
-    const canUnlockAll = initialPremiumFlag ?? effectiveIsPremium;
-    try {
-      const { data, error } = await supabase
-        .from("lessons")
-        .select("*")
-        .order("lesson_order", { ascending: true });
-
-      const all = error
-        ? mergeCurriculumLessons<Lesson>([])
-        : mergeCurriculumLessons<Lesson>((data as Lesson[]) || []);
-      if (error) {
-        console.error("Error fetching lessons:", error);
-      }
-
-      lessonsRef.current = all;
-      setLessons(all);
-
-      const remappedSnapshot = remapProgressKeysForLessons(
-        all,
-        latestGuestStateRef.current,
-      );
-      if (remappedSnapshot !== latestGuestStateRef.current) {
-        applyCloudSnapshotToState(remappedSnapshot);
-      }
-
-      if (!error) {
-        const targetTrack =
-          preferredTrack && TrackThemes[preferredTrack]
-            ? preferredTrack
-            : "python_basics";
-        const resolvedPreferredId = remappedSnapshot.lastLessonId || preferredLessonId;
-        const candidateById = resolvedPreferredId
-          ? all.find((l) => l.id === resolvedPreferredId)
-          : undefined;
-        const allowedCandidate =
-          candidateById && !isLessonLockedForUser(candidateById, canUnlockAll)
-            ? candidateById
-            : undefined;
-        const initialLesson =
-          allowedCandidate ||
-          all.find(
-            (l) =>
-              l.track === targetTrack &&
-              !isLessonLockedForUser(l, canUnlockAll),
-          ) ||
-          all.find((l) => l.track === "python_basics" && l.is_free) ||
-          all.find((l) => l.track === "python_basics");
-        if (initialLesson) {
-          setSelectedLesson(initialLesson);
-          const defaultCode = (initialLesson.initial_code || "").replace(
-            /\\n/g,
-            "\n",
-          );
-          const draft = codeDraftsRef.current[initialLesson.id];
-          setCode(draft !== undefined ? draft : defaultCode);
-          setHasSavedDraft(draft !== undefined && draft !== defaultCode);
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function syncCloudAndGuestAccount(userId: string, userEmail?: string) {
-    try {
-      const { isPremium: cloudIsPremium, mergedState } =
-        await pullAndMergeCloudState({
-          userId,
-          userEmail,
-          localState: latestGuestStateRef.current,
-          lessons: lessonsRef.current,
-        });
-
-      setIsPremium(cloudIsPremium);
-      applyCloudSnapshotToState(mergedState);
-      cloudSyncCompletedRef.current = true;
-    } catch (err) {
-      console.error("Failed to sync account state:", err);
-    }
-  }
 
   function openAuthModal(
     defaultMode?: "signup" | "signin",
@@ -833,6 +480,13 @@ export default function HomeScreen() {
     }
     openLessonInStudio(fullLesson);
   }
+
+  useEffect(() => {
+    studioActionsRef.current = {
+      handleSelectLesson,
+      handleSwitchTrack,
+    };
+  });
 
   function handleNextLesson() {
     setShowSuccessModal(false);
@@ -1192,9 +846,7 @@ export default function HomeScreen() {
     }
   }
 
-  // Ensure styles re-compute on theme change
-  void themeMode;
-  const styles = getStyles();
+  const styles = useThemedStyles(getStudioScreenStyles);
   const devRank = getDeveloperRank(xpPoints);
   const lessonEnrichment = selectedLesson
     ? getLessonEnrichment(selectedLesson)
@@ -1303,9 +955,7 @@ export default function HomeScreen() {
         isCompactHeader={isCompactHeader}
         pyodideReady={pyodideReady}
         themeMode={themeMode}
-        onToggleTheme={() =>
-          setThemeMode((prev) => (prev === "light" ? "dark" : "light"))
-        }
+        onToggleTheme={toggleTheme}
         devRank={devRank}
         streakCount={streakCount}
         isPremium={effectiveIsPremium}
@@ -1787,7 +1437,7 @@ export default function HomeScreen() {
               setViewMode("achievements");
             }}
             onToggleDevPro={
-              isDevMode
+              IS_DEV_MODE
                 ? () => setDevProOverride((prev) => !(prev ?? true))
                 : undefined
             }
@@ -1820,135 +1470,3 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-
-const getStyles = () =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: StudioColors.bg,
-      position: "relative",
-    },
-    content: { flex: 1, flexDirection: "row", zIndex: 1, position: "relative" },
-    workspaceContainer: {
-      flex: 1,
-      paddingHorizontal: 18,
-      paddingTop: 10,
-      paddingBottom: 12,
-      backgroundColor: "transparent",
-      overflow: "hidden",
-    },
-    studioTopBar: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 10,
-      paddingBottom: 8,
-      borderBottomWidth: 2,
-      borderBottomColor: StudioColors.border,
-      flexWrap: "wrap",
-      gap: 10,
-    },
-    studioTopBarLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-      flexWrap: "wrap",
-    },
-    sidebarToggleBtn: {
-      backgroundColor: StudioColors.surface,
-      paddingHorizontal: 11,
-      paddingVertical: 6,
-      borderRadius: 6,
-      borderWidth: 1.5,
-      borderColor: StudioColors.border,
-      ...HardShadowSm,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    sidebarToggleText: {
-      color: StudioColors.textPrimary,
-      fontSize: 10,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.6,
-    },
-    mobilePaneSwitcher: {
-      flexDirection: "row",
-      backgroundColor: StudioColors.surface,
-      padding: 3,
-      borderRadius: 6,
-      borderWidth: 1.5,
-      borderColor: StudioColors.border,
-    },
-    mobilePaneBtn: {
-      paddingHorizontal: 12,
-      paddingVertical: 5,
-      borderRadius: 4,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    mobilePaneBtnActive: {
-      backgroundColor: StudioColors.yellow,
-    },
-    mobilePaneText: {
-      color: StudioColors.textPrimary,
-      fontSize: 10,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
-    mobilePaneTextActive: {
-      color: StudioColors.ink,
-    },
-    lessonNavBtns: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-    lessonNavBtn: {
-      backgroundColor: StudioColors.surface,
-      paddingHorizontal: 11,
-      paddingVertical: 5,
-      borderRadius: 6,
-      borderWidth: 1.5,
-      borderColor: StudioColors.border,
-      ...HardShadowSm,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    disabledNavBtn: {
-      opacity: 0.4,
-    },
-    lessonNavBtnText: {
-      color: StudioColors.textPrimary,
-      fontSize: 10,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
-    lessonNavCounter: {
-      color: StudioColors.textPrimary,
-      fontSize: 11,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-    },
-    workspaceGrid: {
-      flex: 1,
-      flexDirection: "row",
-      gap: 22,
-      overflow: "hidden",
-    },
-    modalOverlay: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: "rgba(17, 17, 17, 0.7)",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 999,
-    },
-    modalContent: { alignItems: "center" },
-    closeModalBtn: {
-      marginTop: 12,
-      padding: 8,
-      ...Platform.select({ web: { cursor: "pointer" } }),
-    },
-    closeModalText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
-  });

@@ -1,5 +1,6 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
-import { MonoFont, StudioColors } from "../constants/theme";
+import { MonoFont, StudioColors, StudioThemeColors } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 
 const PYTHON_KEYWORDS = new Set([
   "def",
@@ -65,9 +66,32 @@ const PYTHON_BUILTINS = new Set([
 const PYTHON_TOKEN_REGEX =
   /(#[^\n]*|f?"[^"\n]*"|f?'[^'\n]*'|\b(?:def|return|if|elif|else|for|while|in|not|and|or|True|False|None|import|from|class|pass|break|continue|lambda|with|as|try|except|finally|yield|async|await)\b|\b(?:print|len|range|enumerate|int|str|list|dict|set|tuple|max|min|sum|sorted|abs|round|zip|map|filter|append|get|items|keys|values|pop|add)\b|\b\d+(?:\.\d+)?\b|[=+\-*/%<>!:]+|[()[\]{},.])/g;
 
+const SYNTAX_STYLES = StyleSheet.create({
+  synComment: {
+    color: "#7A776E",
+    fontStyle: "italic",
+  },
+  synString: {
+    color: StudioColors.lime,
+  },
+  synKeyword: {
+    color: StudioColors.pink,
+    fontWeight: "700",
+  },
+  synBuiltin: {
+    color: "#38BDF8",
+  },
+  synNumber: {
+    color: StudioColors.yellow,
+  },
+  synPunct: {
+    color: "#C7C2B6",
+  },
+});
+
 export function renderHighlightedPython(source: string) {
   if (!source) return null;
-  const styles = getStyles();
+  const styles = SYNTAX_STYLES;
   const tokens = source.split(PYTHON_TOKEN_REGEX);
   return tokens.map((tok, i) => {
     if (!tok) return null;
@@ -122,8 +146,10 @@ export function renderHighlightedPython(source: string) {
   });
 }
 
-function renderInlineSegments(text: string) {
-  const styles = getStyles();
+function renderInlineSegments(
+  text: string,
+  styles: ReturnType<typeof getStyles>,
+) {
   const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("`") && part.endsWith("`")) {
@@ -151,8 +177,8 @@ export default function FormattedText({
   text?: string;
   style?: any;
 }) {
+  const styles = useThemedStyles(getStyles);
   if (!text) return null;
-  const styles = getStyles();
   const normalized = text.replace(/\\n/g, "\n");
   const blocks = normalized.split(/(```[\s\S]*?```)/g);
 
@@ -205,7 +231,7 @@ export default function FormattedText({
                               { flex: 1, minWidth: 0, flexShrink: 1 },
                             ]}
                           >
-                            {renderInlineSegments(cleanLine)}
+                            {renderInlineSegments(cleanLine, styles)}
                           </Text>
                         </View>
                       );
@@ -219,7 +245,7 @@ export default function FormattedText({
                   key={pIdx}
                   style={[style, { flexShrink: 1, minWidth: 0 }]}
                 >
-                  {renderInlineSegments(para)}
+                  {renderInlineSegments(para, styles)}
                 </Text>
               );
             })}
@@ -230,7 +256,7 @@ export default function FormattedText({
   );
 }
 
-const getStyles = () =>
+const getStyles = (StudioColors: StudioThemeColors) =>
   StyleSheet.create({
   boldInline: { color: StudioColors.textPrimary, fontWeight: "900" },
   bulletRow: {

@@ -14,9 +14,12 @@ import {
   HardShadowSm,
   MonoFont,
   StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import {
   executePlaygroundPython,
+  getPythonRuntimeStatus,
   loadPyodideScript,
 } from "../utils/pyodideRunner";
 import { trackFunnelMilestone } from "../utils/attribution";
@@ -114,6 +117,7 @@ interface ExplorePythonSandboxProps {
 export default function ExplorePythonSandbox({
   isCompact,
 }: ExplorePythonSandboxProps) {
+  const styles = useThemedStyles(createStyles);
   const [selectedPresetId, setSelectedPresetId] = useState<string>(
     SANDBOX_PRESETS[0].id,
   );
@@ -139,20 +143,18 @@ export default function ExplorePythonSandbox({
 
   useEffect(() => {
     mountedRef.current = true;
-    if (Platform.OS === "web") {
-      loadPyodideScript(
-        pyodideRef,
-        () => {
-          if (!mountedRef.current) return;
-          setPyodideReady(true);
-          setLoadFailed(false);
-        },
-        () => {
-          if (!mountedRef.current) return;
-          setLoadFailed(true);
-        },
-      );
-    }
+    loadPyodideScript(
+      pyodideRef,
+      () => {
+        if (!mountedRef.current) return;
+        setPyodideReady(true);
+        setLoadFailed(false);
+      },
+      () => {
+        if (!mountedRef.current) return;
+        setLoadFailed(true);
+      },
+    );
     return () => {
       mountedRef.current = false;
     };
@@ -199,21 +201,23 @@ export default function ExplorePythonSandbox({
 
   async function handleRunCode() {
     playKeyClick();
-    if (Platform.OS !== "web") {
-      setOutput(
-        `${activePreset.sampleOutput}\n\n[INFO] Live WASM Python runs in web browsers. Launch the full Studio to run on this device!`,
-      );
-      trackFunnelMilestone("explore_sandbox_run");
-      setRunCount((c) => c + 1);
-      return;
-    }
-
-    if (!pyodideReady || !pyodideRef.current) {
-      setOutput(
-        loadFailed
-          ? "Could not load Pyodide runtime in this browser session. Refresh or launch the full Studio."
-          : "Python 3.11 WebAssembly engine is warming up — try again in a second!",
-      );
+    const runtimeStatus = getPythonRuntimeStatus(
+      pyodideReady && Boolean(pyodideRef.current),
+    );
+    if (!runtimeStatus.available) {
+      if (Platform.OS !== "web") {
+        setOutput(
+          `${activePreset.sampleOutput}\n\n[INFO] ${runtimeStatus.unavailableMessage}`,
+        );
+        trackFunnelMilestone("explore_sandbox_run");
+        setRunCount((c) => c + 1);
+      } else {
+        setOutput(
+          loadFailed
+            ? "Could not load Pyodide runtime in this browser session. Refresh or launch the full Studio."
+            : "Python 3.11 WebAssembly engine is warming up — try again in a second!",
+        );
+      }
       return;
     }
 
@@ -232,6 +236,7 @@ export default function ExplorePythonSandbox({
     }
   }
 
+  const runtimeStatus = getPythonRuntimeStatus(pyodideReady);
   const lineCount = Math.max((code || "").split("\n").length, 8);
   const editorMinHeight = lineCount * 20 + 28;
   const isErrorOutput =
@@ -257,21 +262,23 @@ export default function ExplorePythonSandbox({
           <View
             style={[
               styles.engineDot,
-              pyodideReady
+              runtimeStatus.available
                 ? { backgroundColor: StudioColors.lime }
                 : loadFailed
                   ? { backgroundColor: StudioColors.coral }
-                  : { backgroundColor: StudioColors.yellow },
+                  : runtimeStatus.mode === "web_only_notice"
+                    ? { backgroundColor: StudioColors.violet }
+                    : { backgroundColor: StudioColors.yellow },
             ]}
           />
           <Text style={styles.engineStatusText}>
-            {Platform.OS !== "web"
-              ? "PREVIEW MODE"
-              : pyodideReady
+            {runtimeStatus.mode === "web_pyodide"
+              ? runtimeStatus.available
                 ? "PY 3.11 WASM READY"
                 : loadFailed
                   ? "RUNTIME OFFLINE"
-                  : "LOADING PYTHON..."}
+                  : "LOADING PYTHON..."
+              : runtimeStatus.badgeLabel}
           </Text>
         </View>
       </View>
@@ -478,7 +485,8 @@ export default function ExplorePythonSandbox({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     borderWidth: 2.5,

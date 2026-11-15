@@ -8,8 +8,9 @@ import {
 import {
   HardShadowSm,
   MonoFont,
-  StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import { playKeyClick } from "../utils/soundEffects";
 
 interface StreakAtRiskBannerProps {
@@ -23,6 +24,7 @@ export default function StreakAtRiskBanner({
   lastActiveDate,
   onSaveStreak,
 }: StreakAtRiskBannerProps) {
+  const styles = useThemedStyles(createStyles);
   const status: StreakStatus = getStreakStatus({
     streakCount,
     lastActiveDate,
@@ -86,7 +88,8 @@ export default function StreakAtRiskBanner({
   return null;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   atRiskCard: {
     backgroundColor: StudioColors.surface,
     borderWidth: 2,

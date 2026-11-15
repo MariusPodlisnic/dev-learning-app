@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { loadTsModule } from "./helpers/loadTs.mjs";
+import { loadTsModule, setMockPlatformOS } from "./helpers/loadTs.mjs";
 
-const { executeLessonVerification, executePlaygroundPython } = loadTsModule(
-  "src/utils/pyodideRunner.ts",
-);
+const {
+  executeBugPatchVerification,
+  executeLessonVerification,
+  executePlaygroundPython,
+  getPythonRuntimeStatus,
+  isNativePythonSupported,
+  registerNativePythonExecutor,
+} = loadTsModule("src/utils/pyodideRunner.ts");
 
 function createPython3MockPyodide() {
   let stdoutHandler = null;
@@ -24,8 +29,9 @@ from contextlib import redirect_stdout
 src = sys.stdin.read()
 buf = io.StringIO()
 ns = {}
-exec(compile(src, "<student>", "exec"), ns, ns)
-ret = ns["__run_tests__"]() if "__run_tests__" in ns and callable(ns["__run_tests__"]) else None
+with redirect_stdout(buf):
+    exec(compile(src, "<student>", "exec"), ns, ns)
+    ret = ns["__run_tests__"]() if "__run_tests__" in ns and callable(ns["__run_tests__"]) else None
 print(json.dumps({"stdout": buf.getvalue(), "ret": ret}))
 `,
         ],
@@ -83,4 +89,50 @@ test("executePlaygroundPython formats syntax errors cleanly", async () => {
   const pyodide = createPython3MockPyodide();
   const out = await executePlaygroundPython(pyodide, "def broken(:");
   assert.match(out, /SYNTAX \/\/ TRACE/);
+});
+
+test("native Python runtime reports study notice without bridge and executes cleanly with registered native executor", async () => {
+  setMockPlatformOS("ios");
+  registerNativePythonExecutor(null);
+
+  assert.equal(isNativePythonSupported(), false);
+  const studyStatus = getPythonRuntimeStatus(false);
+  assert.equal(studyStatus.available, false);
+  assert.equal(studyStatus.mode, "web_only_notice");
+  assert.equal(studyStatus.badgeLabel, "📱 STUDY MODE");
+
+  const unavailableOut = await executePlaygroundPython(null, "print(42)");
+  assert.match(unavailableOut, /Web browsers|native runtime bridge/i);
+
+  const unavailablePatch = await executeBugPatchVerification(
+    null,
+    "def fix(): pass",
+    "{}",
+  );
+  assert.equal(unavailablePatch.allPassed, false);
+  assert.match(unavailablePatch.error || "", /Web browsers|native runtime bridge/i);
+
+  // Register a native executor backed by Python3 mock
+  const mockPyodide = createPython3MockPyodide();
+  registerNativePythonExecutor(async (script) => {
+    let stdout = "";
+    mockPyodide.setStdout({
+      batched: (line) => {
+        stdout += `${line}\n`;
+      },
+    });
+    const result = await mockPyodide.runPythonAsync(script);
+    return { stdout: stdout.trim(), result };
+  });
+
+  assert.equal(isNativePythonSupported(), true);
+  const bridgeStatus = getPythonRuntimeStatus(false);
+  assert.equal(bridgeStatus.available, true);
+  assert.equal(bridgeStatus.mode, "native_bridge");
+
+  const bridgeOut = await executePlaygroundPython(null, "print('native-ok')");
+  assert.equal(bridgeOut, "native-ok");
+
+  registerNativePythonExecutor(null);
+  setMockPlatformOS("web");
 });

@@ -13,6 +13,20 @@ export const ROOT_DIR = path.resolve(
 );
 
 const moduleCache = new Map();
+const mockPlatformState = { OS: "web" };
+const mockAsyncStorageStore = new Map();
+
+export function setMockPlatformOS(os) {
+  mockPlatformState.OS = os;
+}
+
+export function getMockAsyncStorageStore() {
+  return mockAsyncStorageStore;
+}
+
+export function clearModuleCache() {
+  moduleCache.clear();
+}
 
 function resolveLocalFile(baseDir, specifier) {
   const mapped = specifier.startsWith("@/")
@@ -77,8 +91,43 @@ export function loadTsModule(relOrAbsPath) {
     if (specifier === "react-native") {
       return {
         Platform: {
-          OS: "web",
-          select: (obj) => obj.web ?? obj.default,
+          get OS() {
+            return mockPlatformState.OS;
+          },
+          select: (obj) => obj[mockPlatformState.OS] ?? obj.default,
+        },
+      };
+    }
+    if (specifier === "@react-native-async-storage/async-storage") {
+      return {
+        __esModule: true,
+        default: {
+          getItem: async (key) =>
+            mockAsyncStorageStore.has(key)
+              ? mockAsyncStorageStore.get(key)
+              : null,
+          setItem: async (key, value) => {
+            mockAsyncStorageStore.set(key, String(value));
+          },
+          removeItem: async (key) => {
+            mockAsyncStorageStore.delete(key);
+          },
+          multiGet: async (keys) =>
+            keys.map((key) => [
+              key,
+              mockAsyncStorageStore.has(key)
+                ? mockAsyncStorageStore.get(key)
+                : null,
+            ]),
+          getMany: async (keys) => {
+            const out = {};
+            for (const key of keys) {
+              out[key] = mockAsyncStorageStore.has(key)
+                ? mockAsyncStorageStore.get(key)
+                : null;
+            }
+            return out;
+          },
         },
       };
     }

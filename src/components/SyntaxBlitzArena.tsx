@@ -13,13 +13,20 @@ import {
   HardShadowSm,
   MonoFont,
   StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import {
   BLITZ_CARDS,
   type BlitzCardItem,
   type BlitzDeckKey,
 } from "../constants/curriculumData/syntaxBlitzCards";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
+import {
+  readLocalJson,
+  readLocalJsonAsync,
+  writeLocalJson,
+} from "../types/lesson";
 import {
   playErrorBuzz,
   playKeyClick,
@@ -96,6 +103,7 @@ export default function SyntaxBlitzArena({
   onRequirePro,
   onAwardBlitzXp,
 }: SyntaxBlitzArenaProps) {
+  const styles = useThemedStyles(createStyles);
   const [selectedDeck, setSelectedDeck] =
     useState<BlitzDeckKey>("python_basics");
   const [gameState, setGameState] = useState<"lobby" | "playing" | "finished">(
@@ -115,12 +123,21 @@ export default function SyntaxBlitzArena({
   const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
   const [bonusSecondsToast, setBonusSecondsToast] = useState<boolean>(false);
   const [highScore, setHighScore] = useState<number>(() => {
-    if (typeof window !== "undefined" && window.localStorage) {
-      const saved = Number(window.localStorage.getItem(BLITZ_HIGHSCORE_KEY));
-      return Number.isFinite(saved) ? saved : 0;
-    }
-    return 0;
+    const saved = Number(readLocalJson<number>(BLITZ_HIGHSCORE_KEY, 0));
+    return Number.isFinite(saved) ? saved : 0;
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    readLocalJsonAsync<number>(BLITZ_HIGHSCORE_KEY, 0).then((saved) => {
+      if (!cancelled && Number.isFinite(saved) && saved > 0) {
+        setHighScore((prev) => Math.max(prev, saved));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const scoreXpRef = useRef<number>(0);
   useEffect(() => {
@@ -173,13 +190,14 @@ export default function SyntaxBlitzArena({
     }
     if (finalXp > highScore) {
       setHighScore(finalXp);
-      if (typeof window !== "undefined" && window.localStorage) {
-        try {
-          window.localStorage.setItem(BLITZ_HIGHSCORE_KEY, String(finalXp));
-        } catch (_e) {}
-      }
+      writeLocalJson(BLITZ_HIGHSCORE_KEY, finalXp);
     }
   }
+
+  const finishRoundRef = useRef(finishRound);
+  useEffect(() => {
+    finishRoundRef.current = finishRound;
+  });
 
   // Countdown timer effect
   useEffect(() => {
@@ -188,7 +206,7 @@ export default function SyntaxBlitzArena({
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          finishRound(scoreXpRef.current);
+          finishRoundRef.current(scoreXpRef.current);
           return 0;
         }
         return prev - 1;
@@ -241,23 +259,28 @@ export default function SyntaxBlitzArena({
     setCardIndex((prev) => prev + 1);
   }
 
+  const keyActionsRef = useRef({ handleSelectOption, handleNextCard });
+  useEffect(() => {
+    keyActionsRef.current = { handleSelectOption, handleNextCard };
+  });
+
   // Web keyboard support (1-4 to pick option, Enter/Space to advance)
   useEffect(() => {
     if (Platform.OS !== "web" || gameState !== "playing") return;
     function onKeyDown(e: KeyboardEvent) {
       if (pickedOption === null) {
-        if (e.key === "1") handleSelectOption(0);
-        if (e.key === "2") handleSelectOption(1);
-        if (e.key === "3") handleSelectOption(2);
-        if (e.key === "4") handleSelectOption(3);
+        if (e.key === "1") keyActionsRef.current.handleSelectOption(0);
+        if (e.key === "2") keyActionsRef.current.handleSelectOption(1);
+        if (e.key === "3") keyActionsRef.current.handleSelectOption(2);
+        if (e.key === "4") keyActionsRef.current.handleSelectOption(3);
       } else if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        handleNextCard();
+        keyActionsRef.current.handleNextCard();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [gameState, pickedOption, cardIndex, combo, scoreXp]);
+  }, [gameState, pickedOption]);
 
   const accuracyPct =
     attemptCount > 0 ? Math.round((correctCount / attemptCount) * 100) : 100;
@@ -695,7 +718,8 @@ export default function SyntaxBlitzArena({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "transparent",

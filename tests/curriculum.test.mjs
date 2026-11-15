@@ -134,6 +134,14 @@ test("mergeCurriculumLessons deduplicates, patches, upgrades, attaches drills, a
       initial_code: "def is_anagram(s, t):\n    # todo\n    return False\n\nprint(is_anagram('a','a'))",
     },
     {
+      id: "db-custom-99",
+      track: "algorithms",
+      lesson_order: 99,
+      title: "Custom Unmatched Module",
+      is_free: false,
+      initial_code: "def custom_fn(x):\n    # todo\n    return x * 2\n\nprint(custom_fn(2))",
+    },
+    {
       id: "db-py-1",
       track: "python_basics",
       lesson_order: 1,
@@ -165,7 +173,14 @@ test("mergeCurriculumLessons deduplicates, patches, upgrades, attaches drills, a
 
   const alg2 = merged.find((l) => l.id === "db-alg-2");
   assert.ok(alg2);
-  assert.equal(alg2.initial_code, "def is_anagram(s, t):\n    pass");
+  assert.equal(
+    alg2.initial_code,
+    "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+  );
+
+  const custom99 = merged.find((l) => l.id === "db-custom-99");
+  assert.ok(custom99);
+  assert.equal(custom99.initial_code, "def custom_fn(x):\n    pass");
 
   const py1 = merged.find((l) => l.id === "db-py-1");
   assert.ok(py1);
@@ -263,8 +278,8 @@ test("all local lessons, drills, and recaps have unique IDs, minimal starter stu
 
   assert.equal(
     pythonPayloads.length,
-    207,
-    `Expected all 207 local stages (74 lessons/recaps + 133 drills), got ${pythonPayloads.length}`,
+    223,
+    `Expected all 223 local stages (90 lessons/recaps + 133 drills), got ${pythonPayloads.length}`,
   );
 
   const outcomes = runPythonBatchedChecks(pythonPayloads);

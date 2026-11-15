@@ -1,5 +1,463 @@
 export const ALGORITHMS_EXPANSION_LESSONS = [
   {
+    id: "exp-alg-01",
+    title: "Two Sum",
+    track: "algorithms",
+    category: "HASH MAPS",
+    difficulty: "Easy",
+    tree_row: 1,
+    lesson_order: 1,
+    is_free: true,
+    description:
+      "Find the indices of two numbers in an array that add up to a specific target in O(n) time.",
+    content:
+      "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input has **exactly one solution**, and you may not use the same element twice.\n\nInstead of an O(n²) nested loop, store each visited number's index inside a dictionary `seen = {}` and check if `target - num` already exists in `seen`!",
+    assignment:
+      "Implement `twoSum(self, nums, target)` inside `class Solution` to return `[index1, index2]` of the two elements summing to `target`.",
+    constraints: [
+      "Store visited numbers and their indices in `seen = {}`",
+      "Check `needed = target - num` BEFORE inserting `seen[num] = i` so an element never pairs with itself",
+      "Run in O(n) time complexity",
+    ],
+    examples: [
+      {
+        input: "nums = [2, 7, 11, 15], target = 9",
+        output: "[0, 1]",
+        explanation: "nums[0] + nums[1] == 2 + 7 == 9, so return [0, 1].",
+      },
+      {
+        input: "nums = [3, 2, 4], target = 6",
+        output: "[1, 2]",
+        explanation: "nums[1] + nums[2] == 2 + 4 == 6, so return [1, 2].",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `class Solution:
+    def twoSum(self, nums, target):
+        pass`,
+    expected_output: "[0, 1]",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        sol = Solution()
+        cases = [(([2, 7, 11, 15], 9), [0, 1]), (([3, 2, 4], 6), [1, 2]), (([3, 3], 6), [0, 1])]
+        results = []
+        all_passed = True
+        for i, ((nums, target), exp) in enumerate(cases):
+            actual = sol.twoSum(nums[:], target)
+            passed = actual == exp
+            if not passed:
+                all_passed = False
+            results.append({"id": i + 1, "input": f"nums={nums}, target={target}", "expected": str(exp), "actual": str(actual), "passed": passed})
+        return json.dumps({"is_test_suite": True, "all_passed": all_passed, "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "i=0 | num=2", value: "need 7 -> store seen[2] = 0", address: "0x7F9E0" },
+      { label: "i=1 | num=7", value: "need 2 -> HIT seen[2] = 0!", address: "0x7F9E4" },
+      { label: "result", value: "return [0, 1] ✓", address: "O(n)" },
+    ],
+    hints: [
+      "Compute `needed = target - num` on each step of `for i, num in enumerate(nums):`.",
+      "If `needed in seen:`, return `[seen[needed], i]`. Otherwise record `seen[num] = i`.",
+    ],
+  },
+  {
+    id: "exp-alg-02",
+    title: "Two Pointers: Valid Palindrome",
+    track: "algorithms",
+    category: "TWO POINTERS",
+    difficulty: "Easy",
+    tree_row: 2,
+    lesson_order: 2,
+    is_free: false,
+    description:
+      "Check whether a phrase reads the same forward and backward after ignoring punctuation and letter casing.",
+    content:
+      "A phrase is a **palindrome** if, after converting uppercase letters to lowercase and removing all non-alphanumeric characters (`c.isalnum()`), it reads the same forward and backward.\n\nPlace `left = 0` at the beginning and `right = len(cleaned) - 1` at the end, comparing inward while `left < right`.",
+    assignment:
+      "Complete `isPalindrome(self, s: str) -> bool` inside `class Solution` to return `True` if `s` is a valid alphanumeric palindrome, else `False`.",
+    constraints: [
+      "Ignore spaces, punctuation, and case differences (`c.lower()` if `c.isalnum()`)",
+      "Use converging two pointers (`left += 1`, `right -= 1`) in O(n) time",
+    ],
+    examples: [
+      {
+        input: 's = "A man, a plan, a canal: Panama"',
+        output: "True",
+        explanation: '"amanaplanacanalpanama" is identical forward and backward.',
+      },
+      {
+        input: 's = "race a car"',
+        output: "False",
+        explanation: '"raceacar" is not symmetric.',
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `class Solution:
+    def isPalindrome(self, s: str) -> bool:
+        pass`,
+    expected_output: "True",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        sol = Solution()
+        cases = [("A man, a plan, a canal: Panama", True), ("race a car", False), (" ", True), ("0P", False)]
+        results = []
+        for i, (inp, exp) in enumerate(cases):
+            actual = sol.isPalindrome(inp)
+            results.append({"id": i + 1, "input": repr(inp), "expected": str(exp), "actual": str(actual), "passed": actual is exp})
+        return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "array",
+    visual_data: [
+      { label: "left=0 ('a')", value: "right=20 ('a') -> MATCH", address: "step 1" },
+      { label: "left=1 ('m')", value: "right=19 ('m') -> MATCH", address: "step 2" },
+      { label: "converge", value: "left >= right -> True ✓", address: "O(n)" },
+    ],
+    hints: [
+      'Filter first with `cleaned = "".join(c.lower() for c in s if c.isalnum())`.',
+      "Compare `cleaned[left] != cleaned[right]` inside `while left < right:`.",
+    ],
+  },
+  {
+    id: "exp-alg-03",
+    title: "Valid Parentheses (LIFO Stack)",
+    track: "algorithms",
+    category: "STACKS O(N)",
+    difficulty: "Easy",
+    tree_row: 3,
+    lesson_order: 3,
+    is_free: false,
+    description:
+      "Validate nested round, square, and curly brackets in a single linear pass using a LIFO stack.",
+    content:
+      "Code editors and compilers validate nested brackets using a **Last-In, First-Out (LIFO) Stack**.\n\n• When you see an opener (`(`, `{`, `[`), push it onto `stack`.\n• When you see a closer (`)`, `}`, `]`), check that `stack` is not empty and its top (`stack[-1]`) matches `pairs[ch]`, then `.pop()`.",
+    assignment:
+      "Complete `isValid(self, s: str) -> bool` inside `class Solution` to return `True` only if every opening bracket closes cleanly in matching LIFO order.",
+    constraints: [
+      "Support `()`, `[]`, and `{}` bracket types",
+      "Guard against empty-stack pops and leftover unclosed brackets (`len(stack) == 0`)",
+    ],
+    examples: [
+      {
+        input: 's = "()[]{}"',
+        output: "True",
+        explanation: "Every bracket opens and closes in valid LIFO order.",
+      },
+      {
+        input: 's = "([)]"',
+        output: "False",
+        explanation: "')' expects '[', but top of stack holds '[' instead of '('.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `class Solution:
+    def isValid(self, s: str) -> bool:
+        pass`,
+    expected_output: "True",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        sol = Solution()
+        cases = [("()[]{}", True), ("([)]", False), ("{[]}", True), ("]", False), ("(", False)]
+        results = []
+        for i, (inp, exp) in enumerate(cases):
+            actual = sol.isValid(inp)
+            results.append({"id": i + 1, "input": repr(inp), "expected": str(exp), "actual": str(actual), "passed": actual is exp})
+        return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "stack",
+    visual_data: [
+      { label: "push '{'", value: "stack = ['{']", address: "step 1" },
+      { label: "push '['", value: "stack = ['{', '[']", address: "step 2" },
+      { label: "see ']' -> pop '['", value: "stack = ['{'] ✓", address: "step 3" },
+    ],
+    hints: [
+      'Define `pairs = {")": "(", "}": "{", "]": "["}`.',
+      "Return `len(stack) == 0` after the loop ends.",
+    ],
+  },
+  {
+    id: "exp-alg-04",
+    title: "Binary Search: Sorted Lookup",
+    track: "algorithms",
+    category: "BINARY SEARCH",
+    difficulty: "Easy",
+    tree_row: 4,
+    lesson_order: 4,
+    is_free: false,
+    description:
+      "Locate a target index inside a sorted array in O(log n) time by halving the search space.",
+    content:
+      "**Binary Search** splits a sorted list in half on every comparison:\n1. Start with `low, high = 0, len(nums) - 1`.\n2. Compute `mid = (low + high) // 2`.\n3. If `nums[mid] == target`, return `mid`. Otherwise discard the half where `target` cannot exist (`low = mid + 1` or `high = mid - 1`).",
+    assignment:
+      "Complete `search(self, nums: list, target: int) -> int` inside `class Solution` to return the index of `target` in sorted `nums`, or `-1` if absent.",
+    constraints: [
+      "Run in O(log n) time and O(1) extra space",
+      "Return `-1` cleanly if `target` is missing or `nums` is empty",
+    ],
+    examples: [
+      {
+        input: "nums = [-1, 0, 3, 5, 9, 12], target = 9",
+        output: "4",
+        explanation: "9 sits at index 4.",
+      },
+      {
+        input: "nums = [-1, 0, 3, 5, 9, 12], target = 2",
+        output: "-1",
+        explanation: "2 does not exist in nums.",
+      },
+    ],
+    complexities: { time: "O(log n)", space: "O(1)" },
+    initial_code: `class Solution:
+    def search(self, nums: list, target: int) -> int:
+        pass`,
+    expected_output: "4",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        sol = Solution()
+        cases = [(([-1, 0, 3, 5, 9, 12], 9), 4), (([-1, 0, 3, 5, 9, 12], 2), -1), (([5], 5), 0), (([], 3), -1)]
+        results = []
+        for i, ((nums, target), exp) in enumerate(cases):
+            actual = sol.search(nums[:], target)
+            results.append({"id": i + 1, "input": f"nums={nums}, target={target}", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+        return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "array",
+    visual_data: [
+      { label: "mid=2 (val 3)", value: "3 < 9 -> low = 3", address: "O(log n)" },
+      { label: "mid=4 (val 9)", value: "MATCH index 4 ✓", address: "2 steps" },
+    ],
+    hints: [
+      "Loop `while low <= high:` so 1-element intervals still get inspected.",
+      "Always move `low = mid + 1` or `high = mid - 1` (never `mid`) to avoid infinite loops.",
+    ],
+  },
+  {
+    id: "exp-alg-05",
+    title: "Maximum Subarray Sum (Kadane O(n))",
+    track: "algorithms",
+    category: "LINEAR PASS O(N)",
+    difficulty: "Medium",
+    tree_row: 5,
+    lesson_order: 5,
+    is_free: false,
+    description:
+      "Find the contiguous subarray with the largest sum in a single linear pass using Kadane's algorithm.",
+    content:
+      "Given an integer array `nums` (which may include negative values), checking every start/end subarray takes O(n²) time.\n\n**Kadane's Algorithm** computes the best answer ending at index `i` in O(n) time:\n• Track `current = nums[0]` and `best = nums[0]`.\n• For each `n` in `nums[1:]`: `current = max(n, current + n)`, then `best = max(best, current)`.",
+    assignment:
+      "Complete `maxSubArray(self, nums: list) -> int` inside `class Solution` to return the largest possible sum of any non-empty contiguous subarray (return `0` if `nums` is empty).",
+    constraints: [
+      "Handle arrays containing negative numbers (`[-5, -2, -9]` -> `-2`)",
+      "Run in O(n) single pass and O(1) extra space",
+    ],
+    examples: [
+      {
+        input: "nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]",
+        output: "6",
+        explanation: "Contiguous slice [4, -1, 2, 1] has the maximum sum 6.",
+      },
+      {
+        input: "nums = [-5, -2, -9]",
+        output: "-2",
+        explanation: "Best non-empty subarray is [-2].",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `class Solution:
+    def maxSubArray(self, nums: list) -> int:
+        pass`,
+    expected_output: "6",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        sol = Solution()
+        cases = [([-2, 1, -3, 4, -1, 2, 1, -5, 4], 6), ([-5, -2, -9], -2), ([5, 4, -1, 7, 8], 23), ([], 0)]
+        results = []
+        for i, (inp, exp) in enumerate(cases):
+            actual = sol.maxSubArray(inp[:])
+            results.append({"id": i + 1, "input": f"nums={inp}", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+        return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "array",
+    visual_data: [
+      { label: "drop prefix [-2,1,-3]", value: "restart cleanly at 4", address: "step 4" },
+      { label: "slice [4,-1,2,1]", value: "best = 6 ✓", address: "O(n)" },
+    ],
+    hints: [
+      "Guard `if not nums: return 0`, then initialize `current = best = nums[0]`.",
+      "At each remaining element `x`: `current = max(x, current + x)`.",
+    ],
+  },
+  {
+    id: "exp-alg-06",
+    title: "Frequency Counter (Most Active User)",
+    track: "algorithms",
+    category: "HASH MAPS",
+    difficulty: "Easy",
+    tree_row: 6,
+    lesson_order: 6,
+    is_free: false,
+    description:
+      "Count how many times each username appears in a single O(n) pass using a dictionary.",
+    content:
+      "When chat apps track who sent the most messages, or Spotify counts your top artist plays, scanning the list repeatedly for every user would be O(n²) slow.\n\nInstead, keep a single **frequency map** `counts = {}` and update each user in O(1) average time using `.get()`:\n\n```python\ncounts[user] = counts.get(user, 0) + 1\n```",
+    assignment:
+      "Complete `count_messages(users)` so it returns a dictionary mapping each username to the exact number of times it appears in `users`.",
+    constraints: [
+      "Return an empty dictionary `{}` when `users` is empty",
+      "Accumulate counts in O(n) time without calling `users.count()` inside a loop",
+    ],
+    examples: [
+      {
+        input: 'users = ["alex", "sam", "alex", "mia", "alex"]',
+        output: "{'alex': 3, 'sam': 1, 'mia': 1}",
+        explanation: "'alex' appears 3 times; 'sam' and 'mia' each appear once.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(k)" },
+    initial_code: `def count_messages(users):
+    pass`,
+    expected_output: "{'alex': 3, 'sam': 1, 'mia': 1}",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [(["alex", "sam", "alex", "mia", "alex"], {"alex": 3, "sam": 1, "mia": 1}), (["kai"], {"kai": 1}), ([], {})]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = count_messages(inp[:])
+        results.append({"id": idx + 1, "input": f"count_messages({inp})", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: '"alex"', value: "count: 3", address: "bucket 0x1A" },
+      { label: '"sam"', value: "count: 1", address: "bucket 0x2F" },
+      { label: '"mia"', value: "count: 1", address: "bucket 0x4C" },
+    ],
+    hints: [
+      "Create `counts = {}` before your `for` loop.",
+      "Update `counts[u] = counts.get(u, 0) + 1` inside the loop and `return counts`.",
+    ],
+  },
+  {
+    id: "exp-alg-07",
+    title: "Sliding Window Traffic Spike",
+    track: "algorithms",
+    category: "SLIDING WINDOW",
+    difficulty: "Medium",
+    tree_row: 7,
+    lesson_order: 7,
+    is_free: false,
+    description:
+      "Find the highest total traffic over any K consecutive days in O(n) time.",
+    content:
+      "Suppose an analytics dashboard asks: *Which `k` consecutive days had the highest combined visitor count?*\n\nInstead of re-summing `k` days from scratch at every index, maintain one running `window_sum`:\n1. Sum the first `k` items (`sum(visitors[:k])`).\n2. Each step right, add the new entering day `visitors[i]` and subtract the leaving day `visitors[i - k]`.",
+    assignment:
+      "Complete `max_window_sum(visitors, k)` so it returns the maximum sum of any `k` consecutive integers in `visitors`.",
+    constraints: [
+      "Compute the first window in O(k), then slide in O(1) per element",
+      "Handle cases where `k == 1` or `k == len(visitors)` cleanly",
+    ],
+    examples: [
+      {
+        input: "visitors = [10, 40, 30, 50, 20], k = 3",
+        output: "120",
+        explanation: "[40, 30, 50] is the busiest 3-day window with total 120.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def max_window_sum(visitors, k):
+    pass`,
+    expected_output: "120",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [(([10, 40, 30, 50, 20], 3), 120), (([5, 5, 5, 5], 2), 10), (([100, 1, 1, 200], 1), 200)]
+    for idx, ((arr, k), exp) in enumerate(cases):
+        actual = max_window_sum(arr[:], k)
+        results.append({"id": idx + 1, "input": f"max_window_sum({arr}, {k})", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "sliding_window",
+    visual_data: [
+      { label: "Window [0..2]", value: "10 + 40 + 30 = 80", address: "win_1" },
+      { label: "Slide [1..3]", value: "80 + 50 - 10 = 120 ✓", address: "win_2" },
+      { label: "Slide [2..4]", value: "120 + 20 - 40 = 100", address: "win_3" },
+    ],
+    hints: [
+      "Initialize `window_sum = sum(visitors[:k])` and `best = window_sum`.",
+      "Loop `for i in range(k, len(visitors)):` updating `window_sum += visitors[i] - visitors[i - k]`.",
+    ],
+  },
+  {
+    id: "exp-alg-08",
+    title: "Balanced Brackets Linter (Stack)",
+    track: "algorithms",
+    category: "STACKS",
+    difficulty: "Easy",
+    tree_row: 7,
+    lesson_order: 8,
+    is_free: false,
+    description:
+      "Validate that every '(' has a matching ')' in proper order using a stack.",
+    content:
+      "How does Python know instantly if `((1 + 2)` is missing a closing parenthesis?\n\nIt uses a **Stack** (last-in, first-out list):\n• Push `'('` onto `stack` with `.append('(')`.\n• Whenever you see `')'`, return `False` if `stack` is empty, otherwise `.pop()`.\n• Return `len(stack) == 0` at the end.",
+    assignment:
+      "Complete `is_balanced(code_str)` so it returns `True` if every `'('` and `')'` in `code_str` is properly balanced, otherwise `False`.",
+    constraints: [
+      "Ignore characters other than `'('` and `')'`",
+      "Return `False` immediately on an extra `')'` with an empty stack",
+    ],
+    examples: [
+      {
+        input: 'code_str = "(())"',
+        output: "True",
+        explanation: "Two openers matched by two closers.",
+      },
+      {
+        input: 'code_str = "(()"',
+        output: "False",
+        explanation: "One '(' remains unclosed on the stack.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def is_balanced(code_str):
+    pass`,
+    expected_output: "True",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [("(())", True), ("(()", False), (")(", False), ("print((1 + 2))", True)]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = is_balanced(inp)
+        results.append({"id": idx + 1, "input": f"is_balanced({repr(inp)})", "expected": str(exp), "actual": str(actual), "passed": actual is exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "stack",
+    visual_data: [
+      { label: "push '('", value: "stack = ['(']", address: "step 1" },
+      { label: "push '('", value: "stack = ['(', '(']", address: "step 2" },
+      { label: "pop ')' -> pop ')'", value: "stack = [] ✓", address: "step 4" },
+    ],
+    hints: [
+      'Check `if ch == "(": stack.append(ch)` and `elif ch == ")":`.',
+      "Return `False` inside `elif ch == ')':` if `not stack`, else `stack.pop()`.",
+    ],
+  },
+  {
     id: "exp-alg-09",
     title: "Filtered Linear Scan: Cheapest Valid Flight",
     track: "algorithms",

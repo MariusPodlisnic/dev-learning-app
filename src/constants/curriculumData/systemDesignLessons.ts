@@ -1,5 +1,436 @@
 export const SYSTEM_DESIGN_EXPANSION_LESSONS = [
   {
+    id: "exp-sys-01",
+    title: "Token Bucket Rate Limiter",
+    track: "system_design",
+    category: "TRAFFIC CONTROL",
+    difficulty: "Easy",
+    tree_row: 1,
+    lesson_order: 1,
+    is_free: true,
+    description:
+      "Build an in-memory Token Bucket rate limiter that permits bursts up to capacity and returns 429 once drained.",
+    content:
+      "APIs like Stripe, GitHub, and Cloudflare protect backend databases using the **Token Bucket** pattern:\n• Start each client bucket with `self.tokens = capacity`.\n• When `allow_request()` runs, if `self.tokens > 0`, decrement `self.tokens -= 1` and return `True`.\n• Otherwise the bucket is empty — reject with `False` (HTTP 429 Too Many Requests).",
+    assignment:
+      "Implement `TokenBucket.__init__(self, capacity: int)` storing `self.tokens = capacity`, and `allow_request(self) -> bool` returning `True` (and consuming 1 token) when tokens remain, or `False` otherwise.",
+    constraints: [
+      "Store `self.tokens = capacity` inside `__init__`",
+      "Check strictly `self.tokens > 0` before decrementing `self.tokens -= 1`",
+      "Run in O(1) time per request",
+    ],
+    examples: [
+      {
+        input: "tb = TokenBucket(2); [tb.allow_request(), tb.allow_request(), tb.allow_request()]",
+        output: "[True, True, False]",
+        explanation: "Tokens drain 2 -> 1 -> 0; the 3rd request is throttled.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `class TokenBucket:
+    def __init__(self, capacity: int):
+        pass
+
+    def allow_request(self) -> bool:
+        pass`,
+    expected_output: "True",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        results = []
+        tb = TokenBucket(2)
+        seq = [tb.allow_request(), tb.allow_request(), tb.allow_request()]
+        results.append({"id": 1, "input": "capacity=2, 3 calls", "expected": "[True, True, False]", "actual": str(seq), "passed": seq == [True, True, False]})
+        tb0 = TokenBucket(0)
+        r0 = tb0.allow_request()
+        results.append({"id": 2, "input": "capacity=0, 1 call", "expected": "False", "actual": str(r0), "passed": r0 is False})
+        return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "req 1 (tokens=2)", value: "ALLOW -> tokens=1", type: "bool", address: "200 OK" },
+      { label: "req 2 (tokens=1)", value: "ALLOW -> tokens=0", type: "bool", address: "200 OK" },
+      { label: "req 3 (tokens=0)", value: "BLOCK -> False ✓", type: "bool", address: "429" },
+    ],
+    hints: [
+      "In `__init__`, set `self.tokens = capacity`.",
+      "In `allow_request`, check `if self.tokens > 0: self.tokens -= 1; return True` and fallback `return False`.",
+    ],
+  },
+  {
+    id: "exp-sys-02",
+    title: "In-Memory Cache Lookup (Redis Hit/Miss)",
+    track: "system_design",
+    category: "CACHING LAYERS",
+    difficulty: "Easy",
+    tree_row: 2,
+    lesson_order: 2,
+    is_free: false,
+    description:
+      "Serve hot keys in O(1) from RAM and return a clean -1 sentinel on cache misses.",
+    content:
+      "High-scale feeds avoid hammering SQL databases on every profile render by checking an in-memory key-value store first:\n• **Cache Hit:** Key exists in `self.store` — return the cached value in O(1).\n• **Cache Miss:** Key does not exist — safely return `-1` with `self.store.get(key, -1)` instead of crashing with `KeyError`.",
+    assignment:
+      'Complete `LRUCache.__init__(self, capacity: int)` initializing `self.capacity = capacity` and `self.store = {"user:1": "Alice", "user:2": "Bob"}`, and `get(self, key: str)` returning the cached value or `-1` on a miss.',
+    constraints: [
+      'Initialize `self.store = {"user:1": "Alice", "user:2": "Bob"}` inside `__init__`',
+      "Return `-1` on missing keys without raising `KeyError`",
+      "Serve lookups in O(1) time",
+    ],
+    examples: [
+      {
+        input: 'cache = LRUCache(2); cache.get("user:1"), cache.get("user:99")',
+        output: "('Alice', -1)",
+        explanation: '"user:1" is a cache hit; "user:99" misses and returns -1.',
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(capacity)" },
+    initial_code: `class LRUCache:
+    def __init__(self, capacity: int):
+        pass
+
+    def get(self, key: str):
+        pass`,
+    expected_output: "Alice",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        cache = LRUCache(2)
+        cases = [("user:1", "Alice"), ("user:2", "Bob"), ("user:999", -1)]
+        results = []
+        for idx, (k, exp) in enumerate(cases):
+            actual = cache.get(k)
+            results.append({"id": idx + 1, "input": f"cache.get({k!r})", "expected": repr(exp), "actual": repr(actual), "passed": actual == exp})
+        return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: '"user:1"', value: '"Alice" (CACHE HIT)', address: "0xRAM1" },
+      { label: '"user:999"', value: "-1 (CACHE MISS)", address: "0xDB_FALLBACK" },
+    ],
+    hints: [
+      'In `__init__`, save `self.capacity = capacity` and `self.store = {"user:1": "Alice", "user:2": "Bob"}`.',
+      "In `get(self, key)`, write `return self.store.get(key, -1)`.",
+    ],
+  },
+  {
+    id: "exp-sys-03",
+    title: "Deterministic Shard Router",
+    track: "system_design",
+    category: "PARTITIONING",
+    difficulty: "Easy",
+    tree_row: 3,
+    lesson_order: 3,
+    is_free: false,
+    description:
+      "Map incoming request IDs deterministically across backend partitions using modulo hashing.",
+    content:
+      "Distributed databases and API gateways split millions of keys across independent shards (`0 .. num_shards - 1`) so no single node saturates.\n\nUsing modulo hashing (`request_id % num_shards`), the exact same `request_id` deterministically maps to the same shard in O(1) time without needing a lookup table!",
+    assignment:
+      "Implement `LoadBalancer.get_shard(self, request_id: int, num_shards: int) -> int` returning `request_id % num_shards`.",
+    constraints: [
+      "Return an integer shard index strictly in `0 .. num_shards - 1`",
+      "Run in O(1) time and O(1) space",
+    ],
+    examples: [
+      {
+        input: "LoadBalancer().get_shard(10, 3)",
+        output: "1",
+        explanation: "10 % 3 evaluates to Shard 1.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `class LoadBalancer:
+    def get_shard(self, request_id: int, num_shards: int) -> int:
+        pass`,
+    expected_output: "1",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        lb = LoadBalancer()
+        cases = [((10, 3), 1), ((12, 3), 0), ((7, 4), 3), ((0, 5), 0)]
+        results = []
+        for idx, ((rid, n), exp) in enumerate(cases):
+            actual = lb.get_shard(rid, n)
+            results.append({"id": idx + 1, "input": f"get_shard({rid}, {n})", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+        return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "array",
+    visual_data: [
+      { label: "req 12 % 3", value: "Shard 0", address: "node-0" },
+      { label: "req 10 % 3", value: "Shard 1", address: "node-1" },
+      { label: "req 14 % 3", value: "Shard 2", address: "node-2" },
+    ],
+    hints: [
+      "Return `request_id % num_shards` (use `%`, not `//`).",
+    ],
+  },
+  {
+    id: "exp-sys-04",
+    title: "Round-Robin Load Balancer",
+    track: "system_design",
+    category: "TRAFFIC ROUTING",
+    difficulty: "Easy",
+    tree_row: 4,
+    lesson_order: 4,
+    is_free: false,
+    description:
+      "Distribute incoming API traffic evenly across servers using modulo cycling.",
+    content:
+      "When millions of users open an app at once, a single server would crash. A **Load Balancer** sits in front and distributes traffic evenly in **Round-Robin** order:\n\nRequest 0 -> Server 0, Request 1 -> Server 1, Request 2 -> Server 2, Request 3 -> Server 0 again!\n\nUse the remainder operator (`%`) to wrap back smoothly: `slot = request_index % len(servers)`.",
+    assignment:
+      "Complete `route_request(servers, request_index)` so it returns the server name chosen by Round-Robin cycling.",
+    constraints: [
+      "Wrap `request_index` around `len(servers)` using `%`",
+      "Run in O(1) time regardless of how large `request_index` is",
+    ],
+    examples: [
+      {
+        input: 'servers = ["srv-alpha", "srv-beta", "srv-gamma"], request_index = 4',
+        output: "srv-beta",
+        explanation: "4 % 3 == 1, which selects 'srv-beta'.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def route_request(servers, request_index):
+    pass`,
+    expected_output: "srv-beta",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    fleet = ["srv-alpha", "srv-beta", "srv-gamma"]
+    cases = [((fleet, 0), "srv-alpha"), ((fleet, 4), "srv-beta"), ((fleet, 5), "srv-gamma")]
+    for idx, ((sv, r), exp) in enumerate(cases):
+        actual = route_request(sv[:], r)
+        results.append({"id": idx + 1, "input": f"route_request(fleet, {r})", "expected": exp, "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "array",
+    visual_data: [
+      { label: "srv[0]", value: "srv-alpha (req 0, 3)", address: "10.0.1.1" },
+      { label: "srv[1]", value: "srv-beta (req 1, 4 ✓)", address: "10.0.1.2" },
+      { label: "srv[2]", value: "srv-gamma (req 2, 5)", address: "10.0.1.3" },
+    ],
+    hints: [
+      "Compute `slot = request_index % len(servers)`.",
+      "Return `servers[slot]`.",
+    ],
+  },
+  {
+    id: "exp-sys-05",
+    title: "Database Sharding Router",
+    track: "system_design",
+    category: "SCALABILITY",
+    difficulty: "Easy",
+    tree_row: 5,
+    lesson_order: 5,
+    is_free: false,
+    description:
+      "Partition millions of users evenly across database shards deterministically.",
+    content:
+      "When a database grows to billions of messages (like Discord or WhatsApp), one machine runs out of disk and memory. Engineers split users across multiple **Database Shards**.\n\nA deterministic shard key maps every `user_id` to the exact same shard every time: `shard_id = user_id % num_shards` -> `f\"shard_{shard_id}\"`.",
+    assignment:
+      'Complete `get_user_shard(user_id, num_shards)` to compute `user_id % num_shards` and return `f"shard_{shard_id}"`.',
+    constraints: [
+      'Format output strictly as `f"shard_{shard_id}"`',
+      "Deterministic O(1) computation without storing any mapping table",
+    ],
+    examples: [
+      {
+        input: "user_id = 42, num_shards = 4",
+        output: "shard_2",
+        explanation: "42 % 4 == 2, so user 42 belongs to shard_2.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def get_user_shard(user_id, num_shards):
+    pass`,
+    expected_output: "shard_2",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [((42, 4), "shard_2"), ((100, 4), "shard_0"), ((7, 3), "shard_1")]
+    for idx, ((uid, n), exp) in enumerate(cases):
+        actual = get_user_shard(uid, n)
+        results.append({"id": idx + 1, "input": f"get_user_shard({uid}, {n})", "expected": exp, "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "42 % 4", value: "2", type: "int", address: "modulo" },
+      { label: "route target", value: '"shard_2"', type: "str", address: "db-2" },
+    ],
+    hints: [
+      "Compute `shard_id = user_id % num_shards`.",
+      'Return `f"shard_{shard_id}"`.',
+    ],
+  },
+  {
+    id: "exp-sys-06",
+    title: "Circuit Breaker Health Check",
+    track: "system_design",
+    category: "RELIABILITY",
+    difficulty: "Easy",
+    tree_row: 6,
+    lesson_order: 6,
+    is_free: false,
+    description:
+      "Protect your app from cascading failures by tripping a Circuit Breaker.",
+    content:
+      "Just like an electrical breaker in a home trips to stop a fire, a software **Circuit Breaker** stops sending requests to a struggling microservice so it has time to recover:\n\n• If `failures >= threshold`, trip open (`\"OPEN\"`).\n• Otherwise traffic keeps flowing normally (`\"CLOSED\"`).",
+    assignment:
+      'Complete `get_circuit_status(failures, threshold)` so it returns `"OPEN"` if `failures >= threshold`, otherwise `"CLOSED"`.',
+    constraints: [
+      'Return `"OPEN"` when `failures` reaches or exceeds `threshold` (`>=`)',
+      'Return `"CLOSED"` otherwise',
+    ],
+    examples: [
+      {
+        input: "failures = 5, threshold = 5",
+        output: "OPEN",
+        explanation: "Threshold 5 has been reached, so breaker trips OPEN.",
+      },
+      {
+        input: "failures = 2, threshold = 5",
+        output: "CLOSED",
+        explanation: "2 < 5 allows traffic to pass normally.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def get_circuit_status(failures, threshold):
+    pass`,
+    expected_output: "OPEN",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [((5, 5), "OPEN"), ((8, 5), "OPEN"), ((2, 5), "CLOSED")]
+    for idx, ((f, th), exp) in enumerate(cases):
+        actual = get_circuit_status(f, th)
+        results.append({"id": idx + 1, "input": f"get_circuit_status({f}, {th})", "expected": exp, "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "failures=2 < 5", value: '"CLOSED" (Traffic OK)', type: "str", address: "healthy" },
+      { label: "failures=5 >= 5", value: '"OPEN" (Fail Fast ✓)', type: "str", address: "tripped" },
+    ],
+    hints: [
+      'Check `if failures >= threshold: return "OPEN"`.',
+      'Otherwise `return "CLOSED"`.',
+    ],
+  },
+  {
+    id: "exp-sys-07",
+    title: "Quorum Consensus Validator",
+    track: "system_design",
+    category: "DISTRIBUTED SYSTEMS",
+    difficulty: "Medium",
+    tree_row: 7,
+    lesson_order: 7,
+    is_free: false,
+    description:
+      "Determine whether a distributed cluster has reached strict majority Quorum.",
+    content:
+      "Distributed databases run across multiple replica nodes (e.g., 5 servers). Before committing data or electing a leader, the cluster needs a **Quorum** — strictly more than half of the nodes (`yes_votes > len(votes) / 2`) must agree.\n\nBecause two strict majorities always share at least one overlapping server, Quorum prevents split-brain conflicts!",
+    assignment:
+      "Complete `has_quorum(votes)` where `votes` is a list of booleans (`True` = ready, `False` = down/timeout). Return `True` if strictly more than half of `votes` are `True`, otherwise `False`.",
+    constraints: [
+      "Require strictly `yes_votes > len(votes) / 2` (even a 50/50 tie returns `False`)",
+      "Return `False` if `votes` is empty",
+    ],
+    examples: [
+      {
+        input: "votes = [True, True, False, True, False]",
+        output: "True",
+        explanation: "3 of 5 votes are True (3 > 2.5).",
+      },
+      {
+        input: "votes = [True, False, True, False]",
+        output: "False",
+        explanation: "2 of 4 is only 50%, not a strict majority.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def has_quorum(votes):
+    pass`,
+    expected_output: "True",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [([True, True, False, True, False], True), ([True, False, False, True], False), ([True, False, True], True), ([], False)]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = has_quorum(inp[:])
+        results.append({"id": idx + 1, "input": f"has_quorum({inp})", "expected": str(exp), "actual": str(actual), "passed": actual is exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "array",
+    visual_data: [
+      { label: "Node 1..3", value: "True, True, False", address: "quorum?" },
+      { label: "yes=3 / 5", value: "3 > 2.5 -> QUORUM ✓", address: "committed" },
+    ],
+    hints: [
+      "Guard `if not votes: return False`.",
+      "Count booleans `sum(1 for v in votes if v is True)` and compare `> len(votes) / 2`.",
+    ],
+  },
+  {
+    id: "exp-sys-08",
+    title: "Event Queue & Pub/Sub Topic Filter",
+    track: "system_design",
+    category: "EVENT STREAMS",
+    difficulty: "Medium",
+    tree_row: 7,
+    lesson_order: 8,
+    is_free: false,
+    description:
+      "Consume an ordered event stream and dispatch matching payloads for a subscribed topic.",
+    content:
+      "Event-driven architectures (Kafka, RabbitMQ, SNS) decouple producers from consumers using **Topics**.\n\nA billing worker subscribing to `\"payments\"` scans an incoming stream of `(topic_name, payload)` events in arrival order and collects only payloads whose topic equals `target_topic`.",
+    assignment:
+      "Complete `filter_topic_events(events, target_topic)`: given a list of `(topic, payload)` tuples in arrival order, return a list of `payload` values matching `target_topic` (preserving original order).",
+    constraints: [
+      "Preserve arrival order of matching payloads",
+      "Return `[]` when `events` is empty or no events match `target_topic`",
+    ],
+    examples: [
+      {
+        input: 'events = [("orders", "o1"), ("auth", "u9"), ("orders", "o2")], target_topic = "orders"',
+        output: "['o1', 'o2']",
+        explanation: "Only 'orders' events are kept in order.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def filter_topic_events(events, target_topic):
+    pass`,
+    expected_output: "['o1', 'o2']",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    stream = [("orders", "o1"), ("auth", "u9"), ("orders", "o2")]
+    cases = [((stream, "orders"), ["o1", "o2"]), ((stream, "billing"), []), (([], "orders"), [])]
+    for idx, ((ev, topic), exp) in enumerate(cases):
+        actual = filter_topic_events(ev[:], topic)
+        results.append({"id": idx + 1, "input": f"topic={topic!r}", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "array",
+    visual_data: [
+      { label: '("orders", "o1")', value: "MATCH -> enqueue o1", address: "offset 0" },
+      { label: '("auth", "u9")', value: "skip topic mismatch", address: "offset 1" },
+      { label: '("orders", "o2")', value: "MATCH -> enqueue o2 ✓", address: "offset 2" },
+    ],
+    hints: [
+      "Loop `for topic, payload in events:` and check `if topic == target_topic:`.",
+      "Or use `[payload for topic, payload in events if topic == target_topic]`.",
+    ],
+  },
+  {
     id: "exp-sys-09",
     title: "Exponential Backoff + Jitter Shield",
     track: "system_design",

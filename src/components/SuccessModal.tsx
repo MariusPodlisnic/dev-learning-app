@@ -7,7 +7,9 @@ import {
   HardShadowSm,
   MonoFont,
   StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick, playVictoryFanfare } from "../utils/soundEffects";
 import PixelConfetti from "./PixelConfetti";
@@ -54,6 +56,7 @@ export default function SuccessModal({
   onNextLesson,
   onClose,
 }: SuccessModalProps) {
+  const styles = useThemedStyles(createStyles);
   const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
   const currentRank = getDeveloperRank(totalXp);
   const previousRank = getDeveloperRank(Math.max(0, totalXp - xpEarned));
@@ -313,7 +316,8 @@ export default function SuccessModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     padding: 24,

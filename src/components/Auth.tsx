@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { Text } from "./StudioIcon";
 import { supabase } from "../../lib/supabase";
-import { StudioColors } from "../constants/theme";
+import { StudioColors, StudioThemeColors } from "../constants/theme";
+import { useTheme, useThemedStyles } from "../constants/themeContext";
 import {
   getSupabaseSignupMetadata,
   trackFunnelMilestone,
@@ -30,9 +31,12 @@ export default function Auth({
   promptReason,
   onSuccess,
 }: AuthProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [prevDefaultMode, setPrevDefaultMode] = useState(defaultMode);
   const [isSignUp, setIsSignUp] = useState(defaultMode === "signup");
   const [errorMsg, setErrorMsg] = useState("");
   const [isSuccessMsg, setIsSuccessMsg] = useState(false);
@@ -40,11 +44,12 @@ export default function Auth({
     null,
   );
 
-  useEffect(() => {
+  if (defaultMode !== prevDefaultMode) {
+    setPrevDefaultMode(defaultMode);
     setIsSignUp(defaultMode === "signup");
     setErrorMsg("");
     setIsSuccessMsg(false);
-  }, [defaultMode]);
+  }
 
   const hasGuestProgress = guestXp > 0 || guestSolvedCount > 0;
 
@@ -146,7 +151,7 @@ export default function Auth({
             focusedField === "email" && styles.inputFocused,
           ]}
           placeholder="you@domain.com"
-          placeholderTextColor={StudioColors.textDim}
+          placeholderTextColor={colors.textDim}
           value={email}
           onChangeText={setEmail}
           onFocus={() => setFocusedField("email")}
@@ -165,7 +170,7 @@ export default function Auth({
             focusedField === "password" && styles.inputFocused,
           ]}
           placeholder="••••••••"
-          placeholderTextColor={StudioColors.textDim}
+          placeholderTextColor={colors.textDim}
           value={password}
           onChangeText={setPassword}
           onFocus={() => setFocusedField("password")}
@@ -184,7 +189,7 @@ export default function Auth({
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color={StudioColors.bg} />
+          <ActivityIndicator color={colors.bg} />
         ) : (
           <Text style={styles.buttonText}>
             {isSignUp ? "Create Free Account ➔" : "Sign In ➔"}
@@ -210,7 +215,8 @@ export default function Auth({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     padding: 28,

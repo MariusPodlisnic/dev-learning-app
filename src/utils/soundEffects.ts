@@ -1,4 +1,10 @@
-const STORAGE_SOUND_KEY = "devlearn_sound_enabled_v1";
+import {
+  readLocalJson,
+  readLocalJsonAsync,
+  writeLocalJson,
+} from "./storage";
+
+export const STORAGE_SOUND_KEY = "devlearn_sound_enabled_v1";
 
 let soundEnabled = true;
 let audioCtx: any = null;
@@ -17,17 +23,19 @@ const CALM_PENTATONIC_ROOTS = [
   440.0, // A4 (Soft return)
 ];
 
-if (typeof window !== "undefined" && window.localStorage) {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_SOUND_KEY);
-    if (raw !== null) {
-      soundEnabled = JSON.parse(raw) !== false;
-    }
-  } catch {}
+soundEnabled = readLocalJson<boolean>(STORAGE_SOUND_KEY, true) !== false;
+
+export async function hydrateSoundPreference(): Promise<boolean> {
+  const saved = await readLocalJsonAsync<boolean>(STORAGE_SOUND_KEY, true);
+  soundEnabled = saved !== false;
+  return soundEnabled;
 }
 
 function getAudioContext(): any | null {
-  if (!soundEnabled || typeof window === "undefined") return null;
+  const enabled =
+    readLocalJson<boolean>(STORAGE_SOUND_KEY, soundEnabled) !== false;
+  soundEnabled = enabled;
+  if (!enabled || typeof window === "undefined") return null;
   try {
     const AudioCtx =
       (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -45,16 +53,14 @@ function getAudioContext(): any | null {
 }
 
 export function isSoundEnabled(): boolean {
+  soundEnabled =
+    readLocalJson<boolean>(STORAGE_SOUND_KEY, soundEnabled) !== false;
   return soundEnabled;
 }
 
 export function setSoundEnabled(next: boolean): void {
   soundEnabled = next;
-  if (typeof window !== "undefined" && window.localStorage) {
-    try {
-      window.localStorage.setItem(STORAGE_SOUND_KEY, JSON.stringify(next));
-    } catch {}
-  }
+  writeLocalJson(STORAGE_SOUND_KEY, next);
   if (next) {
     playKeyClick();
   }

@@ -79,22 +79,12 @@ export const STORAGE_QUICKSTART_DISMISSED_KEY = "devlearn_quickstart_dismissed_v
 export const STORAGE_CLOUD_NUDGE_DISMISSED_KEY = "devlearn_cloud_nudge_dismissed_v1";
 export const STORAGE_ATTRIBUTION_KEY = "devlearn_attribution_v1";
 
-export function readLocalJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined" || !window.localStorage) return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-export function writeLocalJson(key: string, value: unknown) {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {}
-}
+export {
+  hydrateStorageKeys,
+  readLocalJson,
+  readLocalJsonAsync,
+  writeLocalJson,
+} from "../utils/storage";
 
 /**
  * Module 01 of Pro tracks (algorithms & system_design) is unlocked as a

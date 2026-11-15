@@ -16,8 +16,10 @@ import {
   HardShadowSm,
   MonoFont,
   StudioColors,
+  StudioThemeColors,
   TrackThemes,
 } from "../constants/theme";
+import { useTheme, useThemedStyles } from "../constants/themeContext";
 import {
   isLessonLockedForUser,
   isProTrackPreviewLesson,
@@ -272,6 +274,7 @@ function SidebarModuleItem({
   onPress: () => void;
   styles: ReturnType<typeof getStyles>;
 }) {
+  const { colors } = useTheme();
   const isRecap = Boolean(lesson.is_recap);
   return (
     <SidebarInteractiveBox
@@ -297,7 +300,7 @@ function SidebarModuleItem({
               borderColor: isRecap
                 ? StudioColors.yellow
                 : isCompleted
-                  ? StudioColors.cardDoneBorder
+                  ? colors.cardDoneBorder
                   : accentBg,
             },
           ],
@@ -407,7 +410,8 @@ export default function StudioSidebar({
   selectedLesson,
   onSelectLesson,
 }: StudioSidebarProps) {
-  const styles = getStyles();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(getStyles);
   const currentTrackTheme =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
 
@@ -478,7 +482,7 @@ export default function StudioSidebar({
         >
           {loading ? (
             <ActivityIndicator
-              color={StudioColors.textPrimary}
+              color={colors.textPrimary}
               style={{ marginTop: 12 }}
             />
           ) : (
@@ -634,7 +638,7 @@ export default function StudioSidebar({
   );
 }
 
-const getStyles = () =>
+const getStyles = (StudioColors: StudioThemeColors) =>
   StyleSheet.create({
     sidebar: {
       width: 280,

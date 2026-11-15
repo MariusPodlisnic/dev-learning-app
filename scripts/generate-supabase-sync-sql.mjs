@@ -130,22 +130,6 @@ const allExportedLessons = [
   ...recapLessons,
 ];
 
-const proBaseDrillsMappings = [];
-for (let order = 1; order <= 8; order += 1) {
-  const algDrills = (algDrillsMod.ALGORITHMS_PRACTICE_DRILLS || {})[order];
-  if (algDrills && algDrills.length > 0) {
-    proBaseDrillsMappings.push(
-      `  UPDATE public.lessons SET practice_challenges = ${sqlJsonb(algDrills, [])} WHERE track = 'algorithms' AND lesson_order = ${order};`,
-    );
-  }
-  const sysDrills = (sysDrillsMod.SYSTEM_DESIGN_PRACTICE_DRILLS || {})[order];
-  if (sysDrills && sysDrills.length > 0) {
-    proBaseDrillsMappings.push(
-      `  UPDATE public.lessons SET practice_challenges = ${sqlJsonb(sysDrills, [])} WHERE track = 'system_design' AND lesson_order = ${order};`,
-    );
-  }
-}
-
 const slugSyncMappings = allExportedLessons.map((l) => {
   return `  UPDATE public.lessons
     SET slug = ${sqlDollar(l.slug)}
@@ -269,11 +253,10 @@ CREATE POLICY "Users delete own curriculum progress"
   FOR DELETE
   USING (auth.uid() = user_id);
 
--- 4. Tag existing DB rows with canonical slugs & attach Pro drills to base rows (1..8)
+-- 4. Tag existing DB rows with canonical slugs
 DO $$
 BEGIN
 ${slugSyncMappings.join("\n")}
-${proBaseDrillsMappings.join("\n")}
 END $$;
 
 -- 5. Idempotently upsert all ${allExportedLessons.length} curriculum modules & multi-stage practice drills

@@ -259,7 +259,7 @@ function formatIssuedDate(): string {
       day: "numeric",
       year: "numeric",
     });
-  } catch (_e) {
+  } catch {
     return "Verified Session";
   }
 }

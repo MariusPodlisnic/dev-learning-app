@@ -12,9 +12,11 @@ import {
 import {
   MonoFont,
   StudioColors,
+  StudioThemeColors,
   ThemeMode,
   ThemePalettes,
 } from "../constants/theme";
+import { useTheme, useThemedStyles } from "../constants/themeContext";
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
@@ -76,6 +78,7 @@ function TraceSignalPulse({
   color,
   reduceMotion,
 }: TracePulseProps) {
+  const styles = useThemedStyles(createStyles);
   const [progress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
@@ -190,6 +193,7 @@ function PulseViaNode({
   delayMs,
   reduceMotion,
 }: PulseViaNodeProps) {
+  const styles = useThemedStyles(createStyles);
   const [ringAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
@@ -347,6 +351,7 @@ function FloatingCodeGlyph({
   isDark: boolean;
   reduceMotion: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
   const [floatAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
@@ -463,7 +468,7 @@ function resolveBackdropPalette(
       primaryGlowAlpha: 0.16 * bloomIntensity,
       secondaryGlowAlpha: 0.13 * bloomIntensity,
       dotColor: "rgba(244, 240, 230, 0.085)",
-      traceColor: StudioColors.borderSubtle,
+      traceColor: ThemePalettes.dark.borderSubtle,
       pcbOpacity: 0.72,
     };
   }
@@ -552,9 +557,12 @@ const getServerHydrated = () => false;
  */
 export default function MinimalPcbBackground({
   accentColor = StudioColors.yellow,
-  themeMode = "dark",
+  themeMode: themeModeProp,
   variant = "roadmap",
 }: MinimalPcbBackgroundProps) {
+  const { themeMode: ctxThemeMode } = useTheme();
+  const themeMode = themeModeProp ?? ctxThemeMode;
+  const styles = useThemedStyles(createStyles);
   const isHydrated = useSyncExternalStore(
     emptySubscribe,
     getClientHydrated,
@@ -1109,7 +1117,8 @@ export default function MinimalPcbBackground({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   overlay: {
     position: "absolute",
     top: 0,

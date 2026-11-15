@@ -2,7 +2,12 @@
 
 import React, { useMemo, useSyncExternalStore } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
-import { MonoFont, StudioColors } from "../constants/theme";
+import {
+  MonoFont,
+  StudioColors,
+  StudioThemeColors,
+} from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 
 const emptySubscribe = () => () => {};
 const getClientHydrated = () => true;
@@ -149,6 +154,7 @@ export default function RoadmapScrollBackdrop({
   maxScrollableDistance,
   accentColor,
 }: RoadmapScrollBackdropProps) {
+  const styles = useThemedStyles(createStyles);
   const isHydrated = useSyncExternalStore(
     emptySubscribe,
     getClientHydrated,
@@ -645,7 +651,8 @@ export default function RoadmapScrollBackdrop({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   overlay: {
     position: "absolute",
     top: 0,

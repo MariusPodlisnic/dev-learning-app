@@ -1,17 +1,25 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { HardShadowSm, MonoFont, StudioColors } from "../constants/theme";
+import {
+  HardShadowSm,
+  MonoFont,
+  StudioThemeColors,
+} from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 
 interface HintAccordionProps {
   hints: string[];
 }
 
 export default function HintAccordion({ hints }: HintAccordionProps) {
+  const styles = useThemedStyles(createStyles);
+  const [prevHints, setPrevHints] = useState<string[]>(hints);
   const [unlockedCount, setUnlockedCount] = useState<number>(0);
 
-  useEffect(() => {
+  if (hints !== prevHints) {
+    setPrevHints(hints);
     setUnlockedCount(0);
-  }, [hints]);
+  }
 
   if (!hints || hints.length === 0) return null;
 
@@ -103,7 +111,8 @@ export default function HintAccordion({ hints }: HintAccordionProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   container: {
     backgroundColor: StudioColors.surface,
     borderRadius: 12,

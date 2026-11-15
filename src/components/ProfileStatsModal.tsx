@@ -5,7 +5,15 @@ import {
   CertificateData,
   getUnlockedCertificates,
 } from "../constants/certificates";
-import { HardShadow, HardShadowSm, MonoFont, StudioColors, TrackThemes } from "../constants/theme";
+import {
+  HardShadow,
+  HardShadowSm,
+  MonoFont,
+  StudioColors,
+  StudioThemeColors,
+  TrackThemes,
+} from "../constants/theme";
+import { useTheme, useThemedStyles } from "../constants/themeContext";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick } from "../utils/soundEffects";
 import { Lesson } from "./RoadmapTree";
@@ -143,6 +151,8 @@ export default function ProfileStatsModal({
   onOpenAuth,
   onClose,
 }: ProfileStatsModalProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
   const rank = getDeveloperRank(xpPoints);
   const totalLessons = lessons.length;
@@ -331,7 +341,7 @@ export default function ProfileStatsModal({
                   <Text
                     style={[
                       styles.trackRowCount,
-                      { color: StudioColors.textPrimary },
+                      { color: colors.textPrimary },
                     ]}
                   >
                     {isTrackLocked
@@ -437,7 +447,8 @@ export default function ProfileStatsModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     padding: 24,

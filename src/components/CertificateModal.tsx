@@ -12,8 +12,9 @@ import {
   HardShadowSm,
   MonoFont,
   SerifFont,
-  StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import { shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick } from "../utils/soundEffects";
 import PixelConfetti from "./PixelConfetti";
@@ -27,6 +28,7 @@ export default function CertificateModal({
   certificate,
   onClose,
 }: CertificateModalProps) {
+  const styles = useThemedStyles(createStyles);
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "shared">(
     "idle",
   );
@@ -176,7 +178,8 @@ export default function CertificateModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
     padding: 22,

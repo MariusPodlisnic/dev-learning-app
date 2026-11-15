@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Animated, Easing, Platform, StyleSheet, View } from "react-native";
 import { StudioColors } from "../constants/theme";
 
@@ -23,7 +23,7 @@ interface ParticleSpec {
 }
 
 export default function PixelConfetti() {
-  const progress = useRef(new Animated.Value(0)).current;
+  const [progress] = useState(() => new Animated.Value(0));
 
   const particles = useMemo<ParticleSpec[]>(() => {
     const list: ParticleSpec[] = [];

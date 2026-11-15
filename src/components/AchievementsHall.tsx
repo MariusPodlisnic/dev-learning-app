@@ -12,7 +12,9 @@ import {
   HardShadowSm,
   MonoFont,
   StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import {
   getLessonStarRating,
   Lesson,
@@ -62,6 +64,7 @@ export default function AchievementsHall({
   solvedIncidents,
   onNavigateMode,
 }: AchievementsHallProps) {
+  const styles = useThemedStyles(createStyles);
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
 
   const totalSolvedCount = useMemo(
@@ -994,7 +997,8 @@ export default function AchievementsHall({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "transparent",

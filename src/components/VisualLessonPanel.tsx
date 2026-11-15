@@ -6,7 +6,9 @@ import {
   HardShadowSm,
   MonoFont,
   StudioColors,
+  StudioThemeColors,
 } from "../constants/theme";
+import { useThemedStyles } from "../constants/themeContext";
 import { Lesson, TestCaseResult } from "../types/lesson";
 import { playKeyClick } from "../utils/soundEffects";
 
@@ -82,6 +84,7 @@ export default function VisualLessonPanel({
   lesson,
   testResults,
 }: VisualLessonPanelProps) {
+  const styles = useThemedStyles(createStyles);
   const [stepIndex, setStepIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [fastSpeed, setFastSpeed] = useState<boolean>(false);
@@ -502,7 +505,8 @@ export default function VisualLessonPanel({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
   container: {
     backgroundColor: StudioColors.surface,
     borderRadius: 12,
