@@ -23,8 +23,12 @@ import {
 import { useThemedStyles } from "../constants/themeContext";
 import { ViewMode } from "../types/lesson";
 import {
+  hydrateSoundPreference,
+  isHapticsEnabled,
+  isNativeMobilePlatform,
   isSoundEnabled,
   playKeyClick,
+  setHapticsEnabled,
   setSoundEnabled,
 } from "../utils/soundEffects";
 import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
@@ -389,7 +393,23 @@ export default function AppHeader({
   onSignOut,
 }: AppHeaderProps) {
   const styles = useThemedStyles(getStyles);
+  const showHapticsToggle = isNativeMobilePlatform();
   const [sfxOn, setSfxOn] = useState<boolean>(() => isSoundEnabled());
+  const [hapticsOn, setHapticsOn] = useState<boolean>(() =>
+    isHapticsEnabled()
+  );
+
+  useEffect(() => {
+    let active = true;
+    void hydrateSoundPreference().then((hydratedSound) => {
+      if (!active) return;
+      setSfxOn(hydratedSound);
+      setHapticsOn(isHapticsEnabled());
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function handleSwitchMode(mode: ViewMode) {
     playKeyClick();
@@ -400,6 +420,12 @@ export default function AppHeader({
     const next = !sfxOn;
     setSfxOn(next);
     setSoundEnabled(next);
+  }
+
+  function handleToggleHaptics() {
+    const next = !hapticsOn;
+    setHapticsOn(next);
+    setHapticsEnabled(next);
   }
 
   return (
@@ -778,6 +804,22 @@ export default function AppHeader({
                 {sfxOn ? "🔊 SFX" : "🔇 MUTE"}
               </Text>
             </Pressable>
+
+            {showHapticsToggle ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.themeToggleBtn,
+                  pressed && {
+                    transform: [{ translateX: 1 }, { translateY: 1 }],
+                  },
+                ]}
+                onPress={handleToggleHaptics}
+              >
+                <Text style={styles.themeToggleBtnText}>
+                  {hapticsOn ? "📳 HAPTIC" : "📴 NO HAPTIC"}
+                </Text>
+              </Pressable>
+            ) : null}
 
             <Pressable
               style={({ pressed }) => [

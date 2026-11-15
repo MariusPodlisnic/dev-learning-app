@@ -1,8 +1,27 @@
 import {
+  ensureNativeAudioMode,
+  hydrateHapticsPreference,
+  isHapticsEnabled,
+  isNativeMobilePlatform,
+  playNativeSfx,
+  setHapticsEnabled,
+  STORAGE_HAPTICS_KEY,
+  triggerHapticFeedback,
+} from "./nativeFeedback";
+import type { SfxEffectId } from "./pcmWavSynth";
+import {
   readLocalJson,
   readLocalJsonAsync,
   writeLocalJson,
 } from "./storage";
+
+export {
+  hydrateHapticsPreference,
+  isHapticsEnabled,
+  isNativeMobilePlatform,
+  setHapticsEnabled,
+  STORAGE_HAPTICS_KEY,
+};
 
 export const STORAGE_SOUND_KEY = "devlearn_sound_enabled_v1";
 
@@ -26,9 +45,24 @@ const CALM_PENTATONIC_ROOTS = [
 soundEnabled = readLocalJson<boolean>(STORAGE_SOUND_KEY, true) !== false;
 
 export async function hydrateSoundPreference(): Promise<boolean> {
-  const saved = await readLocalJsonAsync<boolean>(STORAGE_SOUND_KEY, true);
-  soundEnabled = saved !== false;
+  const [savedSound] = await Promise.all([
+    readLocalJsonAsync<boolean>(STORAGE_SOUND_KEY, true),
+    hydrateHapticsPreference(),
+  ]);
+  soundEnabled = savedSound !== false;
+  void ensureNativeAudioMode();
   return soundEnabled;
+}
+
+function emitNativeFeedback(id: SfxEffectId): boolean {
+  if (!isNativeMobilePlatform()) {
+    return false;
+  }
+  triggerHapticFeedback(id);
+  if (isSoundEnabled()) {
+    playNativeSfx(id);
+  }
+  return true;
 }
 
 function getAudioContext(): any | null {
@@ -138,6 +172,10 @@ export function playKeyClick() {
   }
   lastClickTimestamp = nowMs;
 
+  if (emitNativeFeedback("click")) {
+    return;
+  }
+
   const rootFreq =
     CALM_PENTATONIC_ROOTS[calmStepIndex % CALM_PENTATONIC_ROOTS.length];
   calmStepIndex = (calmStepIndex + 1) % CALM_PENTATONIC_ROOTS.length;
@@ -171,6 +209,9 @@ export function playKeyClick() {
  * Cheerful, warm 3-note uplifting kalimba chime for quiz/blitz hits
  */
 export function playSuccessChime() {
+  if (emitNativeFeedback("success")) {
+    return;
+  }
   playWarmVoice({
     freq: 523.25, // C5
     durationSec: 0.14,
@@ -204,6 +245,9 @@ export function playSuccessChime() {
  * Warm C-Major9 acoustic harp/marimba victory fanfare when a module is mastered
  */
 export function playVictoryFanfare() {
+  if (emitNativeFeedback("fanfare")) {
+    return;
+  }
   playWarmVoice({
     freq: 523.25, // C5
     durationSec: 0.16,
@@ -250,6 +294,9 @@ export function playVictoryFanfare() {
  * Calm, non-judgmental soft wooden double-tap when an assertion or quiz option misses
  */
 export function playErrorBuzz() {
+  if (emitNativeFeedback("error")) {
+    return;
+  }
   playWarmVoice({
     freq: 293.66, // D4
     durationSec: 0.1,
@@ -272,6 +319,9 @@ export function playErrorBuzz() {
  * Cozy analog channel switch chime
  */
 export function playCrtChannelSwitch() {
+  if (emitNativeFeedback("channel")) {
+    return;
+  }
   playWarmVoice({
     freq: 440, // A4
     endFreq: 493.88,
