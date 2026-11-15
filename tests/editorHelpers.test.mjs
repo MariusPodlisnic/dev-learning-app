@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   computeAssertionDiff,
   computeSmartEnter,
+  diagnoseFailedTest,
   extractErrorLineNumber,
   indentSelection,
   suggestQuickTestExpression,
@@ -84,4 +85,41 @@ test("suggestQuickTestExpression builds a starter call from first function signa
     "print(two_sum([1, 2, 3], 3))",
   );
   assert.equal(suggestQuickTestExpression("x = 5"), 'print("hello")');
+});
+
+test("diagnoseFailedTest surfaces conceptual debugging hints for common failure modes", () => {
+  const noneDiag = diagnoseFailedTest(
+    { input: "solve(5)", expected: "10", actual: "None" },
+    "def solve(x):\n    print(x * 2)",
+  );
+  assert.equal(noneDiag?.badge, "RETURNED NONE");
+  assert.ok(noneDiag?.tip.includes("return"));
+
+  const emptyDiag = diagnoseFailedTest({
+    input: "nums=[]",
+    expected: "0",
+    actual: "",
+  });
+  assert.equal(emptyDiag?.badge, "EMPTY / ZERO EDGE CASE");
+
+  const offByOneDiag = diagnoseFailedTest({
+    input: "count(3)",
+    expected: "4",
+    actual: "3",
+  });
+  assert.equal(offByOneDiag?.badge, "OFF BY ONE");
+
+  const containerDiag = diagnoseFailedTest({
+    input: "items()",
+    expected: "[1, 2]",
+    actual: "(1, 2)",
+  });
+  assert.equal(containerDiag?.badge, "CONTAINER TYPE");
+
+  const boolDiag = diagnoseFailedTest({
+    input: "check(10)",
+    expected: "True",
+    actual: "False",
+  });
+  assert.equal(boolDiag?.badge, "BOUNDARY LOGIC");
 });

@@ -44,6 +44,9 @@ def __run_tests__():
         tb0 = TokenBucket(0)
         r0 = tb0.allow_request()
         results.append({"id": 2, "input": "capacity=0, 1 call", "expected": "False", "actual": str(r0), "passed": r0 is False})
+        tb1 = TokenBucket(1)
+        seq1 = [tb1.allow_request(), tb1.allow_request()]
+        results.append({"id": 3, "input": "capacity=1, 2 calls", "expected": "[True, False]", "actual": str(seq1), "passed": seq1 == [True, False]})
         return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
     except Exception as e:
         return json.dumps({"is_test_suite": True, "error": str(e)})
@@ -579,6 +582,8 @@ try:
     f2 = [{"name":"a","healthy":False,"load":0},{"name":"b","healthy":False,"load":5}]
     r2 = pick_healthy_server(f2)
     results.append({"id": 2, "input": "all unhealthy", "expected": "UNAVAILABLE", "actual": str(r2), "passed": r2 == "UNAVAILABLE"})
+    r3 = pick_healthy_server([])
+    results.append({"id": 3, "input": "empty server list", "expected": "UNAVAILABLE", "actual": str(r3), "passed": r3 == "UNAVAILABLE"})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,

@@ -773,6 +773,8 @@ try:
     s2 = [{"name":"Zoe","score":80,"time":10},{"name":"Amy","score":80,"time":10}]
     r2 = rank_leaderboard(s2)
     results.append({"id": 2, "input": "full tie -> alphabetical", "expected": "['Amy', 'Zoe']", "actual": str(r2), "passed": r2 == ["Amy", "Zoe"]})
+    r3 = rank_leaderboard([])
+    results.append({"id": 3, "input": "empty submissions", "expected": "[]", "actual": str(r3), "passed": r3 == []})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -888,6 +890,8 @@ try:
     results.append({"id": 1, "input": "arrivals with duplicate Kai", "expected": "['Kai', 'Aria']", "actual": str(r1), "passed": r1 == ["Kai", "Aria"]})
     r2 = filter_valid_badges(["Mia"], ["Zoe", "Bob"])
     results.append({"id": 2, "input": "no matching VIPs", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    r3 = filter_valid_badges([], ["Aria", "Kai"])
+    results.append({"id": 3, "input": "empty VIP list", "expected": "[]", "actual": str(r3), "passed": r3 == []})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -1097,6 +1101,8 @@ try:
     results.append({"id": 1, "input": "3 users across 2 roles", "expected": "{'admin': ['Aria', 'Mia'], 'dev': ['Kai']}", "actual": str(r1), "passed": r1 == {"admin": ["Aria", "Mia"], "dev": ["Kai"]}})
     r2 = build_role_index([], [])
     results.append({"id": 2, "input": "empty lists", "expected": "{}", "actual": str(r2), "passed": r2 == {}})
+    r3 = build_role_index(["Solo"], ["guest"])
+    results.append({"id": 3, "input": "single user", "expected": "{'guest': ['Solo']}", "actual": str(r3), "passed": r3 == {"guest": ["Solo"]}})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -1211,6 +1217,8 @@ try:
     norm2 = sorted([sorted(g) for g in r2]) if isinstance(r2, list) and all(isinstance(g, list) for g in r2) else r2
     exp2 = sorted([["hello"], ["listen", "silent"]])
     results.append({"id": 2, "input": "['listen', 'silent', 'hello']", "expected": str(exp2), "actual": str(norm2), "passed": norm2 == exp2})
+    r3 = group_anagrams([])
+    results.append({"id": 3, "input": "[] (empty list)", "expected": "[]", "actual": str(r3), "passed": r3 == []})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,

@@ -17,6 +17,11 @@ export interface AssertionDiff {
   actualRest: string;
 }
 
+export interface FailedTestDiagnosis {
+  badge: string;
+  tip: string;
+}
+
 function clampOffset(offset: number, length: number): number {
   return Math.min(Math.max(0, offset), length);
 }
@@ -319,4 +324,86 @@ export function suggestQuickTestExpression(code: string): string {
   });
 
   return `print(${fnName}(${sampleArgs.join(", ")}))`;
+}
+
+/**
+ * Produces an actionable conceptual debugging hint for a failed test assertion.
+ */
+export function diagnoseFailedTest(
+  test: { input?: string; expected: string; actual: string },
+  code: string = "",
+): FailedTestDiagnosis | null {
+  const expected = (test.expected ?? "").trim();
+  const actual = (test.actual ?? "").trim();
+  const input = (test.input ?? "").trim();
+
+  if (actual === "None") {
+    const usesPrint = /\bprint\s*\(/.test(code);
+    return {
+      badge: "RETURNED NONE",
+      tip: usesPrint
+        ? "Your function printed or fell off the end without returning a value. Replace print(...) with return ..."
+        : "Your function returned None — make sure every branch finishes with a `return` statement instead of `pass`.",
+    };
+  }
+
+  if (actual.startsWith("Error:") || actual.includes("Traceback")) {
+    return {
+      badge: "RUNTIME EXCEPTION",
+      tip: "Your function raised a Python error on this test input. Check the CONSOLE tab or guard edge inputs before indexing.",
+    };
+  }
+
+  if (
+    expected !== actual &&
+    (input.includes("[]") ||
+      input.includes('""') ||
+      input.includes("''") ||
+      input.includes("{}") ||
+      /\b0\b/.test(input))
+  ) {
+    return {
+      badge: "EMPTY / ZERO EDGE CASE",
+      tip: "This failure is on an empty or zero boundary input — add an early `if not ...:` or `== 0` check before accessing elements.",
+    };
+  }
+
+  if (
+    (expected === "True" || expected === "False") &&
+    (actual === "True" || actual === "False")
+  ) {
+    return {
+      badge: "BOUNDARY LOGIC",
+      tip: "Boolean result flipped — double-check comparison operators (`<` vs `<=`, `>` vs `>=`) and `and`/`or` conditions.",
+    };
+  }
+
+  const expNum = Number(expected);
+  const actNum = Number(actual);
+  if (
+    expected !== "" &&
+    actual !== "" &&
+    !Number.isNaN(expNum) &&
+    !Number.isNaN(actNum) &&
+    Math.abs(expNum - actNum) === 1
+  ) {
+    return {
+      badge: "OFF BY ONE",
+      tip: "Result is off by 1 — verify loop bounds (`range(n)` vs `range(n + 1)`), 0-based indexing, or `<` vs `<=`.",
+    };
+  }
+
+  if (
+    (expected.startsWith("[") && actual.startsWith("(")) ||
+    (expected.startsWith("(") && actual.startsWith("["))
+  ) {
+    return {
+      badge: "CONTAINER TYPE",
+      tip: expected.startsWith("[")
+        ? "Expected a Python `list [...]` rather than a `tuple (...)` — wrap or convert with `[...]` or `list(...)`."
+        : "Expected a Python `tuple (...)` rather than a `list [...]` — return comma-separated values or `tuple(...)`.",
+    };
+  }
+
+  return null;
 }

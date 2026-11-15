@@ -21,6 +21,7 @@ import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 import {
   computeAssertionDiff,
   computeSmartEnter,
+  diagnoseFailedTest,
   EditorSelectionResult,
   extractErrorLineNumber,
   indentSelection,
@@ -1195,6 +1196,9 @@ export default function StudioCodeEditor({
                 const diff = !activeTest.passed
                   ? computeAssertionDiff(activeTest.expected, activeTest.actual)
                   : null;
+                const diagnosis = !activeTest.passed
+                  ? diagnoseFailedTest(activeTest, code)
+                  : null;
                 return (
                   <View style={styles.testDetails}>
                     <Text style={styles.testHeader}>REQUIREMENT CHECKED</Text>
@@ -1213,6 +1217,19 @@ export default function StudioCodeEditor({
                         </View>
                         <Text style={styles.diffReasonDetail}>
                           {diff.reason}
+                        </Text>
+                      </View>
+                    )}
+
+                    {diagnosis && (
+                      <View style={styles.conceptDiagnosisBanner}>
+                        <View style={styles.conceptDiagnosisBadge}>
+                          <Text style={styles.conceptDiagnosisBadgeText}>
+                            {diagnosis.badge}
+                          </Text>
+                        </View>
+                        <Text style={styles.conceptDiagnosisText}>
+                          {diagnosis.tip}
                         </Text>
                       </View>
                     )}

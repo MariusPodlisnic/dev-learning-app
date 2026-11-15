@@ -21,7 +21,11 @@ import {
   Lesson,
   TestCaseResult,
 } from "../types/lesson";
-import { playKeyClick } from "../utils/soundEffects";
+import {
+  playErrorBuzz,
+  playKeyClick,
+  playSuccessChime,
+} from "../utils/soundEffects";
 import FormattedText from "./FormattedText";
 import HintAccordion from "./HintAccordion";
 import { getLessonProblemStyles } from "./lessonProblemStyles";
@@ -72,8 +76,12 @@ export default function LessonProblemPanel({
     lessonId: string;
     idx: number;
   }>({ lessonId: selectedLesson.id, idx: 0 });
+  const [quizAnswerByLesson, setQuizAnswerByLesson] = useState<
+    Record<string, number>
+  >({});
   const selectedToolIdx =
     toolSelection.lessonId === selectedLesson.id ? toolSelection.idx : 0;
+  const selectedQuizOpt = quizAnswerByLesson[selectedLesson.id] ?? null;
   const problemCardYRef = useRef<number>(0);
   const conceptBoxYRef = useRef<number>(0);
   const guideInnerYRef = useRef<number>(0);
@@ -783,6 +791,86 @@ export default function LessonProblemPanel({
               <Text style={styles.pitfallExplanation}>
                 {lessonEnrichment.commonPitfall.explanation}
               </Text>
+            </View>
+          )}
+
+          {/* Inline Concept Check Quiz (Active Recall before writing code) */}
+          {lessonEnrichment?.quiz && (
+            <View style={styles.conceptCheckCard}>
+              <View style={styles.conceptCheckHeader}>
+                <View style={styles.conceptCheckBadge}>
+                  <Text style={styles.conceptCheckBadgeText}>
+                    ⚡ CONCEPT CHECK · QUICK RECALL
+                  </Text>
+                </View>
+                <Text style={styles.conceptCheckStatus}>
+                  {selectedQuizOpt === lessonEnrichment.quiz.correctIndex
+                    ? "✓ VERIFIED"
+                    : selectedQuizOpt !== null
+                      ? "TRY AGAIN"
+                      : "CHECK UNDERSTANDING"}
+                </Text>
+              </View>
+
+              <Text style={styles.conceptCheckQuestion}>
+                {lessonEnrichment.quiz.question}
+              </Text>
+
+              <View style={styles.conceptCheckOptions}>
+                {lessonEnrichment.quiz.options.map((opt, oIdx) => {
+                  const isChosen = selectedQuizOpt === oIdx;
+                  const isCorrect =
+                    oIdx === lessonEnrichment.quiz.correctIndex;
+                  const showCorrect = isChosen && isCorrect;
+                  const showWrong = isChosen && !isCorrect;
+                  return (
+                    <Pressable
+                      key={oIdx}
+                      style={[
+                        styles.conceptCheckOptionBtn,
+                        showCorrect && styles.conceptCheckOptionCorrect,
+                        showWrong && styles.conceptCheckOptionWrong,
+                      ]}
+                      onPress={() => {
+                        setQuizAnswerByLesson((prev) => ({
+                          ...prev,
+                          [selectedLesson.id]: oIdx,
+                        }));
+                        if (isCorrect) {
+                          playSuccessChime();
+                        } else {
+                          playErrorBuzz();
+                        }
+                      }}
+                    >
+                      <Text style={styles.conceptCheckLetter}>
+                        {String.fromCharCode(65 + oIdx)}.
+                      </Text>
+                      <Text style={styles.conceptCheckOptionText}>{opt}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {selectedQuizOpt !== null && (
+                <View
+                  style={[
+                    styles.conceptCheckFeedback,
+                    selectedQuizOpt === lessonEnrichment.quiz.correctIndex
+                      ? styles.conceptCheckFeedbackCorrect
+                      : styles.conceptCheckFeedbackWrong,
+                  ]}
+                >
+                  <Text style={styles.conceptCheckFeedbackTitle}>
+                    {selectedQuizOpt === lessonEnrichment.quiz.correctIndex
+                      ? "✓ SPOT ON!"
+                      : "✕ NOT QUITE — CHECK WHY:"}
+                  </Text>
+                  <Text style={styles.conceptCheckFeedbackText}>
+                    {lessonEnrichment.quiz.explanation}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 

@@ -37,6 +37,8 @@ try:
     results.append({"id": 1, "input": "'Aria', 50", "expected": "('Aria', 150, True)", "actual": str(r1), "passed": r1 == ("Aria", 150, True)})
     r2 = create_hero_profile("Kai", 25)
     results.append({"id": 2, "input": "'Kai', 25", "expected": "('Kai', 125, True)", "actual": str(r2), "passed": r2 == ("Kai", 125, True)})
+    r3 = create_hero_profile("Zed", 0)
+    results.append({"id": 3, "input": "'Zed', 0", "expected": "('Zed', 100, True)", "actual": str(r3), "passed": r3 == ("Zed", 100, True)})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -196,6 +198,8 @@ try:
     results.append({"id": 1, "input": "100, 25, 2", "expected": "250", "actual": str(r1), "passed": r1 == 250})
     r2 = calc_final_score(50, 10, 3)
     results.append({"id": 2, "input": "50, 10, 3", "expected": "180", "actual": str(r2), "passed": r2 == 180})
+    r3 = calc_final_score(20, 0, 0)
+    results.append({"id": 3, "input": "20, 0, 0", "expected": "0", "actual": str(r3), "passed": r3 == 0})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -247,6 +251,8 @@ try:
     results.append({"id": 1, "input": "{'username': 'nova', 'xp': 100}, 50", "expected": "{'username': 'nova', 'xp': 150, 'role': 'admin'}", "actual": str(r1), "passed": r1 == {"username": "nova", "xp": 150, "role": "admin"}})
     r2 = promote_user({"username": "leo", "xp": 0}, 25)
     results.append({"id": 2, "input": "{'username': 'leo', 'xp': 0}, 25", "expected": "{'username': 'leo', 'xp': 25, 'role': 'admin'}", "actual": str(r2), "passed": r2 == {"username": "leo", "xp": 25, "role": "admin"}})
+    r3 = promote_user({"username": "mia", "xp": 200, "role": "member"}, 0)
+    results.append({"id": 3, "input": "{'username': 'mia', 'xp': 200, 'role': 'member'}, 0", "expected": "{'username': 'mia', 'xp': 200, 'role': 'admin'}", "actual": str(r3), "passed": r3 == {"username": "mia", "xp": 200, "role": "admin"}})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -299,6 +305,8 @@ try:
     results.append({"id": 1, "input": "'  Py_Ninja99  '", "expected": "py_ninja99", "actual": str(r1), "passed": r1 == "py_ninja99"})
     r2 = normalize_handle(" BYTE_CAT ")
     results.append({"id": 2, "input": "' BYTE_CAT '", "expected": "byte_cat", "actual": str(r2), "passed": r2 == "byte_cat"})
+    r3 = normalize_handle("   ")
+    results.append({"id": 3, "input": "'   ' (spaces only)", "expected": "", "actual": str(r3), "passed": r3 == ""})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -350,6 +358,8 @@ try:
     results.append({"id": 1, "input": "[65, 92, 80, 45, 99], 80", "expected": "[92, 80, 99]", "actual": str(r1), "passed": r1 == [92, 80, 99]})
     r2 = filter_passing_scores([10, 50, 30], 40)
     results.append({"id": 2, "input": "[10, 50, 30], 40", "expected": "[50]", "actual": str(r2), "passed": r2 == [50]})
+    r3 = filter_passing_scores([], 80)
+    results.append({"id": 3, "input": "[], 80 (empty list)", "expected": "[]", "actual": str(r3), "passed": r3 == []})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -402,6 +412,8 @@ try:
     results.append({"id": 1, "input": "wins=6, matches=10", "expected": "0.6", "actual": str(r1), "passed": r1 == 0.6})
     r2 = safe_win_rate(0, 0)
     results.append({"id": 2, "input": "wins=0, matches=0", "expected": "0.0", "actual": str(r2), "passed": r2 == 0.0})
+    r3 = safe_win_rate(5, 0)
+    results.append({"id": 3, "input": "wins=5, matches=0", "expected": "0.0", "actual": str(r3), "passed": r3 == 0.0})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -453,6 +465,8 @@ try:
     results.append({"id": 1, "input": "Count '🔥' in 5 reactions", "expected": "3", "actual": str(r1), "passed": r1 == 3})
     r2 = count_reactions(["👍", "👍"], "❤️")
     results.append({"id": 2, "input": "Count '❤️' when not present", "expected": "0", "actual": str(r2), "passed": r2 == 0})
+    r3 = count_reactions([], "🔥")
+    results.append({"id": 3, "input": "[] (empty list)", "expected": "0", "actual": str(r3), "passed": r3 == 0})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -506,6 +520,8 @@ try:
     results.append({"id": 1, "input": "['Sam', 'Alex', 'Sam', 'Zoe', 'Alex']", "expected": "['Alex', 'Sam', 'Zoe']", "actual": str(r1), "passed": r1 == ["Alex", "Sam", "Zoe"]})
     r2 = clean_guest_list(["Mia", "Mia"])
     results.append({"id": 2, "input": "['Mia', 'Mia']", "expected": "['Mia']", "actual": str(r2), "passed": r2 == ["Mia"]})
+    r3 = clean_guest_list([])
+    results.append({"id": 3, "input": "[] (empty list)", "expected": "[]", "actual": str(r3), "passed": r3 == []})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -556,6 +572,8 @@ try:
     results.append({"id": 1, "input": "['pixel', 'arcade', 'game']", "expected": "pixel-arcade-game", "actual": str(r1), "passed": r1 == "pixel-arcade-game"})
     r2 = make_url_slug(["hello", "world"])
     results.append({"id": 2, "input": "['hello', 'world']", "expected": "hello-world", "actual": str(r2), "passed": r2 == "hello-world"})
+    r3 = make_url_slug(["single"])
+    results.append({"id": 3, "input": "['single']", "expected": "single", "actual": str(r3), "passed": r3 == "single"})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -610,6 +628,8 @@ try:
     results.append({"id": 1, "input": "5 players -> first 3", "expected": "['Aria', 'Kai', 'Nova']", "actual": str(r1), "passed": r1 == ["Aria", "Kai", "Nova"]})
     r2 = get_top_three(["Gold", "Silver", "Bronze", "4th"])
     results.append({"id": 2, "input": "4 players -> first 3", "expected": "['Gold', 'Silver', 'Bronze']", "actual": str(r2), "passed": r2 == ["Gold", "Silver", "Bronze"]})
+    r3 = get_top_three(["Solo"])
+    results.append({"id": 3, "input": "fewer than 3 players", "expected": "['Solo']", "actual": str(r3), "passed": r3 == ["Solo"]})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -659,6 +679,8 @@ try:
     results.append({"id": 1, "input": "'Alert: spoiler ahead!'", "expected": "Alert: [HIDDEN] ahead!", "actual": str(r1), "passed": r1 == "Alert: [HIDDEN] ahead!"})
     r2 = hide_spoilers("No spoiler here")
     results.append({"id": 2, "input": "'No spoiler here'", "expected": "No [HIDDEN] here", "actual": str(r2), "passed": r2 == "No [HIDDEN] here"})
+    r3 = hide_spoilers("All clean!")
+    results.append({"id": 3, "input": "'All clean!' (no match)", "expected": "All clean!", "actual": str(r3), "passed": r3 == "All clean!"})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -714,6 +736,8 @@ try:
     results.append({"id": 1, "input": "[15, 25, 10]", "expected": "50", "actual": str(r1), "passed": r1 == 50})
     r2 = get_cart_total([5, 5, 5, 5])
     results.append({"id": 2, "input": "[5, 5, 5, 5]", "expected": "20", "actual": str(r2), "passed": r2 == 20})
+    r3 = get_cart_total([])
+    results.append({"id": 3, "input": "[] (empty cart)", "expected": "0", "actual": str(r3), "passed": r3 == 0})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -763,6 +787,8 @@ try:
     results.append({"id": 1, "input": "'https://arcade.dev'", "expected": "True", "actual": str(r1), "passed": r1 is True})
     r2 = is_secure_link("http://old.site")
     results.append({"id": 2, "input": "'http://old.site'", "expected": "False", "actual": str(r2), "passed": r2 is False})
+    r3 = is_secure_link("http://site.dev?next=https://ok")
+    results.append({"id": 3, "input": "embedded https:// not at start", "expected": "False", "actual": str(r3), "passed": r3 is False})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -823,6 +849,8 @@ try:
     results.append({"id": 1, "input": "{'theme': 'dark'}", "expected": "dark", "actual": str(r1), "passed": r1 == "dark"})
     r2 = get_user_theme({})
     results.append({"id": 2, "input": "{} (empty settings)", "expected": "light", "actual": str(r2), "passed": r2 == "light"})
+    r3 = get_user_theme({"sound": True})
+    results.append({"id": 3, "input": "{'sound': True} (theme omitted)", "expected": "light", "actual": str(r3), "passed": r3 == "light"})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -881,6 +909,8 @@ try:
     results.append({"id": 1, "input": "name='Aria', level=5", "expected": "Player Aria - Level 5", "actual": str(r1), "passed": r1 == "Player Aria - Level 5"})
     r2 = make_badge("Kai", 12)
     results.append({"id": 2, "input": "name='Kai', level=12", "expected": "Player Kai - Level 12", "actual": str(r2), "passed": r2 == "Player Kai - Level 12"})
+    r3 = make_badge("Zed", 0)
+    results.append({"id": 3, "input": "name='Zed', level=0", "expected": "Player Zed - Level 0", "actual": str(r3), "passed": r3 == "Player Zed - Level 0"})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -937,6 +967,8 @@ try:
     results.append({"id": 1, "input": "'Python is super fun'", "expected": "4", "actual": str(r1), "passed": r1 == 4})
     r2 = count_words("Hello world")
     results.append({"id": 2, "input": "'Hello world'", "expected": "2", "actual": str(r2), "passed": r2 == 2})
+    r3 = count_words("   spaced   out  words ")
+    results.append({"id": 3, "input": "'   spaced   out  words '", "expected": "3", "actual": str(r3), "passed": r3 == 3})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -987,6 +1019,8 @@ try:
     results.append({"id": 1, "input": "item = 'map'", "expected": "True", "actual": str(r1), "passed": r1 is True})
     r2 = has_item(bag, "key")
     results.append({"id": 2, "input": "item = 'key'", "expected": "False", "actual": str(r2), "passed": r2 is False})
+    r3 = has_item([], "map")
+    results.append({"id": 3, "input": "empty backpack []", "expected": "False", "actual": str(r3), "passed": r3 is False})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
@@ -1035,6 +1069,8 @@ try:
     results.append({"id": 1, "input": "4.66667", "expected": "4.7", "actual": str(r1), "passed": r1 == 4.7})
     r2 = format_rating(3.14159)
     results.append({"id": 2, "input": "3.14159", "expected": "3.1", "actual": str(r2), "passed": r2 == 3.1})
+    r3 = format_rating(5.0)
+    results.append({"id": 3, "input": "5.0", "expected": "5.0", "actual": str(r3), "passed": r3 == 5.0})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,

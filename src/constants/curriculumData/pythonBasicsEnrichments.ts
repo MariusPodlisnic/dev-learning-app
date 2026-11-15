@@ -24,6 +24,16 @@ print(username)`,
       explanation:
         "Numbers never need quotes around them. Only words/text use quotes!",
     },
+    solutionCode: `def create_hero_profile(name, bonus_hp):
+    total_hp = 100 + bonus_hp
+    is_online = True
+    return (name, total_hp, is_online)`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Packing values in a fixed `(str, int, bool)` tuple keeps lightweight immutable player snapshots concise and fast.",
+    },
     quiz: {
       question:
         "Which of these creates a number variable you can do math with?",
@@ -56,6 +66,17 @@ print(total)  # Prints 60`,
       explanation:
         "Any line that should repeat inside the loop must be indented by 4 spaces (or 1 Tab).",
     },
+    solutionCode: `def sum_doubled_xp(quests):
+    total = 0
+    for xp in quests:
+        total += xp * 2
+    return total`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Accumulating directly in one `for` loop uses O(1) memory instead of building an extra doubled list first.",
+    },
     quiz: {
       question:
         'If `fruits = ["apple", "banana", "cherry"]`, how many times will `for f in fruits:` run?',
@@ -86,6 +107,18 @@ else:
       rightCode: "if level == 10:  # Double '==' checks equality!",
       explanation:
         "Single `=` saves a value into a variable. Double `==` asks if two values are equal!",
+    },
+    solutionCode: `def get_rank_tier(score):
+    if score >= 1000:
+        return "GOLD"
+    elif score >= 500:
+        return "SILVER"
+    return "BRONZE"`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Ordering threshold checks from highest (`>= 1000`) to lowest (`>= 500`) avoids overlapping tier matches.",
     },
     quiz: {
       question:
@@ -120,6 +153,14 @@ print(answer)  # Prints 42`,
       rightCode: "def add_five(n):\n    return n + 5  # Hands back the number!",
       explanation:
         "`return` sends the value back to the caller so the rest of the program can use it.",
+    },
+    solutionCode: `def calc_final_score(base_pts, streak_bonus, multiplier):
+    return (base_pts + streak_bonus) * multiplier`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Grouping `(base_pts + streak_bonus)` in parentheses guarantees addition happens before `* multiplier`.",
     },
     quiz: {
       question:
@@ -159,6 +200,16 @@ print(user["role"])      # "admin"`,
 }
 
 print(f"User {user['username']} has role {user.get('role')}")`,
+    solutionCode: `def promote_user(user, bonus_xp):
+    user["role"] = "admin"
+    user["xp"] = user.get("xp", 0) + bonus_xp
+    return user`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Reading `user.get('xp', 0)` avoids KeyError if a brand-new user dict starts without an `'xp'` key.",
+    },
     quiz: {
       question:
         'How do you set the `"role"` key to `"admin"` on a `user` dictionary?',
@@ -191,6 +242,14 @@ print(clean_name)  # "alex_coder"`,
       rightCode: "clean = raw.strip().lower()",
       explanation:
         "String methods are actions, so they always need `()` at the end to run!",
+    },
+    solutionCode: `def normalize_handle(raw_handle):
+    return raw_handle.strip().lower()`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "Chaining `.strip().lower()` normalizes whitespace and letter case in one clean expression.",
     },
     quiz: {
       question: 'What does `"  HI ".strip().lower()` produce?',
@@ -225,6 +284,18 @@ print(passed)  # [92, 88]`,
       explanation:
         "Make sure `passed.append(s)` is indented inside the `if s >= 80:` block!",
     },
+    solutionCode: `def filter_passing_scores(scores, min_score):
+    passed = []
+    for score in scores:
+        if score >= min_score:
+            passed.append(score)
+    return passed`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(k)",
+      tradeoff:
+        "Building a new filtered list preserves input order without mutating the caller's original `scores` list.",
+    },
     quiz: {
       question: "Which method adds a new item to the end of a Python list?",
       options: [
@@ -256,6 +327,17 @@ print(passed)  # [92, 88]`,
       rightCode: "try:\n    return a / b",
       explanation:
         "Both `try:` and `except ZeroDivisionError:` must end with a colon `:`.",
+    },
+    solutionCode: `def safe_win_rate(wins, matches):
+    try:
+        return wins / matches
+    except ZeroDivisionError:
+        return 0.0`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Returning `0.0` ensures consistent float return types across both normal and zero-match callers.",
     },
     quiz: {
       question: "When does the code inside `except:` run?",
@@ -296,6 +378,14 @@ print(yes_total)  # 3`,
     return reactions.count(target)
 
 print(count_reactions(["🔥", "❤️", "🔥", "👍", "🔥"], "🔥"))`,
+    solutionCode: `def count_reactions(reactions, target):
+    return reactions.count(target)`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Built-in `list.count(target)` performs a C-level linear equality scan without needing a manual counter variable.",
+    },
     quiz: {
       question: 'What does `["a", "b", "a"].count("a")` return?',
       options: ["2", "3", "1"],
@@ -328,6 +418,14 @@ print(unique_names)  # ['Alex', 'Mia']`,
     return sorted(set(guests))
 
 print(clean_guest_list(["Sam", "Alex", "Sam", "Zoe", "Alex"]))`,
+    solutionCode: `def clean_guest_list(guests):
+    return sorted(set(guests))`,
+    proInsights: {
+      timeComplexity: "O(n log n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "Converting to a `set` deduplicates in O(n) average time before `sorted()` returns a deterministic list.",
+    },
     quiz: {
       question: "What does `set([5, 5, 5])` do to the duplicate `5`s?",
       options: [
@@ -366,6 +464,14 @@ print(slug)  # "python-is-fun"`,
     return "-".join(words)
 
 print(make_url_slug(["pixel", "arcade", "game"]))`,
+    solutionCode: `def make_url_slug(words):
+    return "-".join(words)`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "`'-'.join(words)` allocates the final string once in linear time instead of repeatedly copying strings with `+`.",
+    },
     quiz: {
       question: 'What does `" ".join(["Hello", "World"])` return?',
       options: ['"Hello World"', '"Hello-World"', '["Hello World"]'],
@@ -400,6 +506,14 @@ print(podium)  # ['Gold', 'Silver', 'Bronze']`,
     return players[:3]
 
 print(get_top_three(["Aria", "Kai", "Nova", "Leo", "Max"]))`,
+    solutionCode: `def get_top_three(players):
+    return players[:3]`,
+    proInsights: {
+      timeComplexity: "O(k)",
+      spaceComplexity: "O(k)",
+      tradeoff:
+        "List slicing `players[:3]` never raises `IndexError`—even if `players` has fewer than 3 elements.",
+    },
     quiz: {
       question: "How do you get the first 2 items from a list named `items`?",
       options: ["items[:2]", "items[2]", "items.first(2)"],
@@ -433,6 +547,14 @@ print(clean)  # "Watch out for the [HIDDEN]!"`,
     return message.replace("spoiler", "[HIDDEN]")
 
 print(hide_spoilers("Alert: spoiler ahead!"))`,
+    solutionCode: `def hide_spoilers(message):
+    return message.replace("spoiler", "[HIDDEN]")`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "Because Python strings are immutable, `.replace()` safely constructs and returns a redacted copy.",
+    },
     quiz: {
       question: 'What does `"cat dog".replace("cat", "fox")` return?',
       options: ['"fox dog"', '"cat dog"', '"cat fox"'],
@@ -466,6 +588,14 @@ print(total)  # 50`,
     return sum(prices)
 
 print(get_cart_total([15, 25, 10]))`,
+    solutionCode: `def get_cart_total(prices):
+    return sum(prices)`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Built-in `sum(prices)` handles empty lists gracefully (`sum([]) == 0`) with C-speed addition.",
+    },
     quiz: {
       question: "What does `sum([10, 20, 5])` return?",
       options: ["35", "3", "10"],
@@ -499,6 +629,14 @@ print(is_safe)  # True`,
     return url.startswith("https://")
 
 print(is_secure_link("https://arcade.dev"), is_secure_link("http://old.site"))`,
+    solutionCode: `def is_secure_link(url):
+    return url.startswith("https://")`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "`.startswith('https://')` inspects only the first 8 characters without copying or slicing the entire URL string.",
+    },
     quiz: {
       question: 'What does `"python_basics".startswith("py")` return?',
       options: ["True", "False", '"py"'],
@@ -532,6 +670,14 @@ print(mode)  # "light"`,
     return settings.get("theme", "light")
 
 print(get_user_theme({"theme": "dark"}), get_user_theme({}))`,
+    solutionCode: `def get_user_theme(settings):
+    return settings.get("theme", "light")`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "`settings.get('theme', 'light')` performs one hash lookup and provides a safe default without mutating `settings`.",
+    },
     quiz: {
       question: 'What does `{}.get("theme", "light")` return on an empty dictionary?',
       options: ['"light"', "KeyError crash", "None"],
@@ -567,6 +713,14 @@ print(badge)  # "Player Aria - Level 5"`,
     return f"Player {name} - Level {level}"
 
 print(make_badge("Aria", 5))`,
+    solutionCode: `def make_badge(name, level):
+    return f"Player {name} - Level {level}"`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "F-strings interpolate variables directly and run faster than string concatenation with `+` and `str()`.",
+    },
     quiz: {
       question: 'If `coins = 10`, what does `f"Coins: {coins}"` produce?',
       options: ['"Coins: 10"', '"Coins: {coins}"', "SyntaxError"],
@@ -603,6 +757,14 @@ print(len(words))         # 4`,
     return len(sentence.split())
 
 print(count_words("Python is super fun"))`,
+    solutionCode: `def count_words(sentence):
+    return len(sentence.split())`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "Using `.split()` with no argument handles repeated spaces cleanly and returns `[]` (`0` words) on blank strings.",
+    },
     quiz: {
       question: 'What does `"one two three".split()` return?',
       options: [
@@ -641,6 +803,14 @@ print("key" in backpack)  # False`,
 
 bag = ["torch", "map", "potion"]
 print(has_item(bag, "map"), has_item(bag, "key"))`,
+    solutionCode: `def has_item(backpack, item):
+    return item in backpack`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "List `in` checks take O(n) time; if you query a large inventory thousands of times, convert it to a `set` for O(1) lookup.",
+    },
     quiz: {
       question: 'What does `"cat" in ["dog", "cat", "bird"]` return?',
       options: ["True", "False", "1"],
@@ -675,6 +845,14 @@ print(clean)  # 4.7`,
     return round(rating, 1)
 
 print(format_rating(4.66667))`,
+    solutionCode: `def format_rating(rating):
+    return round(rating, 1)`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "`round(rating, 1)` keeps numeric float output for sorting/math, whereas `f\"{rating:.1f}\"` would convert to a formatted string.",
+    },
     quiz: {
       question: "What does `round(3.86, 1)` return?",
       options: ["3.9", "3", "3.8"],
@@ -715,6 +893,15 @@ print(final_dmg)  # 80`,
     return max(dmg - defense, 1)
 
 print(calc_damage(50, True, 20))`,
+    solutionCode: `def calc_damage(attack, is_crit, defense):
+    dmg = attack * 2 if is_crit else attack
+    return max(dmg - defense, 1)`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Clamping with `max(..., 1)` eliminates branchy `if result < 1: result = 1` logic.",
+    },
     quiz: {
       question: "Why do games use `max(dmg - defense, 1)`?",
       options: [
@@ -760,6 +947,17 @@ print(status)  # "STRONG"`,
     return "WEAK"
 
 print(check_password("Python99"))`,
+    solutionCode: `def check_password(password):
+    has_digit = any(ch.isdigit() for ch in password)
+    if len(password) >= 8 and has_digit:
+        return "STRONG"
+    return "WEAK"`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "`any(...)` with a generator expression short-circuits on the very first digit instead of scanning the entire string needlessly.",
+    },
     quiz: {
       question: "What does `any(ch.isdigit() for ch in 'cat5')` return?",
       options: ["True", "False", "5"],
@@ -800,6 +998,15 @@ print(clean_share)  # 30.0`,
     return round(share, 2)
 
 print(split_bill(100.0, 20, 4))`,
+    solutionCode: `def split_bill(total, tip_percent, people):
+    share = (total * (1 + tip_percent / 100)) / people
+    return round(share, 2)`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Rounding only at the final `share` step minimizes intermediate floating-point rounding drift.",
+    },
     quiz: {
       question: "What is the total of a $50 bill with a 10% tip?",
       options: ["$55.0", "$5.0", "$60.0"],
@@ -839,6 +1046,15 @@ print(bot_msg)  # "Bot: ☕ Grab coffee!"`,
 
 moods = {"happy": "🎉 Yay!", "tired": "☕ Grab coffee!"}
 print(bot_reply("HAPPY", moods))`,
+    solutionCode: `def bot_reply(message, mood_map):
+    reply = mood_map.get(message.lower(), "🤖 I hear you!")
+    return f"Bot: {reply}"`,
+    proInsights: {
+      timeComplexity: "O(m)",
+      spaceComplexity: "O(m)",
+      tradeoff:
+        "Normalizing `message.lower()` paired with `.get(key, fallback)` prevents KeyError crashes and handles arbitrary user casing.",
+    },
     quiz: {
       question: "Why is `mood_map.get(key, default)` preferred over `mood_map[key]` for chatbots?",
       options: [

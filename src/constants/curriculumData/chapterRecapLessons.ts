@@ -112,6 +112,8 @@ def __run_tests__():
     results.append({"id": 1, "input": "mixed dirty + bad score", "expected": "{'aria': 120}", "actual": str(r1), "passed": r1 == {"aria": 120}})
     r2 = build_qualified_roster([("  NEO ", "100"), ("sam", None), ("Zed", "99")], 100)
     results.append({"id": 2, "input": "None + exact boundary", "expected": "{'neo': 100}", "actual": str(r2), "passed": r2 == {"neo": 100}})
+    r3 = build_qualified_roster([], 50)
+    results.append({"id": 3, "input": "empty roster", "expected": "{}", "actual": str(r3), "passed": r3 == {}})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "memory",
@@ -172,6 +174,8 @@ def __run_tests__():
     results.append({"id": 1, "input": "ranked + tie-break", "expected": "python | ai | lists", "actual": str(r1), "passed": r1 == "python | ai | lists"})
     r2 = build_trending_digest(["api", "API", "   ", "db"])
     results.append({"id": 2, "input": "fewer than 3 unique + blanks", "expected": "api | db", "actual": str(r2), "passed": r2 == "api | db"})
+    r3 = build_trending_digest(["   ", ""])
+    results.append({"id": 3, "input": "only blank tags", "expected": "", "actual": str(r3), "passed": r3 == ""})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "memory",
@@ -240,6 +244,8 @@ def __run_tests__():
     ]
     r2 = process_stream_events(ev2, {"vip": 25})
     results.append({"id": 2, "input": "fallback .get(guest, 5)", "expected": "(30, ['[REDACTED] alert!', 'gg!'])", "actual": str(r2), "passed": r2 == (30, ["[REDACTED] alert!", "gg!"])})
+    r3 = process_stream_events([], {"vip": 25})
+    results.append({"id": 3, "input": "empty stream events", "expected": "(0, [])", "actual": str(r3), "passed": r3 == (0, [])})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "memory",
@@ -301,6 +307,8 @@ def __run_tests__():
     results.append({"id": 1, "input": "clean review", "expected": "APPROVED | avg 4.7/5 (4 words)", "actual": str(r1), "passed": r1 == "APPROVED | avg 4.7/5 (4 words)"})
     r2 = format_review_badge("Total SPAM link", [1, 2], ["spam", "scam"])
     results.append({"id": 2, "input": "case-insensitive flagged word", "expected": "FLAGGED | avg 1.5/5 (3 words)", "actual": str(r2), "passed": r2 == "FLAGGED | avg 1.5/5 (3 words)"})
+    r3 = format_review_badge("Nice", [5], ["spam"])
+    results.append({"id": 3, "input": "single word clean review", "expected": "APPROVED | avg 5.0/5 (1 words)", "actual": str(r3), "passed": r3 == "APPROVED | avg 5.0/5 (1 words)"})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "memory",
@@ -433,6 +441,8 @@ def __run_tests__():
     results.append({"id": 1, "input": "[2,1,5,1,3,2], k=3, target=8", "expected": "(9, True)", "actual": str(r1), "passed": r1 == (9, True)})
     r2 = analyze_signal_window([4, 2, 1], 2, 10)
     results.append({"id": 2, "input": "[4,2,1], k=2, target=10", "expected": "(6, False)", "actual": str(r2), "passed": r2 == (6, False)})
+    r3 = analyze_signal_window([3, 3], 2, 6)
+    results.append({"id": 3, "input": "duplicate element pair [3,3] target=6", "expected": "(6, True)", "actual": str(r3), "passed": r3 == (6, True)})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "sliding_window",
@@ -541,6 +551,8 @@ def __run_tests__():
     results.append({"id": 1, "input": "standard query", "expected": "(3, 120, [2, 3])", "actual": str(r1), "passed": r1 == (3, 120, [2, 3])})
     r2 = summarize_candidates([5, 10], 50, [1], [2])
     results.append({"id": 2, "input": "none passing, empty overlap", "expected": "(0, 0, [])", "actual": str(r2), "passed": r2 == (0, 0, [])})
+    r3 = summarize_candidates([10, 20, 30], 10, [5, 5], [5])
+    results.append({"id": 3, "input": "all passing + deduplicated overlap", "expected": "(3, 60, [5])", "actual": str(r3), "passed": r3 == (3, 60, [5])})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "binary_search",
@@ -594,6 +606,8 @@ def __run_tests__():
     results.append({"id": 1, "input": "ties + non-vip filtered", "expected": "([1, 2, 3], 75)", "actual": str(r1), "passed": r1 == ([1, 2, 3], 75)})
     r2 = rank_vip_telemetry([(1, 50), (2, 50)], [1, 2])
     results.append({"id": 2, "input": "only 1 distinct score", "expected": "([1, 2], None)", "actual": str(r2), "passed": r2 == ([1, 2], None)})
+    r3 = rank_vip_telemetry([(1, 80)], [99])
+    results.append({"id": 3, "input": "zero matching VIPs", "expected": "([], None)", "actual": str(r3), "passed": r3 == ([], None)})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "memory",
@@ -656,6 +670,8 @@ def __run_tests__():
     exp2 = (None, {"noon": ["a", "b"]})
     r2 = audit_palindromic_tags(s2)
     results.append({"id": 2, "input": "no dup + sorted index list", "expected": str(exp2), "actual": str(r2), "passed": r2 == exp2})
+    r3 = audit_palindromic_tags([])
+    results.append({"id": 3, "input": "empty items", "expected": "(None, {})", "actual": str(r3), "passed": r3 == (None, {})})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "two_pointers",
@@ -711,6 +727,9 @@ def __run_tests__():
     r2 = run_algo_suite([[1,4],[4,5]], [9,5,2], ["z","a"], 1)
     exp2 = {"intervals": [[1, 5]], "max_profit": 0, "top_k": ["a"]}
     results.append({"id": 2, "input": "touching intervals + falling prices + tie", "expected": str(exp2), "actual": str(r2), "passed": r2 == exp2})
+    r3 = run_algo_suite([], [], [], 2)
+    exp3 = {"intervals": [], "max_profit": 0, "top_k": []}
+    results.append({"id": 3, "input": "empty inputs", "expected": str(exp3), "actual": str(r3), "passed": r3 == exp3})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "memory",
@@ -934,6 +953,8 @@ def __run_tests__():
     results.append({"id": 1, "input": "alarm + canary + 3 workers", "expected": "(True, True, 3)", "actual": str(r1), "passed": r1 == (True, True, 3)})
     r2 = evaluate_service_controller([90, 90, 40, 90], 85, 10, 50, True, 0, 5)
     results.append({"id": 2, "input": "flapped + kill-switch + empty queue", "expected": "(False, False, 0)", "actual": str(r2), "passed": r2 == (False, False, 0)})
+    r3 = evaluate_service_controller([95, 95], 85, 25, 25, False, 10, 5)
+    results.append({"id": 3, "input": "<3 samples + rollout exclusive boundary", "expected": "(False, False, 2)", "actual": str(r3), "passed": r3 == (False, False, 2)})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "memory",
@@ -989,6 +1010,8 @@ def __run_tests__():
     results.append({"id": 1, "input": "valid + cache warm + page 1", "expected": "200 & cache warmed", "actual": f"{r1} cache_has={('feed' in cache)}", "passed": ok1})
     r2 = serve_paginated_feed(200, 200, "feed", cache, ["p1", "p2", "p3"], 0, 2)
     results.append({"id": 2, "input": "exact boundary expired (200 >= 200)", "expected": "status 401", "actual": str(r2), "passed": r2 == {"status": 401, "items": [], "has_more": False}})
+    r3 = serve_paginated_feed(300, 150, "feed", cache, ["ignore"], 2, 2)
+    results.append({"id": 3, "input": "cache hit last page", "expected": "items=['p3'], has_more=False", "actual": str(r3), "passed": r3 == {"status": 200, "items": ["p3"], "has_more": False}})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "memory",

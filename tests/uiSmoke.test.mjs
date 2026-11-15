@@ -28,6 +28,12 @@ const { default: StudioCodeEditor } = loadTsModule(
 const { default: BugHuntArena } = loadTsModule(
   "src/components/BugHuntArena.tsx",
 );
+const { default: LessonProblemPanel } = loadTsModule(
+  "src/components/LessonProblemPanel.tsx",
+);
+const { getLessonEnrichment, mergeCurriculumLessons } = loadTsModule(
+  "src/constants/curriculum.ts",
+);
 const { renderHighlightedPython } = loadTsModule(
   "src/components/FormattedText.tsx",
 );
@@ -266,5 +272,34 @@ test("StudioCodeEditor renders editor chrome, quick inserts, scratchpad toggle, 
   assert.ok(editorText.includes("SUBMIT CODE (+50 XP)"));
   assert.ok(editorText.includes("0 OF 1 CHECKS PASSED"));
   assert.ok(editorText.includes("FIRST DIFFERENCE"));
+  assert.ok(editorText.includes("OFF BY ONE"));
   assert.ok(editorText.includes("YOUR OUTPUT · MISMATCH"));
+});
+
+test("LessonProblemPanel renders inline Concept Check quiz in the Learn tab", () => {
+  const firstLesson = mergeCurriculumLessons([]).find(
+    (l) => l.id === "exp-py-01",
+  );
+  assert.ok(firstLesson);
+  const enrichment = getLessonEnrichment(firstLesson);
+  const panelText = visibleText(
+    renderThemed(
+      React.createElement(LessonProblemPanel, {
+        selectedLesson: firstLesson,
+        activeTrack: firstLesson.track,
+        completedLessons: {},
+        activeTab: "problem",
+        onChangeActiveTab: () => {},
+        explainStyle: "guide",
+        onChangeExplainStyle: () => {},
+        lessonEnrichment: enrichment,
+        onLoadGuidedSteps: () => {},
+        testResults: null,
+        isPremium: true,
+        onOpenPaywall: () => {},
+      }),
+    ),
+  );
+  assert.ok(panelText.includes("CONCEPT CHECK · QUICK RECALL"));
+  assert.ok(panelText.includes(enrichment.quiz.question));
 });

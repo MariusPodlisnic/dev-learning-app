@@ -794,5 +794,36 @@ export const getStudioCodeEditorStyles = (StudioColors: StudioThemeColors) =>
       fontWeight: "900",
       backgroundColor: "rgba(255, 107, 107, 0.22)",
     },
+    conceptDiagnosisBanner: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 8,
+      backgroundColor: "rgba(184, 255, 59, 0.1)",
+      borderColor: "rgba(184, 255, 59, 0.45)",
+      borderWidth: 1,
+      borderRadius: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+    },
+    conceptDiagnosisBadge: {
+      backgroundColor: StudioColors.lime,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    conceptDiagnosisBadgeText: {
+      color: StudioColors.ink,
+      fontSize: 9,
+      fontFamily: MonoFont,
+      fontWeight: "900",
+      letterSpacing: 0.5,
+    },
+    conceptDiagnosisText: {
+      color: StudioColors.codeText,
+      fontSize: 11.5,
+      lineHeight: 16,
+      fontWeight: "600",
+      flex: 1,
+    },
   });
 

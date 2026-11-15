@@ -2,6 +2,7 @@ import { ALGORITHMS_ENRICHMENTS } from "./curriculumData/algorithmsEnrichments";
 import { ALGORITHMS_EXPANSION_LESSONS } from "./curriculumData/algorithmsLessons";
 import { ALGORITHMS_PRACTICE_DRILLS } from "./curriculumData/algorithmsPracticeDrills";
 import { getCurriculumLessonSortKey } from "./certificates";
+import { CHAPTER_RECAP_ENRICHMENTS } from "./curriculumData/chapterRecapEnrichments";
 import { CHAPTER_RECAP_LESSONS } from "./curriculumData/chapterRecapLessons";
 import { PYTHON_BASICS_ENRICHMENTS } from "./curriculumData/pythonBasicsEnrichments";
 import { PYTHON_BASICS_EXPANSION_LESSONS } from "./curriculumData/pythonBasicsLessons";
@@ -27,6 +28,7 @@ export const LESSON_ENRICHMENTS: EnrichedLessonData[] = [
   ...PYTHON_BASICS_ENRICHMENTS,
   ...ALGORITHMS_ENRICHMENTS,
   ...SYSTEM_DESIGN_ENRICHMENTS,
+  ...CHAPTER_RECAP_ENRICHMENTS,
 ];
 
 export const EXPANSION_LESSONS = [

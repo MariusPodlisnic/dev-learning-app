@@ -200,6 +200,7 @@ export function auditCurriculumAndSolutions() {
     }
   }
 
+  const coreLessonIds = new Set(merged.map((l) => l.id));
   const starterOutcomes = runPythonAuditBatch(starterPayloads);
   for (const item of starterOutcomes) {
     if (item.err) {
@@ -210,6 +211,10 @@ export function auditCurriculumAndSolutions() {
       errors.push(`${item.id}: runtime test error ${item.parsed.error}`);
     } else if (!Array.isArray(item.parsed.results) || item.parsed.results.length === 0) {
       errors.push(`${item.id}: empty results`);
+    } else if (coreLessonIds.has(item.id) && item.parsed.results.length < 3) {
+      errors.push(
+        `${item.id}: core lesson has only ${item.parsed.results.length} hidden_tests checks (expected >= 3)`,
+      );
     } else if (item.parsed.all_passed !== false) {
       errors.push(`${item.id}: starter pass stub unexpectedly passed hidden_tests`);
     }
@@ -275,6 +280,19 @@ export function auditCurriculumAndSolutions() {
       errors.push(
         `${item.id}: solution failed hidden_tests (${JSON.stringify(item.parsed)})`,
       );
+    }
+  }
+
+  for (const lesson of merged) {
+    const exactMatch = LESSON_ENRICHMENTS.find(
+      (e) =>
+        e.matchTrack === lesson.track && e.matchOrder === lesson.lesson_order,
+    );
+    if (!exactMatch?.solutionCode) {
+      errors.push(`${lesson.id}: missing exact enrichment solutionCode`);
+    }
+    if (!exactMatch?.quiz) {
+      errors.push(`${lesson.id}: missing exact enrichment quiz`);
     }
   }
 
