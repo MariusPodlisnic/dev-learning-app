@@ -1288,4 +1288,200 @@ __run_tests__()`,
       ],
     },
   ],
+
+  // 25: Trees & DFS
+  25: [
+    {
+      id: "alg-25-d2",
+      title: "Practice 2/3: Max Depth of Binary Tree",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Complete `max_tree_depth(root)`: return the number of nodes along the longest path down to any leaf (`0` if `root is None`).",
+      constraints: ["Tree nodes follow `{val, left, right}` dict shape"],
+      examples: [{ input: 'root = {"val": 1, "left": {"val": 2, "left": None, "right": None}, "right": None}', output: "2" }],
+      initial_code: `def max_tree_depth(root):
+    pass`,
+      expected_output: "2",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    t = {"val": 1, "left": {"val": 2, "left": {"val": 4, "left": None, "right": None}, "right": None}, "right": {"val": 3, "left": None, "right": None}}
+    cases = [(t, 3), ({"val": 9, "left": None, "right": None}, 1), (None, 0)]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = max_tree_depth(inp)
+        results.append({"id": idx + 1, "input": f"depth check #{idx+1}", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Return `0` if `root is None` else `1 + max(max_tree_depth(root['left']), max_tree_depth(root['right']))`."],
+    },
+    {
+      id: "alg-25-d3",
+      title: "Practice 3/3: Search Value in BST",
+      difficultyLabel: "APPLIED CHALLENGE",
+      assignment:
+        "Complete `bst_contains(root, target)`: return `True` if `target` exists in the BST, exploiting BST ordering in O(h) time.",
+      constraints: ["Move left when `target < root['val']`, right when `target > root['val']`"],
+      examples: [{ input: "root={val:8, left:{val:3,...}, right:{val:10,...}}, target=3", output: "True" }],
+      initial_code: `def bst_contains(root, target):
+    pass`,
+      expected_output: "True",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    t = {"val": 8, "left": {"val": 3, "left": None, "right": None}, "right": {"val": 10, "left": None, "right": None}}
+    cases = [(t, 3, True), (t, 7, False), (None, 8, False)]
+    for idx, (tree, tgt, exp) in enumerate(cases):
+        actual = bst_contains(tree, tgt)
+        results.append({"id": idx + 1, "input": f"target={tgt}", "expected": str(exp), "actual": str(actual), "passed": actual is exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Walk iteratively with `cur = root` while `cur is not None`."],
+    },
+  ],
+
+  // 26: Graphs & BFS
+  26: [
+    {
+      id: "alg-26-d2",
+      title: "Practice 2/3: Reachable Nodes Count",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Complete `count_reachable(graph, start)`: return how many nodes (including `start`) can be reached from `start` via BFS/DFS.",
+      constraints: ["Return `0` if `start not in graph`"],
+      examples: [{ input: 'graph={"A":["B"],"B":["A"],"C":[]}, start="A"', output: "2" }],
+      initial_code: `def count_reachable(graph, start):
+    pass`,
+      expected_output: "2",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    g = {"A": ["B"], "B": ["A", "D"], "C": [], "D": []}
+    cases = [((g, "A"), 3), ((g, "C"), 1), ((g, "Z"), 0)]
+    for idx, ((gr, s), exp) in enumerate(cases):
+        actual = count_reachable(gr, s)
+        results.append({"id": idx + 1, "input": f"start={s}", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Track `visited = {start}` and return `len(visited)` after exhausting the queue."],
+    },
+    {
+      id: "alg-26-d3",
+      title: "Practice 3/3: Nodes Exactly K Hops Away",
+      difficultyLabel: "APPLIED CHALLENGE",
+      assignment:
+        "Complete `nodes_at_distance(graph, start, k)`: return a sorted list of node names whose shortest path distance from `start` equals `k`.",
+      constraints: ["Return sorted node list", "Handle `k == 0` returning `[start]`"],
+      examples: [{ input: 'graph={"A":["B","C"],"B":["D"],"C":[],"D":[]}, start="A", k=2', output: "['D']" }],
+      initial_code: `def nodes_at_distance(graph, start, k):
+    pass`,
+      expected_output: "['D']",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    g = {"A": ["B", "C"], "B": ["D"], "C": ["E"], "D": [], "E": []}
+    cases = [((g, "A", 1), ["B", "C"]), ((g, "A", 2), ["D", "E"]), ((g, "A", 0), ["A"])]
+    for idx, ((gr, s, k), exp) in enumerate(cases):
+        actual = nodes_at_distance(gr, s, k)
+        results.append({"id": idx + 1, "input": f"k={k}", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["BFS storing `(node, dist)` and collect nodes where `dist == k`, then return `sorted(out)`."],
+    },
+  ],
+
+  // 27: Heaps & Priority Queues
+  27: [
+    {
+      id: "alg-27-d2",
+      title: "Practice 2/3: Last Stone Weight Simulator",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Complete `last_stone_weight(stones)`: repeatedly smash the two heaviest stones `y >= x`; if `y != x`, push `y - x` back. Return final remaining weight or `0`.",
+      constraints: ["Simulate max-heap in `heapq` using negated values (`-w`)"],
+      examples: [{ input: "stones = [2, 7, 4, 1, 8, 1]", output: "1" }],
+      initial_code: `def last_stone_weight(stones):
+    pass`,
+      expected_output: "1",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [([2, 7, 4, 1, 8, 1], 1), ([1, 1], 0), ([5], 5), ([], 0)]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = last_stone_weight(inp)
+        results.append({"id": idx + 1, "input": str(inp), "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Build `h = [-s for s in stones]; heapq.heapify(h)` then pop pairs while `len(h) > 1`."],
+    },
+    {
+      id: "alg-27-d3",
+      title: "Practice 3/3: Merge Minimum Connection Cost",
+      difficultyLabel: "BOSS GAUNTLET",
+      assignment:
+        "Complete `min_connect_ropes(lengths)`: connecting two ropes of lengths `a` and `b` costs `a + b`. Repeatedly merge the two shortest ropes using a min-heap and return total minimum cost.",
+      constraints: ["Return `0` if fewer than 2 ropes"],
+      examples: [{ input: "lengths = [4, 3, 2, 6]", output: "29" }],
+      initial_code: `def min_connect_ropes(lengths):
+    pass`,
+      expected_output: "29",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [([4, 3, 2, 6], 29), ([1, 2, 3], 9), ([7], 0)]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = min_connect_ropes(inp)
+        results.append({"id": idx + 1, "input": str(inp), "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Always pop two minimums `a + b`, add to `cost`, and push `a + b` back until `len(heap) <= 1`."],
+    },
+  ],
+
+  // 28: Dynamic Programming
+  28: [
+    {
+      id: "alg-28-d2",
+      title: "Practice 2/3: Climbing Stairs Ways",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Complete `climb_stairs(n)`: taking 1 or 2 steps at a time, return how many distinct ways reach step `n`.",
+      constraints: ["`climb_stairs(0) == 1`, `climb_stairs(1) == 1`", "Run in O(n) time and O(1) space"],
+      examples: [{ input: "n = 5", output: "8" }],
+      initial_code: `def climb_stairs(n):
+    pass`,
+      expected_output: "8",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [(1, 1), (2, 2), (5, 8), (6, 13)]
+    for idx, (n, exp) in enumerate(cases):
+        actual = climb_stairs(n)
+        results.append({"id": idx + 1, "input": f"n={n}", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Track rolling `prev2, prev1 = 1, 1` and iterate `range(2, n + 1)`."],
+    },
+    {
+      id: "alg-28-d3",
+      title: "Practice 3/3: House Robber Max Loot (Non-Adjacent)",
+      difficultyLabel: "BOSS GAUNTLET",
+      assignment:
+        "Complete `max_non_adjacent_loot(nums)`: return the maximum sum you can pick from `nums` without selecting two adjacent indices.",
+      constraints: ["Handle empty list `[]` -> `0`", "Solve in O(n) time and O(1) space"],
+      examples: [{ input: "nums = [2, 7, 9, 3, 1]", output: "12" }],
+      initial_code: `def max_non_adjacent_loot(nums):
+    pass`,
+      expected_output: "12",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [([2, 7, 9, 3, 1], 12), ([2, 1, 1, 2], 4), ([], 0), ([9], 9)]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = max_non_adjacent_loot(inp)
+        results.append({"id": idx + 1, "input": str(inp), "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["For each `n` in `nums`: `prev2, prev1 = prev1, max(prev1, prev2 + n)`."],
+    },
+  ],
 };

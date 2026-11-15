@@ -1067,4 +1067,191 @@ print(bot_reply("HAPPY", moods))`,
         "`.get()` safely returns your fallback string when the message isn't in the dictionary!",
     },
   },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 25,
+    matchKeywords: ["comprehension", "passing_score_map", "filter"],
+    realWorldUse:
+      "Used constantly in FastAPI/Django data serializers and ETL pipelines to reshape and filter records cleanly.",
+    analogyTitle: "Filter & Transform in One Assembly Line",
+    analogyText:
+      "A dictionary comprehension reads `{key_expr: val_expr for item in items if condition}` — filter first (`if score >= min_score`), then emit the cleaned pair.",
+    cheatSheet: `records = [(" Aria ", 92), ("Kai", 64)]
+passed = {n.strip(): s for n, s in records if s >= 70}
+print(passed)  # {'Aria': 92}`,
+    commonPitfall: {
+      title: "Putting the filter clause in the wrong place or missing .strip()",
+      wrongCode:
+        "{n: s for n, s in records if s > 70}  # Misses whitespace and exact 70 boundary!",
+      rightCode:
+        "{n.strip(): s for n, s in records if s >= min_score}",
+      explanation:
+        "Use `>=` to include exact threshold matches and `.strip()` so keys don't carry trailing spaces.",
+    },
+    solutionCode: `def passing_score_map(records, min_score):
+    return {name.strip(): score for name, score in records if score >= min_score}`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(k)",
+      tradeoff:
+        "Single-pass dict comprehension avoids intermediate filtered lists while keeping lookup O(1).",
+    },
+    quiz: {
+      question:
+        "What does `{k.strip(): v for k, v in rows if v >= 70}` skip?",
+      options: [
+        "Entries where `v < 70`",
+        "Entries where `k` has no spaces",
+        "All entries with even `v`",
+      ],
+      correctIndex: 0,
+      explanation:
+        "The trailing `if v >= 70` filters out every tuple whose score is strictly below `70`.",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 26,
+    matchKeywords: ["oop", "wallet", "WalletAccount", "class"],
+    realWorldUse:
+      "Used to model accounts, shopping carts, game entities, and service clients that enforce state invariants.",
+    analogyTitle: "State + Guarded Controls Inside One Capsule",
+    analogyText:
+      "Each `WalletAccount` instance holds its own `self.balance`. Instead of letting callers overwrite `w.balance` directly into negative numbers, `withdraw()` enforces `0 < amount <= self.balance` first.",
+    cheatSheet: `class WalletAccount:
+    def __init__(self, balance=0):
+        self.balance = balance`,
+    commonPitfall: {
+      title: "Subtracting amount BEFORE verifying balance >= amount",
+      wrongCode:
+        "self.balance -= amount\nif self.balance < 0: return False  # Left balance negative!",
+      rightCode:
+        "if 0 < amount <= self.balance:\n    self.balance -= amount\n    return True",
+      explanation:
+        "Check invariants before mutating `self.balance` so rejected withdrawals never corrupt account state.",
+    },
+    solutionCode: `class WalletAccount:
+    def __init__(self, balance=0):
+        self.balance = balance
+
+    def deposit(self, amount):
+        if amount > 0:
+            self.balance += amount
+        return self.balance
+
+    def withdraw(self, amount):
+        if 0 < amount <= self.balance:
+            self.balance -= amount
+            return True
+        return False`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Encapsulating guard checks inside methods prevents invalid negative balances across all callers.",
+    },
+    quiz: {
+      question:
+        "Why check `0 < amount <= self.balance` before updating `self.balance`?",
+      options: [
+        "To block overdrafts or negative withdrawals without mutating state",
+        "To reset balance to zero after each transaction",
+        "Because `__init__` can only accept integers",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Validating before mutation keeps account balance unchanged whenever a withdrawal should be rejected.",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 27,
+    matchKeywords: ["regex", "re.findall", "extract_error_codes"],
+    realWorldUse:
+      "Used in observability log scrapers, URL routers, and CLI parsers to pull structured IDs from noisy text.",
+    analogyTitle: "Pattern Magnet (`re.findall`)",
+    analogyText:
+      "Write a pattern once (`r\"ERR-\\d+\"`) — `ERR-` matches literally, `\\d+` matches 1+ digits — and `re.findall()` sweeps left-to-right collecting every match in a list.",
+    cheatSheet: `import re
+hits = re.findall(r"ERR-\\d+", "[WARN] ERR-404 ERR-503")
+print(hits)  # ['ERR-404', 'ERR-503']`,
+    commonPitfall: {
+      title: "Forgetting raw string `r\"...\"` or using `*` instead of `+` for digits",
+      wrongCode:
+        're.findall("ERR-\\\\d*", text)  # Matches "ERR-" with zero digits!',
+      rightCode:
+        're.findall(r"ERR-\\d+", text)   # Requires at least 1 digit',
+      explanation:
+        "`\\d+` demands 1 or more digits, whereas `\\d*` matches empty digits too.",
+    },
+    solutionCode: `import re
+
+def extract_error_codes(log_text):
+    return re.findall(r"ERR-\\d+", log_text)`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(k)",
+      tradeoff:
+        "Python caches recently compiled regex patterns internally, keeping repeated `re.findall` calls concise and fast.",
+    },
+    quiz: {
+      question: "In the regex `r\"ERR-\\d+\"`, what does `\\d+` match?",
+      options: [
+        "One or more consecutive numeric digits (0–9)",
+        "Zero or more letters",
+        "Exactly one space character",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`\\d` matches any digit `0–9`, and `+` requires at least one digit.",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 28,
+    matchKeywords: ["decorator", "count_calls", "wrapper"],
+    realWorldUse:
+      "Used in `@lru_cache`, Flask/FastAPI route decorators, retry wrappers, and profiling counters.",
+    analogyTitle: "Gift Wrap Around Any Function",
+    analogyText:
+      "A decorator accepts a function `fn`, puts a counter sleeve around it (`wrapper(*args, **kwargs)`), increments `wrapper.calls`, and returns the inner result untouched.",
+    cheatSheet: `def count_calls(fn):
+    def wrapper(*args, **kwargs):
+        wrapper.calls += 1
+        return fn(*args, **kwargs)
+    wrapper.calls = 0
+    return wrapper`,
+    commonPitfall: {
+      title: "Calling `fn(...)` instead of returning the `wrapper` function object",
+      wrongCode:
+        "return wrapper()  # Executes immediately instead of returning a callable!",
+      rightCode:
+        "return wrapper    # Returns the decorated function itself",
+      explanation:
+        "Decorators return the inner function object *without* parentheses so callers can invoke it later.",
+    },
+    solutionCode: `def count_calls(fn):
+    def wrapper(*args, **kwargs):
+        wrapper.calls += 1
+        return fn(*args, **kwargs)
+    wrapper.calls = 0
+    return wrapper`,
+    proInsights: {
+      timeComplexity: "O(1)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Attaching `.calls` on `wrapper` avoids extra mutable container boilerplate while forwarding arbitrary `*args, **kwargs`.",
+    },
+    quiz: {
+      question: "Why does `wrapper` accept `(*args, **kwargs)`?",
+      options: [
+        "So the decorator works on functions with any mix of positional and keyword parameters",
+        "To restrict calls to integers only",
+        "To disable return values",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`*args, **kwargs` transparently forwards whatever arguments the caller passes into the wrapped `fn`.",
+    },
+  },
 ];

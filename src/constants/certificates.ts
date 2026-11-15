@@ -110,6 +110,14 @@ export const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
       minOrder: 21,
       maxOrder: 24,
     },
+    {
+      id: 7,
+      roman: "VII",
+      title: "Real-World Modern Python",
+      subtitle: "Comprehensions, OOP classes, regex parsing, and decorators",
+      minOrder: 25,
+      maxOrder: 28,
+    },
   ],
   algorithms: [
     {
@@ -162,6 +170,14 @@ export const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
       subtitle: "Best-profit greedy scan, anagram grouping, intervals, and top-K",
       minOrder: 21,
       maxOrder: 24,
+    },
+    {
+      id: 7,
+      roman: "VII",
+      title: "Trees, Graphs, Heaps & DP",
+      subtitle: "BST DFS traversals, shortest-path BFS, min-heaps, and dynamic programming",
+      minOrder: 25,
+      maxOrder: 28,
     },
   ],
   system_design: [

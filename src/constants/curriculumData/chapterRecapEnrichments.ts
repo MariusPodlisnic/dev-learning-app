@@ -319,7 +319,57 @@ return "ERR"`,
       ],
       correctIndex: 0,
       explanation:
-        "Calling `.split()` with no argument collapses arbitrary whitespace and never produces empty `''` tokens between spaces.",
+        "`.split()` collapses arbitrary whitespace and never produces empty `''` tokens between spaces.",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 107,
+    matchKeywords: ["telemetry pipeline", "process_log_credits"],
+    realWorldUse:
+      "Models billing/quota accounting pipelines that parse log telemetry via regex and decrement customer error budgets safely.",
+    analogyTitle: "Regex Scanner + Metered Credit Bucket",
+    analogyText:
+      "Sweep every log line for `ERR-\\d+`, tally counts into a dict (`counts[code] = counts.get(code, 0) + 1`), then subtract `total * cost_per_error` clamped at zero.",
+    cheatSheet: `import re
+for line in log_lines:
+    for code in re.findall(r"ERR-\\d+", line):
+        counts[code] = counts.get(code, 0) + 1`,
+    commonPitfall: {
+      title: "Allowing remaining_credits to go negative on high error counts",
+      wrongCode: "return (counts, initial_credits - total * cost_per_error)",
+      rightCode: "return (counts, max(0, initial_credits - total * cost_per_error))",
+      explanation:
+        "Clamping with `max(0, ...)` ensures error spikes never yield negative account credits.",
+    },
+    solutionCode: `import re
+
+def process_log_credits(log_lines, initial_credits, cost_per_error):
+    counts = {}
+    total = 0
+    for line in log_lines:
+        for code in re.findall(r"ERR-\\d+", line):
+            counts[code] = counts.get(code, 0) + 1
+            total += 1
+    remaining = max(0, initial_credits - total * cost_per_error)
+    return (counts, remaining)`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(k)",
+      tradeoff:
+        "Single-pass regex matching aggregates per-code frequencies and credit charges cleanly without intermediate token lists.",
+    },
+    quiz: {
+      question:
+        "Why wrap final credits in `max(0, initial_credits - total * cost_per_error)`?",
+      options: [
+        "To floor remaining credits at zero instead of going negative",
+        "To double remaining credits when zero errors exist",
+        "To sort dictionary keys descending",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`max(0, ...)` prevents credit balances from dropping below `0` during error bursts.",
     },
   },
 
@@ -671,6 +721,72 @@ if clean == clean[::-1]:
       correctIndex: 0,
       explanation:
         "Because selling before buying isn't allowed, initialized `max_profit = 0` safely floors losses at zero.",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 107,
+    matchKeywords: ["mission planner", "plan_mission_cost"],
+    realWorldUse:
+      "Combines unweighted shortest pathing with discrete knapsack/coin cost minimization in game pathing and route pricing.",
+    analogyTitle: "BFS Distance -> DP Token Optimizer",
+    analogyText:
+      "Step 1 uses BFS to measure the exact minimum `hops` from `start` to `target`. Step 2 solves Minimum Coin Change for target sum `hops` using `step_costs`.",
+    cheatSheet: `hops = shortest_bfs(graph, start, target)
+if hops == -1: return -1`,
+    commonPitfall: {
+      title: "Running DP table creation when hops == -1",
+      wrongCode: "dp = [hops + 1] * (hops + 1)  # Empty list when hops == -1 -> IndexError!",
+      rightCode: "if hops == -1: return -1  # Check reachability before allocating DP",
+      explanation:
+        "Return `-1` immediately on unreachable targets before building the DP array.",
+    },
+    solutionCode: `from collections import deque
+
+def plan_mission_cost(graph, start, target, step_costs):
+    if start not in graph:
+        return -1
+    hops = -1
+    if start == target:
+        hops = 0
+    else:
+        q = deque([(start, 0)])
+        visited = {start}
+        while q:
+            node, d = q.popleft()
+            if node == target:
+                hops = d
+                break
+            for nbr in graph.get(node, []):
+                if nbr not in visited:
+                    visited.add(nbr)
+                    q.append((nbr, d + 1))
+    if hops == -1:
+        return -1
+    dp = [hops + 1] * (hops + 1)
+    dp[0] = 0
+    for a in range(1, hops + 1):
+        for c in step_costs:
+            if c <= a and dp[a - c] + 1 < dp[a]:
+                dp[a] = dp[a - c] + 1
+    return dp[hops] if dp[hops] <= hops else -1`,
+    proInsights: {
+      timeComplexity: "O(V + E + V * C)",
+      spaceComplexity: "O(V)",
+      tradeoff:
+        "Separates unweighted graph exploration from 1D DP minimization cleanly.",
+    },
+    quiz: {
+      question:
+        "Why compute `hops` with BFS before running the DP coin-change step?",
+      options: [
+        "Because minimum coin count depends directly on the shortest hop distance `hops`",
+        "Because DP only runs on string keys",
+        "Because BFS removes cycles from `step_costs`",
+      ],
+      correctIndex: 0,
+      explanation:
+        "The shortest unweighted path gives the exact target amount `hops` needed by the DP stage.",
     },
   },
 

@@ -1729,4 +1729,212 @@ __run_tests__()`,
       ],
     },
   ],
+
+  // LESSON 25: Comprehensions
+  25: [
+    {
+      id: "py-25-d2",
+      title: "Practice 2/3: Filter Positive Squares",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Complete `positive_squares(nums)`: use a list comprehension to return `[x * x ...]` only for numbers `x > 0`.",
+      constraints: ["Keep original order", "Ignore 0 and negative numbers"],
+      examples: [{ input: "nums = [-3, 0, 2, 5]", output: "[4, 25]" }],
+      initial_code: `def positive_squares(nums):
+    pass`,
+      expected_output: "[4, 25]",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [([-3, 0, 2, 5], [4, 25]), ([-1, -2], []), ([1, 3], [1, 9])]
+    for idx, (arr, exp) in enumerate(cases):
+        actual = positive_squares(arr)
+        results.append({"id": idx + 1, "input": str(arr), "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Return `[x * x for x in nums if x > 0]`."],
+    },
+    {
+      id: "py-25-d3",
+      title: "Practice 3/3: Invert Unique Key Map",
+      difficultyLabel: "APPLIED CHALLENGE",
+      assignment:
+        "Complete `invert_unique(mapping)`: return `{val: key for key, val in mapping.items()}`.",
+      constraints: ["Swap keys and values cleanly in one pass"],
+      examples: [{ input: 'mapping = {"a": 1, "b": 2}', output: "{1: 'a', 2: 'b'}" }],
+      initial_code: `def invert_unique(mapping):
+    pass`,
+      expected_output: "{1: 'a', 2: 'b'}",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [({"a": 1, "b": 2}, {1: "a", 2: "b"}), ({}, {}), ({"ok": True}, {True: "ok"})]
+    for idx, (m, exp) in enumerate(cases):
+        actual = invert_unique(m)
+        results.append({"id": idx + 1, "input": str(m), "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Return `{v: k for k, v in mapping.items()}`."],
+    },
+  ],
+
+  // LESSON 26: OOP Classes
+  26: [
+    {
+      id: "py-26-d2",
+      title: "Practice 2/3: InventoryItem Stock Tracker",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Implement `class InventoryItem` with `__init__(self, name, qty=0)` and `consume(self, n)`: if `0 < n <= self.qty`, subtract `n` and return `self.qty`, else return `-1`.",
+      constraints: ["Do not reduce `self.qty` if `n > self.qty` or `n <= 0`"],
+      examples: [{ input: "item = InventoryItem('Potion', 5); item.consume(2)", output: "3" }],
+      initial_code: `class InventoryItem:
+    def __init__(self, name, qty=0):
+        pass
+
+    def consume(self, n):
+        pass`,
+      expected_output: "3",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    item = InventoryItem("Potion", 5)
+    c1 = item.consume(2)
+    qty1 = getattr(item, "qty", None)
+    name1 = getattr(item, "name", None)
+    c2 = item.consume(10)
+    qty2 = getattr(item, "qty", None)
+    results.append({"id": 1, "input": "consume(2) from 5", "expected": "3", "actual": str(c1), "passed": c1 == 3 and qty1 == 3 and name1 == "Potion"})
+    results.append({"id": 2, "input": "consume(10) insufficient", "expected": "-1 (qty=3)", "actual": f"{c2} (qty={qty2})", "passed": c2 == -1 and qty2 == 3})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Save `self.name = name` and `self.qty = qty` in `__init__`."],
+    },
+    {
+      id: "py-26-d3",
+      title: "Practice 3/3: Bounded ScoreGauge Class",
+      difficultyLabel: "APPLIED CHALLENGE",
+      assignment:
+        "Implement `class ScoreGauge` with `__init__(self, cap=100)` (`self.value = 0`, `self.cap = cap`) and `add(self, pts)` clamping `self.value` to `[0, self.cap]` and returning `self.value`.",
+      constraints: ["Never exceed `self.cap` or drop below `0`"],
+      examples: [{ input: "g = ScoreGauge(50); g.add(80)", output: "50" }],
+      initial_code: `class ScoreGauge:
+    def __init__(self, cap=100):
+        pass
+
+    def add(self, pts):
+        pass`,
+      expected_output: "50",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    g = ScoreGauge(50)
+    r1 = g.add(30)
+    r2 = g.add(99)
+    r3 = g.add(-500)
+    results.append({"id": 1, "input": "add(30), add(99), add(-500)", "expected": "(30, 50, 0)", "actual": str((r1, r2, r3)), "passed": (r1, r2, r3) == (30, 50, 0)})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Use `self.value = max(0, min(self.cap, self.value + pts))`."],
+    },
+  ],
+
+  // LESSON 27: Regex & Parsing
+  27: [
+    {
+      id: "py-27-d2",
+      title: "Practice 2/3: Hashtag Word Extractor",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Complete `extract_hashtags(post)`: use `re.findall(r\"#[A-Za-z0-9_]+\", post)` to return all hashtags in order.",
+      constraints: ["Include `#` prefix on each matched tag"],
+      examples: [{ input: 'post = "Ship #python and #dev_24!"', output: "['#python', '#dev_24']" }],
+      initial_code: `def extract_hashtags(post):
+    pass`,
+      expected_output: "['#python', '#dev_24']",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [("Ship #python and #dev_24!", ["#python", "#dev_24"]), ("No tags #", [])]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = extract_hashtags(inp)
+        results.append({"id": idx + 1, "input": repr(inp), "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["`import re` then `return re.findall(r\"#[A-Za-z0-9_]+\", post)`."],
+    },
+    {
+      id: "py-27-d3",
+      title: "Practice 3/3: Redact Numeric Tokens",
+      difficultyLabel: "APPLIED CHALLENGE",
+      assignment:
+        'Complete `mask_numbers(text)`: replace every sequence of digits with `"***"` using `re.sub(r"\\d+", "***", text)`.',
+      constraints: ["Keep non-digit characters untouched"],
+      examples: [{ input: 'text = "OTP 4921 expires in 5m"', output: "OTP *** expires in ***m" }],
+      initial_code: `def mask_numbers(text):
+    pass`,
+      expected_output: "OTP *** expires in ***m",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [("OTP 4921 expires in 5m", "OTP *** expires in ***m"), ("hello", "hello")]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = mask_numbers(inp)
+        results.append({"id": idx + 1, "input": repr(inp), "expected": repr(exp), "actual": repr(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ['`import re` and `return re.sub(r"\\d+", "***", text)`.'],
+    },
+  ],
+
+  // LESSON 28: Decorators & Wrappers
+  28: [
+    {
+      id: "py-28-d2",
+      title: "Practice 2/3: Default Fallback Wrapper",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Complete `safe_zero(fn)`: return a wrapper that calls `fn(*args, **kwargs)` inside `try / except Exception:` and returns `0` if an exception occurs.",
+      constraints: ["Return normal `fn` result when no exception is raised"],
+      examples: [{ input: "safe_div = safe_zero(lambda a, b: a // b); safe_div(8, 0)", output: "0" }],
+      initial_code: `def safe_zero(fn):
+    pass`,
+      expected_output: "0",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    safe_div = safe_zero(lambda a, b: a // b)
+    if not callable(safe_div):
+        results.append({"id": 1, "input": "8//2 and 8//0", "expected": "(4, 0)", "actual": repr(safe_div), "passed": False})
+    else:
+        r1 = safe_div(8, 2)
+        r2 = safe_div(8, 0)
+        results.append({"id": 1, "input": "8//2 and 8//0", "expected": "(4, 0)", "actual": str((r1, r2)), "passed": (r1, r2) == (4, 0)})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Return `def wrapper(*args, **kwargs):` with `try: return fn(*args, **kwargs) except Exception: return 0`."],
+    },
+    {
+      id: "py-28-d3",
+      title: "Practice 3/3: Mini Assert Test Runner",
+      difficultyLabel: "BOSS GAUNTLET",
+      assignment:
+        "Complete `run_unit_suite(fn, cases)`: given `cases` = list of `(arg, expected)`, return `(passed_count, len(cases))` counting how many `fn(arg) == expected` pass.",
+      constraints: ["Catch exceptions on individual cases as failures rather than crashing"],
+      examples: [{ input: "run_unit_suite(lambda x: x * 2, [(3, 6), (5, 9)])", output: "(1, 2)" }],
+      initial_code: `def run_unit_suite(fn, cases):
+    pass`,
+      expected_output: "(1, 2)",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = run_unit_suite(lambda x: x * 2, [(3, 6), (5, 9), (0, 0)])
+    results.append({"id": 1, "input": "2 of 3 pass", "expected": "(2, 3)", "actual": str(r1), "passed": r1 == (2, 3)})
+    r2 = run_unit_suite(lambda x: 10 // x, [(2, 5), (0, 0)])
+    results.append({"id": 2, "input": "catches ZeroDivisionError as fail", "expected": "(1, 2)", "actual": str(r2), "passed": r2 == (1, 2)})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: ["Loop `for arg, exp in cases:`, wrap `if fn(arg) == exp: passed += 1` inside `try / except Exception: pass`."],
+    },
+  ],
 };

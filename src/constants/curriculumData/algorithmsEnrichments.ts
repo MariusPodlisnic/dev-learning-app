@@ -1512,4 +1512,213 @@ print(top_k_frequent([1, 1, 1, 2, 2, 3], 2))`,
         "Negating `counts[x]` orders larger counts first, while the second tuple element `x` keeps ties deterministic.",
     },
   },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 25,
+    matchKeywords: ["bst", "tree", "dfs", "range_sum_bst"],
+    realWorldUse:
+      "Database B-Tree range queries (`WHERE score BETWEEN 70 AND 95`) skip irrelevant subtrees using the exact same BST ordering property.",
+    analogyTitle: "Sorted Filing Cabinets with Left/Right Pruning",
+    analogyText:
+      "Every BST node splits values: everything smaller goes left, everything larger goes right. If `node['val'] <= low`, no need to open the left cabinet at all!",
+    cheatSheet: `def range_sum_bst(root, low, high):
+    if root is None:
+        return 0`,
+    commonPitfall: {
+      title: "Exploring both left and right even when root['val'] is already out of bounds",
+      wrongCode:
+        "return root['val'] + range_sum_bst(root['left'], low, high) + ...",
+      rightCode:
+        "Only sum `root['val']` when `low <= root['val'] <= high`, and prune `root['val'] > low` / `root['val'] < high`.",
+      explanation:
+        "Skipping pruned branches trims search space on large unbalanced or balanced trees.",
+    },
+    solutionCode: `def range_sum_bst(root, low, high):
+    if root is None:
+        return 0
+    total = root["val"] if low <= root["val"] <= high else 0
+    if root["val"] > low:
+        total += range_sum_bst(root["left"], low, high)
+    if root["val"] < high:
+        total += range_sum_bst(root["right"], low, high)
+    return total`,
+    proInsights: {
+      timeComplexity: "O(n) worst case, O(k + h) average",
+      spaceComplexity: "O(h) call stack",
+      tradeoff:
+        "Iterative stack traversal trades recursion frames for explicit stack control on very deep trees.",
+    },
+    quiz: {
+      question:
+        "In `range_sum_bst(root, low, high)`, when can we safely skip `root['left']`?",
+      options: [
+        "Whenever `root['val'] <= low`",
+        "Whenever `root['val'] >= high`",
+        "Whenever `root['right']` is None",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Every value in the left subtree is strictly smaller than `root['val']`, so if `root['val'] <= low`, the entire left branch is `< low`.",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 26,
+    matchKeywords: ["graph", "bfs", "shortest_hop_distance", "deque"],
+    realWorldUse:
+      "Used in social network degree separation (2nd/3rd connections), packet routing hops, and puzzle solvers.",
+    analogyTitle: "Ripples Expanding Ring by Ring in Water",
+    analogyText:
+      "Unlike DFS (which dives deep down one corridor), BFS checks all 1-hop neighbors before any 2-hop neighbor. Tracking `visited` when *enqueuing* prevents infinite loops and duplicate work.",
+    cheatSheet: `from collections import deque
+q = deque([(start, 0)])
+visited = {start}`,
+    commonPitfall: {
+      title: "Marking visited on pop instead of push (causing exponential duplicate pushes)",
+      wrongCode:
+        "node, d = q.popleft()\nvisited.add(node)  # Same neighbor already queued multiple times!",
+      rightCode:
+        "if nbr not in visited:\n    visited.add(nbr)\n    q.append((nbr, d + 1))",
+      explanation:
+        "Marking `visited` immediately upon enqueue guarantees every node enters the queue at most once.",
+    },
+    solutionCode: `from collections import deque
+
+def shortest_hop_distance(graph, start, target):
+    if start not in graph:
+        return -1
+    if start == target:
+        return 0
+    q = deque([(start, 0)])
+    visited = {start}
+    while q:
+        node, dist = q.popleft()
+        for nbr in graph.get(node, []):
+            if nbr == target:
+                return dist + 1
+            if nbr not in visited:
+                visited.add(nbr)
+                q.append((nbr, dist + 1))
+    return -1`,
+    proInsights: {
+      timeComplexity: "O(V + E)",
+      spaceComplexity: "O(V)",
+      tradeoff:
+        "BFS guarantees shortest path on unweighted edges; weighted graphs switch to Dijkstra with `heapq`.",
+    },
+    quiz: {
+      question: "Why does BFS find the shortest path in an unweighted graph?",
+      options: [
+        "It explores all nodes at distance `d` before visiting any node at distance `d + 1`",
+        "It sorts adjacency lists alphabetically",
+        "It always visits leaves before roots",
+      ],
+      correctIndex: 0,
+      explanation:
+        "A FIFO queue naturally processes nodes in strictly non-decreasing distance from `start`.",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 27,
+    matchKeywords: ["heap", "heapq", "kth_largest_score", "priority"],
+    realWorldUse:
+      "Used in live top-K leaderboards, task schedulers, and median/percentile streaming monitors.",
+    analogyTitle: "The Exclusive Top-K Bouncer Club",
+    analogyText:
+      "Keep a min-heap holding ONLY the best `k` scores seen so far. Whenever a new score pushes size to `k + 1`, evict the smallest (`heappop`), leaving the `k`th largest sitting right at `heap[0]`!",
+    cheatSheet: `import heapq
+heap = []
+for num in nums:
+    heapq.heappush(heap, num)
+    if len(heap) > k:
+        heapq.heappop(heap)`,
+    commonPitfall: {
+      title: "Using a max-heap and storing all n elements instead of bounded k",
+      wrongCode:
+        "Sorted entire list or never popped when len > k -> wastes O(n log n) time and O(n) space.",
+      rightCode:
+        "if len(heap) > k: heapq.heappop(heap)  # Bounds heap size strictly to k",
+      explanation:
+        "Evicting the minimum whenever `len(heap) > k` shrinks memory to `O(k)` and per-item cost to `O(log k)`.",
+    },
+    solutionCode: `import heapq
+
+def kth_largest_score(nums, k):
+    heap = []
+    for num in nums:
+        heapq.heappush(heap, num)
+        if len(heap) > k:
+            heapq.heappop(heap)
+    return heap[0]`,
+    proInsights: {
+      timeComplexity: "O(n log k)",
+      spaceComplexity: "O(k)",
+      tradeoff:
+        "Min-heap beats `sorted(nums)[-k]` cleanly when `k << n` or elements stream continuously.",
+    },
+    quiz: {
+      question:
+        "After maintaining a min-heap of size `k`, where is the `k`th largest element stored?",
+      options: [
+        "At the heap root `heap[0]`",
+        "Always at `heap[-1]`",
+        "It gets popped on the final iteration",
+      ],
+      correctIndex: 0,
+      explanation:
+        "The smallest among the top `k` largest elements IS the `k`th largest overall, which is always the min-heap root `heap[0]`!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 28,
+    matchKeywords: ["dp", "dynamic programming", "min_coin_change", "coins"],
+    realWorldUse:
+      "Models minimum-cost state transitions in payment splitting, edit distance, and shortest-cost scheduling.",
+    analogyTitle: "Fill Smaller Totals First, Reuse Every Answer",
+    analogyText:
+      "Instead of re-exploring coin trees repeatedly, fill an array `dp[0..amount]`. To pay `a`, pick whichever coin `c` gives the smallest `1 + dp[a - c]` already computed earlier!",
+    cheatSheet: `dp = [amount + 1] * (amount + 1)
+dp[0] = 0
+for a in range(1, amount + 1):
+    for c in coins:
+        if c <= a:
+            dp[a] = min(dp[a], dp[a - c] + 1)`,
+    commonPitfall: {
+      title: "Returning `dp[amount]` directly instead of `-1` when unreachable",
+      wrongCode:
+        "return dp[amount]  # Returns sentinel amount + 1 when target cannot be made!",
+      rightCode:
+        "return dp[amount] if dp[amount] <= amount else -1",
+      explanation:
+        "If `dp[amount]` stayed at the sentinel `amount + 1`, no combination of coins summed to `amount`.",
+    },
+    solutionCode: `def min_coin_change(coins, amount):
+    dp = [amount + 1] * (amount + 1)
+    dp[0] = 0
+    for a in range(1, amount + 1):
+        for c in coins:
+            if c <= a and dp[a - c] + 1 < dp[a]:
+                dp[a] = dp[a - c] + 1
+    return dp[amount] if dp[amount] <= amount else -1`,
+    proInsights: {
+      timeComplexity: "O(amount * len(coins))",
+      spaceComplexity: "O(amount)",
+      tradeoff:
+        "Bottom-up tabulation runs iteratively with no recursion depth risk and tiny memory footprint.",
+    },
+    quiz: {
+      question:
+        "Why does greedy largest-coin-first fail on `coins=[1, 3, 4], amount=6`?",
+      options: [
+        "Greedy picks `4 + 1 + 1` (3 coins), missing optimal `3 + 3` (2 coins)",
+        "Because `1 + 3 == 4` overflows",
+        "Because `coins` isn't sorted descending",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Greedy commits to the biggest coin early and overlooks combinations of medium coins that minimize total count.",
+    },
+  },
 ];

@@ -219,12 +219,26 @@ CREATE TABLE IF NOT EXISTS public.user_curriculum_progress (
   completed boolean NOT NULL DEFAULT false,
   peeked_solution boolean NOT NULL DEFAULT false,
   stars smallint,
+  next_review_at timestamptz,
+  review_interval_days integer,
+  review_reps integer NOT NULL DEFAULT 0,
+  weak_signal_count integer NOT NULL DEFAULT 0,
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, item_key)
 );
 
+ALTER TABLE public.user_curriculum_progress
+  ADD COLUMN IF NOT EXISTS next_review_at timestamptz,
+  ADD COLUMN IF NOT EXISTS review_interval_days integer,
+  ADD COLUMN IF NOT EXISTS review_reps integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS weak_signal_count integer NOT NULL DEFAULT 0;
+
 CREATE INDEX IF NOT EXISTS idx_user_curriculum_progress_user_type
   ON public.user_curriculum_progress (user_id, item_type);
+
+CREATE INDEX IF NOT EXISTS idx_user_curriculum_progress_review
+  ON public.user_curriculum_progress (user_id, next_review_at)
+  WHERE next_review_at IS NOT NULL;
 
 ALTER TABLE public.user_curriculum_progress ENABLE ROW LEVEL SECURITY;
 

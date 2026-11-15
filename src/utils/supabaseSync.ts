@@ -1,5 +1,6 @@
 import { supabase } from "../../lib/supabase";
 import { Lesson } from "../types/lesson";
+import type { ReviewScheduleEntry } from "./spacedRepetition";
 
 export interface CloudProgressState {
   completedLessons: Record<string, boolean>;
@@ -8,6 +9,7 @@ export interface CloudProgressState {
   solvedIncidents: Record<string, boolean>;
   claimedChapters: Record<string, boolean>;
   claimedStreakMilestones: Record<number, boolean>;
+  reviewSchedule?: Record<string, ReviewScheduleEntry>;
   streakShields: number;
   dailyCompletedDate: string | null;
   lastActiveDate: string | null;
@@ -34,6 +36,10 @@ export interface CurriculumProgressDeltaItem {
   completed?: boolean;
   peekedSolution?: boolean;
   stars?: number;
+  nextReviewAt?: string;
+  reviewIntervalDays?: number;
+  reviewReps?: number;
+  weakSignalCount?: number;
 }
 
 const UUID_REGEX =
@@ -50,6 +56,7 @@ export function isUuid(value?: string | null): boolean {
 const schemaCapabilities = {
   hasProgressStateColumn: true,
   hasCurriculumProgressTable: true,
+  hasReviewColumns: true,
 };
 
 function isMissingColumnError(err: any, columnName: string): boolean {
@@ -123,6 +130,7 @@ export function remapProgressKeysForLessons(
   const nextCompletedLessons = { ...state.completedLessons };
   const nextPeekedSolutions = { ...state.peekedSolutions };
   const nextCompletedChallenges = { ...state.completedChallenges };
+  const nextReviewSchedule = { ...(state.reviewSchedule || {}) };
   const nextDrafts = { ...state.codeDrafts };
 
   for (const [alias, targetId] of aliasToLessonId.entries()) {
@@ -132,6 +140,14 @@ export function remapProgressKeysForLessons(
     }
     if (nextPeekedSolutions[alias] && !nextPeekedSolutions[targetId]) {
       nextPeekedSolutions[targetId] = true;
+      changed = true;
+    }
+    if (nextReviewSchedule[alias] && !nextReviewSchedule[targetId]) {
+      nextReviewSchedule[targetId] = {
+        ...nextReviewSchedule[alias],
+        lessonId: targetId,
+      };
+      delete nextReviewSchedule[alias];
       changed = true;
     }
     const stageSuffixes = ["::core", "#0", "::stage_1", "::stage_2", "::stage_3"];
@@ -165,6 +181,7 @@ export function remapProgressKeysForLessons(
     completedLessons: nextCompletedLessons,
     completedChallenges: nextCompletedChallenges,
     peekedSolutions: nextPeekedSolutions,
+    reviewSchedule: nextReviewSchedule,
     codeDrafts: nextDrafts,
     lastLessonId: nextLastLessonId,
   };
@@ -206,6 +223,34 @@ function mergeMilestoneMaps(
   return out;
 }
 
+function mergeReviewMaps(
+  relMap: Record<string, ReviewScheduleEntry>,
+  cloudMap?: Record<string, ReviewScheduleEntry>,
+  localMap?: Record<string, ReviewScheduleEntry>,
+): Record<string, ReviewScheduleEntry> {
+  const out: Record<string, ReviewScheduleEntry> = {};
+  const consider = (entry?: ReviewScheduleEntry) => {
+    if (!entry || !entry.lessonId || !entry.nextReviewAt) return;
+    const prev = out[entry.lessonId];
+    if (!prev) {
+      out[entry.lessonId] = entry;
+      return;
+    }
+    const prevTime = Date.parse(prev.lastReviewedAt || "") || 0;
+    const nextTime = Date.parse(entry.lastReviewedAt || "") || 0;
+    if (
+      nextTime > prevTime ||
+      (nextTime === prevTime && entry.reps > prev.reps)
+    ) {
+      out[entry.lessonId] = entry;
+    }
+  };
+  for (const e of Object.values(relMap)) consider(e);
+  if (cloudMap) for (const e of Object.values(cloudMap)) consider(e);
+  if (localMap) for (const e of Object.values(localMap)) consider(e);
+  return out;
+}
+
 export function mergeCloudAndLocalState(
   cloudState: Partial<CloudProgressState> | null | undefined,
   localState: CloudProgressState,
@@ -216,6 +261,11 @@ export function mergeCloudAndLocalState(
     lesson_id?: string | null;
     completed?: boolean | null;
     peeked_solution?: boolean | null;
+    next_review_at?: string | null;
+    review_interval_days?: number | null;
+    review_reps?: number | null;
+    weak_signal_count?: number | null;
+    updated_at?: string | null;
   }[],
 ): {
   merged: CloudProgressState;
@@ -226,11 +276,23 @@ export function mergeCloudAndLocalState(
   const relIncidents: Record<string, boolean> = {};
   const relChapters: Record<string, boolean> = {};
   const relPeeked: Record<string, boolean> = {};
+  const relReview: Record<string, ReviewScheduleEntry> = {};
 
   for (const row of relationalRows) {
     if (row.item_type === "lesson") {
       if (row.completed) relLessons[row.item_key] = true;
       if (row.peeked_solution) relPeeked[row.item_key] = true;
+      if (row.next_review_at) {
+        relReview[row.item_key] = {
+          lessonId: row.item_key,
+          intervalDays: row.review_interval_days || 1,
+          reps: row.review_reps || 1,
+          lastReviewedAt: row.updated_at || new Date().toISOString(),
+          nextReviewAt: row.next_review_at.slice(0, 10),
+          weakSignalCount: row.weak_signal_count || 0,
+          reason: row.peeked_solution ? "peeked" : "scheduled",
+        };
+      }
     } else if (row.item_type === "stage") {
       if (row.completed) relStages[row.item_key] = true;
     } else if (row.item_type === "bug_incident") {
@@ -332,6 +394,12 @@ export function mergeCloudAndLocalState(
     ? { ...effectiveCloudDrafts, ...localState.codeDrafts }
     : { ...localState.codeDrafts, ...effectiveCloudDrafts };
 
+  const mergedReviewSchedule = mergeReviewMaps(
+    relReview,
+    c.reviewSchedule,
+    localState.reviewSchedule,
+  );
+
   const merged: CloudProgressState = {
     completedLessons: mergedCompletedLessons,
     completedChallenges: mergedCompletedChallenges,
@@ -339,6 +407,7 @@ export function mergeCloudAndLocalState(
     solvedIncidents: mergedSolvedIncidents,
     claimedChapters: mergedClaimedChapters,
     claimedStreakMilestones: mergedMilestones,
+    reviewSchedule: mergedReviewSchedule,
     streakShields: mergedShields,
     dailyCompletedDate: mergedDaily,
     lastActiveDate: mergedLastActive,
@@ -384,12 +453,21 @@ export function buildFullRelationalItems(
 
   for (const [lessonId, done] of Object.entries(state.completedLessons)) {
     if (!done) continue;
+    const rev = state.reviewSchedule?.[lessonId];
     items.push({
       itemKey: lessonId,
       itemType: "lesson",
       lessonId,
       completed: true,
       peekedSolution: Boolean(state.peekedSolutions[lessonId]),
+      ...(rev
+        ? {
+            nextReviewAt: `${rev.nextReviewAt.slice(0, 10)}T00:00:00.000Z`,
+            reviewIntervalDays: rev.intervalDays,
+            reviewReps: rev.reps,
+            weakSignalCount: rev.weakSignalCount,
+          }
+        : {}),
     });
   }
 
@@ -484,7 +562,7 @@ export async function pushCloudProgressState(params: {
       schemaCapabilities.hasCurriculumProgressTable &&
       itemsToUpsert.length > 0
     ) {
-      const rows = itemsToUpsert.map((item) => ({
+      const mapRow = (item: CurriculumProgressDeltaItem, includeReview: boolean) => ({
         user_id: userId,
         item_key: item.itemKey,
         item_type: item.itemType,
@@ -492,13 +570,31 @@ export async function pushCloudProgressState(params: {
         completed: item.completed ?? true,
         peeked_solution: item.peekedSolution ?? false,
         stars: item.stars ?? null,
+        ...(includeReview
+          ? {
+              next_review_at: item.nextReviewAt ?? null,
+              review_interval_days: item.reviewIntervalDays ?? null,
+              review_reps: item.reviewReps ?? 0,
+              weak_signal_count: item.weakSignalCount ?? 0,
+            }
+          : {}),
         updated_at: nowIso,
-      }));
+      });
+
+      const rows = itemsToUpsert.map((item) =>
+        mapRow(item, schemaCapabilities.hasReviewColumns),
+      );
       const { error } = await supabase
         .from("user_curriculum_progress")
         .upsert(rows, { onConflict: "user_id,item_key" });
 
-      if (error && isMissingTableError(error, "user_curriculum_progress")) {
+      if (error && isMissingColumnError(error, "next_review_at")) {
+        schemaCapabilities.hasReviewColumns = false;
+        const fallbackRows = itemsToUpsert.map((item) => mapRow(item, false));
+        await supabase
+          .from("user_curriculum_progress")
+          .upsert(fallbackRows, { onConflict: "user_id,item_key" });
+      } else if (error && isMissingTableError(error, "user_curriculum_progress")) {
         schemaCapabilities.hasCurriculumProgressTable = false;
       }
     }
@@ -574,14 +670,30 @@ export async function pullAndMergeCloudState(params: {
     schemaCapabilities.hasCurriculumProgressTable
       ? supabase
           .from("user_curriculum_progress")
-          .select("item_key, item_type, lesson_id, completed, peeked_solution")
+          .select(
+            schemaCapabilities.hasReviewColumns
+              ? "item_key, item_type, lesson_id, completed, peeked_solution, next_review_at, review_interval_days, review_reps, weak_signal_count, updated_at"
+              : "item_key, item_type, lesson_id, completed, peeked_solution",
+          )
           .eq("user_id", userId)
       : Promise.resolve({ data: [], error: null } as any),
   ]);
 
+  let resolvedRelRes = relRes;
   if (
-    relRes.error &&
-    isMissingTableError(relRes.error, "user_curriculum_progress")
+    resolvedRelRes.error &&
+    isMissingColumnError(resolvedRelRes.error, "next_review_at")
+  ) {
+    schemaCapabilities.hasReviewColumns = false;
+    resolvedRelRes = await supabase
+      .from("user_curriculum_progress")
+      .select("item_key, item_type, lesson_id, completed, peeked_solution")
+      .eq("user_id", userId);
+  }
+
+  if (
+    resolvedRelRes.error &&
+    isMissingTableError(resolvedRelRes.error, "user_curriculum_progress")
   ) {
     schemaCapabilities.hasCurriculumProgressTable = false;
   }
@@ -593,7 +705,7 @@ export async function pullAndMergeCloudState(params: {
     }
   });
 
-  const relationalRows = Array.isArray(relRes.data) ? relRes.data : [];
+  const relationalRows = Array.isArray(resolvedRelRes.data) ? resolvedRelRes.data : [];
 
   const cloudSnapshot: Partial<CloudProgressState> = {
     ...(profileData?.progress_state || {}),

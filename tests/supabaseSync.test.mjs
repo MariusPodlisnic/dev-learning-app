@@ -44,6 +44,17 @@ test("remapProgressKeysForLessons maps legacy exp slugs and track:order aliases 
     completedLessons: { "exp-py-01": true },
     completedChallenges: { "exp-py-01::core": true, "python_basics:1::stage_1": true },
     peekedSolutions: { "exp-py-01": true },
+    reviewSchedule: {
+      "exp-py-01": {
+        lessonId: "exp-py-01",
+        intervalDays: 7,
+        reps: 2,
+        lastReviewedAt: "2026-11-10T00:00:00.000Z",
+        nextReviewAt: "2026-11-17",
+        weakSignalCount: 1,
+        reason: "peeked",
+      },
+    },
     codeDrafts: { "exp-py-01": "def f(): return 1" },
     lastLessonId: "exp-py-01",
   });
@@ -53,6 +64,8 @@ test("remapProgressKeysForLessons maps legacy exp slugs and track:order aliases 
   assert.equal(remapped.completedChallenges["uuid-py-1::core"], true);
   assert.equal(remapped.completedChallenges["uuid-py-1::stage_1"], true);
   assert.equal(remapped.peekedSolutions["uuid-py-1"], true);
+  assert.equal(remapped.reviewSchedule["uuid-py-1"]?.intervalDays, 7);
+  assert.equal(remapped.reviewSchedule["uuid-py-1"]?.lessonId, "uuid-py-1");
   assert.equal(remapped.codeDrafts["uuid-py-1"], "def f(): return 1");
   assert.equal(remapped.lastLessonId, "uuid-py-1");
 });
@@ -63,6 +76,17 @@ test("mergeCloudAndLocalState merges progress monotonically and migrates pre-v2 
     streakCount: 4,
     completedLessons: { "exp-py-01": true, "exp-py-02": true },
     peekedSolutions: { "exp-py-01": true, "exp-py-02": true },
+    reviewSchedule: {
+      "exp-py-01": {
+        lessonId: "exp-py-01",
+        intervalDays: 3,
+        reps: 1,
+        lastReviewedAt: "2026-11-10T00:00:00.000Z",
+        nextReviewAt: "2026-11-13",
+        weakSignalCount: 0,
+        reason: "scheduled",
+      },
+    },
     codeDrafts: { "exp-py-11": "old boilerplate" },
     updatedAt: "2026-11-14T09:00:00.000Z",
   };
@@ -71,6 +95,17 @@ test("mergeCloudAndLocalState merges progress monotonically and migrates pre-v2 
     streakCount: 5,
     completedLessons: { "exp-py-02": true, "exp-py-03": true },
     peekedSolutions: {}, // cleared peek on exp-py-02 after clean re-solve
+    reviewSchedule: {
+      "exp-py-01": {
+        lessonId: "exp-py-01",
+        intervalDays: 7,
+        reps: 2,
+        lastReviewedAt: "2026-11-14T11:00:00.000Z",
+        nextReviewAt: "2026-11-21",
+        weakSignalCount: 0,
+        reason: "scheduled",
+      },
+    },
     codeDrafts: { "exp-py-03": "def get_rank_tier(score):\n    return 'GOLD'" },
     draftsVersion: 2,
     updatedAt: "2026-11-14T12:00:00.000Z",
@@ -91,6 +126,8 @@ test("mergeCloudAndLocalState merges progress monotonically and migrates pre-v2 
   // Incomplete or completed-only-on-one-side respects peek; clean re-solve clears peek
   assert.equal(merged.peekedSolutions["exp-py-01"], true);
   assert.equal(merged.peekedSolutions["exp-py-02"], undefined);
+  assert.equal(merged.reviewSchedule["exp-py-01"]?.intervalDays, 7);
+  assert.equal(merged.reviewSchedule["exp-py-01"]?.reps, 2);
   // Pre-v2 cloud draft should be dropped while v2 local draft is kept
   assert.equal(merged.codeDrafts["exp-py-11"], undefined);
   assert.equal(

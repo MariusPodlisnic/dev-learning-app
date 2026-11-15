@@ -89,6 +89,12 @@ import {
 import type { PythonTraceResult } from "../utils/pythonTrace";
 import { playVictoryFanfare } from "../utils/soundEffects";
 import {
+  getIsoDateKey,
+  REVIEW_BONUS_XP,
+  ReviewSignal,
+  updateReviewScheduleOnSolve,
+} from "../utils/spacedRepetition";
+import {
   CloudProgressState,
   CurriculumProgressDeltaItem,
   pushCloudProgressState,
@@ -173,6 +179,8 @@ export default function HomeScreen() {
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
   const [pyodideReady, setPyodideReady] = useState<boolean>(false);
   const usedSolutionInAttemptRef = useRef<boolean>(false);
+  const usedScaffoldInAttemptRef = useRef<boolean>(false);
+  const failedAttemptsByLessonRef = useRef<Record<string, number>>({});
   const [activeChallengeIdx, setActiveChallengeIdx] = useState<number>(0);
   const [activeStreakMilestone, setActiveStreakMilestone] =
     useState<StreakMilestone | null>(null);
@@ -234,6 +242,8 @@ export default function HomeScreen() {
     setStreakShields,
     claimedChapters,
     setClaimedChapters,
+    reviewSchedule,
+    setReviewSchedule,
     session,
     setIsPremium,
     setDevProOverride,
@@ -409,6 +419,7 @@ export default function HomeScreen() {
     const targetLesson = lessonObj || selectedLesson;
     if (!targetLesson) return;
     usedSolutionInAttemptRef.current = false;
+    usedScaffoldInAttemptRef.current = false;
     setActiveChallengeIdx(stageIdx);
     const draftKey = getStageDraftKey(targetLesson, stageIdx);
     const defaultCode = getStageDefaultCode(targetLesson, stageIdx);
@@ -425,6 +436,7 @@ export default function HomeScreen() {
 
   function openLessonInStudio(fullLesson: Lesson) {
     usedSolutionInAttemptRef.current = false;
+    usedScaffoldInAttemptRef.current = false;
     setActiveTrack(fullLesson.track);
     setSelectedLesson(fullLesson);
     setActiveChallengeIdx(0);
@@ -481,6 +493,7 @@ export default function HomeScreen() {
 
   function handleSwitchTrack(trackName: string) {
     usedSolutionInAttemptRef.current = false;
+    usedScaffoldInAttemptRef.current = false;
     setActiveChallengeIdx(0);
     setActiveTrack(trackName);
     const firstInTrack = lessons.find(
@@ -671,6 +684,11 @@ export default function HomeScreen() {
       setBottomTab(outcome.targetTab);
       setOutput(outcome.consoleOutput);
 
+      if (!outcome.allPassed && selectedLesson) {
+        failedAttemptsByLessonRef.current[selectedLesson.id] =
+          (failedAttemptsByLessonRef.current[selectedLesson.id] || 0) + 1;
+      }
+
       if (outcome.allPassed && selectedLesson) {
         setShowSuccessModal(true);
         trackFunnelMilestone("first_lesson_solved");
@@ -683,9 +701,38 @@ export default function HomeScreen() {
           completedChallenges[stageKey] ||
             (activeChallengeIdx === 0 && completedLessons[selectedLesson.id]),
         );
+        const failedCount =
+          failedAttemptsByLessonRef.current[selectedLesson.id] || 0;
+        const reviewSignal: ReviewSignal = usedSolutionInAttemptRef.current
+          ? "peeked"
+          : usedScaffoldInAttemptRef.current
+            ? "scaffolded"
+            : failedCount >= 2
+              ? "retries"
+              : "clean";
+        failedAttemptsByLessonRef.current[selectedLesson.id] = 0;
+
+        const existingReviewEntry = reviewSchedule[selectedLesson.id];
+        const todayKey = getIsoDateKey();
+        const wasScheduledDue = Boolean(
+          existingReviewEntry &&
+            existingReviewEntry.nextReviewAt.slice(0, 10) <= todayKey,
+        );
+        const wasImplicitPeekDue = Boolean(
+          !existingReviewEntry &&
+            completedLessons[selectedLesson.id] &&
+            peekedSolutions[selectedLesson.id],
+        );
+        const reviewBonusXp =
+          isStageAlreadyCompleted &&
+          (wasScheduledDue || wasImplicitPeekDue) &&
+          reviewSignal === "clean"
+            ? REVIEW_BONUS_XP
+            : 0;
+
         const stageXp = activePractice?.xpReward || 50;
         const { newXp, newStreak, newLastActiveDate } = recordActiveDevSession(
-          isStageAlreadyCompleted ? 0 : stageXp,
+          (isStageAlreadyCompleted ? 0 : stageXp) + reviewBonusXp,
         );
 
         const nextCompletedChallenges = {
@@ -726,11 +773,29 @@ export default function HomeScreen() {
           setCompletedLessons(nextCompletedLessons);
         }
 
+        const shouldUpdateReviewSchedule =
+          allStagesNowDone ||
+          Boolean(existingReviewEntry) ||
+          Boolean(nextCompletedLessons[selectedLesson.id]);
+        let nextReviewSchedule = reviewSchedule;
+        let updatedReviewEntry = existingReviewEntry || null;
+        if (shouldUpdateReviewSchedule) {
+          const updated = updateReviewScheduleOnSolve({
+            currentSchedule: reviewSchedule,
+            lessonId: selectedLesson.id,
+            signal: reviewSignal,
+          });
+          nextReviewSchedule = updated.nextSchedule;
+          updatedReviewEntry = updated.entry;
+          setReviewSchedule(nextReviewSchedule);
+        }
+
         const nextSnapshot: CloudProgressState = {
           ...latestGuestStateRef.current,
           completedLessons: nextCompletedLessons,
           completedChallenges: nextCompletedChallenges,
           peekedSolutions: nextPeekedSolutions,
+          reviewSchedule: nextReviewSchedule,
           xpPoints: newXp,
           streakCount: newStreak,
           lastActiveDate: newLastActiveDate,
@@ -761,9 +826,14 @@ export default function HomeScreen() {
             itemKey: selectedLesson.id,
             itemType: "lesson",
             lessonId: selectedLesson.id,
-            completed: allStagesNowDone,
+            completed:
+              allStagesNowDone || Boolean(nextCompletedLessons[selectedLesson.id]),
             peekedSolution: Boolean(nextPeekedSolutions[selectedLesson.id]),
             stars: lessonStars,
+            nextReviewAt: updatedReviewEntry?.nextReviewAt ?? null,
+            reviewIntervalDays: updatedReviewEntry?.intervalDays ?? null,
+            reviewReps: updatedReviewEntry?.reps ?? 0,
+            weakSignalCount: updatedReviewEntry?.weakSignalCount ?? 0,
           });
           await pushCloudProgressState({
             userId: session.user.id,
@@ -1059,6 +1129,7 @@ export default function HomeScreen() {
           completedLessons={completedLessons}
           completedChallenges={completedChallenges}
           peekedSolutions={peekedSolutions}
+          reviewSchedule={reviewSchedule}
           isPremium={effectiveIsPremium}
           activeTrack={activeTrack}
           onSelectTrack={handleSwitchTrack}
@@ -1307,6 +1378,7 @@ export default function HomeScreen() {
                     }}
                     userCode={code}
                     onApplyScaffold={(scaffoldCode) => {
+                      usedScaffoldInAttemptRef.current = true;
                       updateCodeWithDraft(
                         scaffoldCode,
                         selectedLesson,

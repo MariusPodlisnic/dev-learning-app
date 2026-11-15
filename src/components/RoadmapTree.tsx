@@ -37,7 +37,13 @@ import {
   writeLocalJson,
 } from "../types/lesson";
 import { playCrtChannelSwitch, playKeyClick } from "../utils/soundEffects";
+import {
+  buildDueReviewQueue,
+  getReviewRetentionSummary,
+  ReviewScheduleEntry,
+} from "../utils/spacedRepetition";
 import ByteCatGuideCard from "./ByteCatGuideCard";
+import RoadmapReviewCard from "./RoadmapReviewCard";
 import RoadmapScrollBackdrop from "./RoadmapScrollBackdrop";
 import {
   getDifficultyColor,
@@ -80,6 +86,7 @@ interface RoadmapTreeProps {
   completedLessons: Record<string, boolean>;
   completedChallenges?: Record<string, boolean>;
   peekedSolutions?: Record<string, boolean>;
+  reviewSchedule?: Record<string, ReviewScheduleEntry>;
   isPremium: boolean;
   activeTrack: string;
   onSelectTrack: (track: string) => void;
@@ -105,6 +112,7 @@ export default function RoadmapTree({
   completedLessons,
   completedChallenges = {},
   peekedSolutions = {},
+  reviewSchedule = {},
   isPremium,
   activeTrack,
   onSelectTrack,
@@ -123,7 +131,9 @@ export default function RoadmapTree({
   const viewportWidth = windowWidth > 0 ? windowWidth : 1024;
   const viewportHeight = windowHeight > 0 ? windowHeight : 820;
 
-  const [statusFilter, setStatusFilter] = useState<"all" | "unsolved" | "solved">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "unsolved" | "solved" | "due"
+  >("all");
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [crtChannel, setCrtChannel] = useState<0 | 1 | 2>(0);
@@ -222,11 +232,30 @@ export default function RoadmapTree({
   const showFirstVisitQuickstart =
     !quickstartDismissed && totalXp === 0 && totalSolvedCount === 0 && Boolean(quickstartLesson);
 
+  const dueReviewItems = buildDueReviewQueue({
+    lessons,
+    completedLessons,
+    peekedSolutions,
+    reviewSchedule,
+    isPremium,
+    trackFilter: activeTrack,
+  });
+  const dueReviewIdSet = new Set(dueReviewItems.map((item) => item.lesson.id));
+  const reviewSummary = getReviewRetentionSummary({
+    lessons,
+    completedLessons,
+    peekedSolutions,
+    reviewSchedule,
+    isPremium,
+    trackFilter: activeTrack,
+  });
+
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredTrackLessons = trackLessons.filter((lesson) => {
     const isDone = Boolean(completedLessons[lesson.id]);
     if (statusFilter === "unsolved" && isDone) return false;
     if (statusFilter === "solved" && !isDone) return false;
+    if (statusFilter === "due" && !dueReviewIdSet.has(lesson.id)) return false;
     if (chapterFilter !== null) {
       const ch = getChapterForLesson(lesson);
       if (ch.id !== chapterFilter) return false;
@@ -586,6 +615,16 @@ export default function RoadmapTree({
           </View>
         </View>
 
+        {/* Spaced Repetition Review Queue */}
+        <RoadmapReviewCard
+          dueItems={dueReviewItems}
+          summary={reviewSummary}
+          onStartReview={(lesson) => onSelectLesson(lesson)}
+          onFilterDue={() =>
+            setStatusFilter((prev) => (prev === "due" ? "all" : "due"))
+          }
+        />
+
         {/* Filter & Search Control Bar */}
         <View style={styles.filterToolbarCard}>
           <View style={styles.filterPillsRow}>
@@ -594,6 +633,14 @@ export default function RoadmapTree({
                 { id: "all", label: `ALL (${trackLessons.length})` },
                 { id: "unsolved", label: `UNSOLVED (${unsolvedCount})` },
                 { id: "solved", label: `SOLVED ✓ (${completedCount})` },
+                ...(dueReviewItems.length > 0
+                  ? [
+                      {
+                        id: "due" as const,
+                        label: `🔁 REVIEW (${dueReviewItems.length})`,
+                      },
+                    ]
+                  : []),
               ] as const
             ).map((f) => {
               const isSelected = statusFilter === f.id;
@@ -994,6 +1041,12 @@ export default function RoadmapTree({
                           <View style={styles.recapNodePill}>
                             <Text style={styles.recapNodePillText}>
                               🏆 CHAPTER RECAP
+                            </Text>
+                          </View>
+                        ) : dueReviewIdSet.has(node.id) ? (
+                          <View style={styles.recapNodePill}>
+                            <Text style={styles.recapNodePillText}>
+                              🔁 REVIEW DUE
                             </Text>
                           </View>
                         ) : isFreePreview ? (

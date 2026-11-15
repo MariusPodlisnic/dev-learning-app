@@ -34,6 +34,12 @@ const { default: LessonProblemPanel } = loadTsModule(
 const { default: VisualLessonPanel } = loadTsModule(
   "src/components/VisualLessonPanel.tsx",
 );
+const { default: RoadmapReviewCard } = loadTsModule(
+  "src/components/RoadmapReviewCard.tsx",
+);
+const { default: SystemDesignLabPanel } = loadTsModule(
+  "src/components/SystemDesignLabPanel.tsx",
+);
 const { getLessonEnrichment, mergeCurriculumLessons } = loadTsModule(
   "src/constants/curriculum.ts",
 );
@@ -405,4 +411,68 @@ test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) 
   assert.ok(liveTraceText.includes("LIVE EXECUTION TRACE"));
   assert.ok(liveTraceText.includes("CALL STACK"));
   assert.ok(liveTraceText.includes("VARIABLES AT STEP 1"));
+});
+
+test("RoadmapReviewCard and SystemDesignLabPanel render spaced review and architecture lab controls", () => {
+  const lessons = mergeCurriculumLessons([]);
+  const firstLesson = lessons[0];
+  const sysLesson = lessons.find((l) => l.track === "system_design");
+  assert.ok(firstLesson);
+  assert.ok(sysLesson);
+
+  const reviewHtml = renderThemed(
+    React.createElement(RoadmapReviewCard, {
+      dueItems: [
+        {
+          lesson: firstLesson,
+          entry: {
+            lessonId: firstLesson.id,
+            intervalDays: 1,
+            reps: 1,
+            lastReviewedAt: "2026-11-14T00:00:00.000Z",
+            nextReviewAt: "2026-11-15",
+            weakSignalCount: 1,
+            reason: "peeked",
+          },
+          overdueDays: 0,
+          priorityScore: 40,
+          isImplicitPeek: false,
+        },
+      ],
+      summary: {
+        dueNowCount: 1,
+        scheduledCount: 2,
+        masteredCount: 1,
+        weakCount: 1,
+        nextUpcomingDays: 7,
+      },
+      onStartReview: () => {},
+      onFilterDue: () => {},
+    }),
+  );
+  const reviewText = visibleText(reviewHtml);
+  assert.ok(reviewText.includes("SPACED REVIEW"));
+  assert.ok(reviewText.includes("PEEKED SOLUTION"));
+  assert.ok(reviewText.includes("+15 XP"));
+
+  const labText = visibleText(
+    renderThemed(
+      React.createElement(SystemDesignLabPanel, {
+        lesson: sysLesson,
+      }),
+    ),
+  );
+  assert.ok(labText.includes("ARCHITECTURE SLA TARGET"));
+  assert.ok(labText.includes("AUTO-TUNE SLA"));
+
+  const panelWithLabText = visibleText(
+    renderThemed(
+      React.createElement(VisualLessonPanel, {
+        type: "memory",
+        data: [],
+        lesson: sysLesson,
+      }),
+    ),
+  );
+  assert.ok(panelWithLabText.includes("ARCH LAB"));
 });

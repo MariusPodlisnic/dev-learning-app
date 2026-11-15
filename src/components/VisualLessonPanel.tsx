@@ -13,6 +13,7 @@ import { useThemedStyles } from "../constants/themeContext";
 import { Lesson, TestCaseResult } from "../types/lesson";
 import type { PythonTraceResult } from "../utils/pythonTrace";
 import { playKeyClick } from "../utils/soundEffects";
+import SystemDesignLabPanel from "./SystemDesignLabPanel";
 
 interface TraceItem {
   label: string;
@@ -102,19 +103,24 @@ export default function VisualLessonPanel({
   const [fastSpeed, setFastSpeed] = useState<boolean>(false);
 
   const hasTraceData = Array.isArray(data) && data.length > 0;
+  const isSystemDesign = lesson?.track === "system_design";
   const [modeOverride, setModeOverride] = useState<{
-    mode: "concept" | "live";
+    mode: "concept" | "live" | "arch";
     traceRef: PythonTraceResult | null;
   } | null>(null);
 
-  const visualMode: "concept" | "live" =
-    !hasTraceData || isTracing
+  const visualMode: "concept" | "live" | "arch" =
+    isTracing
       ? "live"
       : modeOverride && modeOverride.traceRef === liveTraceResult
         ? modeOverride.mode
         : liveTraceResult
           ? "live"
-          : "concept";
+          : isSystemDesign
+            ? "arch"
+            : !hasTraceData
+              ? "live"
+              : "concept";
 
   useEffect(() => {
     if (visualMode === "concept") {
@@ -194,50 +200,84 @@ export default function VisualLessonPanel({
       </View>
     ) : null;
 
-  const modeSwitcherBar = onRunLiveTrace ? (
-    <View style={styles.visualModeBar}>
-      <Pressable
-        style={[
-          styles.visualModeBtn,
-          visualMode === "live" && styles.visualModeBtnActive,
-        ]}
-        onPress={() => {
-          playKeyClick();
-          setModeOverride({ mode: "live", traceRef: liveTraceResult });
-        }}
-      >
-        <Text
-          style={[
-            styles.visualModeBtnText,
-            visualMode === "live" && styles.visualModeBtnTextActive,
-          ]}
-        >
-          🔬 LIVE TRACE (sys.settrace)
-        </Text>
-      </Pressable>
-      {hasTraceData && (
-        <Pressable
-          style={[
-            styles.visualModeBtn,
-            visualMode === "concept" && styles.visualModeBtnActive,
-          ]}
-          onPress={() => {
-            playKeyClick();
-            setModeOverride({ mode: "concept", traceRef: liveTraceResult });
-          }}
-        >
-          <Text
+  const modeSwitcherBar =
+    onRunLiveTrace || isSystemDesign ? (
+      <View style={styles.visualModeBar}>
+        {isSystemDesign && (
+          <Pressable
             style={[
-              styles.visualModeBtnText,
-              visualMode === "concept" && styles.visualModeBtnTextActive,
+              styles.visualModeBtn,
+              visualMode === "arch" && styles.visualModeBtnActive,
             ]}
+            onPress={() => {
+              playKeyClick();
+              setModeOverride({ mode: "arch", traceRef: liveTraceResult });
+            }}
           >
-            📘 CONCEPT TRACE
-          </Text>
-        </Pressable>
-      )}
-    </View>
-  ) : null;
+            <Text
+              style={[
+                styles.visualModeBtnText,
+                visualMode === "arch" && styles.visualModeBtnTextActive,
+              ]}
+            >
+              🏛️ ARCH LAB
+            </Text>
+          </Pressable>
+        )}
+        {onRunLiveTrace && (
+          <Pressable
+            style={[
+              styles.visualModeBtn,
+              visualMode === "live" && styles.visualModeBtnActive,
+            ]}
+            onPress={() => {
+              playKeyClick();
+              setModeOverride({ mode: "live", traceRef: liveTraceResult });
+            }}
+          >
+            <Text
+              style={[
+                styles.visualModeBtnText,
+                visualMode === "live" && styles.visualModeBtnTextActive,
+              ]}
+            >
+              🔬 LIVE TRACE (sys.settrace)
+            </Text>
+          </Pressable>
+        )}
+        {hasTraceData && (
+          <Pressable
+            style={[
+              styles.visualModeBtn,
+              visualMode === "concept" && styles.visualModeBtnActive,
+            ]}
+            onPress={() => {
+              playKeyClick();
+              setModeOverride({ mode: "concept", traceRef: liveTraceResult });
+            }}
+          >
+            <Text
+              style={[
+                styles.visualModeBtnText,
+                visualMode === "concept" && styles.visualModeBtnTextActive,
+              ]}
+            >
+              📘 CONCEPT TRACE
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    ) : null;
+
+  if (visualMode === "arch" && isSystemDesign && lesson) {
+    return (
+      <View>
+        {modeSwitcherBar}
+        <SystemDesignLabPanel lesson={lesson} />
+        {runtimeTraceCard}
+      </View>
+    );
+  }
 
   if (visualMode === "live" && onRunLiveTrace) {
     return (

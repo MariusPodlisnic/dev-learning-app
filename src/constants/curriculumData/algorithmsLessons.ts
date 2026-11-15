@@ -1340,4 +1340,220 @@ except Exception as e:
       "Sort keys with `sorted(counts.keys(), key=lambda x: counts[x], reverse=True)[:k]`.",
     ],
   },
+  {
+    id: "exp-alg-25",
+    title: "Trees & DFS: Range Sum of Binary Search Tree",
+    track: "algorithms",
+    category: "TREES & DFS",
+    difficulty: "Medium",
+    tree_row: 19,
+    lesson_order: 25,
+    is_free: false,
+    description:
+      "Traverse a Binary Search Tree with pruned DFS recursion to sum all node values within [low, high].",
+    content:
+      'Represent each BST node cleanly as a dict `{"val": int, "left": node|None, "right": node|None}`.\n\nBecause BST values strictly satisfy `left < node["val"] < right`, we can **prune** entire branches during DFS:\n• If `node is None`: return `0`\n• Add `node["val"]` when `low <= node["val"] <= high`\n• Recurse `left` only if `node["val"] > low`, and recurse `right` only if `node["val"] < high`!',
+    assignment:
+      'Complete `range_sum_bst(root, low, high)`: return the sum of all node values in the inclusive range `[low, high]` using BST DFS pruning.',
+    constraints: [
+      'Tree nodes are `None` or dicts `{"val": int, "left": ..., "right": ...}`',
+      "Skip subtrees outside `[low, high]` instead of scanning irrelevant branches",
+    ],
+    examples: [
+      {
+        input: 'root = {"val": 10, "left": {"val": 5, "left": None, "right": None}, "right": {"val": 15, "left": None, "right": None}}, low = 6, high = 15',
+        output: "25",
+        explanation: "Nodes 10 and 15 fall inside [6, 15]; 10 + 15 = 25.",
+      },
+    ],
+    complexities: { time: "O(n) worst, pruned average", space: "O(h)" },
+    initial_code: `def range_sum_bst(root, low, high):
+    pass`,
+    expected_output: "25",
+    hidden_tests: `import json
+results = []
+try:
+    t1 = {"val": 10, "left": {"val": 5, "left": {"val": 3, "left": None, "right": None}, "right": {"val": 7, "left": None, "right": None}}, "right": {"val": 15, "left": None, "right": {"val": 18, "left": None, "right": None}}}
+    r1 = range_sum_bst(t1, 7, 15)
+    results.append({"id": 1, "input": "BST [7..15]", "expected": "32", "actual": str(r1), "passed": r1 == 32})
+    r2 = range_sum_bst(t1, 16, 20)
+    results.append({"id": 2, "input": "right branch only [16..20]", "expected": "18", "actual": str(r2), "passed": r2 == 18})
+    r3 = range_sum_bst(None, 1, 10)
+    results.append({"id": 3, "input": "empty root=None", "expected": "0", "actual": str(r3), "passed": r3 == 0})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "tree",
+    visual_data: [
+      { label: "node 10", value: "in [7,15] -> +10; go both", address: "depth 0" },
+      { label: "node 5", value: "< 7 -> prune left, go right (7)", address: "depth 1" },
+      { label: "node 15", value: "in [7,15] -> +15; prune >15 ✓", address: "sum = 32" },
+    ],
+    hints: [
+      "Base case: `if root is None: return 0`.",
+      'Add `root["val"]` if `low <= root["val"] <= high`, plus left when `root["val"] > low` and right when `root["val"] < high`.',
+    ],
+  },
+  {
+    id: "exp-alg-26",
+    title: "Graphs & BFS: Shortest Hop Path",
+    track: "algorithms",
+    category: "GRAPHS & BFS",
+    difficulty: "Medium",
+    tree_row: 20,
+    lesson_order: 26,
+    is_free: false,
+    description:
+      "Find the minimum number of edges between two nodes in an unweighted graph using Breadth-First Search.",
+    content:
+      "**Breadth-First Search (BFS)** explores nodes layer by layer using a FIFO queue (`collections.deque`) and a `visited` set so every edge is traversed at most once.\n\nBecause BFS visits distance `0`, then `1`, then `2`..., the FIRST time it reaches `target`, the hop count is guaranteed to be minimal!",
+    assignment:
+      "Complete `shortest_hop_distance(graph, start, target)`: given an adjacency dictionary `graph` (`{node: [neighbors]}`), return the fewest hops from `start` to `target`, or `-1` if unreachable.",
+    constraints: [
+      "Return `0` immediately when `start == target` (and `start in graph`)",
+      "Use a `visited` set BEFORE enqueuing neighbors to prevent cycles",
+      "Return `-1` if no path reaches `target`",
+    ],
+    examples: [
+      {
+        input: 'graph = {"A": ["B", "C"], "B": ["D"], "C": ["D"], "D": []}, start = "A", target = "D"',
+        output: "2",
+        explanation: "Shortest path A -> B -> D takes 2 hops.",
+      },
+    ],
+    complexities: { time: "O(V + E)", space: "O(V)" },
+    initial_code: `def shortest_hop_distance(graph, start, target):
+    pass`,
+    expected_output: "2",
+    hidden_tests: `import json
+results = []
+try:
+    g = {"A": ["B", "C"], "B": ["A", "D"], "C": ["D", "E"], "D": ["F"], "E": [], "F": []}
+    r1 = shortest_hop_distance(g, "A", "F")
+    results.append({"id": 1, "input": "A -> F cyclic graph", "expected": "3", "actual": str(r1), "passed": r1 == 3})
+    r2 = shortest_hop_distance(g, "A", "A")
+    results.append({"id": 2, "input": "start == target", "expected": "0", "actual": str(r2), "passed": r2 == 0})
+    r3 = shortest_hop_distance(g, "D", "A")
+    results.append({"id": 3, "input": "unreachable target", "expected": "-1", "actual": str(r3), "passed": r3 == -1})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "graph",
+    visual_data: [
+      { label: "dist 0", value: "queue=['A']", address: "layer 0" },
+      { label: "dist 1", value: "visit 'B', 'C'", address: "layer 1" },
+      { label: "dist 2 -> 3", value: "'D' -> reach 'F' ✓", address: "3 hops" },
+    ],
+    hints: [
+      "Use `from collections import deque` with `q = deque([(start, 0)])` and `visited = {start}`.",
+      "When `node == target: return dist`; otherwise push unvisited neighbors `(nbr, dist + 1)`.",
+    ],
+  },
+  {
+    id: "exp-alg-27",
+    title: "Heaps & Priority Queues: Kth Largest Element",
+    track: "algorithms",
+    category: "HEAPS & PRIORITY QUEUES",
+    difficulty: "Medium",
+    tree_row: 21,
+    lesson_order: 27,
+    is_free: false,
+    description:
+      "Maintain a fixed-size min-heap of the K largest numbers seen so far in O(n log k) time.",
+    content:
+      "Python's built-in `heapq` implements a **Min-Heap** in O(log k) per push/pop.\n\nTo track the **Kth largest** item cleanly without sorting the entire stream:\n1. Push each `num` into `heap` with `heapq.heappush(heap, num)`.\n2. Whenever `len(heap) > k`, call `heapq.heappop(heap)` to evict the smallest.\n3. After scanning all items, `heap[0]` is the Kth largest!",
+    assignment:
+      "Complete `kth_largest_score(nums, k)`: maintain a size-`k` min-heap with `heapq` and return the `k`th largest integer in `nums`.",
+    constraints: [
+      "Use `import heapq` with `heappush` and `heappop`",
+      "Keep heap size bounded to at most `k` elements (`len(heap) > k`)",
+      "Return `heap[0]` as the Kth largest element (duplicates count separately)",
+    ],
+    examples: [
+      {
+        input: "nums = [3, 2, 1, 5, 6, 4], k = 2",
+        output: "5",
+        explanation: "Sorted descending: [6, 5, 4, 3, 2, 1] -> 2nd largest is 5.",
+      },
+    ],
+    complexities: { time: "O(n log k)", space: "O(k)" },
+    initial_code: `def kth_largest_score(nums, k):
+    pass`,
+    expected_output: "5",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = kth_largest_score([3, 2, 1, 5, 6, 4], 2)
+    results.append({"id": 1, "input": "[3,2,1,5,6,4], k=2", "expected": "5", "actual": str(r1), "passed": r1 == 5})
+    r2 = kth_largest_score([3, 2, 3, 1, 2, 4, 5, 5, 6], 4)
+    results.append({"id": 2, "input": "duplicates k=4", "expected": "4", "actual": str(r2), "passed": r2 == 4})
+    r3 = kth_largest_score([99], 1)
+    results.append({"id": 3, "input": "single element k=1", "expected": "99", "actual": str(r3), "passed": r3 == 99})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "heap",
+    visual_data: [
+      { label: "push 5, 6", value: "heap = [5, 6]", address: "size=2" },
+      { label: "push 4 -> pop 4", value: "heap = [5, 6]", address: "top=5 ✓" },
+    ],
+    hints: [
+      "Inside `kth_largest_score`: `import heapq`, `heap = []`, loop `for n in nums: heapq.heappush(heap, n)`.",
+      "If `len(heap) > k: heapq.heappop(heap)`. Return `heap[0]`.",
+    ],
+  },
+  {
+    id: "exp-alg-28",
+    title: "Dynamic Programming: Minimum Coin Change",
+    track: "algorithms",
+    category: "DYNAMIC PROGRAMMING",
+    difficulty: "Hard",
+    tree_row: 22,
+    lesson_order: 28,
+    is_free: false,
+    description:
+      "Compute the fewest coins needed to form an exact target amount using bottom-up 1D Dynamic Programming.",
+    content:
+      "Greedy coin selection fails on arbitrary denominations (e.g., coins `[1, 3, 4]` for `6` needs `3+3 = 2`, whereas greedy takes `4+1+1 = 3`).\n\nBottom-up **Dynamic Programming** builds `dp[0..amount]` where `dp[a]` = minimum coins to make `a`:\n• `dp[0] = 0`, all others initialized to `amount + 1` (impossible sentinel)\n• For each sub-amount `a` from `1..amount`, try each `c <= a`: `dp[a] = min(dp[a], dp[a - c] + 1)`!",
+    assignment:
+      "Complete `min_coin_change(coins, amount)`: return the minimum number of coins required to total `amount`, or `-1` if impossible.",
+    constraints: [
+      "Handle `amount == 0` -> `0` coins",
+      "Use bottom-up DP table `dp` of size `amount + 1`",
+      "Return `-1` when `dp[amount] > amount`",
+    ],
+    examples: [
+      {
+        input: "coins = [1, 3, 4], amount = 6",
+        output: "2",
+        explanation: "3 + 3 = 6 uses only 2 coins (better than greedy 4 + 1 + 1 = 3).",
+      },
+    ],
+    complexities: { time: "O(amount * len(coins))", space: "O(amount)" },
+    initial_code: `def min_coin_change(coins, amount):
+    pass`,
+    expected_output: "2",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = min_coin_change([1, 3, 4], 6)
+    results.append({"id": 1, "input": "coins=[1,3,4], amount=6 (anti-greedy)", "expected": "2", "actual": str(r1), "passed": r1 == 2})
+    r2 = min_coin_change([2], 3)
+    results.append({"id": 2, "input": "coins=[2], amount=3 (impossible)", "expected": "-1", "actual": str(r2), "passed": r2 == -1})
+    r3 = min_coin_change([1, 2, 5], 0)
+    results.append({"id": 3, "input": "amount=0", "expected": "0", "actual": str(r3), "passed": r3 == 0})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "dp_table",
+    visual_data: [
+      { label: "dp[0..2]", value: "[0, 1, 2]", address: "base" },
+      { label: "dp[3..5]", value: "[1, 1, 2]", address: "subproblems" },
+      { label: "dp[6]", value: "dp[6-3] + 1 = 2 ✓", address: "optimal" },
+    ],
+    hints: [
+      "Initialize `dp = [amount + 1] * (amount + 1)` and `dp[0] = 0`.",
+      "Loop `for a in range(1, amount + 1): for c in coins: if c <= a: dp[a] = min(dp[a], dp[a - c] + 1)`.",
+    ],
+  },
 ];

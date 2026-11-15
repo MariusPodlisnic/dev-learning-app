@@ -20,6 +20,7 @@ import {
   hydrateSoundPreference,
   STORAGE_SOUND_KEY,
 } from "../utils/soundEffects";
+import type { ReviewScheduleEntry } from "../utils/spacedRepetition";
 import {
   CloudProgressState,
   pullAndMergeCloudState,
@@ -81,6 +82,9 @@ export function useStudioSync({
   const [claimedChapters, setClaimedChapters] = useState<
     Record<string, boolean>
   >({});
+  const [reviewSchedule, setReviewSchedule] = useState<
+    Record<string, ReviewScheduleEntry>
+  >({});
 
   const [session, setSession] = useState<Session | null>(null);
   const [isPremium, setIsPremium] = useState<boolean>(false);
@@ -101,6 +105,7 @@ export function useStudioSync({
     solvedIncidents: {},
     claimedChapters: {},
     claimedStreakMilestones: {},
+    reviewSchedule: {},
     streakShields: 1,
     dailyCompletedDate: null,
     lastActiveDate: null,
@@ -144,6 +149,7 @@ export function useStudioSync({
     setSolvedIncidents(snapshot.solvedIncidents);
     setClaimedChapters(snapshot.claimedChapters);
     setClaimedStreakMilestones(snapshot.claimedStreakMilestones);
+    setReviewSchedule(snapshot.reviewSchedule || {});
     setStreakShields(snapshot.streakShields);
     setDailyCompletedDate(snapshot.dailyCompletedDate);
     setLastActiveDate(snapshot.lastActiveDate);
@@ -284,6 +290,7 @@ export function useStudioSync({
       solvedIncidents,
       claimedChapters,
       claimedStreakMilestones,
+      reviewSchedule,
       streakShields,
       dailyCompletedDate,
       lastActiveDate,
@@ -303,6 +310,7 @@ export function useStudioSync({
     solvedIncidents,
     claimedChapters,
     claimedStreakMilestones,
+    reviewSchedule,
     streakShields,
     dailyCompletedDate,
     lastActiveDate,
@@ -328,6 +336,7 @@ export function useStudioSync({
       dailyCompletedDate,
       lastActiveDate,
       claimedStreakMilestones,
+      reviewSchedule,
       streakShields,
       devProOverride,
       activeTrack,
@@ -346,6 +355,7 @@ export function useStudioSync({
     dailyCompletedDate,
     lastActiveDate,
     claimedStreakMilestones,
+    reviewSchedule,
     streakShields,
     devProOverride,
     activeTrack,
@@ -385,6 +395,7 @@ export function useStudioSync({
         dailyCompletedDate?: string | null;
         lastActiveDate?: string | null;
         claimedStreakMilestones?: Record<number, boolean>;
+        reviewSchedule?: Record<string, ReviewScheduleEntry>;
         streakShields?: number;
         devProOverride?: boolean | null;
         activeTrack?: string;
@@ -422,6 +433,9 @@ export function useStudioSync({
       if (savedState.claimedStreakMilestones) {
         setClaimedStreakMilestones(savedState.claimedStreakMilestones);
       }
+      if (savedState.reviewSchedule) {
+        setReviewSchedule(savedState.reviewSchedule);
+      }
       if (typeof savedState.streakShields === "number") {
         setStreakShields(savedState.streakShields);
       }
@@ -450,6 +464,7 @@ export function useStudioSync({
         solvedIncidents: savedState.solvedIncidents || {},
         claimedChapters: savedState.claimedChapters || {},
         claimedStreakMilestones: savedState.claimedStreakMilestones || {},
+        reviewSchedule: savedState.reviewSchedule || {},
         streakShields:
           typeof savedState.streakShields === "number"
             ? savedState.streakShields
@@ -545,6 +560,8 @@ export function useStudioSync({
     setStreakShields,
     claimedChapters,
     setClaimedChapters,
+    reviewSchedule,
+    setReviewSchedule,
     session,
     isPremium,
     setIsPremium,

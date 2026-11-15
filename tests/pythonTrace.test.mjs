@@ -152,7 +152,7 @@ test("sum_doubled_xp (exp-py-02) extracts direct hidden test call and traces cle
   assert.ok(res.frames.some((f) => f.returnValue === "70"));
 });
 
-test("all 90 core lesson solutions trace cleanly under sys.settrace without driver TypeErrors", () => {
+test("all 100 core lesson solutions trace cleanly under sys.settrace without driver TypeErrors", () => {
   const lessons = mergeCurriculumLessons([]);
   const pythonBin = resolvePythonBinary();
   assert.ok(pythonBin);

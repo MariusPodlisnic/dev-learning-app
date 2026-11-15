@@ -396,6 +396,66 @@ __run_tests__()`,
       "For `PASS`, use `len(pwd) >= 8 and any(ch.isdigit() for ch in pwd)`.",
     ],
   },
+  {
+    id: "py-recap-ch7",
+    title: "Chapter VII Recap: Telemetry Pipeline & Wallet Engine",
+    track: "python_basics",
+    category: "🏆 CHAPTER VII RECAP",
+    difficulty: "Medium",
+    tree_row: 1007,
+    lesson_order: 107,
+    is_free: true,
+    is_recap: true,
+    recap_chapter: 7,
+    recap_topics: [
+      "Comprehensions",
+      "OOP State",
+      "Regex Parsing",
+      "Decorators",
+    ],
+    description:
+      "Conclusive Chapter VII capstone combining regex log extraction, comprehension filtering, and stateful credit tracking.",
+    content:
+      "Put **Chapter VII** modern Python skills together in `process_log_credits(log_lines, initial_credits, cost_per_error)`:\n1. Use `re.findall(r'ERR-\\d+', line)` on each log line to extract error codes.\n2. Filter `{code: count}` via comprehensions/dicts for all codes seen across lines.\n3. Deduct `total_errors * cost_per_error` from `initial_credits` (never below `0`).\nReturn `(error_counts_dict, remaining_credits)`.",
+    assignment:
+      "Implement `process_log_credits(log_lines, initial_credits, cost_per_error)` returning `(counts, remaining_credits)` where `counts` maps each matched `ERR-###` token to its count and `remaining_credits = max(0, initial_credits - total_errors * cost_per_error)`.",
+    constraints: [
+      "Extract all `ERR-\\d+` matches per line using `re.findall`",
+      "Count frequency per error code into `counts`",
+      "Clamp `remaining_credits` cleanly at `>= 0`",
+    ],
+    examples: [
+      {
+        input: 'log_lines = ["ERR-500 db ERR-404", "200 ok", "ERR-500 retry"], initial_credits = 100, cost_per_error = 15',
+        output: "({'ERR-500': 2, 'ERR-404': 1}, 55)",
+        explanation: "3 total errors * 15 = 45 cost -> 100 - 45 = 55 credits left.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(k)" },
+    initial_code: `def process_log_credits(log_lines, initial_credits, cost_per_error):
+    pass`,
+    expected_output: "({'ERR-500': 2, 'ERR-404': 1}, 55)",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    r1 = process_log_credits(["ERR-500 db ERR-404", "200 ok", "ERR-500 retry"], 100, 15)
+    results.append({"id": 1, "input": "3 errors @ 15", "expected": "({'ERR-500': 2, 'ERR-404': 1}, 55)", "actual": str(r1), "passed": r1 == ({"ERR-500": 2, "ERR-404": 1}, 55)})
+    r2 = process_log_credits(["ERR-999 panic", "ERR-999 panic"], 10, 50)
+    results.append({"id": 2, "input": "clamp credits at 0", "expected": "({'ERR-999': 2}, 0)", "actual": str(r2), "passed": r2 == ({"ERR-999": 2}, 0)})
+    r3 = process_log_credits([], 40, 10)
+    results.append({"id": 3, "input": "empty logs", "expected": "({}, 40)", "actual": str(r3), "passed": r3 == ({}, 40)})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "re.findall", value: "['ERR-500', 'ERR-404', 'ERR-500']", type: "list", address: "0xL1" },
+      { label: "credits", value: "100 - 45 -> 55", type: "int", address: "0xL2" },
+    ],
+    hints: [
+      "`import re` and loop through each line gathering `re.findall(r'ERR-\\d+', line)`.",
+      "Clamp credits with `max(0, initial_credits - total_errors * cost_per_error)`.",
+    ],
+  },
 
   // =========================================================================
   // TRACK 2: ALGORITHMS — 6 CUMULATIVE CHAPTER RECAP CAPSTONES (PRO)
@@ -741,6 +801,66 @@ __run_tests__()`,
     hints: [
       "Sort a copy of `windows` by `w[0]` and merge whenever `start <= merged[-1][1]`.",
       "For `prices`, track `low = float('inf')` and `profit = 0`.",
+    ],
+  },
+  {
+    id: "alg-recap-ch7",
+    title: "Chapter VII Algo Recap: Tree, Graph & DP Mission Planner",
+    track: "algorithms",
+    category: "🏆 CHAPTER VII RECAP",
+    difficulty: "Hard",
+    tree_row: 1007,
+    lesson_order: 107,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 7,
+    recap_topics: [
+      "Trees & DFS",
+      "Graph BFS",
+      "Min-Heap",
+      "Dynamic Programming",
+    ],
+    description:
+      "Conclusive Chapter VII Algo capstone uniting shortest-hop graph BFS with bottom-up DP step planning.",
+    content:
+      "Combine **Graph BFS** and **Dynamic Programming** inside `plan_mission_cost(graph, start, target, step_costs)`:\n1. Use BFS to find `min_hops` from `start` to `target` in `graph` (`-1` if unreachable -> immediately return `-1`).\n2. Given `min_hops` edges, use DP `min_coin_change(step_costs, min_hops)` (minimum tokens from `step_costs` summing to `min_hops`, or `-1` if impossible)!\nReturn that optimal count.",
+    assignment:
+      "Complete `plan_mission_cost(graph, start, target, step_costs)`: compute shortest BFS hop count `d` from `start` to `target`, then return minimum coins from `step_costs` totaling `d` (or `-1` if unreachable or unpayable).",
+    constraints: [
+      "Return `0` if `start == target` and `start in graph`",
+      "Return `-1` if `target` is unreachable via BFS or `min_hops` cannot be paid cleanly",
+    ],
+    examples: [
+      {
+        input: 'graph={"A":["B","C"],"B":["D"],"C":["D"],"D":[]}, start="A", target="D", step_costs=[1, 2]',
+        output: "1",
+        explanation: "Shortest distance A->D is 2 hops; paying 2 takes 1 coin of size 2.",
+      },
+    ],
+    complexities: { time: "O(V + E + V * len(step_costs))", space: "O(V)" },
+    initial_code: `def plan_mission_cost(graph, start, target, step_costs):
+    pass`,
+    expected_output: "1",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    g = {"A": ["B", "C"], "B": ["D"], "C": ["D"], "D": ["E"], "E": []}
+    r1 = plan_mission_cost(g, "A", "E", [1, 2, 3])
+    results.append({"id": 1, "input": "A->E (3 hops) with step 3", "expected": "1", "actual": str(r1), "passed": r1 == 1})
+    r2 = plan_mission_cost(g, "A", "D", [2])
+    results.append({"id": 2, "input": "A->D (2 hops) with [2]", "expected": "1", "actual": str(r2), "passed": r2 == 1})
+    r3 = plan_mission_cost(g, "E", "A", [1, 2])
+    results.append({"id": 3, "input": "unreachable target", "expected": "-1", "actual": str(r3), "passed": r3 == -1})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "dp_table",
+    visual_data: [
+      { label: "BFS(A -> E)", value: "min_hops = 3", address: "graph" },
+      { label: "DP(amount=3)", value: "min_coins([1,2,3], 3) = 1 ✓", address: "optimal" },
+    ],
+    hints: [
+      "First run BFS with `collections.deque` to compute `hops` (`-1` if not found).",
+      "Then compute `dp = [hops + 1] * (hops + 1); dp[0] = 0` for `step_costs`.",
     ],
   },
 

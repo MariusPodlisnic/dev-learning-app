@@ -1327,4 +1327,228 @@ except Exception as e:
       "Return `f'Bot: {reply}'` to format the message.",
     ],
   },
+  {
+    id: "exp-py-25",
+    title: "Comprehensions: Filter & Map Records",
+    track: "python_basics",
+    category: "MODERN PYTHON",
+    difficulty: "Medium",
+    tree_row: 19,
+    lesson_order: 25,
+    is_free: true,
+    description:
+      "Transform and filter collections in one expressive comprehension using a dict comprehension.",
+    content:
+      "A **dict comprehension** builds a new dictionary from filtered items cleanly in a single line:\n\n```python\npassed = {name.strip(): score for name, score in records if score >= 70}\n```\n\nIt replaces boilerplate `result = {}` + `for` + `if` blocks with concise, Pythonic code.",
+    assignment:
+      "Complete `passing_score_map(records, min_score)`: given `(name, score)` tuples, return a dictionary mapping `name.strip()` to `score` ONLY for rows where `score >= min_score`.",
+    constraints: [
+      "Strip surrounding spaces from each `name` using `.strip()`",
+      "Include entries only when `score >= min_score`",
+      "Return a `dict` mapping cleaned names to integer scores",
+    ],
+    examples: [
+      {
+        input: 'records = [(" Aria ", 92), ("Kai", 64)], min_score = 70',
+        output: "{'Aria': 92}",
+        explanation: "Kai (64) is filtered out; ' Aria ' trims to 'Aria'.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(k)" },
+    initial_code: `def passing_score_map(records, min_score):
+    pass`,
+    expected_output: "{'Aria': 92}",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = passing_score_map([(" Aria ", 92), ("Kai", 64), ("Leo", 70)], 70)
+    results.append({"id": 1, "input": "min_score=70 boundary", "expected": "{'Aria': 92, 'Leo': 70}", "actual": str(r1), "passed": r1 == {"Aria": 92, "Leo": 70}})
+    r2 = passing_score_map([("Bob", 40)], 80)
+    results.append({"id": 2, "input": "none passing", "expected": "{}", "actual": str(r2), "passed": r2 == {}})
+    r3 = passing_score_map([], 50)
+    results.append({"id": 3, "input": "empty records", "expected": "{}", "actual": str(r3), "passed": r3 == {}})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "(' Aria ', 92)", value: "92 >= 70 -> store 'Aria': 92", type: "dict", address: "0x25" },
+      { label: "('Kai', 64)", value: "64 < 70 -> skipped", type: "skip", address: "0x26" },
+    ],
+    hints: [
+      "Write `return {name.strip(): score for name, score in records if score >= min_score}`.",
+    ],
+  },
+  {
+    id: "exp-py-26",
+    title: "OOP State: WalletAccount Class",
+    track: "python_basics",
+    category: "OBJECT ORIENTED",
+    difficulty: "Medium",
+    tree_row: 20,
+    lesson_order: 26,
+    is_free: true,
+    description:
+      "Model real entities cleanly with classes, `__init__` state, and validation methods.",
+    content:
+      "In **Object-Oriented Programming (OOP)**, a `class` bundles state (`self.balance`) together with safe methods that modify it:\n\n```python\nclass Counter:\n    def __init__(self, start=0):\n        self.value = start\n    def inc(self, step):\n        self.value += step\n```",
+    assignment:
+      "Implement `class WalletAccount` with `__init__(self, balance=0)` storing `self.balance`, `deposit(self, amount)` returning `self.balance` after adding positive amounts, and `withdraw(self, amount)` returning `True` (and deducting) if `0 < amount <= self.balance`, else `False`.",
+    constraints: [
+      "Store `self.balance = balance` in `__init__`",
+      "`deposit(amount)` adds `amount` if `amount > 0` and returns `self.balance`",
+      "`withdraw(amount)` guards against overdraft (`amount > self.balance`) and returns `False` without changing `self.balance`",
+    ],
+    examples: [
+      {
+        input: "w = WalletAccount(100); w.deposit(50); w.withdraw(120); w.withdraw(50)",
+        output: "150, True, False (balance=30)",
+        explanation: "Overdraft of 50 when balance is 30 returns False cleanly.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `class WalletAccount:
+    def __init__(self, balance=0):
+        pass
+
+    def deposit(self, amount):
+        pass
+
+    def withdraw(self, amount):
+        pass`,
+    expected_output: "True",
+    hidden_tests: `import json
+results = []
+try:
+    w = WalletAccount(100)
+    d1 = w.deposit(50)
+    bal1 = getattr(w, "balance", None)
+    results.append({"id": 1, "input": "deposit(50) from 100", "expected": "150", "actual": str(d1), "passed": d1 == 150 and bal1 == 150})
+    w1 = w.withdraw(120)
+    bal2 = getattr(w, "balance", None)
+    results.append({"id": 2, "input": "withdraw(120) succeeds", "expected": "True (bal=30)", "actual": f"{w1} (bal={bal2})", "passed": w1 is True and bal2 == 30})
+    w2 = w.withdraw(50)
+    bal3 = getattr(w, "balance", None)
+    results.append({"id": 3, "input": "withdraw(50) overdraft blocked", "expected": "False (bal=30)", "actual": f"{w2} (bal={bal3})", "passed": w2 is False and bal3 == 30})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "self.balance", value: "100 -> 150 -> 30", type: "int", address: "0xW1" },
+      { label: "withdraw(50)", value: "50 > 30 -> False", type: "bool", address: "0xW2" },
+    ],
+    hints: [
+      "Inside `deposit`: `if amount > 0: self.balance += amount` then `return self.balance`.",
+      "Inside `withdraw`: `if 0 < amount <= self.balance: self.balance -= amount; return True` else `return False`.",
+    ],
+  },
+  {
+    id: "exp-py-27",
+    title: "Regex & Parsing: Log Error Extractor",
+    track: "python_basics",
+    category: "REGEX & PARSING",
+    difficulty: "Medium",
+    tree_row: 21,
+    lesson_order: 27,
+    is_free: true,
+    description:
+      "Extract structured error codes from raw server logs using Python's built-in `re` module.",
+    content:
+      "Python's `re` module extracts matching tokens cleanly with **`re.findall(pattern, text)`**:\n\n```python\nimport re\ncodes = re.findall(r\"ERR-\\d+\", \"timeout ERR-404 and ERR-500\")\n# ['ERR-404', 'ERR-500']\n```",
+    assignment:
+      'Complete `extract_error_codes(log_text)`: import `re` and return a list of all tokens matching `ERR-` followed by one or more digits (e.g. `ERR-404`, `ERR-503`) in order of appearance.',
+    constraints: [
+      "Use `re.findall(r\"ERR-\\d+\", log_text)`",
+      "Return `[]` when no valid error code appears",
+    ],
+    examples: [
+      {
+        input: 'log_text = "[WARN] ERR-404 retry ERR-503 ERR-bad"',
+        output: "['ERR-404', 'ERR-503']",
+        explanation: "'ERR-bad' has no digits after 'ERR-', so only digits match.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(k)" },
+    initial_code: `def extract_error_codes(log_text):
+    pass`,
+    expected_output: "['ERR-404', 'ERR-503']",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = extract_error_codes("[WARN] ERR-404 retry ERR-503 ERR-bad")
+    results.append({"id": 1, "input": "mixed valid and invalid", "expected": "['ERR-404', 'ERR-503']", "actual": str(r1), "passed": r1 == ["ERR-404", "ERR-503"]})
+    r2 = extract_error_codes("200 OK healthy")
+    results.append({"id": 2, "input": "no errors", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    r3 = extract_error_codes("ERR-1 -> ERR-9999")
+    results.append({"id": 3, "input": "variable digit lengths", "expected": "['ERR-1', 'ERR-9999']", "actual": str(r3), "passed": r3 == ["ERR-1", "ERR-9999"]})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "match 1", value: "'ERR-404'", type: "str", address: "re[0]" },
+      { label: "match 2", value: "'ERR-503'", type: "str", address: "re[1]" },
+    ],
+    hints: [
+      "Put `import re` at the top (or inside the function) and return `re.findall(r\"ERR-\\d+\", log_text)`.",
+    ],
+  },
+  {
+    id: "exp-py-28",
+    title: "Decorators & Mini Test Runner",
+    track: "python_basics",
+    category: "DECORATORS & TESTING",
+    difficulty: "Medium",
+    tree_row: 22,
+    lesson_order: 28,
+    is_free: true,
+    description:
+      "Wrap functions with decorators to count invocations cleanly like logging and test harnesses.",
+    content:
+      "A Python **decorator** wraps a function `fn` and returns an inner `wrapper(*args, **kwargs)` function that runs extra logic before/after calling `fn`:\n\n```python\ndef with_calls(fn):\n    def wrapper(*args, **kwargs):\n        wrapper.calls += 1\n        return fn(*args, **kwargs)\n    wrapper.calls = 0\n    return wrapper\n```",
+    assignment:
+      "Complete `count_calls(fn)`: return a wrapper function storing `.calls = 0` that increments `wrapper.calls += 1` every time it is called and returns `fn(*args, **kwargs)`.",
+    constraints: [
+      "Initialize `wrapper.calls = 0` before returning `wrapper`",
+      "Support arbitrary positional & keyword arguments via `*args, **kwargs`",
+      "Increment `wrapper.calls += 1` on every invocation and forward `fn`'s return value",
+    ],
+    examples: [
+      {
+        input: "wrapped = count_calls(lambda x: x + 1); wrapped(4); wrapped(9); wrapped.calls",
+        output: "2",
+        explanation: "Each call increments wrapper.calls and returns x + 1 (5, then 10).",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def count_calls(fn):
+    pass`,
+    expected_output: "2",
+    hidden_tests: `import json
+results = []
+try:
+    wrapped = count_calls(lambda x, mult=1: (x + 1) * mult)
+    is_wrap = callable(wrapped)
+    v0 = getattr(wrapped, "calls", None) if is_wrap else None
+    v1 = wrapped(4) if is_wrap else None
+    v2 = wrapped(9, mult=2) if is_wrap else None
+    v_calls = getattr(wrapped, "calls", None) if is_wrap else None
+    results.append({"id": 1, "input": "initial .calls == 0", "expected": "0", "actual": str(v0), "passed": is_wrap and v0 == 0})
+    results.append({"id": 2, "input": "forwards return values", "expected": "(5, 20)", "actual": str((v1, v2)), "passed": is_wrap and (v1, v2) == (5, 20)})
+    results.append({"id": 3, "input": "calls incremented to 2", "expected": "2", "actual": str(v_calls), "passed": is_wrap and v_calls == 2})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "init", value: "wrapper.calls = 0", type: "int", address: "0xD0" },
+      { label: "call #1", value: "calls=1 -> fn(4)=5", type: "fn", address: "0xD1" },
+      { label: "call #2", value: "calls=2 -> fn(9, mult=2)=20", type: "fn", address: "0xD2" },
+    ],
+    hints: [
+      "Define `def wrapper(*args, **kwargs):` inside `count_calls(fn)`.",
+      "Set `wrapper.calls = 0` on `wrapper`, increment `wrapper.calls += 1` inside it, and `return wrapper`.",
+    ],
+  },
 ];
