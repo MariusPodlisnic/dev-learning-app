@@ -165,3 +165,63 @@ export function formatBlitzDeckLabel(deck: string): string {
   if (deck === "system_design") return "SYS DESIGN";
   return "PYTHON CORE";
 }
+
+export const BLITZ_ROUND_SECONDS = 60;
+export const BLITZ_QUICK_DRAW_MS = 3200;
+export const BLITZ_QUICK_DRAW_BONUS_XP = 5;
+
+export interface BlitzHitReward {
+  nextCombo: number;
+  multiplier: number;
+  baseXp: number;
+  quickDrawBonusXp: number;
+  earnedXp: number;
+  timeBonusSec: number;
+}
+
+/**
+ * Computes combo multiplier, quick-draw speed bonus, and streak +2s clock boosts
+ * for a correct Speed Blitz answer.
+ */
+export function computeBlitzHitReward(params: {
+  currentCombo: number;
+  responseMs: number;
+}): BlitzHitReward {
+  const nextCombo = params.currentCombo + 1;
+  const multiplier = Math.min(4, Math.floor(nextCombo / 2) + 1);
+  const baseXp = 10 * multiplier;
+  const quickDrawBonusXp =
+    params.responseMs > 0 && params.responseMs <= BLITZ_QUICK_DRAW_MS
+      ? BLITZ_QUICK_DRAW_BONUS_XP
+      : 0;
+  const earnedXp = baseXp + quickDrawBonusXp;
+  const timeBonusSec = nextCombo % 3 === 0 ? 2 : 0;
+
+  return {
+    nextCombo,
+    multiplier,
+    baseXp,
+    quickDrawBonusXp,
+    earnedXp,
+    timeBonusSec,
+  };
+}
+
+/**
+ * Returns the next Speed Blitz rank milestone above the current cleared count,
+ * or null when S-Rank is reached.
+ */
+export function getNextBlitzRankTarget(
+  cleared: number,
+): { nextRankLabel: string; remainingClears: number } | null {
+  if (cleared < 4) {
+    return { nextRankLabel: "B-RANK // SOLID", remainingClears: 4 - cleared };
+  }
+  if (cleared < 8) {
+    return { nextRankLabel: "A-RANK // FAST", remainingClears: 8 - cleared };
+  }
+  if (cleared < 12) {
+    return { nextRankLabel: "S-RANK // TURBO", remainingClears: 12 - cleared };
+  }
+  return null;
+}

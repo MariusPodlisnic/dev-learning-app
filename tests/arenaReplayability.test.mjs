@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  BLITZ_QUICK_DRAW_BONUS_XP,
   buildMistakeReviewDeck,
   buildSeededDeck,
   calculateBugHuntReward,
   clearMistakeId,
+  computeBlitzHitReward,
   filterBlitzPool,
   getBugHuntTimeLimit,
   getDailyDateKey,
+  getNextBlitzRankTarget,
   pickDailyBugIncident,
   recordMistakeId,
 } from "../src/utils/arenaReplayability.ts";
@@ -107,4 +110,38 @@ test("filterBlitzPool strictly isolates python_basics from system_design and alg
 
   const proMega = filterBlitzPool(BLITZ_CARDS, "all", true);
   assert.equal(proMega.length, BLITZ_CARDS.length);
+});
+
+test("computeBlitzHitReward awards combo multipliers, quick-draw XP bonus, and 3-streak time boost", () => {
+  const quickThird = computeBlitzHitReward({ currentCombo: 2, responseMs: 1800 });
+  assert.equal(quickThird.nextCombo, 3);
+  assert.equal(quickThird.multiplier, 2);
+  assert.equal(quickThird.baseXp, 20);
+  assert.equal(quickThird.quickDrawBonusXp, BLITZ_QUICK_DRAW_BONUS_XP);
+  assert.equal(quickThird.earnedXp, 25);
+  assert.equal(quickThird.timeBonusSec, 2);
+
+  const slowFifth = computeBlitzHitReward({ currentCombo: 4, responseMs: 5100 });
+  assert.equal(slowFifth.nextCombo, 5);
+  assert.equal(slowFifth.multiplier, 3);
+  assert.equal(slowFifth.baseXp, 30);
+  assert.equal(slowFifth.quickDrawBonusXp, 0);
+  assert.equal(slowFifth.earnedXp, 30);
+  assert.equal(slowFifth.timeBonusSec, 0);
+});
+
+test("getNextBlitzRankTarget reports remaining clears until S-Rank and null at 12+", () => {
+  assert.deepEqual(getNextBlitzRankTarget(2), {
+    nextRankLabel: "B-RANK // SOLID",
+    remainingClears: 2,
+  });
+  assert.deepEqual(getNextBlitzRankTarget(6), {
+    nextRankLabel: "A-RANK // FAST",
+    remainingClears: 2,
+  });
+  assert.deepEqual(getNextBlitzRankTarget(10), {
+    nextRankLabel: "S-RANK // TURBO",
+    remainingClears: 2,
+  });
+  assert.equal(getNextBlitzRankTarget(12), null);
 });

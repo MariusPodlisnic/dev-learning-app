@@ -28,12 +28,15 @@ import {
   writeLocalJson,
 } from "../types/lesson";
 import {
+  BLITZ_ROUND_SECONDS,
   buildMistakeReviewDeck,
   buildSeededDeck,
   clearMistakeId,
+  computeBlitzHitReward,
   filterBlitzPool,
   formatBlitzDeckLabel,
   getDailyDateKey,
+  getNextBlitzRankTarget,
   recordMistakeId,
 } from "../utils/arenaReplayability";
 import {
@@ -123,7 +126,10 @@ export default function SyntaxBlitzArena({
   const [gameState, setGameState] = useState<"lobby" | "playing" | "finished">(
     "lobby",
   );
-  const [timeLeft, setTimeLeft] = useState<number>(60);
+  const [roundId, setRoundId] = useState<number>(0);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [endedEarly, setEndedEarly] = useState<boolean>(false);
+  const [timeLeft, setTimeLeft] = useState<number>(BLITZ_ROUND_SECONDS);
   const [deckQueue, setDeckQueue] = useState<BlitzCardItem[]>([]);
   const [cardIndex, setCardIndex] = useState<number>(0);
   const [pickedOption, setPickedOption] = useState<number | null>(null);
@@ -133,9 +139,17 @@ export default function SyntaxBlitzArena({
   const [maxCombo, setMaxCombo] = useState<number>(0);
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [attemptCount, setAttemptCount] = useState<number>(0);
+  const [fastHitCount, setFastHitCount] = useState<number>(0);
+  const [lastHitInfo, setLastHitInfo] = useState<{
+    earnedXp: number;
+    multiplier: number;
+    quickDrawBonusXp: number;
+  } | null>(null);
   const [answerGrid, setAnswerGrid] = useState<("🟩" | "🟥")[]>([]);
   const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
   const [bonusSecondsToast, setBonusSecondsToast] = useState<boolean>(false);
+  const [roundTargetBest, setRoundTargetBest] = useState<number>(0);
+  const [newBestAchieved, setNewBestAchieved] = useState<boolean>(false);
   const [highScore, setHighScore] = useState<number>(() => {
     const saved = Number(readLocalJson<number>(BLITZ_HIGHSCORE_KEY, 0));
     return Number.isFinite(saved) ? saved : 0;
@@ -184,6 +198,36 @@ export default function SyntaxBlitzArena({
     scoreXpRef.current = scoreXp;
   }, [scoreXp]);
 
+  const cardActiveStartRef = useRef<number>(0);
+  const cardAccumulatedMsRef = useRef<number>(0);
+  const bonusToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const roundTargetBestRef = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      if (bonusToastTimerRef.current) {
+        clearTimeout(bonusToastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const prevCardKeyRef = useRef<string>("");
+  useEffect(() => {
+    const cardKey = `${roundId}:${cardIndex}`;
+    if (prevCardKeyRef.current !== cardKey || gameState !== "playing") {
+      cardAccumulatedMsRef.current = 0;
+      prevCardKeyRef.current = cardKey;
+    }
+    if (gameState !== "playing" || isPaused) {
+      return;
+    }
+    const activeStart = Date.now();
+    cardActiveStartRef.current = activeStart;
+    return () => {
+      cardAccumulatedMsRef.current += Date.now() - activeStart;
+    };
+  }, [gameState, isPaused, cardIndex, roundId]);
+
   const accessiblePool = useMemo(
     () =>
       isPremium
@@ -202,12 +246,43 @@ export default function SyntaxBlitzArena({
     [accessiblePool, mistakeIds],
   );
 
+  function clearToastTimer() {
+    if (bonusToastTimerRef.current) {
+      clearTimeout(bonusToastTimerRef.current);
+      bonusToastTimerRef.current = null;
+    }
+    setBonusSecondsToast(false);
+  }
+
+  function resetArenaToLobby() {
+    clearToastTimer();
+    setIsPaused(false);
+    setEndedEarly(false);
+    setDeckQueue([]);
+    setCardIndex(0);
+    setPickedOption(null);
+    setScoreXp(0);
+    setCombo(0);
+    setMaxCombo(0);
+    setCorrectCount(0);
+    setAttemptCount(0);
+    setFastHitCount(0);
+    setLastHitInfo(null);
+    setAnswerGrid([]);
+    setShareFeedback("idle");
+    setRoundTargetBest(0);
+    roundTargetBestRef.current = 0;
+    setNewBestAchieved(false);
+    setTimeLeft(BLITZ_ROUND_SECONDS);
+    setGameState("lobby");
+  }
+
   function startRound(
     deckKey: BlitzDeckKey = selectedDeck,
     modeOverride: BlitzMode = blitzMode,
   ) {
     if (modeOverride === "mistakes") {
-      setGameState("lobby");
+      resetArenaToLobby();
       return;
     }
     if (
@@ -224,6 +299,14 @@ export default function SyntaxBlitzArena({
         ? buildSeededDeck(pool, `${todayDateKey}:${deckKey}`)
         : shuffleCards(pool);
 
+    const targetBest = modeOverride === "daily" ? dailyBestXp : highScore;
+    roundTargetBestRef.current = targetBest;
+    setRoundTargetBest(targetBest);
+    setNewBestAchieved(false);
+
+    clearToastTimer();
+    setIsPaused(false);
+    setEndedEarly(false);
     setDeckQueue(queue);
     setCardIndex(0);
     setPickedOption(null);
@@ -232,9 +315,13 @@ export default function SyntaxBlitzArena({
     setMaxCombo(0);
     setCorrectCount(0);
     setAttemptCount(0);
+    setFastHitCount(0);
+    setLastHitInfo(null);
     setAnswerGrid([]);
     setShareFeedback("idle");
-    setTimeLeft(60);
+    setTimeLeft(BLITZ_ROUND_SECONDS);
+    cardAccumulatedMsRef.current = 0;
+    setRoundId((prev) => prev + 1);
     setGameState("playing");
   }
 
@@ -257,11 +344,17 @@ export default function SyntaxBlitzArena({
     });
   }
 
-  function finishRound(finalXp: number) {
+  function finishRound(finalXp: number, earlyExit: boolean = false) {
+    clearToastTimer();
+    setIsPaused(false);
+    setEndedEarly(earlyExit);
     setGameState("finished");
     playVictoryFanfare();
     if (finalXp > 0) {
       onAwardBlitzXp(finalXp);
+    }
+    if (finalXp > roundTargetBestRef.current && finalXp > 0) {
+      setNewBestAchieved(true);
     }
     if (finalXp > highScore) {
       setHighScore(finalXp);
@@ -274,6 +367,27 @@ export default function SyntaxBlitzArena({
     }
   }
 
+  function handleEndChallenge() {
+    if (gameState !== "playing") return;
+    playKeyClick();
+    if (attemptCount === 0) {
+      resetArenaToLobby();
+      return;
+    }
+    finishRound(scoreXpRef.current, true);
+  }
+
+  function handleRestartFresh() {
+    playKeyClick();
+    startRound(selectedDeck, blitzMode);
+  }
+
+  function handleTogglePause() {
+    if (gameState !== "playing") return;
+    playKeyClick();
+    setIsPaused((prev) => !prev);
+  }
+
   const finishRoundRef = useRef(finishRound);
   useEffect(() => {
     finishRoundRef.current = finishRound;
@@ -281,27 +395,36 @@ export default function SyntaxBlitzArena({
 
   // Countdown timer effect
   useEffect(() => {
-    if (gameState !== "playing") return;
+    if (gameState !== "playing" || isPaused) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          finishRoundRef.current(scoreXpRef.current);
+          finishRoundRef.current(scoreXpRef.current, false);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [gameState]);
+  }, [gameState, isPaused]);
 
   const currentCard = deckQueue[cardIndex % Math.max(deckQueue.length, 1)];
   const multiplier = Math.min(4, Math.floor(combo / 2) + 1);
+  const nextRankTarget = getNextBlitzRankTarget(correctCount);
 
   function handleSelectOption(idx: number) {
-    if (gameState !== "playing" || pickedOption !== null || !currentCard) {
+    if (
+      gameState !== "playing" ||
+      isPaused ||
+      pickedOption !== null ||
+      !currentCard
+    ) {
       return;
     }
+    const responseMs =
+      cardAccumulatedMsRef.current + (Date.now() - cardActiveStartRef.current);
+
     setPickedOption(idx);
     setAttemptCount((prev) => prev + 1);
 
@@ -309,23 +432,42 @@ export default function SyntaxBlitzArena({
     setAnswerGrid((prev) => [...prev, isRight ? "🟩" : "🟥"]);
     if (isRight) {
       playSuccessChime();
-      const nextCombo = combo + 1;
-      const nextMult = Math.min(4, Math.floor(nextCombo / 2) + 1);
-      const earned = 10 * nextMult;
-      const nextXp = scoreXp + earned;
-      setCombo(nextCombo);
-      setMaxCombo((prev) => Math.max(prev, nextCombo));
+      const reward = computeBlitzHitReward({
+        currentCombo: combo,
+        responseMs,
+      });
+      const nextXp = scoreXp + reward.earnedXp;
+      setCombo(reward.nextCombo);
+      setMaxCombo((prev) => Math.max(prev, reward.nextCombo));
       setCorrectCount((prev) => prev + 1);
+      if (reward.quickDrawBonusXp > 0) {
+        setFastHitCount((prev) => prev + 1);
+      }
+      setLastHitInfo({
+        earnedXp: reward.earnedXp,
+        multiplier: reward.multiplier,
+        quickDrawBonusXp: reward.quickDrawBonusXp,
+      });
       setScoreXp(nextXp);
+      if (roundTargetBestRef.current > 0 && nextXp > roundTargetBestRef.current) {
+        setNewBestAchieved(true);
+      }
 
-      if (nextCombo % 3 === 0) {
-        setTimeLeft((prev) => Math.min(60, prev + 2));
+      if (reward.timeBonusSec > 0) {
+        setTimeLeft((prev) => Math.min(BLITZ_ROUND_SECONDS, prev + reward.timeBonusSec));
         setBonusSecondsToast(true);
-        setTimeout(() => setBonusSecondsToast(false), 1100);
+        if (bonusToastTimerRef.current) {
+          clearTimeout(bonusToastTimerRef.current);
+        }
+        bonusToastTimerRef.current = setTimeout(
+          () => setBonusSecondsToast(false),
+          1100,
+        );
       }
     } else {
       playErrorBuzz();
       setCombo(0);
+      setLastHitInfo(null);
       setMistakeIds((prev) => {
         const next = recordMistakeId(prev, currentCard.id);
         writeLocalJson(BLITZ_MISTAKES_KEY, next);
@@ -335,9 +477,10 @@ export default function SyntaxBlitzArena({
   }
 
   function handleNextCard() {
-    if (gameState !== "playing") return;
+    if (gameState !== "playing" || isPaused) return;
     playKeyClick();
     setPickedOption(null);
+    setLastHitInfo(null);
     if (cardIndex + 1 >= deckQueue.length) {
       if (blitzMode === "daily") {
         setDeckQueue((prev) => [
@@ -348,18 +491,33 @@ export default function SyntaxBlitzArena({
         setDeckQueue((prev) => [...prev, ...shuffleCards(filteredPool)]);
       }
     }
+    cardAccumulatedMsRef.current = 0;
     setCardIndex((prev) => prev + 1);
   }
 
-  const keyActionsRef = useRef({ handleSelectOption, handleNextCard });
+  const keyActionsRef = useRef({
+    handleSelectOption,
+    handleNextCard,
+    handleTogglePause,
+  });
   useEffect(() => {
-    keyActionsRef.current = { handleSelectOption, handleNextCard };
+    keyActionsRef.current = {
+      handleSelectOption,
+      handleNextCard,
+      handleTogglePause,
+    };
   });
 
-  // Web keyboard support (1-4 to pick option, Enter/Space to advance)
+  // Web keyboard support (1-4 to pick option, Enter/Space to advance, Esc to pause/resume)
   useEffect(() => {
     if (Platform.OS !== "web" || gameState !== "playing") return;
     function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        keyActionsRef.current.handleTogglePause();
+        return;
+      }
+      if (isPaused) return;
       if (pickedOption === null) {
         if (e.key === "1") keyActionsRef.current.handleSelectOption(0);
         if (e.key === "2") keyActionsRef.current.handleSelectOption(1);
@@ -372,7 +530,7 @@ export default function SyntaxBlitzArena({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [gameState, pickedOption]);
+  }, [gameState, pickedOption, isPaused]);
 
   const accuracyPct =
     attemptCount > 0 ? Math.round((correctCount / attemptCount) * 100) : 100;
@@ -465,9 +623,9 @@ export default function SyntaxBlitzArena({
                 playKeyClick();
                 setBlitzMode(m.key);
                 if (m.key === "mistakes") {
-                  setGameState("lobby");
-                } else if (gameState === "playing") {
-                  startRound(selectedDeck, m.key);
+                  resetArenaToLobby();
+                } else if (gameState !== "lobby") {
+                  resetArenaToLobby();
                 }
               }}
             >
@@ -531,11 +689,10 @@ export default function SyntaxBlitzArena({
                   onRequirePro();
                   return;
                 }
+                playKeyClick();
                 setSelectedDeck(d.key);
-                if (gameState === "playing") {
-                  startRound(d.key);
-                } else if (gameState === "finished") {
-                  setGameState("lobby");
+                if (gameState !== "lobby") {
+                  resetArenaToLobby();
                 }
               }}
             >
@@ -713,11 +870,81 @@ export default function SyntaxBlitzArena({
       )}
 
       {blitzMode !== "mistakes" && gameState === "playing" && currentCard && (
-        <View style={styles.arenaCard}>
+        <View
+          style={[
+            styles.arenaCard,
+            multiplier >= 3 && styles.arenaCardOverdrive,
+          ]}
+        >
+          {/* Round Control & Target Strip */}
+          <View style={styles.arenaControlBar}>
+            <View
+              style={[
+                styles.targetGoalBadge,
+                newBestAchieved && styles.targetGoalBadgeBeaten,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.targetGoalText,
+                  newBestAchieved && { color: StudioColors.ink },
+                ]}
+              >
+                {newBestAchieved
+                  ? "🏆 NEW RECORD PACE!"
+                  : roundTargetBest > 0
+                    ? `🎯 BEAT BEST: ${roundTargetBest} XP`
+                    : "⚡ QUICK DRAW <=3.2s: +5 XP"}
+              </Text>
+            </View>
+
+            <View style={styles.arenaActionGroup}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.arenaControlBtn,
+                  isPaused && styles.arenaControlBtnActive,
+                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                ]}
+                onPress={handleTogglePause}
+              >
+                <Text
+                  style={[
+                    styles.arenaControlBtnText,
+                    isPaused && { color: StudioColors.ink },
+                  ]}
+                >
+                  {isPaused ? "▶ RESUME" : "⏸ PAUSE"}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.arenaControlBtn,
+                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                ]}
+                onPress={handleRestartFresh}
+              >
+                <Text style={styles.arenaControlBtnText}>↻ RESTART</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.arenaEndBtn,
+                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                ]}
+                onPress={handleEndChallenge}
+              >
+                <Text style={styles.arenaEndBtnText}>⏹ END</Text>
+              </Pressable>
+            </View>
+          </View>
+
           {/* Live Telemetry HUD */}
           <View style={styles.hudBar}>
             <View style={styles.hudTimerBox}>
-              <Text style={styles.hudLabel}>TIME REMAINING</Text>
+              <Text style={styles.hudLabel}>
+                {isPaused ? "CLOCK PAUSED" : "TIME REMAINING"}
+              </Text>
               <View style={styles.timerValueRow}>
                 <Text
                   style={[
@@ -760,9 +987,10 @@ export default function SyntaxBlitzArena({
               style={[
                 styles.timerFill,
                 {
-                  width: `${Math.max((timeLeft / 60) * 100, 2)}%`,
-                  backgroundColor:
-                    timeLeft > 30
+                  width: `${Math.max((timeLeft / BLITZ_ROUND_SECONDS) * 100, 2)}%`,
+                  backgroundColor: isPaused
+                    ? StudioColors.yellow
+                    : timeLeft > 30
                       ? StudioColors.lime
                       : timeLeft > 15
                         ? StudioColors.yellow
@@ -772,121 +1000,189 @@ export default function SyntaxBlitzArena({
             />
           </View>
 
-          {/* Prompt & Code Card */}
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.topicTagPill}>
-              <Text style={styles.topicTagText}>
-                {formatBlitzDeckLabel(currentCard.deck)} · {currentCard.tag}
+          {isPaused ? (
+            <View style={styles.arenaPausedCard}>
+              <Text style={styles.arenaPausedTitle}>⏸ CHALLENGE PAUSED</Text>
+              <Text style={styles.arenaPausedDesc}>
+                Clock is frozen with 00:{String(timeLeft).padStart(2, "0")} left.
+                Resume your run, restart fresh with a clean 60s deck, or end the
+                challenge now.
               </Text>
-            </View>
-            <Text style={styles.cardCounterText}>
-              CARD #{cardIndex + 1} · CLEARED: {correctCount}
-            </Text>
-          </View>
-
-          <Text style={styles.promptTitle}>{currentCard.prompt}</Text>
-
-          <View style={styles.codeTerminalBox}>
-            <View style={styles.codeTerminalHeader}>
-              <Text style={styles.codeTerminalHeaderLabel}>
-                FILL IN THE [ ___ ] BLANK
-              </Text>
-            </View>
-            <Text style={styles.codeTerminalText}>
-              {currentCard.codeTemplate}
-            </Text>
-          </View>
-
-          {/* 4 Keycap Options */}
-          <View style={styles.optionsGrid}>
-            {currentCard.options.map((opt, idx) => {
-              const isPicked = pickedOption === idx;
-              const isRight = idx === currentCard.correctIndex;
-              const revealRight = pickedOption !== null && isRight;
-              const revealWrong = isPicked && !isRight;
-
-              return (
+              <View style={styles.arenaPausedActions}>
                 <Pressable
-                  key={idx}
-                  style={({ pressed }) => [
-                    styles.optionKeycapBtn,
-                    revealRight && styles.optionKeycapRight,
-                    revealWrong && styles.optionKeycapWrong,
-                    pressed &&
-                      pickedOption === null && {
-                        transform: [{ translateX: 1 }, { translateY: 1 }],
-                      },
-                  ]}
-                  onPress={() => handleSelectOption(idx)}
-                  disabled={pickedOption !== null}
+                  style={styles.pauseResumeBtn}
+                  onPress={handleTogglePause}
                 >
-                  <View style={styles.keycapNumberBox}>
-                    <Text style={styles.keycapNumberText}>{idx + 1}</Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.optionCodeText,
-                      (revealRight || revealWrong) && {
-                        color: StudioColors.ink,
-                        fontWeight: "900",
-                      },
-                    ]}
-                  >
-                    {opt}
+                  <Text style={styles.pauseActionBtnText}>▶ RESUME BLITZ</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.pauseRestartBtn}
+                  onPress={handleRestartFresh}
+                >
+                  <Text style={styles.pauseActionBtnText}>
+                    ↻ RESTART FRESH
                   </Text>
                 </Pressable>
-              );
-            })}
-          </View>
-
-          {/* Instant Feedback & Next Card Bar */}
-          {pickedOption !== null && (
-            <View
-              style={[
-                styles.feedbackBar,
-                pickedOption === currentCard.correctIndex
-                  ? styles.feedbackBarSuccess
-                  : styles.feedbackBarWrong,
-              ]}
-            >
-              <View style={styles.feedbackTextCol}>
-                <Text style={styles.feedbackHeadline}>
-                  {pickedOption === currentCard.correctIndex
-                    ? `✓ HIT! +${10 * multiplier} XP (${multiplier}x Multiplier)`
-                    : `✕ MISSED! Correct answer: ${currentCard.options[currentCard.correctIndex]}`}
-                </Text>
-                <Text style={styles.feedbackExplanation}>
-                  {currentCard.explanation}
+                <Pressable
+                  style={styles.pauseEndBtn}
+                  onPress={handleEndChallenge}
+                >
+                  <Text style={styles.pauseActionBtnText}>
+                    ⏹ END CHALLENGE
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <>
+              {/* Prompt & Code Card */}
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.topicTagPill}>
+                  <Text style={styles.topicTagText}>
+                    {formatBlitzDeckLabel(currentCard.deck)} · {currentCard.tag}
+                  </Text>
+                </View>
+                <Text style={styles.cardCounterText}>
+                  CARD #{cardIndex + 1} · CLEARED: {correctCount}
                 </Text>
               </View>
 
-              <Pressable
-                style={styles.nextCardBtn}
-                onPress={handleNextCard}
-              >
-                <Text style={styles.nextCardBtnText}>NEXT CARD (↵) →</Text>
-              </Pressable>
-            </View>
+              <Text style={styles.promptTitle}>{currentCard.prompt}</Text>
+
+              <View style={styles.codeTerminalBox}>
+                <View style={styles.codeTerminalHeader}>
+                  <Text style={styles.codeTerminalHeaderLabel}>
+                    FILL IN THE [ ___ ] BLANK
+                  </Text>
+                </View>
+                <Text style={styles.codeTerminalText}>
+                  {currentCard.codeTemplate}
+                </Text>
+              </View>
+
+              {/* 4 Keycap Options */}
+              <View style={styles.optionsGrid}>
+                {currentCard.options.map((opt, idx) => {
+                  const isPicked = pickedOption === idx;
+                  const isRight = idx === currentCard.correctIndex;
+                  const revealRight = pickedOption !== null && isRight;
+                  const revealWrong = isPicked && !isRight;
+
+                  return (
+                    <Pressable
+                      key={idx}
+                      style={({ pressed }) => [
+                        styles.optionKeycapBtn,
+                        revealRight && styles.optionKeycapRight,
+                        revealWrong && styles.optionKeycapWrong,
+                        pressed &&
+                          pickedOption === null && {
+                            transform: [{ translateX: 1 }, { translateY: 1 }],
+                          },
+                      ]}
+                      onPress={() => handleSelectOption(idx)}
+                      disabled={pickedOption !== null}
+                    >
+                      <View style={styles.keycapNumberBox}>
+                        <Text style={styles.keycapNumberText}>{idx + 1}</Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.optionCodeText,
+                          (revealRight || revealWrong) && {
+                            color: StudioColors.ink,
+                            fontWeight: "900",
+                          },
+                        ]}
+                      >
+                        {opt}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Instant Feedback & Next Card Bar */}
+              {pickedOption !== null && (
+                <View
+                  style={[
+                    styles.feedbackBar,
+                    pickedOption === currentCard.correctIndex
+                      ? styles.feedbackBarSuccess
+                      : styles.feedbackBarWrong,
+                  ]}
+                >
+                  <View style={styles.feedbackTextCol}>
+                    <Text style={styles.feedbackHeadline}>
+                      {pickedOption === currentCard.correctIndex
+                        ? `✓ HIT! +${lastHitInfo?.earnedXp ?? 10 * multiplier} XP (${lastHitInfo?.multiplier ?? multiplier}x${lastHitInfo && lastHitInfo.quickDrawBonusXp > 0 ? ` · +${lastHitInfo.quickDrawBonusXp} ⚡ QUICK DRAW!` : ""})`
+                        : `✕ MISSED! Correct answer: ${currentCard.options[currentCard.correctIndex]}`}
+                    </Text>
+                    <Text style={styles.feedbackExplanation}>
+                      {currentCard.explanation}
+                    </Text>
+                  </View>
+
+                  <Pressable
+                    style={styles.nextCardBtn}
+                    onPress={handleNextCard}
+                  >
+                    <Text style={styles.nextCardBtnText}>
+                      NEXT CARD (↵) →
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+            </>
           )}
         </View>
       )}
 
       {blitzMode !== "mistakes" && gameState === "finished" && (
         <View style={styles.scoreboardCard}>
-          <View
-            style={[
-              styles.ratingBadgePill,
-              { backgroundColor: rating.color },
-            ]}
-          >
-            <Text style={styles.ratingBadgeText}>{rating.badge}</Text>
+          <View style={styles.scoreboardBadgesRow}>
+            <View
+              style={[
+                styles.ratingBadgePill,
+                { backgroundColor: rating.color },
+              ]}
+            >
+              <Text style={styles.ratingBadgeText}>{rating.badge}</Text>
+            </View>
+            {newBestAchieved && (
+              <View style={styles.newRecordBadge}>
+                <Text style={styles.ratingBadgeText}>
+                  {blitzMode === "daily"
+                    ? "📅 NEW DAILY BEST!"
+                    : "🏆 NEW PERSONAL BEST!"}
+                </Text>
+              </View>
+            )}
+            {endedEarly && (
+              <View style={styles.endedEarlyBadge}>
+                <Text style={styles.ratingBadgeText}>⏹ ENDED EARLY</Text>
+              </View>
+            )}
           </View>
 
           <Text style={styles.scoreboardTitle}>{rating.title}</Text>
           <Text style={styles.scoreboardSubtitle}>
-            60-Second Blitz Complete · +{scoreXp} XP added to your developer
-            profile!
+            {endedEarly
+              ? `Challenge stopped with ${timeLeft}s on the clock · +${scoreXp} XP banked!`
+              : `60-Second Blitz Complete · +${scoreXp} XP added to your developer profile!`}
           </Text>
+
+          {nextRankTarget ? (
+            <Text style={styles.nextRankHintText}>
+              Next tier: {nextRankTarget.nextRankLabel} in{" "}
+              {nextRankTarget.remainingClears} more{" "}
+              {nextRankTarget.remainingClears === 1 ? "clear" : "clears"}!
+            </Text>
+          ) : (
+            <Text style={styles.nextRankHintText}>
+              ⚡ Maximum S-RANK Turbo tier unlocked!
+            </Text>
+          )}
 
           <View style={styles.metricsRow}>
             <View
@@ -923,7 +1219,9 @@ export default function SyntaxBlitzArena({
               ]}
             >
               <Text style={styles.metricValue}>{accuracyPct}%</Text>
-              <Text style={styles.metricLabel}>ACCURACY</Text>
+              <Text style={styles.metricLabel}>
+                {fastHitCount > 0 ? `ACC (${fastHitCount} ⚡ FAST)` : "ACCURACY"}
+              </Text>
             </View>
           </View>
 
@@ -957,10 +1255,25 @@ export default function SyntaxBlitzArena({
                 styles.startBlitzBtn,
                 pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
               ]}
-              onPress={() => startRound(selectedDeck)}
+              onPress={handleRestartFresh}
             >
               <Text style={styles.startBlitzBtnText}>
-                PLAY ANOTHER 60s ROUND ↻
+                START FRESH 60s ROUND ↻
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.exitLobbyBtn,
+                pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+              ]}
+              onPress={() => {
+                playKeyClick();
+                resetArenaToLobby();
+              }}
+            >
+              <Text style={styles.exitLobbyBtnText}>
+                ← RETURN TO BLITZ LOBBY
               </Text>
             </Pressable>
           </View>
@@ -1679,5 +1992,191 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     fontSize: 13,
     fontWeight: "600",
     lineHeight: 19,
+  },
+  arenaCardOverdrive: {
+    borderColor: StudioColors.pink,
+  },
+  arenaControlBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingBottom: 4,
+  },
+  targetGoalBadge: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderRadius: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  targetGoalBadgeBeaten: {
+    backgroundColor: StudioColors.lime,
+    borderColor: StudioColors.ink,
+  },
+  targetGoalText: {
+    color: StudioColors.textPrimary,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
+  },
+  arenaActionGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  arenaControlBtn: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  arenaControlBtnActive: {
+    backgroundColor: StudioColors.yellow,
+    borderColor: StudioColors.ink,
+  },
+  arenaControlBtnText: {
+    color: StudioColors.textPrimary,
+    fontSize: 10.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  arenaEndBtn: {
+    backgroundColor: StudioColors.coral,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  arenaEndBtnText: {
+    color: StudioColors.ink,
+    fontSize: 10.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  arenaPausedCard: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
+    ...HardShadowSm,
+  },
+  arenaPausedTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 17,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  arenaPausedDesc: {
+    color: StudioColors.textSecondary,
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 19,
+    textAlign: "center",
+  },
+  arenaPausedActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 4,
+  },
+  pauseResumeBtn: {
+    backgroundColor: StudioColors.lime,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  pauseRestartBtn: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  pauseEndBtn: {
+    backgroundColor: StudioColors.coral,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  pauseActionBtnText: {
+    color: StudioColors.ink,
+    fontSize: 11.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  scoreboardBadgesRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+  },
+  newRecordBadge: {
+    backgroundColor: StudioColors.lime,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  endedEarlyBadge: {
+    backgroundColor: StudioColors.coral,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  nextRankHintText: {
+    color: StudioColors.textPrimary,
+    fontSize: 11.5,
+    fontWeight: "800",
+    fontFamily: MonoFont,
+    textAlign: "center",
+  },
+  exitLobbyBtn: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    alignItems: "center",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  exitLobbyBtnText: {
+    color: StudioColors.textPrimary,
+    fontSize: 12,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.6,
   },
 });
