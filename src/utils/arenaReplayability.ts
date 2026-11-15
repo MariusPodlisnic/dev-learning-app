@@ -146,3 +146,22 @@ export function buildMistakeReviewDeck<T extends BlitzCardLike>(
     .map((id) => byId.get(id))
     .filter((card): card is T => Boolean(card));
 }
+
+export function filterBlitzPool<T extends BlitzCardLike>(
+  allCards: T[],
+  deckKey: string,
+  isPremium: boolean,
+): T[] {
+  if (deckKey === "all") {
+    return isPremium
+      ? allCards
+      : allCards.filter((c) => c.deck === "python_basics");
+  }
+  return allCards.filter((c) => c.deck === deckKey);
+}
+
+export function formatBlitzDeckLabel(deck: string): string {
+  if (deck === "algorithms") return "ALGORITHMS";
+  if (deck === "system_design") return "SYS DESIGN";
+  return "PYTHON CORE";
+}

@@ -5,11 +5,13 @@ import {
   buildSeededDeck,
   calculateBugHuntReward,
   clearMistakeId,
+  filterBlitzPool,
   getBugHuntTimeLimit,
   getDailyDateKey,
   pickDailyBugIncident,
   recordMistakeId,
 } from "../src/utils/arenaReplayability.ts";
+import { BLITZ_CARDS } from "../src/constants/curriculumData/syntaxBlitzCards.ts";
 
 test("pickDailyBugIncident is deterministic for a date and respects pro access", () => {
   const sampleIncidents = [
@@ -93,4 +95,16 @@ test("mistake queue records, orders, builds review decks, and clears mastered ID
 
   queue = clearMistakeId(queue, "card_1");
   assert.deepEqual(queue, ["card_2"]);
+});
+
+test("filterBlitzPool strictly isolates python_basics from system_design and algorithms", () => {
+  const pyOnly = filterBlitzPool(BLITZ_CARDS, "python_basics", true);
+  assert.ok(pyOnly.length > 0);
+  assert.ok(pyOnly.every((c) => c.deck === "python_basics"));
+
+  const freeMega = filterBlitzPool(BLITZ_CARDS, "all", false);
+  assert.ok(freeMega.every((c) => c.deck === "python_basics"));
+
+  const proMega = filterBlitzPool(BLITZ_CARDS, "all", true);
+  assert.equal(proMega.length, BLITZ_CARDS.length);
 });

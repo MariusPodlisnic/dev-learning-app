@@ -31,6 +31,8 @@ import {
   buildMistakeReviewDeck,
   buildSeededDeck,
   clearMistakeId,
+  filterBlitzPool,
+  formatBlitzDeckLabel,
   getDailyDateKey,
   recordMistakeId,
 } from "../utils/arenaReplayability";
@@ -190,12 +192,10 @@ export default function SyntaxBlitzArena({
     [isPremium],
   );
 
-  const filteredPool = useMemo(() => {
-    if (selectedDeck === "all") {
-      return accessiblePool;
-    }
-    return BLITZ_CARDS.filter((c) => c.deck === selectedDeck);
-  }, [selectedDeck, accessiblePool]);
+  const filteredPool = useMemo(
+    () => filterBlitzPool(BLITZ_CARDS, selectedDeck, isPremium),
+    [selectedDeck, isPremium],
+  );
 
   const mistakeReviewPool = useMemo(
     () => buildMistakeReviewDeck(accessiblePool, mistakeIds),
@@ -206,8 +206,11 @@ export default function SyntaxBlitzArena({
     deckKey: BlitzDeckKey = selectedDeck,
     modeOverride: BlitzMode = blitzMode,
   ) {
+    if (modeOverride === "mistakes") {
+      setGameState("lobby");
+      return;
+    }
     if (
-      modeOverride !== "mistakes" &&
       (deckKey === "algorithms" || deckKey === "system_design") &&
       !isPremium
     ) {
@@ -215,22 +218,11 @@ export default function SyntaxBlitzArena({
       return;
     }
 
-    const pool =
-      deckKey === "all"
-        ? accessiblePool
-        : BLITZ_CARDS.filter((c) => c.deck === deckKey);
-
-    let queue: BlitzCardItem[];
-    if (modeOverride === "mistakes") {
-      if (mistakeReviewPool.length === 0) {
-        return;
-      }
-      queue = buildSeededDeck(mistakeReviewPool, `review:${mistakeIds.join(",")}`);
-    } else if (modeOverride === "daily") {
-      queue = buildSeededDeck(pool, `${todayDateKey}:${deckKey}`);
-    } else {
-      queue = shuffleCards(pool);
-    }
+    const pool = filterBlitzPool(BLITZ_CARDS, deckKey, isPremium);
+    const queue =
+      modeOverride === "daily"
+        ? buildSeededDeck(pool, `${todayDateKey}:${deckKey}`)
+        : shuffleCards(pool);
 
     setDeckQueue(queue);
     setCardIndex(0);
@@ -244,6 +236,25 @@ export default function SyntaxBlitzArena({
     setShareFeedback("idle");
     setTimeLeft(60);
     setGameState("playing");
+  }
+
+  function handleDismissMistake(cardId: string) {
+    playKeyClick();
+    setMistakeIds((prev) => {
+      const next = clearMistakeId(prev, cardId);
+      writeLocalJson(BLITZ_MISTAKES_KEY, next);
+      return next;
+    });
+  }
+
+  function handleClearAllMistakes() {
+    playSuccessChime();
+    const visibleIds = new Set(mistakeReviewPool.map((c) => c.id));
+    setMistakeIds((prev) => {
+      const next = prev.filter((id) => !visibleIds.has(id));
+      writeLocalJson(BLITZ_MISTAKES_KEY, next);
+      return next;
+    });
   }
 
   function finishRound(finalXp: number) {
@@ -307,14 +318,6 @@ export default function SyntaxBlitzArena({
       setCorrectCount((prev) => prev + 1);
       setScoreXp(nextXp);
 
-      if (blitzMode === "mistakes") {
-        setMistakeIds((prev) => {
-          const next = clearMistakeId(prev, currentCard.id);
-          writeLocalJson(BLITZ_MISTAKES_KEY, next);
-          return next;
-        });
-      }
-
       if (nextCombo % 3 === 0) {
         setTimeLeft((prev) => Math.min(60, prev + 2));
         setBonusSecondsToast(true);
@@ -341,10 +344,6 @@ export default function SyntaxBlitzArena({
           ...prev,
           ...buildSeededDeck(filteredPool, `${todayDateKey}:${selectedDeck}:${prev.length}`),
         ]);
-      } else if (blitzMode === "mistakes") {
-        if (mistakeReviewPool.length > 0) {
-          setDeckQueue((prev) => [...prev, ...mistakeReviewPool]);
-        }
       } else {
         setDeckQueue((prev) => [...prev, ...shuffleCards(filteredPool)]);
       }
@@ -465,7 +464,9 @@ export default function SyntaxBlitzArena({
               onPress={() => {
                 playKeyClick();
                 setBlitzMode(m.key);
-                if (gameState === "playing") {
+                if (m.key === "mistakes") {
+                  setGameState("lobby");
+                } else if (gameState === "playing") {
                   startRound(selectedDeck, m.key);
                 }
               }}
@@ -533,6 +534,8 @@ export default function SyntaxBlitzArena({
                 setSelectedDeck(d.key);
                 if (gameState === "playing") {
                   startRound(d.key);
+                } else if (gameState === "finished") {
+                  setGameState("lobby");
                 }
               }}
             >
@@ -554,7 +557,114 @@ export default function SyntaxBlitzArena({
         })}
       </View>
 
-      {gameState === "lobby" && (
+      {blitzMode === "mistakes" && (
+        <View style={styles.lobbyCard}>
+          <View style={styles.mistakeStudyHeader}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.mistakeStudyTitle}>
+                📖 MISTAKE REVIEW & EXPLANATIONS ({mistakeReviewPool.length})
+              </Text>
+              <Text style={styles.mistakeStudySub}>
+                No timer — read through the exact answer and explanation for each
+                card you missed, then clear them when ready.
+              </Text>
+            </View>
+            {mistakeReviewPool.length > 0 && (
+              <Pressable
+                style={styles.clearAllMistakesBtn}
+                onPress={handleClearAllMistakes}
+              >
+                <Text style={styles.clearAllMistakesText}>
+                  ✓ CLEAR ALL ({mistakeReviewPool.length})
+                </Text>
+              </Pressable>
+            )}
+          </View>
+
+          {mistakeReviewPool.length === 0 ? (
+            <View style={styles.emptyMistakeStudyBox}>
+              <Text style={styles.emptyMistakeStudyTitle}>
+                ✓ ALL CAUGHT UP — ZERO MISTAKES QUEUED
+              </Text>
+              <Text style={styles.emptyMistakeStudyDesc}>
+                Any wrong pick during Standard or Daily Seed Blitz is saved here
+                with its full solution and explanation.
+              </Text>
+              <Pressable
+                style={styles.startBlitzBtn}
+                onPress={() => {
+                  playKeyClick();
+                  setBlitzMode("standard");
+                }}
+              >
+                <Text style={styles.startBlitzBtnText}>
+                  ← BACK TO 60s BLITZ LOBBY
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.mistakeCardsList}>
+              {mistakeReviewPool.map((card, idx) => {
+                const correctToken = card.options[card.correctIndex];
+                const solvedSnippet = card.codeTemplate.replace(
+                  "[ ___ ]",
+                  correctToken,
+                );
+                return (
+                  <View key={card.id} style={styles.mistakeStudyCard}>
+                    <View style={styles.mistakeCardTop}>
+                      <View style={styles.topicTagPill}>
+                        <Text style={styles.topicTagText}>
+                          #{idx + 1} · {formatBlitzDeckLabel(card.deck)} · {card.tag}
+                        </Text>
+                      </View>
+                      <Pressable
+                        style={styles.dismissMistakeBtn}
+                        onPress={() => handleDismissMistake(card.id)}
+                      >
+                        <Text style={styles.dismissMistakeText}>
+                          ✓ MARK READ & REMOVE
+                        </Text>
+                      </Pressable>
+                    </View>
+
+                    <Text style={styles.mistakeCardPrompt}>{card.prompt}</Text>
+
+                    <View style={styles.codeTerminalBox}>
+                      <Text style={styles.codeTerminalText}>
+                        {solvedSnippet}
+                      </Text>
+                    </View>
+
+                    <View style={styles.mistakeAnswerBox}>
+                      <Text style={styles.mistakeAnswerLabel}>
+                        ✓ CORRECT TOKEN: {correctToken}
+                      </Text>
+                      <Text style={styles.mistakeAnswerExplain}>
+                        {card.explanation}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.startBlitzBtn,
+                  pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
+                ]}
+                onPress={handleClearAllMistakes}
+              >
+                <Text style={styles.startBlitzBtnText}>
+                  ✓ I READ EVERYTHING — EMPTY MISTAKE LIST →
+                </Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      )}
+
+      {blitzMode !== "mistakes" && gameState === "lobby" && (
         <View style={styles.lobbyCard}>
           <View style={styles.lobbyRulesGrid}>
             <View
@@ -587,11 +697,8 @@ export default function SyntaxBlitzArena({
           </View>
 
           <Pressable
-            disabled={blitzMode === "mistakes" && mistakeReviewPool.length === 0}
             style={({ pressed }) => [
               styles.startBlitzBtn,
-              blitzMode === "mistakes" &&
-                mistakeReviewPool.length === 0 && { opacity: 0.5 },
               pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
             ]}
             onPress={() => startRound(selectedDeck, blitzMode)}
@@ -599,17 +706,13 @@ export default function SyntaxBlitzArena({
             <Text style={styles.startBlitzBtnText}>
               {blitzMode === "daily"
                 ? `PLAY TODAY'S SEEDED BLITZ (${todayDateKey}) →`
-                : blitzMode === "mistakes"
-                  ? mistakeReviewPool.length === 0
-                    ? "✓ ZERO MISTAKES QUEUED YET"
-                    : `DRILL ${mistakeReviewPool.length} MISSED CARD${mistakeReviewPool.length === 1 ? "" : "S"} →`
-                  : "INSERT COIN · START 60s BLITZ →"}
+                : "INSERT COIN · START 60s BLITZ →"}
             </Text>
           </Pressable>
         </View>
       )}
 
-      {gameState === "playing" && currentCard && (
+      {blitzMode !== "mistakes" && gameState === "playing" && currentCard && (
         <View style={styles.arenaCard}>
           {/* Live Telemetry HUD */}
           <View style={styles.hudBar}>
@@ -672,7 +775,9 @@ export default function SyntaxBlitzArena({
           {/* Prompt & Code Card */}
           <View style={styles.cardHeaderRow}>
             <View style={styles.topicTagPill}>
-              <Text style={styles.topicTagText}>{currentCard.tag}</Text>
+              <Text style={styles.topicTagText}>
+                {formatBlitzDeckLabel(currentCard.deck)} · {currentCard.tag}
+              </Text>
             </View>
             <Text style={styles.cardCounterText}>
               CARD #{cardIndex + 1} · CLEARED: {correctCount}
@@ -766,7 +871,7 @@ export default function SyntaxBlitzArena({
         </View>
       )}
 
-      {gameState === "finished" && (
+      {blitzMode !== "mistakes" && gameState === "finished" && (
         <View style={styles.scoreboardCard}>
           <View
             style={[
@@ -852,19 +957,10 @@ export default function SyntaxBlitzArena({
                 styles.startBlitzBtn,
                 pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
               ]}
-              onPress={() => {
-                if (blitzMode === "mistakes" && mistakeReviewPool.length === 0) {
-                  setBlitzMode("standard");
-                  startRound(selectedDeck, "standard");
-                } else {
-                  startRound(selectedDeck);
-                }
-              }}
+              onPress={() => startRound(selectedDeck)}
             >
               <Text style={styles.startBlitzBtnText}>
-                {blitzMode === "mistakes" && mistakeReviewPool.length === 0
-                  ? "ALL MISTAKES CLEARED · PLAY STANDARD ↻"
-                  : "PLAY ANOTHER 60s ROUND ↻"}
+                PLAY ANOTHER 60s ROUND ↻
               </Text>
             </Pressable>
           </View>
@@ -1469,5 +1565,119 @@ const createStyles = (StudioColors: StudioThemeColors) =>
   },
   modePillTextActive: {
     color: StudioColors.ink,
+  },
+  mistakeStudyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  mistakeStudyTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 16,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  mistakeStudySub: {
+    color: StudioColors.textSecondary,
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 19,
+  },
+  clearAllMistakesBtn: {
+    backgroundColor: StudioColors.lime,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  clearAllMistakesText: {
+    color: StudioColors.ink,
+    fontSize: 11,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  emptyMistakeStudyBox: {
+    gap: 12,
+    padding: 18,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    backgroundColor: StudioColors.bg,
+  },
+  emptyMistakeStudyTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 14,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  emptyMistakeStudyDesc: {
+    color: StudioColors.textSecondary,
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 19,
+  },
+  mistakeCardsList: {
+    gap: 14,
+  },
+  mistakeStudyCard: {
+    backgroundColor: StudioColors.bg,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    borderRadius: 10,
+    padding: 14,
+    gap: 10,
+  },
+  mistakeCardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  dismissMistakeBtn: {
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  dismissMistakeText: {
+    color: StudioColors.textPrimary,
+    fontSize: 10,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  mistakeCardPrompt: {
+    color: StudioColors.textPrimary,
+    fontSize: 14.5,
+    fontWeight: "800",
+    lineHeight: 20,
+  },
+  mistakeAnswerBox: {
+    backgroundColor: "rgba(184, 255, 59, 0.14)",
+    borderWidth: 1.5,
+    borderColor: StudioColors.lime,
+    borderRadius: 8,
+    padding: 11,
+    gap: 4,
+  },
+  mistakeAnswerLabel: {
+    color: StudioColors.textPrimary,
+    fontSize: 12,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+  },
+  mistakeAnswerExplain: {
+    color: StudioColors.textSecondary,
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 19,
   },
 });
