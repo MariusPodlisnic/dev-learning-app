@@ -548,15 +548,18 @@ export default function HomeScreen() {
     return { newXp, newStreak, newLastActiveDate };
   }
 
-  async function runPlaygroundOnly() {
+  async function runPlaygroundOnly(customSnippet?: string) {
     setIsExecuting(true);
     setBottomTab("console");
     setOutput("Running code...");
     trackFunnelMilestone("first_code_run");
     try {
+      const trimmedSnippet =
+        typeof customSnippet === "string" ? customSnippet.trim() : "";
+      const codeToExecute = trimmedSnippet ? `${code}\n${trimmedSnippet}` : code;
       const consoleOut = await executePlaygroundPython(
         pyodideRef.current,
-        code,
+        codeToExecute,
       );
       setOutput(consoleOut);
     } finally {
@@ -1252,7 +1255,7 @@ export default function HomeScreen() {
                     hasSavedDraft={hasSavedDraft}
                     pyodideReady={pyodideReady}
                     isExecuting={isExecuting}
-                    onRunPlaygroundOnly={runPlaygroundOnly}
+                    onRunPlaygroundOnly={(snippet) => runPlaygroundOnly(snippet)}
                     onRunPythonCode={runPythonCode}
                     bottomTab={bottomTab}
                     onChangeBottomTab={setBottomTab}

@@ -17,6 +17,15 @@ import { useThemedStyles } from "../constants/themeContext";
 import { Lesson, TestCaseResult } from "../types/lesson";
 import { playKeyClick } from "../utils/soundEffects";
 import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
+import {
+  computeAssertionDiff,
+  computeSmartEnter,
+  EditorSelectionResult,
+  extractErrorLineNumber,
+  indentSelection,
+  suggestQuickTestExpression,
+  toggleLineComment,
+} from "../utils/editorHelpers";
 import { renderHighlightedPython } from "./FormattedText";
 import { getStudioCodeEditorStyles } from "./studioCodeEditorStyles";
 
@@ -39,11 +48,13 @@ interface BeginnerErrorHint {
   howToFix: string;
 }
 
-function translatePythonError(rawOutput: string): BeginnerErrorHint | null {
+function translatePythonError(
+  rawOutput: string,
+  maxLines?: number,
+): BeginnerErrorHint | null {
   if (!rawOutput) return null;
 
-  const lineMatch = rawOutput.match(/line\s+(\d+)/i);
-  const lineNumber = lineMatch ? parseInt(lineMatch[1], 10) : null;
+  const lineNumber = extractErrorLineNumber(rawOutput, maxLines);
 
   if (rawOutput.includes("IndentationError")) {
     return {
@@ -156,7 +167,7 @@ interface StudioCodeEditorProps {
   hasSavedDraft: boolean;
   pyodideReady: boolean;
   isExecuting: boolean;
-  onRunPlaygroundOnly: () => void;
+  onRunPlaygroundOnly: (customSnippet?: string) => void;
   onRunPythonCode: () => void;
   bottomTab: "console" | "tests";
   onChangeBottomTab: (tab: "console" | "tests") => void;
@@ -243,6 +254,8 @@ export default function StudioCodeEditor({
   const [cursorPos, setCursorPos] = useState<number>(0);
   const [hoveredChip, setHoveredChip] = useState<string | null>(null);
   const [hoveredTestIdx, setHoveredTestIdx] = useState<number | null>(null);
+  const [showScratchpad, setShowScratchpad] = useState<boolean>(false);
+  const [scratchpadExpr, setScratchpadExpr] = useState<string>("");
   const inputRef = useRef<any>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<{ start: number; end: number }>({
@@ -306,6 +319,66 @@ export default function StudioCodeEditor({
   const allChecksPassed = Boolean(
     testResults && testResults.length > 0 && testResults.every((t) => t.passed),
   );
+  const hasOutputError =
+    Boolean(output) &&
+    !output.startsWith("Running code") &&
+    !output.startsWith("Running verification") &&
+    /(Error|Traceback|Exception|✕)/i.test(output);
+  const errorLineNumber = hasOutputError
+    ? extractErrorLineNumber(output, totalLines)
+    : null;
+
+  function applySelectionResult(result: EditorSelectionResult) {
+    selectionRef.current = {
+      start: result.selectionStart,
+      end: result.selectionEnd,
+    };
+    setCursorPos(result.selectionStart);
+    onChangeCode(result.code);
+    if (Platform.OS === "web") {
+      setTimeout(() => {
+        try {
+          const el = inputRef.current;
+          if (el && typeof el.setSelectionRange === "function") {
+            el.focus();
+            el.setSelectionRange(result.selectionStart, result.selectionEnd);
+          }
+        } catch {}
+      }, 0);
+    }
+  }
+
+  function handleToggleComment() {
+    playKeyClick();
+    const { start, end } = selectionRef.current;
+    applySelectionResult(toggleLineComment(code || "", start, end));
+  }
+
+  function handleIndent(direction: "indent" | "outdent") {
+    playKeyClick();
+    const { start, end } = selectionRef.current;
+    applySelectionResult(indentSelection(code || "", start, end, direction));
+  }
+
+  function handleToggleScratchpad() {
+    playKeyClick();
+    setShowScratchpad((prev) => {
+      const next = !prev;
+      if (next && !scratchpadExpr.trim()) {
+        setScratchpadExpr(suggestQuickTestExpression(code || ""));
+      }
+      return next;
+    });
+  }
+
+  function handleRunScratchpad() {
+    playKeyClick();
+    const snippet = scratchpadExpr.trim() || suggestQuickTestExpression(code || "");
+    if (!scratchpadExpr.trim()) {
+      setScratchpadExpr(snippet);
+    }
+    onRunPlaygroundOnly(snippet);
+  }
 
   function setCursorAt(pos: number) {
     selectionRef.current = { start: pos, end: pos };
@@ -498,6 +571,8 @@ export default function StudioCodeEditor({
           <Text style={styles.quickInsertLabel}>INSERT</Text>
           {[
             { label: "⇥ Tab", val: "    " },
+            { label: "⇤ Outdent", action: "outdent" as const },
+            { label: "# Comment", action: "comment" as const },
             { label: "print()", val: "print()" },
             { label: '""', val: '""' },
             { label: 'f""', val: 'f""' },
@@ -519,12 +594,31 @@ export default function StudioCodeEditor({
                   isChipHovered && styles.symbolChipHover,
                   pressed && { transform: [{ translateY: 1 }] },
                 ]}
-                onPress={() => insertSymbol(item.val)}
+                onPress={() => {
+                  if (item.action === "outdent") {
+                    handleIndent("outdent");
+                  } else if (item.action === "comment") {
+                    handleToggleComment();
+                  } else if (item.val !== undefined) {
+                    insertSymbol(item.val);
+                  }
+                }}
               >
                 <Text style={styles.symbolText}>{item.label}</Text>
               </Pressable>
             );
           })}
+          <Pressable
+            onPress={handleToggleScratchpad}
+            style={[
+              styles.scratchpadToggleBtn,
+              showScratchpad && styles.scratchpadToggleBtnActive,
+            ]}
+          >
+            <Text style={styles.scratchpadToggleText}>
+              {showScratchpad ? "⚡ EVAL ON" : "⚡ EVAL"}
+            </Text>
+          </Pressable>
         </View>
 
         <ScrollView
@@ -537,17 +631,26 @@ export default function StudioCodeEditor({
         >
           <View style={styles.lineNumbers}>
             {Array.from({ length: lineCount }).map((_, i) => {
-              const isCurrent = i + 1 === activeLine;
+              const lineNum = i + 1;
+              const isCurrent = lineNum === activeLine;
+              const isErrorLine = errorLineNumber === lineNum;
               return (
-                <Text
+                <Pressable
                   key={i}
-                  style={[
-                    styles.lineNumberText,
-                    isCurrent && styles.lineNumberTextActive,
-                  ]}
+                  onPress={() => jumpToLine(lineNum)}
+                  style={styles.lineNumberRow}
                 >
-                  {i + 1}
-                </Text>
+                  {isErrorLine && <Text style={styles.lineErrorDot}>!</Text>}
+                  <Text
+                    style={[
+                      styles.lineNumberText,
+                      isCurrent && styles.lineNumberTextActive,
+                      isErrorLine && styles.lineNumberTextError,
+                    ]}
+                  >
+                    {lineNum}
+                  </Text>
+                </Pressable>
               );
             })}
           </View>
@@ -565,6 +668,15 @@ export default function StudioCodeEditor({
                 { top: 16 + (activeLine - 1) * 21 },
               ]}
             />
+            {errorLineNumber !== null && errorLineNumber <= lineCount && (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.errorLineBand,
+                  { top: 16 + (errorLineNumber - 1) * 21 },
+                ]}
+              />
+            )}
             <View
               pointerEvents="none"
               style={[
@@ -604,10 +716,19 @@ export default function StudioCodeEditor({
                   return;
                 }
 
-                // Tab key -> insert 4 spaces instead of blurring
+                if (
+                  nativeEv.key === "/" &&
+                  (nativeEv.metaKey || nativeEv.ctrlKey)
+                ) {
+                  e.preventDefault?.();
+                  handleToggleComment();
+                  return;
+                }
+
+                // Tab / Shift+Tab -> indent or outdent selected lines by 4 spaces
                 if (nativeEv.key === "Tab") {
                   e.preventDefault?.();
-                  insertSymbol("    ");
+                  handleIndent(nativeEv.shiftKey ? "outdent" : "indent");
                   return;
                 }
 
@@ -662,37 +783,21 @@ export default function StudioCodeEditor({
                   }
                 }
 
-                // Enter key -> preserve indent and auto-indent +4 spaces after ':'
+                // Enter key -> preserve indent and auto-indent +4 spaces after ':' (even with trailing comments)
                 if (
                   nativeEv.key === "Enter" &&
                   !nativeEv.shiftKey &&
                   !nativeEv.altKey
                 ) {
-                  const start = Math.min(
-                    Math.max(0, selectionRef.current.start),
-                    code.length,
+                  const smartEnter = computeSmartEnter(
+                    code,
+                    selectionRef.current.start,
+                    selectionRef.current.end,
                   );
-                  const end = Math.min(
-                    Math.max(start, selectionRef.current.end),
-                    code.length,
-                  );
-                  const beforeCursor = code.slice(0, start);
-                  const lastNewlineIdx = beforeCursor.lastIndexOf("\n");
-                  const currentLine = beforeCursor.slice(lastNewlineIdx + 1);
-                  const leadingSpaces =
-                    currentLine.match(/^[ ]*/)?.[0] || "";
-                  const endsWithColon = currentLine.trimEnd().endsWith(":");
-
-                  if (leadingSpaces.length > 0 || endsWithColon) {
+                  if (smartEnter.handled) {
                     e.preventDefault?.();
-                    const nextIndent =
-                      leadingSpaces + (endsWithColon ? "    " : "");
-                    const insertion = "\n" + nextIndent;
-                    const nextCode =
-                      code.slice(0, start) + insertion + code.slice(end);
-                    const nextPos = start + insertion.length;
-                    onChangeCode(nextCode);
-                    setCursorAt(nextPos);
+                    onChangeCode(smartEnter.code);
+                    setCursorAt(smartEnter.cursorPos);
                   }
                 }
               }}
@@ -704,6 +809,33 @@ export default function StudioCodeEditor({
             />
           </View>
         </ScrollView>
+
+        {showScratchpad && (
+          <View style={styles.scratchpadBar}>
+            <Text style={styles.scratchpadLabel}>EVAL &gt;</Text>
+            <TextInput
+              style={styles.scratchpadInput}
+              value={scratchpadExpr}
+              onChangeText={setScratchpadExpr}
+              placeholder='print(solve(...))'
+              placeholderTextColor={StudioColors.codeMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              onSubmitEditing={handleRunScratchpad}
+            />
+            <Pressable
+              disabled={isExecuting}
+              onPress={handleRunScratchpad}
+              style={[
+                styles.scratchpadRunBtn,
+                isExecuting && styles.disabledButton,
+              ]}
+            >
+              <Text style={styles.scratchpadRunBtnText}>▶ EVAL</Text>
+            </Pressable>
+          </View>
+        )}
 
         <View style={styles.ideFooter}>
           <Text style={styles.ideFooterText}>
@@ -742,7 +874,7 @@ export default function StudioCodeEditor({
       <View style={styles.actionRow}>
         <HoverLiftButton
           disabled={isExecuting}
-          onPress={onRunPlaygroundOnly}
+          onPress={() => onRunPlaygroundOnly()}
           style={(hovered) => [
             styles.secondaryRunBtn,
             hovered && styles.secondaryRunBtnHovered,
@@ -875,7 +1007,7 @@ export default function StudioCodeEditor({
             output ? (
               <View style={styles.consoleOutputWrap}>
                 {(() => {
-                  const beginnerHint = translatePythonError(output);
+                  const beginnerHint = translatePythonError(output, totalLines);
                   if (!beginnerHint) return null;
                   return (
                     <View style={styles.byteCatErrorCard}>
@@ -1043,61 +1175,102 @@ export default function StudioCodeEditor({
                 ))}
               </View>
 
-              {testResults[selectedTestIndex] && (
-                <View style={styles.testDetails}>
-                  <Text style={styles.testHeader}>REQUIREMENT CHECKED</Text>
-                  <View style={styles.testDataBox}>
-                    <Text style={styles.testDataText}>
-                      {testResults[selectedTestIndex].input}
-                    </Text>
-                  </View>
-
-                  <View style={styles.comparisonRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.testHeader}>EXPECTED OUTPUT</Text>
-                      <View style={styles.testDataBox}>
-                        <Text style={styles.testDataText}>
-                          {testResults[selectedTestIndex].expected}
-                        </Text>
-                      </View>
+              {testResults[selectedTestIndex] && (() => {
+                const activeTest = testResults[selectedTestIndex];
+                const diff = !activeTest.passed
+                  ? computeAssertionDiff(activeTest.expected, activeTest.actual)
+                  : null;
+                return (
+                  <View style={styles.testDetails}>
+                    <Text style={styles.testHeader}>REQUIREMENT CHECKED</Text>
+                    <View style={styles.testDataBox}>
+                      <Text style={styles.testDataText}>
+                        {activeTest.input}
+                      </Text>
                     </View>
 
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.testHeader,
-                          testResults[selectedTestIndex].passed
-                            ? { color: StudioColors.lime }
-                            : { color: StudioColors.coral },
-                        ]}
-                      >
-                        {testResults[selectedTestIndex].passed
-                          ? "YOUR OUTPUT · MATCH ✓"
-                          : "YOUR OUTPUT · MISMATCH"}
-                      </Text>
-                      <View
-                        style={[
-                          styles.testDataBox,
-                          testResults[selectedTestIndex].passed
-                            ? styles.testDataSuccess
-                            : styles.testDataFail,
-                        ]}
-                      >
+                    {diff && (
+                      <View style={styles.diffDiagnosisBanner}>
+                        <View style={styles.diffReasonBadge}>
+                          <Text style={styles.diffReasonBadgeText}>
+                            FIRST DIFFERENCE
+                          </Text>
+                        </View>
+                        <Text style={styles.diffReasonDetail}>
+                          {diff.reason}
+                        </Text>
+                      </View>
+                    )}
+
+                    <View style={styles.comparisonRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.testHeader}>EXPECTED OUTPUT</Text>
+                        <View style={styles.testDataBox}>
+                          {diff ? (
+                            <Text style={styles.testDataText}>
+                              <Text style={styles.diffMatchPrefix}>
+                                {diff.commonPrefix}
+                              </Text>
+                              <Text style={styles.diffExpectedMismatch}>
+                                {diff.expectedRest || "∅"}
+                              </Text>
+                            </Text>
+                          ) : (
+                            <Text style={styles.testDataText}>
+                              {activeTest.expected}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+
+                      <View style={{ flex: 1 }}>
                         <Text
                           style={[
-                            styles.testDataText,
-                            testResults[selectedTestIndex].passed
+                            styles.testHeader,
+                            activeTest.passed
                               ? { color: StudioColors.lime }
                               : { color: StudioColors.coral },
                           ]}
                         >
-                          {testResults[selectedTestIndex].actual}
+                          {activeTest.passed
+                            ? "YOUR OUTPUT · MATCH ✓"
+                            : "YOUR OUTPUT · MISMATCH"}
                         </Text>
+                        <View
+                          style={[
+                            styles.testDataBox,
+                            activeTest.passed
+                              ? styles.testDataSuccess
+                              : styles.testDataFail,
+                          ]}
+                        >
+                          {diff ? (
+                            <Text style={styles.testDataText}>
+                              <Text style={styles.diffMatchPrefix}>
+                                {diff.commonPrefix}
+                              </Text>
+                              <Text style={styles.diffActualMismatch}>
+                                {diff.actualRest || "∅"}
+                              </Text>
+                            </Text>
+                          ) : (
+                            <Text
+                              style={[
+                                styles.testDataText,
+                                activeTest.passed
+                                  ? { color: StudioColors.lime }
+                                  : { color: StudioColors.coral },
+                              ]}
+                            >
+                              {activeTest.actual}
+                            </Text>
+                          )}
+                        </View>
                       </View>
                     </View>
                   </View>
-                </View>
-              )}
+                );
+              })()}
             </View>
           ) : (
             <View style={styles.emptyConsoleBox}>
