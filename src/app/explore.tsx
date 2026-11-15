@@ -18,7 +18,7 @@ import { getKeyboardAvoidingBehavior } from "../utils/mobileLayout";
 import ExploreByteCatStage from "../components/ExploreByteCatStage";
 import ExplorePythonSandbox from "../components/ExplorePythonSandbox";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
-import { Text } from "../components/StudioIcon";
+import { StudioIcon, Text } from "../components/StudioIcon";
 import {
   StudioColors,
   TrackThemes,
@@ -163,15 +163,17 @@ export default function ExploreScreen() {
         {/* Top Bar */}
         <View style={styles.topBar}>
           <View style={styles.topBarLeft}>
-            <View style={styles.brandBadge}>
+            <View style={[styles.brandBadge, { flexDirection: "row", alignItems: "center", gap: 8 }]}>
+              <StudioIcon name="devlearn_logo" size={20} />
               <Text style={styles.brandBadgeText}>
-                🚀 DEVLEARN // SYLLABUS &amp; PRO SHOWCASE
+                DEVLEARN // SYLLABUS &amp; PRO SHOWCASE
               </Text>
             </View>
             {!isCompact && (
-              <View style={styles.runtimePill}>
+              <View style={[styles.runtimePill, { flexDirection: "row", alignItems: "center", gap: 6 }]}>
+                <StudioIcon name="python" size={16} />
                 <Text style={styles.runtimePillText}>
-                  🐍 PYTHON 3.11 IN-BROWSER · ZERO SETUP
+                  PYTHON 3.11 IN-BROWSER · ZERO SETUP
                 </Text>
               </View>
             )}
@@ -183,8 +185,9 @@ export default function ExploreScreen() {
                 onPress={() => playKeyClick()}
                 style={styles.unlockProTopBtn}
               >
+                <StudioIcon name="pro_member" size={18} />
                 <Text style={styles.unlockProTopBtnText}>
-                  💎 UNLOCK PRO ACCESS →
+                  UNLOCK PRO ACCESS →
                 </Text>
               </Pressable>
             </Link>
@@ -201,9 +204,10 @@ export default function ExploreScreen() {
         <View style={[styles.heroCard, isCompact && styles.heroCardCompact]}>
           <View style={styles.heroLeft}>
             <View style={styles.heroBadgesRow}>
-              <View style={styles.kickerPill}>
+              <View style={[styles.kickerPill, { flexDirection: "row", alignItems: "center", gap: 6 }]}>
+                <StudioIcon name="nav_blitz" size={15} />
                 <Text style={styles.kickerPillText}>
-                  ⚡ INTERACTIVE CODING ARCADE &amp; PRO LABS
+                  INTERACTIVE CODING ARCADE &amp; PRO LABS
                 </Text>
               </View>
               <View style={styles.modulesCountPill}>
@@ -286,9 +290,12 @@ export default function ExploreScreen() {
                   onPress={() => playKeyClick()}
                   style={styles.proHeroCtaBtn}
                 >
-                  <Text style={styles.proHeroCtaText}>
-                    👑 UNLOCK PRO MEMBERSHIP →
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                    <StudioIcon name="pro_member" size={18} />
+                    <Text style={styles.proHeroCtaText}>
+                      UNLOCK PRO MEMBERSHIP →
+                    </Text>
+                  </View>
                 </Pressable>
               </Link>
 
@@ -300,9 +307,12 @@ export default function ExploreScreen() {
                   onPress={() => playKeyClick()}
                   style={styles.primaryCtaBtn}
                 >
-                  <Text style={styles.primaryCtaText}>
-                    🐍 START FREE TRACK →
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                    <StudioIcon name="python" size={18} />
+                    <Text style={styles.primaryCtaText}>
+                      START FREE TRACK →
+                    </Text>
+                  </View>
                 </Pressable>
               </Link>
 
@@ -314,7 +324,10 @@ export default function ExploreScreen() {
                   onPress={() => playKeyClick()}
                   style={styles.secondaryCtaBtn}
                 >
-                  <Text style={styles.secondaryCtaText}>🔬 ALGO LAB</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                    <StudioIcon name="nav_algolab" size={18} />
+                    <Text style={styles.secondaryCtaText}>ALGO LAB</Text>
+                  </View>
                 </Pressable>
               </Link>
 
@@ -326,7 +339,10 @@ export default function ExploreScreen() {
                   onPress={() => playKeyClick()}
                   style={styles.secondaryCtaBtn}
                 >
-                  <Text style={styles.secondaryCtaText}>🪲 BUG HUNT</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                    <StudioIcon name="nav_bughunt" size={18} />
+                    <Text style={styles.secondaryCtaText}>BUG HUNT</Text>
+                  </View>
                 </Pressable>
               </Link>
             </View>
@@ -365,9 +381,12 @@ export default function ExploreScreen() {
             {/* Simulator 1: Interactive Two-Pointer O(n) Visualizer */}
             <View style={[styles.simCard, { borderColor: "#38BDF8" }]}>
               <View style={styles.simTopRow}>
-                <Text style={[styles.simEyebrow, { color: "#38BDF8" }]}>
-                  🔬 PRO SIMULATOR 01 // ALGO VISUALIZER LAB
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <StudioIcon name="nav_algolab" size={18} />
+                  <Text style={[styles.simEyebrow, { color: "#38BDF8" }]}>
+                    PRO SIMULATOR 01 // ALGO VISUALIZER LAB
+                  </Text>
+                </View>
                 <View style={styles.simComplexityPill}>
                   <Text style={styles.simComplexityText}>
                     Two-Sum Sorted · O(n)
@@ -462,9 +481,12 @@ export default function ExploreScreen() {
             {/* Simulator 2: Interactive 1-Click Bug Hunt */}
             <View style={[styles.simCard, { borderColor: "#FB7185" }]}>
               <View style={styles.simTopRow}>
-                <Text style={[styles.simEyebrow, { color: "#FB7185" }]}>
-                  🪲 PRO SIMULATOR 02 // BUG HUNT ARENA
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <StudioIcon name="nav_bughunt" size={18} />
+                  <Text style={[styles.simEyebrow, { color: "#FB7185" }]}>
+                    PRO SIMULATOR 02 // BUG HUNT ARENA
+                  </Text>
+                </View>
                 <View
                   style={[
                     styles.simComplexityPill,
@@ -615,7 +637,10 @@ export default function ExploreScreen() {
                   >
                     {item.tabTag}
                   </Text>
-                  <Text style={styles.featureTabTitle}>{item.tabTitle}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+                    <StudioIcon name={item.iconName} size={17} />
+                    <Text style={styles.featureTabTitle}>{item.tabTitle}</Text>
+                  </View>
                 </Pressable>
               );
             })}
@@ -632,9 +657,15 @@ export default function ExploreScreen() {
               <View
                 style={[
                   styles.featureStageBadge,
-                  { backgroundColor: activeFeature.accent },
+                  {
+                    backgroundColor: activeFeature.accent,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                  },
                 ]}
               >
+                <StudioIcon name={activeFeature.iconName} size={15} />
                 <Text style={styles.featureStageBadgeText}>
                   {activeFeature.badge}
                 </Text>
@@ -645,9 +676,15 @@ export default function ExploreScreen() {
               <Text style={styles.featureStageDesc}>
                 {activeFeature.description}
               </Text>
-              <Text style={styles.featureStageProHook}>
-                {activeFeature.proHook}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <StudioIcon
+                  name={activeFeature.id === "miniapps" ? "python" : "pro_member"}
+                  size={15}
+                />
+                <Text style={[styles.featureStageProHook, { flex: 1 }]}>
+                  {activeFeature.proHook}
+                </Text>
+              </View>
 
               <View style={styles.featureStageCtaRow}>
                 <Link
@@ -661,9 +698,12 @@ export default function ExploreScreen() {
                       { backgroundColor: activeFeature.accent },
                     ])}
                   >
-                    <Text style={styles.featureStageBtnText}>
-                      {activeFeature.ctaLabel}
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                      <StudioIcon name={activeFeature.iconName} size={17} />
+                      <Text style={styles.featureStageBtnText}>
+                        {activeFeature.ctaLabel}
+                      </Text>
+                    </View>
                   </Pressable>
                 </Link>
               </View>
@@ -691,7 +731,10 @@ export default function ExploreScreen() {
         {/* ================================================================= */}
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionEyebrow}>📚 FULL SYLLABUS BREAKDOWN</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+              <StudioIcon name="nav_showcase" size={18} />
+              <Text style={styles.sectionEyebrow}>FULL SYLLABUS BREAKDOWN</Text>
+            </View>
             <Text style={styles.sectionHeading}>
               3 Structured Mastery Tracks · From First Variable to System
               Architect
@@ -717,9 +760,15 @@ export default function ExploreScreen() {
                     <View
                       style={[
                         styles.trackBadge,
-                        { backgroundColor: theme.stickerBg },
+                        {
+                          backgroundColor: theme.stickerBg,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        },
                       ]}
                     >
+                      <StudioIcon name={item.iconName} size={15} />
                       <Text style={styles.trackBadgeText}>{item.badge}</Text>
                     </View>
                     <Text
@@ -732,7 +781,10 @@ export default function ExploreScreen() {
                     </Text>
                   </View>
 
-                  <Text style={styles.trackTitle}>{theme.label}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
+                    <StudioIcon name={item.iconName} size={22} />
+                    <Text style={styles.trackTitle}>{theme.label}</Text>
+                  </View>
                   <Text style={styles.trackSub}>{item.chapters}</Text>
                   <Text style={styles.trackDesc}>{theme.subtitle}</Text>
 
@@ -776,7 +828,13 @@ export default function ExploreScreen() {
                         { backgroundColor: theme.stickerBg },
                       ])}
                     >
-                      <Text style={styles.cardActionText}>{item.ctaLabel}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                        <StudioIcon
+                          name={theme.isPro ? "pro_member" : item.iconName}
+                          size={16}
+                        />
+                        <Text style={styles.cardActionText}>{item.ctaLabel}</Text>
+                      </View>
                     </Pressable>
                   </Link>
                 </View>
@@ -790,7 +848,10 @@ export default function ExploreScreen() {
         {/* ================================================================= */}
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionEyebrow}>🎮 CHAPTER VI SHOWCASE</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+              <StudioIcon name="nav_studio" size={18} />
+              <Text style={styles.sectionEyebrow}>CHAPTER VI SHOWCASE</Text>
+            </View>
             <Text style={styles.sectionHeading}>
               4 Playable Python Mini-Apps You Build &amp; Keep
             </Text>
@@ -830,9 +891,10 @@ export default function ExploreScreen() {
         <View style={styles.proVaultCard}>
           <View style={styles.proVaultHeader}>
             <View style={styles.proVaultHeaderCopy}>
-              <View style={styles.proVaultKicker}>
+              <View style={[styles.proVaultKicker, { flexDirection: "row", alignItems: "center", gap: 7 }]}>
+                <StudioIcon name="pro_member" size={17} />
                 <Text style={styles.proVaultKickerText}>
-                  👑 DEVLEARN PRO MEMBERSHIP · FULL STUDIO UNLOCK
+                  DEVLEARN PRO MEMBERSHIP · FULL STUDIO UNLOCK
                 </Text>
               </View>
               <Text style={styles.proVaultTitle}>
@@ -939,9 +1001,10 @@ export default function ExploreScreen() {
             {/* Pro Tier Card */}
             <View style={styles.proTierCard}>
               <View style={styles.tierHeaderRow}>
-                <View style={styles.mostPopularBadge}>
+                <View style={[styles.mostPopularBadge, { flexDirection: "row", alignItems: "center", gap: 6 }]}>
+                  <StudioIcon name="pro_member" size={16} />
                   <Text style={styles.mostPopularBadgeText}>
-                    👑 MOST POPULAR · ALL-ACCESS PRO
+                    MOST POPULAR · ALL-ACCESS PRO
                   </Text>
                 </View>
                 <Text style={styles.proPriceText}>
@@ -1010,9 +1073,12 @@ export default function ExploreScreen() {
                     onPress={() => playKeyClick()}
                     style={styles.joinProBtn}
                   >
-                    <Text style={styles.joinProBtnText}>
-                      💎 JOIN DEVLEARN PRO NOW →
-                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                      <StudioIcon name="pro_member" size={18} />
+                      <Text style={styles.joinProBtnText}>
+                        JOIN DEVLEARN PRO NOW →
+                      </Text>
+                    </View>
                   </Pressable>
                 </Link>
               </View>

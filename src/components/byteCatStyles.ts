@@ -45,21 +45,6 @@ export const getByteCatStyles = (StudioColors: StudioThemeColors) => {
       gap: 8,
       flexWrap: "wrap",
     },
-    cozyAmbiancePill: {
-      backgroundColor: "#242034",
-      borderWidth: 1.5,
-      borderColor: "#3D3656",
-      borderRadius: 6,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-    },
-    cozyAmbianceText: {
-      color: "#C4B5FD",
-      fontSize: 8.5,
-      fontWeight: "800",
-      fontFamily: MonoFont,
-      letterSpacing: 0.4,
-    },
     rankBadge: {
       backgroundColor: "#242034",
       borderWidth: 1.5,

@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Text } from "./StudioIcon";
+import { StudioIcon, Text } from "./StudioIcon";
 import {
   HardShadow,
   HardShadowHero,
@@ -18,7 +18,6 @@ import {
 } from "../constants/theme";
 import { useThemedStyles } from "../constants/themeContext";
 import { playKeyClick } from "../utils/soundEffects";
-import { getDeveloperRank } from "./ProfileStatsModal";
 
 export type PaywallPlanId = "monthly" | "annual" | "lifetime";
 
@@ -89,9 +88,6 @@ export default function PaywallModal({
   totalModules = 64,
   algoModulesCount = 20,
   sysDesignModulesCount = 20,
-  xpPoints = 0,
-  completedCount = 0,
-  streakCount = 0,
   hasSession = false,
   triggerContext,
   freePreviewLessonTitle,
@@ -100,7 +96,6 @@ export default function PaywallModal({
   const styles = useThemedStyles(createStyles);
   const [selectedPlan, setSelectedPlan] = useState<PaywallPlanId>("annual");
   const activePlan = PLANS.find((p) => p.id === selectedPlan) || PLANS[1];
-  const devRank = getDeveloperRank(xpPoints);
 
   const proFeatures = [
     {
@@ -177,28 +172,6 @@ export default function PaywallModal({
           Accelerate your interview prep and system architecture skills with
           unrestricted access to all {totalModules} interactive modules.
         </Text>
-
-        {(xpPoints > 0 || completedCount > 0) && (
-          <View style={styles.momentumBox}>
-            <View style={styles.momentumTopRow}>
-              <Text style={styles.momentumBadge}>
-                ⚡ L{devRank.level}: {devRank.title.toUpperCase()}
-              </Text>
-              {streakCount > 0 && (
-                <Text style={styles.streakPill}>🔥 {streakCount}D STREAK</Text>
-              )}
-            </View>
-            <Text style={styles.momentumCopy}>
-              You&apos;ve earned{" "}
-              <Text style={styles.momentumBold}>{xpPoints} XP</Text> across{" "}
-              <Text style={styles.momentumBold}>
-                {completedCount}{" "}
-                {completedCount === 1 ? "module" : "modules"}
-              </Text>
-              . Keep your streak rolling in Algorithms &amp; System Design!
-            </Text>
-          </View>
-        )}
 
         <View style={styles.featuresList}>
           {proFeatures.map((feat, idx) => (
@@ -319,8 +292,9 @@ export default function PaywallModal({
               onTryFreePreview();
             }}
           >
+            <StudioIcon name="free_preview" size={19} />
             <Text style={styles.previewBtnText} numberOfLines={1}>
-              ⚡ Try Free Preview First: {freePreviewLessonTitle} →
+              Try Free Preview First: {freePreviewLessonTitle} →
             </Text>
           </Pressable>
         )}
@@ -440,53 +414,6 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     textAlign: "center",
     lineHeight: 18,
     marginBottom: 14,
-  },
-  momentumBox: {
-    alignSelf: "stretch",
-    backgroundColor: StudioColors.surfaceElevated,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    borderRadius: 10,
-    padding: 11,
-    marginBottom: 14,
-    gap: 4,
-  },
-  momentumTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  momentumBadge: {
-    color: StudioColors.textPrimary,
-    fontSize: 10,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.5,
-  },
-  streakPill: {
-    backgroundColor: StudioColors.orange,
-    color: StudioColors.ink,
-    fontSize: 9.5,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: StudioColors.ink,
-    overflow: "hidden",
-  },
-  momentumCopy: {
-    color: StudioColors.textSecondary,
-    fontSize: 11.5,
-    fontWeight: "600",
-    lineHeight: 16,
-  },
-  momentumBold: {
-    color: StudioColors.textPrimary,
-    fontWeight: "900",
   },
   featuresList: {
     alignSelf: "stretch",
@@ -666,7 +593,10 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     borderRadius: 8,
     paddingVertical: 9,
     paddingHorizontal: 12,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     ...Platform.select({
       web: { cursor: "pointer", userSelect: "none" },
     }),
@@ -676,6 +606,7 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     fontSize: 11,
     fontWeight: "900",
     fontFamily: MonoFont,
+    flexShrink: 1,
   },
   closeBtn: {
     marginTop: 10,

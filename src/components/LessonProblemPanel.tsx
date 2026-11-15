@@ -306,7 +306,7 @@ export default function LessonProblemPanel({
                     {isStage0Solved ? "✓ 01" : "01"}
                   </Text>
                   <View style={styles.practiceStagePillLabelRow}>
-                    <StudioIcon name="practice_1" size={16} />
+                    <StudioIcon name="practice_1" size={19} />
                     <Text
                       style={[
                         styles.practiceStagePillLabel,
@@ -366,7 +366,7 @@ export default function LessonProblemPanel({
                     {isSolved ? `✓ ${stageNumber}` : stageNumber}
                   </Text>
                   <View style={styles.practiceStagePillLabelRow}>
-                    <StudioIcon name={stageIconName} size={16} />
+                    <StudioIcon name={stageIconName} size={19} />
                     <Text
                       style={[
                         styles.practiceStagePillLabel,
@@ -399,7 +399,7 @@ export default function LessonProblemPanel({
                         ? "practice_3"
                         : "practice_4"
                   }
-                  size={14}
+                  size={17}
                 />
                 <Text style={styles.assignmentHeaderLabel}>
                   {activePracticeDrill.difficultyLabel} · STAGE{" "}

@@ -11,7 +11,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Text } from "./StudioIcon";
+import { StudioIcon, Text } from "./StudioIcon";
 import {
   HardShadow,
   HardShadowSm,
@@ -443,7 +443,8 @@ export default function AppHeader({
           onPress={() => handleSwitchMode("roadmap")}
         >
           <View style={styles.brandIconBox}>
-            <Text style={styles.brandIconText}>🚀 DEVLEARN</Text>
+            <StudioIcon name="devlearn_logo" size={22} />
+            <Text style={styles.brandIconText}>DEVLEARN</Text>
           </View>
         </Pressable>
 
@@ -451,7 +452,8 @@ export default function AppHeader({
         {!isCompactHeader && (
           <View style={styles.categoryGroupTray}>
             <View style={styles.categoryLabelPill}>
-              <Text style={styles.categoryLabelText}>🧩 CODING &amp; LABS</Text>
+              <StudioIcon name="menu_coding" size={13} />
+              <Text style={styles.categoryLabelText}>CODING &amp; LABS</Text>
             </View>
 
             <View style={styles.modeSwitcher}>
@@ -463,13 +465,14 @@ export default function AppHeader({
               ]}
               onPress={() => handleSwitchMode("roadmap")}
             >
+              <StudioIcon name="nav_skillmap" size={18} />
               <Text
                 style={[
                   styles.modeBtnText,
                   viewMode === "roadmap" && styles.modeBtnTextActive,
                 ]}
               >
-                🎯 SKILL MAP
+                SKILL MAP
               </Text>
             </Pressable>
 
@@ -481,13 +484,14 @@ export default function AppHeader({
               ]}
               onPress={() => handleSwitchMode("studio")}
             >
+              <StudioIcon name="nav_studio" size={18} />
               <Text
                 style={[
                   styles.modeBtnText,
                   viewMode === "studio" && styles.modeBtnTextActive,
                 ]}
               >
-                ⌨️ CODE STUDIO
+                CODE STUDIO
               </Text>
             </Pressable>
 
@@ -499,13 +503,14 @@ export default function AppHeader({
               ]}
               onPress={() => handleSwitchMode("bughunt")}
             >
+              <StudioIcon name="nav_bughunt" size={18} />
               <Text
                 style={[
                   styles.modeBtnText,
                   viewMode === "bughunt" && styles.modeBtnBugHuntTextActive,
                 ]}
               >
-                🪲 BUG HUNT
+                BUG HUNT
               </Text>
             </Pressable>
 
@@ -517,13 +522,14 @@ export default function AppHeader({
               ]}
               onPress={() => handleSwitchMode("blitz")}
             >
+              <StudioIcon name="nav_blitz" size={18} />
               <Text
                 style={[
                   styles.modeBtnText,
                   viewMode === "blitz" && styles.modeBtnBlitzTextActive,
                 ]}
               >
-                ⚡ SPEED BLITZ
+                SPEED BLITZ
               </Text>
             </Pressable>
 
@@ -535,13 +541,17 @@ export default function AppHeader({
               ]}
               onPress={() => handleSwitchMode("algolab")}
             >
+              <StudioIcon
+                name={isPremium ? "nav_algolab" : "lock"}
+                size={18}
+              />
               <Text
                 style={[
                   styles.modeBtnText,
                   viewMode === "algolab" && styles.modeBtnAlgoLabTextActive,
                 ]}
               >
-                {isPremium ? "🔬 ALGO LAB" : "🔒 ALGO LAB"}
+                ALGO LAB
               </Text>
             </Pressable>
 
@@ -555,7 +565,8 @@ export default function AppHeader({
                 router.push("/explore");
               }}
             >
-              <Text style={styles.modeBtnText}>📖 SHOWCASE</Text>
+              <StudioIcon name="nav_showcase" size={18} />
+              <Text style={styles.modeBtnText}>SHOWCASE</Text>
             </Pressable>
             </View>
           </View>
@@ -573,7 +584,8 @@ export default function AppHeader({
         >
           {!isCompactHeader && (
             <View style={styles.categoryLabelPill}>
-              <Text style={styles.categoryLabelText}>👑 ACCOUNT &amp; RANK</Text>
+              <StudioIcon name="menu_account_rank" size={13} />
+              <Text style={styles.categoryLabelText}>ACCOUNT &amp; RANK</Text>
             </View>
           )}
 
@@ -593,8 +605,9 @@ export default function AppHeader({
               {/* 1. Profile & Developer Rank Box */}
               <View style={styles.rankPill}>
                 <View style={styles.rankLevelBadge}>
+                  <StudioIcon name="menu_account_rank" size={15} />
                   <Text style={styles.rankLevelBadgeText}>
-                    🏆 LVL 0{devRank.level}
+                    LVL 0{devRank.level}
                   </Text>
                 </View>
                 <View style={styles.headerBtnTextStack}>
@@ -604,7 +617,6 @@ export default function AppHeader({
                     </Text>
                   )}
                   <Text style={styles.rankPillText}>
-                    🧠{" "}
                     {isCompactHeader ? "PROFILE ↗" : devRank.title.toUpperCase()}
                   </Text>
                 </View>
@@ -625,7 +637,8 @@ export default function AppHeader({
 
               {isPremium && (
                 <View style={styles.proBadge}>
-                  <Text style={styles.proBadgeText}>👑 PRO MEMBER</Text>
+                  <StudioIcon name="pro_member" size={18} />
+                  <Text style={styles.proBadgeText}>PRO MEMBER</Text>
                 </View>
               )}
             </Pressable>
@@ -641,26 +654,30 @@ export default function AppHeader({
               ]}
               onPress={() => handleSwitchMode("achievements")}
             >
-              <View style={styles.headerBtnTextStack}>
-                {!isCompactHeader && (
+              <View style={styles.achievementsBtnRow}>
+                <StudioIcon name="nav_achievements" size={18} />
+                <View style={styles.headerBtnTextStack}>
+                  {!isCompactHeader && (
+                    <Text
+                      style={[
+                        styles.headerBtnMicroLabelMuted,
+                        viewMode === "achievements" &&
+                          styles.headerBtnMicroLabel,
+                      ]}
+                    >
+                      TROPHY HALL
+                    </Text>
+                  )}
                   <Text
                     style={[
-                      styles.headerBtnMicroLabelMuted,
-                      viewMode === "achievements" && styles.headerBtnMicroLabel,
+                      styles.achievementsTabBtnText,
+                      viewMode === "achievements" &&
+                        styles.achievementsTabBtnTextActive,
                     ]}
                   >
-                    TROPHY HALL
+                    ACHIEVEMENTS
                   </Text>
-                )}
-                <Text
-                  style={[
-                    styles.achievementsTabBtnText,
-                    viewMode === "achievements" &&
-                      styles.achievementsTabBtnTextActive,
-                  ]}
-                >
-                  🏅 ACHIEVEMENTS
-                </Text>
+                </View>
               </View>
             </Pressable>
 
@@ -678,6 +695,7 @@ export default function AppHeader({
                   onOpenPaywall();
                 }}
               >
+                <StudioIcon name="pro_member" size={19} />
                 <View style={styles.headerBtnTextStack}>
                   {!isCompactHeader && (
                     <Text style={styles.headerBtnMicroLabel}>
@@ -685,11 +703,12 @@ export default function AppHeader({
                     </Text>
                   )}
                   <Text style={styles.upgradeHeaderBtnText}>
-                    💎 {isCompactHeader ? "GET PRO" : "UPGRADE TO PRO"}
+                    {isCompactHeader ? "GET PRO" : "UPGRADE TO PRO"}
                   </Text>
                 </View>
                 <View style={styles.headerCtaKeycap}>
-                  <Text style={styles.headerCtaKeycapPinkText}>👑 PRO →</Text>
+                  <StudioIcon name="pro_member" size={14} />
+                  <Text style={styles.headerCtaKeycapPinkText}>PRO →</Text>
                 </View>
               </Pressable>
             )}
@@ -760,7 +779,8 @@ export default function AppHeader({
         >
           {!isCompactHeader && (
             <View style={styles.categoryLabelPill}>
-              <Text style={styles.categoryLabelText}>🛠️ SETTINGS</Text>
+              <StudioIcon name="menu_settings" size={13} />
+              <Text style={styles.categoryLabelText}>SETTINGS</Text>
             </View>
           )}
 
@@ -983,6 +1003,8 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     brandIconBox: {
+      flexDirection: "row",
+      gap: 7,
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: 8,
@@ -1022,6 +1044,9 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       position: "absolute",
       top: -8,
       left: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
       backgroundColor: StudioColors.surfaceElevated,
       borderWidth: 1,
       borderColor: StudioColors.border,
@@ -1049,6 +1074,10 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       gap: 6,
     },
     modeBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
       paddingHorizontal: 11,
       paddingVertical: 6,
       borderRadius: 7,
@@ -1168,6 +1197,9 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       ...HardShadowSm,
     },
     rankLevelBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
       backgroundColor: StudioColors.ink,
       paddingHorizontal: 6,
       paddingVertical: 3,
@@ -1205,6 +1237,9 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       letterSpacing: 0.4,
     },
     proBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
       backgroundColor: StudioColors.ink,
       paddingHorizontal: 9,
       paddingVertical: 5,
@@ -1230,6 +1265,11 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       justifyContent: "center",
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    achievementsBtnRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
     },
     achievementsTabBtnActive: {
       backgroundColor: StudioColors.mint,
@@ -1267,6 +1307,8 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       letterSpacing: 0.4,
     },
     headerCtaKeycap: {
+      flexDirection: "row",
+      gap: 4,
       backgroundColor: StudioColors.ink,
       paddingHorizontal: 7,
       paddingVertical: 4,

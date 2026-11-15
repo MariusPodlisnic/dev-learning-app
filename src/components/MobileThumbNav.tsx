@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import React from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text } from "./StudioIcon";
+import { StudioIcon, StudioIconName, Text } from "./StudioIcon";
 import {
   HardShadowSm,
   MonoFont,
@@ -39,6 +39,27 @@ function getActiveFillStyle(
   }
 }
 
+function getMobileNavIcon(
+  key: string,
+  isPremium: boolean,
+): StudioIconName {
+  switch (key) {
+    case "roadmap":
+      return "nav_skillmap";
+    case "studio":
+      return "nav_studio";
+    case "bughunt":
+      return "nav_bughunt";
+    case "blitz":
+      return "nav_blitz";
+    case "algolab":
+      return isPremium ? "nav_algolab" : "lock";
+    case "explore":
+    default:
+      return "nav_showcase";
+  }
+}
+
 export default function MobileThumbNav({
   viewMode,
   isPremium,
@@ -58,8 +79,7 @@ export default function MobileThumbNav({
     >
       {MOBILE_NAV_ITEMS.map((item) => {
         const isActive = item.kind === "mode" && viewMode === item.key;
-        const icon =
-          item.key === "algolab" && !isPremium ? "🔒" : item.icon;
+        const iconName = getMobileNavIcon(item.key, isPremium);
 
         return (
           <Pressable
@@ -81,7 +101,7 @@ export default function MobileThumbNav({
               }
             }}
           >
-            <Text style={styles.tabIcon}>{icon}</Text>
+            <StudioIcon name={iconName} size={21} />
             <Text
               numberOfLines={1}
               style={[

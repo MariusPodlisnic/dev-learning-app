@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Animated, Easing, Pressable, View } from "react-native";
-import { Text } from "./StudioIcon";
+import { StudioIcon, Text } from "./StudioIcon";
 import { StudioColors } from "../constants/theme";
 import { useTheme, useThemedStyles } from "../constants/themeContext";
 import { playKeyClick } from "../utils/soundEffects";
@@ -32,13 +32,13 @@ export const TRACK_PITCH_META: Record<
   },
   algorithms: {
     emoji: "🧬",
-    badge: "PATTERNS & INTERVIEWS",
+    badge: "INTERVIEW PREP",
     shortName: "Algorithms",
     hook: "Master Two Pointers, Sliding Window, Sorting & Graphs",
   },
   system_design: {
     emoji: "🏗️",
-    badge: "REAL-WORLD SCALE",
+    badge: "SYSTEM SCALE",
     shortName: "System Design",
     hook: "Design fast caches, load balancers, queues & retries",
   },
@@ -515,7 +515,8 @@ export function TrackPathCard({
 
           {isTrackLocked ? (
             <View style={styles.trackProBadge}>
-              <Text style={styles.trackProBadgeText}>🔒 PRO · 1 FREE</Text>
+              <StudioIcon name="lock" size={12} />
+              <Text style={styles.trackProBadgeText}>PRO · 1 FREE</Text>
             </View>
           ) : (
             <View

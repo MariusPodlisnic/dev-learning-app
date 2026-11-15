@@ -981,14 +981,6 @@ export default function ByteCatGuideCard({
             </Text>
           </View>
         </View>
-
-        <View style={styles.cozyAmbiancePill}>
-          <Text style={styles.cozyAmbianceText}>
-            {petLevel >= 3
-              ? "🌧️ RAINY STUDY · 🔮 LAVA LAMP"
-              : "🌧️ RAINY NIGHT · ☕ LO-FI DESK"}
-          </Text>
-        </View>
       </View>
 
       <View style={styles.cardBodyRow}>

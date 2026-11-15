@@ -80,6 +80,9 @@ export const createExploreStyles = (StudioColors: StudioThemeColors) =>
     fontWeight: "800",
   },
   unlockProTopBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     backgroundColor: "#F472B6",
     borderWidth: 2,
     borderColor: StudioColors.ink,

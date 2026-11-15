@@ -117,14 +117,29 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
     onSignOut: () => {},
   };
 
-  const desktopText = visibleText(
-    renderThemed(
-      React.createElement(AppHeader, { ...baseProps, isCompactHeader: false }),
-    ),
+  const desktopHtml = renderThemed(
+    React.createElement(AppHeader, { ...baseProps, isCompactHeader: false }),
   );
+  const desktopText = visibleText(desktopHtml);
   assert.ok(desktopText.includes("SKILL MAP"));
   assert.ok(desktopText.includes("SPEED BLITZ"));
   assert.ok(desktopText.includes("UPGRADE TO PRO"));
+  assert.ok(desktopText.includes("ACCOUNT & RANK"));
+  assert.ok(desktopText.includes("SETTINGS"));
+
+  const proHeaderHtml = renderThemed(
+    React.createElement(AppHeader, {
+      ...baseProps,
+      isCompactHeader: false,
+      isPremium: true,
+    }),
+  );
+  assert.ok(visibleText(proHeaderHtml).includes("PRO MEMBER"));
+  const headerSvgs = proHeaderHtml.match(/<svg[\s\S]*?<\/svg>/g) || [];
+  assert.ok(
+    new Set(headerSvgs).size >= 11,
+    "Desktop header should render unique custom SVGs for DevLearn, menu buttons, Account & Rank, Pro Member, and Settings",
+  );
 
   const mobileText = visibleText(
     renderThemed(
