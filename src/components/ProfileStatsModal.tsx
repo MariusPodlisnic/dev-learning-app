@@ -210,7 +210,6 @@ export default function ProfileStatsModal({
     const message = [
       `🐾 DevLearn Developer Card`,
       `🏅 Level ${rank.level}: ${rank.title}`,
-      `"${rank.tagline}"`,
       `⚡ ${xpPoints} XP · 🔥 ${streakCount}d streak · ✓ ${totalCompleted}/${totalLessons} modules solved`,
       `Join me on DevLearn 👉 ${url}`,
     ].join("\n");
@@ -273,9 +272,6 @@ export default function ProfileStatsModal({
                 </Text>
               </View>
             </View>
-            <Text style={styles.rankTagline} numberOfLines={2}>
-              &ldquo;{rank.tagline}&rdquo;
-            </Text>
             <Text style={styles.emailText} numberOfLines={1}>
               {userEmail ? userEmail : "Guest Profile · Not synced to cloud"}
             </Text>
@@ -589,13 +585,6 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     letterSpacing: -0.3,
     flexShrink: 1,
   },
-  rankTagline: {
-    color: StudioColors.textSecondary,
-    fontSize: 11,
-    fontWeight: "700",
-    fontStyle: "italic",
-    marginTop: 2,
-  },
   nextRankHintText: {
     color: StudioColors.textSecondary,
     fontSize: 11,
@@ -630,7 +619,7 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     color: StudioColors.textSecondary,
     fontSize: 12,
     fontWeight: "600",
-    marginTop: 2,
+    marginTop: 4,
   },
   devProToggleBtn: {
     alignSelf: "flex-start",

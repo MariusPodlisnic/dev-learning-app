@@ -578,6 +578,25 @@ test("10-level developer rank system enforces wider XP gaps, caps at Level 10, a
   assert.ok(profileText.includes("MAX LEVEL 10 REACHED"));
   assert.ok(!profileText.includes("LVL 11"));
 
+  for (const xp of [0, 500, 1500, 3000, 5500, 9000, 14000, 21000, 30000, 45000]) {
+    const rank = getDeveloperRank(xp);
+    const levelProfileText = visibleText(
+      renderThemed(
+        React.createElement(ProfileStatsModal, {
+          xpPoints: xp,
+          streakCount: 1,
+          isPremium: false,
+          lessons: [],
+          completedLessons: {},
+          onSelectTrack: () => {},
+          onOpenAuth: () => {},
+          onClose: () => {},
+        }),
+      ),
+    );
+    assert.ok(!levelProfileText.includes(rank.tagline));
+  }
+
   const successHtml = renderThemed(
     React.createElement(SuccessModal, {
       xpEarned: 50,
