@@ -294,7 +294,7 @@ export default function BugHuntArena({
               },
               {
                 key: "algorithms",
-                label: `⚡ ALGORITHMS (${BUG_INCIDENTS.filter((i) => i.track === "algorithms").length})${!isPremium ? " 🔒" : ""}`,
+                label: `🧬 ALGORITHMS (${BUG_INCIDENTS.filter((i) => i.track === "algorithms").length})${!isPremium ? " 🔒" : ""}`,
               },
               {
                 key: "system_design",

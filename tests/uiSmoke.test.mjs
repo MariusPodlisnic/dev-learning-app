@@ -31,6 +31,9 @@ const { default: BugHuntArena } = loadTsModule(
 const { default: LessonProblemPanel } = loadTsModule(
   "src/components/LessonProblemPanel.tsx",
 );
+const { default: VisualLessonPanel } = loadTsModule(
+  "src/components/VisualLessonPanel.tsx",
+);
 const { getLessonEnrichment, mergeCurriculumLessons } = loadTsModule(
   "src/constants/curriculum.ts",
 );
@@ -226,7 +229,7 @@ test("SyntaxBlitzArena, BugHuntArena, and AlgorithmVisualizerLab render full tre
   assert.ok(bugText.includes("DAILY SEED"));
 });
 
-test("StudioCodeEditor renders editor chrome, quick inserts, scratchpad toggle, and assertion diff", () => {
+test("StudioCodeEditor renders editor chrome, quick inserts, trace control, and assertion diff", () => {
   const editorText = visibleText(
     renderThemed(
       React.createElement(StudioCodeEditor, {
@@ -244,6 +247,7 @@ test("StudioCodeEditor renders editor chrome, quick inserts, scratchpad toggle, 
         hasSavedDraft: true,
         pyodideReady: true,
         isExecuting: false,
+        onTraceCode: () => {},
         onRunPlaygroundOnly: () => {},
         onRunPythonCode: () => {},
         bottomTab: "tests",
@@ -267,7 +271,8 @@ test("StudioCodeEditor renders editor chrome, quick inserts, scratchpad toggle, 
   assert.ok(editorText.includes("solution.py"));
   assert.ok(editorText.includes("DRAFT SAVED"));
   assert.ok(editorText.includes("# Comment"));
-  assert.ok(editorText.includes("EVAL"));
+  assert.ok(!editorText.includes("EVAL"));
+  assert.ok(editorText.includes("TRACE"));
   assert.ok(editorText.includes("TEST RUN"));
   assert.ok(editorText.includes("SUBMIT CODE (+50 XP)"));
   assert.ok(editorText.includes("0 OF 1 CHECKS PASSED"));
@@ -336,4 +341,68 @@ test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) 
   assert.ok(cheatText.includes("PYTHON SYNTAX PATTERN"));
   assert.equal(cheatText.includes("CONCEPT CHECK · QUICK RECALL"), false);
   assert.equal(cheatText.includes("COMMON PITFALL TO AVOID"), false);
+
+  const missionText = visibleText(
+    renderThemed(
+      React.createElement(LessonProblemPanel, {
+        ...baseProps,
+        activeTab: "mission",
+        userCode: firstLesson.initial_code,
+        onApplyScaffold: () => {},
+      }),
+    ),
+  );
+  assert.ok(missionText.includes("GUIDED SCAFFOLDING MODE"));
+  assert.ok(missionText.includes("LOAD SKELETON"));
+
+  const liveTraceText = visibleText(
+    renderThemed(
+      React.createElement(VisualLessonPanel, {
+        type: "memory",
+        data: [{ label: "score", value: "100", type: "int" }],
+        userCode: "x = 5\nprint(x)",
+        onRunLiveTrace: () => {},
+        liveTraceResult: {
+          ok: true,
+          totalSteps: 2,
+          truncated: false,
+          driverUsed: "",
+          finalStdout: "5",
+          frames: [
+            {
+              stepIndex: 0,
+              line: 1,
+              codeLine: "x = 5",
+              event: "line",
+              funcName: "<module>",
+              depth: 0,
+              callStack: ["<module>"],
+              locals: {},
+              changedVars: [],
+              returnValue: null,
+              exception: null,
+              stdout: "",
+            },
+            {
+              stepIndex: 1,
+              line: 2,
+              codeLine: "print(x)",
+              event: "line",
+              funcName: "<module>",
+              depth: 0,
+              callStack: ["<module>"],
+              locals: { x: { value: "5", type: "int", changed: true } },
+              changedVars: ["x"],
+              returnValue: null,
+              exception: null,
+              stdout: "5\n",
+            },
+          ],
+        },
+      }),
+    ),
+  );
+  assert.ok(liveTraceText.includes("LIVE EXECUTION TRACE"));
+  assert.ok(liveTraceText.includes("CALL STACK"));
+  assert.ok(liveTraceText.includes("VARIABLES AT STEP 1"));
 });

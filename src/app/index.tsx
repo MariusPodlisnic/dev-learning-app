@@ -84,7 +84,9 @@ import {
   executeBugPatchVerification,
   executeLessonVerification,
   executePlaygroundPython,
+  executePythonTrace,
 } from "../utils/pyodideRunner";
+import type { PythonTraceResult } from "../utils/pythonTrace";
 import { playVictoryFanfare } from "../utils/soundEffects";
 import {
   CloudProgressState,
@@ -193,6 +195,10 @@ export default function HomeScreen() {
     useState<CertificateData | null>(null);
   const [upgrading, setUpgrading] = useState<boolean>(false);
   const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(false);
+  const [liveTraceResult, setLiveTraceResult] =
+    useState<PythonTraceResult | null>(null);
+  const [isTracing, setIsTracing] = useState<boolean>(false);
+  const [tracedLineNumber, setTracedLineNumber] = useState<number | null>(null);
 
   const pyodideRef = useRef<any>(null);
   const studioActionsRef = useRef({
@@ -411,6 +417,8 @@ export default function HomeScreen() {
     setHasSavedDraft(draft !== undefined && draft !== defaultCode);
     setOutput("");
     setTestResults(null);
+    setLiveTraceResult(null);
+    setTracedLineNumber(null);
     setActiveTab("mission");
     setBottomTab("console");
   }
@@ -426,6 +434,8 @@ export default function HomeScreen() {
     setHasSavedDraft(draft !== undefined && draft !== defaultCode);
     setOutput("");
     setTestResults(null);
+    setLiveTraceResult(null);
+    setTracedLineNumber(null);
     setActiveTab("mission");
     setBottomTab("console");
     setMobileDrawerOpen(false);
@@ -488,6 +498,8 @@ export default function HomeScreen() {
       setHasSavedDraft(draft !== undefined && draft !== defaultCode);
       setOutput("");
       setTestResults(null);
+      setLiveTraceResult(null);
+      setTracedLineNumber(null);
       setActiveTab("mission");
     }
   }
@@ -591,6 +603,38 @@ export default function HomeScreen() {
       setOutput(consoleOut);
     } finally {
       setIsExecuting(false);
+    }
+  }
+
+  async function runTraceExecution(customDriver?: string) {
+    if (!selectedLesson) return;
+    setIsTracing(true);
+    setActiveTab("visual");
+    if (isCompactStudio) {
+      setMobileStudioPane("learn");
+    }
+    const activePractice =
+      activeChallengeIdx > 0 && selectedLesson.practiceChallenges
+        ? selectedLesson.practiceChallenges[activeChallengeIdx - 1]
+        : undefined;
+    const traceLesson: Lesson = activePractice
+      ? {
+          ...selectedLesson,
+          expected_output: activePractice.expected_output,
+          hidden_tests: activePractice.hidden_tests,
+          examples: activePractice.examples,
+        }
+      : selectedLesson;
+
+    try {
+      const traceRes = await executePythonTrace(pyodideRef.current, code, {
+        lesson: traceLesson,
+        enrichment: activeChallengeIdx === 0 ? lessonEnrichment : null,
+        driverCode: customDriver,
+      });
+      setLiveTraceResult(traceRes);
+    } finally {
+      setIsTracing(false);
     }
   }
 
@@ -1261,6 +1305,23 @@ export default function HomeScreen() {
                         setMobileStudioPane("code");
                       }
                     }}
+                    userCode={code}
+                    onApplyScaffold={(scaffoldCode) => {
+                      updateCodeWithDraft(
+                        scaffoldCode,
+                        selectedLesson,
+                        activeChallengeIdx,
+                      );
+                      if (isCompactStudio) {
+                        setMobileStudioPane("code");
+                      }
+                    }}
+                    liveTraceResult={liveTraceResult}
+                    isTracing={isTracing}
+                    onRunLiveTrace={(customDriver) =>
+                      void runTraceExecution(customDriver)
+                    }
+                    onTracedLineChange={setTracedLineNumber}
                     testResults={testResults}
                     isPremium={effectiveIsPremium}
                     onOpenPaywall={() =>
@@ -1300,6 +1361,11 @@ export default function HomeScreen() {
                     hasSavedDraft={hasSavedDraft}
                     pyodideReady={pyodideReady}
                     isExecuting={isExecuting}
+                    tracedLineNumber={
+                      activeTab === "visual" ? tracedLineNumber : null
+                    }
+                    isTracing={isTracing}
+                    onTraceCode={() => void runTraceExecution()}
                     onRunPlaygroundOnly={(snippet) => runPlaygroundOnly(snippet)}
                     onRunPythonCode={runPythonCode}
                     bottomTab={bottomTab}

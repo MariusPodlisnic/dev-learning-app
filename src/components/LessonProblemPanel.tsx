@@ -17,12 +17,14 @@ import {
   TestCaseResult,
 } from "../types/lesson";
 import { buildOrganizedLearnView } from "../utils/lessonContent";
+import type { PythonTraceResult } from "../utils/pythonTrace";
 import {
   playErrorBuzz,
   playKeyClick,
   playSuccessChime,
 } from "../utils/soundEffects";
 import FormattedText, { renderHighlightedPython } from "./FormattedText";
+import GuidedScaffoldingCard from "./GuidedScaffoldingCard";
 import HintAccordion from "./HintAccordion";
 import { getLessonProblemStyles } from "./lessonProblemStyles";
 import ProSolutionCard from "./ProSolutionCard";
@@ -42,6 +44,12 @@ interface LessonProblemPanelProps {
   onChangeExplainStyle: (style: ExplainStyle) => void;
   lessonEnrichment: LessonEnrichment | null;
   onLoadGuidedSteps: (guidedCode: string) => void;
+  userCode?: string;
+  onApplyScaffold?: (scaffoldCode: string) => void;
+  liveTraceResult?: PythonTraceResult | null;
+  isTracing?: boolean;
+  onRunLiveTrace?: (customDriver?: string) => void;
+  onTracedLineChange?: (lineNum: number | null) => void;
   testResults: TestCaseResult[] | null;
   isPremium: boolean;
   onOpenPaywall: () => void;
@@ -61,6 +69,12 @@ export default function LessonProblemPanel({
   onChangeExplainStyle,
   lessonEnrichment,
   onLoadGuidedSteps,
+  userCode = "",
+  onApplyScaffold,
+  liveTraceResult = null,
+  isTracing = false,
+  onRunLiveTrace,
+  onTracedLineChange,
   testResults,
   isPremium,
   onOpenPaywall,
@@ -440,6 +454,14 @@ export default function LessonProblemPanel({
                 </Text>
               </View>
             ) : null}
+
+            <GuidedScaffoldingCard
+              selectedLesson={selectedLesson}
+              lessonEnrichment={lessonEnrichment}
+              activePracticeDrill={activePracticeDrill}
+              userCode={userCode}
+              onLoadScaffold={(scaffold) => onApplyScaffold?.(scaffold)}
+            />
           </View>
 
           {activePracticeDrill.examples.map((ex, i) => (
@@ -863,6 +885,13 @@ export default function LessonProblemPanel({
                 </Text>
               </View>
             ) : null}
+
+            <GuidedScaffoldingCard
+              selectedLesson={selectedLesson}
+              lessonEnrichment={lessonEnrichment}
+              userCode={userCode}
+              onLoadScaffold={(scaffold) => onApplyScaffold?.(scaffold)}
+            />
           </View>
 
           {selectedLesson.examples?.map((ex, i) => (
@@ -903,6 +932,11 @@ export default function LessonProblemPanel({
           data={selectedLesson.visual_data}
           lesson={selectedLesson}
           testResults={testResults}
+          userCode={userCode}
+          liveTraceResult={liveTraceResult}
+          isTracing={isTracing}
+          onRunLiveTrace={onRunLiveTrace}
+          onTracedLineChange={onTracedLineChange}
         />
       )}
         </>

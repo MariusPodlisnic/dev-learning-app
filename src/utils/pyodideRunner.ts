@@ -1,5 +1,12 @@
 import { Platform } from "react-native";
-import { Lesson, TestCaseResult } from "../types/lesson";
+import type { LessonEnrichment } from "../constants/curriculum";
+import type { Lesson, TestCaseResult } from "../types/lesson";
+import {
+  buildPythonTraceRunnerScript,
+  extractSampleTraceDriver,
+  parsePythonTraceOutput,
+  type PythonTraceResult,
+} from "./pythonTrace";
 
 export interface NativePythonExecutionResult {
   stdout: string;
@@ -470,6 +477,67 @@ export async function executeBugPatchVerification(
       results: [],
       stdout: "",
       error: err.message || String(err),
+    };
+  }
+}
+
+export async function executePythonTrace(
+  pyodideInstance: any,
+  userCode: string,
+  options?: {
+    lesson?: Lesson | null;
+    enrichment?: LessonEnrichment | null;
+    driverCode?: string;
+    maxSteps?: number;
+  },
+): Promise<PythonTraceResult> {
+  const { driverCode: resolvedDriver } = extractSampleTraceDriver(
+    userCode,
+    options?.lesson,
+    options?.enrichment,
+    options?.driverCode,
+  );
+  const status = getPythonRuntimeStatus(Boolean(pyodideInstance));
+  if (!status.available) {
+    return {
+      ok: false,
+      frames: [],
+      totalSteps: 0,
+      truncated: false,
+      driverUsed: resolvedDriver,
+      finalStdout: "",
+      error: status.unavailableMessage,
+    };
+  }
+
+  try {
+    const traceScript = buildPythonTraceRunnerScript(
+      userCode,
+      resolvedDriver,
+      options?.maxSteps ?? 120,
+    );
+    const execRes = await runPythonScript(pyodideInstance, traceScript);
+    if (!execRes) {
+      return {
+        ok: false,
+        frames: [],
+        totalSteps: 0,
+        truncated: false,
+        driverUsed: resolvedDriver,
+        finalStdout: "",
+        error: status.unavailableMessage,
+      };
+    }
+    return parsePythonTraceOutput(execRes.result, resolvedDriver);
+  } catch (err: any) {
+    return {
+      ok: false,
+      frames: [],
+      totalSteps: 0,
+      truncated: false,
+      driverUsed: resolvedDriver,
+      finalStdout: "",
+      error: err?.message || String(err),
     };
   }
 }

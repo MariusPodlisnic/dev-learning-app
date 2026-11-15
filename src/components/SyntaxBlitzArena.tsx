@@ -647,7 +647,7 @@ export default function SyntaxBlitzArena({
             },
             {
               key: "algorithms",
-              label: "⚡ ALGORITHMS & BIG-O",
+              label: "🧬 ALGORITHMS & BIG-O",
               isProDeck: true,
             },
             {

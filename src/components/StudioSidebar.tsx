@@ -42,7 +42,7 @@ const TRACK_SIDEBAR_META: Record<
     hook: "Syntax, loops & mini-apps",
   },
   algorithms: {
-    emoji: "⚡",
+    emoji: "🧬",
     hook: "Patterns, Big-O & logic",
   },
   system_design: {

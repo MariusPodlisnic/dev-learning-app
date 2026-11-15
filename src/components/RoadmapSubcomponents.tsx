@@ -31,7 +31,7 @@ export const TRACK_PITCH_META: Record<
     hook: "Variables, loops, lists & real functions from scratch",
   },
   algorithms: {
-    emoji: "⚡",
+    emoji: "🧬",
     badge: "PATTERNS & INTERVIEWS",
     shortName: "Algorithms",
     hook: "Master Two Pointers, Sliding Window, Sorting & Graphs",

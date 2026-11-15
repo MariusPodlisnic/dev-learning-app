@@ -128,7 +128,7 @@ export const TRACK_SYLLABUS = [
   },
   {
     key: "algorithms" as const,
-    badge: "⚡ TRACK 02 · PRO + 1 FREE",
+    badge: "🧬 TRACK 02 · PRO + 1 FREE",
     moduleTag: "O(n) → O(1)",
     chapters: "Two Pointers, Hashing, Trees & Sliding Windows",
     chapterBreakdown: [

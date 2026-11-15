@@ -337,6 +337,17 @@ export function diagnoseFailedTest(
   const actual = (test.actual ?? "").trim();
   const input = (test.input ?? "").trim();
 
+  if (
+    actual.includes("'___' is not defined") ||
+    (/\b___\b/.test(code) &&
+      (actual === "None" || actual.includes("NameError") || actual.includes("Error:")))
+  ) {
+    return {
+      badge: "FILL IN ___ BLANKS",
+      tip: "Your editor still has an unfilled `___` scaffold placeholder — replace `___` with your Python expression before grading.",
+    };
+  }
+
   if (actual === "None") {
     const usesPrint = /\bprint\s*\(/.test(code);
     return {

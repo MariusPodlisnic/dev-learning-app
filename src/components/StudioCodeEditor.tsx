@@ -25,9 +25,9 @@ import {
   EditorSelectionResult,
   extractErrorLineNumber,
   indentSelection,
-  suggestQuickTestExpression,
   toggleLineComment,
 } from "../utils/editorHelpers";
+import { findUnfilledScaffoldLines } from "../utils/scaffolding";
 import { renderHighlightedPython } from "./FormattedText";
 import { getStudioCodeEditorStyles } from "./studioCodeEditorStyles";
 
@@ -83,6 +83,16 @@ function translatePythonError(
   if (rawOutput.includes("NameError")) {
     const nameMatch = rawOutput.match(/name\s+'([^']+)'\s+is not defined/i);
     const unknownName = nameMatch ? nameMatch[1] : "that name";
+    if (unknownName === "___") {
+      return {
+        badge: "FILL IN ___ BLANKS",
+        lineNumber,
+        whatHappened:
+          "You left a Guided Scaffolding `___` blank placeholder in your Python code.",
+        howToFix:
+          "Replace `___` on that line with your real Python variable, condition, or return expression.",
+      };
+    }
     return {
       badge: `UNKNOWN NAME '${unknownName}'`,
       lineNumber,
@@ -169,6 +179,9 @@ interface StudioCodeEditorProps {
   hasSavedDraft: boolean;
   pyodideReady: boolean;
   isExecuting: boolean;
+  tracedLineNumber?: number | null;
+  isTracing?: boolean;
+  onTraceCode?: () => void;
   onRunPlaygroundOnly: (customSnippet?: string) => void;
   onRunPythonCode: () => void;
   bottomTab: "console" | "tests";
@@ -238,6 +251,9 @@ export default function StudioCodeEditor({
   hasSavedDraft,
   pyodideReady,
   isExecuting,
+  tracedLineNumber = null,
+  isTracing = false,
+  onTraceCode,
   onRunPlaygroundOnly,
   onRunPythonCode,
   bottomTab,
@@ -256,8 +272,6 @@ export default function StudioCodeEditor({
   const [cursorPos, setCursorPos] = useState<number>(0);
   const [hoveredChip, setHoveredChip] = useState<string | null>(null);
   const [hoveredTestIdx, setHoveredTestIdx] = useState<number | null>(null);
-  const [showScratchpad, setShowScratchpad] = useState<boolean>(false);
-  const [scratchpadExpr, setScratchpadExpr] = useState<string>("");
   const inputRef = useRef<any>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<{ start: number; end: number }>({
@@ -314,6 +328,7 @@ export default function StudioCodeEditor({
 
   const totalLines = (code || "").split("\n").length;
   const lineCount = Math.max(totalLines, 8);
+  const unfilledScaffoldLines = findUnfilledScaffoldLines(code || "");
   const safeCursor = Math.min(Math.max(0, cursorPos), (code || "").length);
   const linesBeforeCursor = (code || "").slice(0, safeCursor).split("\n");
   const activeLine = linesBeforeCursor.length;
@@ -360,26 +375,6 @@ export default function StudioCodeEditor({
     playKeyClick();
     const { start, end } = selectionRef.current;
     applySelectionResult(indentSelection(code || "", start, end, direction));
-  }
-
-  function handleToggleScratchpad() {
-    playKeyClick();
-    setShowScratchpad((prev) => {
-      const next = !prev;
-      if (next && !scratchpadExpr.trim()) {
-        setScratchpadExpr(suggestQuickTestExpression(code || ""));
-      }
-      return next;
-    });
-  }
-
-  function handleRunScratchpad() {
-    playKeyClick();
-    const snippet = scratchpadExpr.trim() || suggestQuickTestExpression(code || "");
-    if (!scratchpadExpr.trim()) {
-      setScratchpadExpr(snippet);
-    }
-    onRunPlaygroundOnly(snippet);
   }
 
   function setCursorAt(pos: number) {
@@ -532,6 +527,17 @@ export default function StudioCodeEditor({
                 <Text style={styles.savedDraftPillText}>DRAFT SAVED</Text>
               </View>
             )}
+            {unfilledScaffoldLines.length > 0 && (
+              <Pressable
+                style={styles.scaffoldStatusPill}
+                onPress={() => jumpToLine(unfilledScaffoldLines[0])}
+              >
+                <Text style={styles.scaffoldStatusPillText}>
+                  🧩 {unfilledScaffoldLines.length}{" "}
+                  {unfilledScaffoldLines.length === 1 ? "BLANK" : "BLANKS"} →
+                </Text>
+              </Pressable>
+            )}
           </View>
           <View style={styles.ideHeaderActions}>
             <Pressable
@@ -610,17 +616,6 @@ export default function StudioCodeEditor({
               </Pressable>
             );
           })}
-          <Pressable
-            onPress={handleToggleScratchpad}
-            style={[
-              styles.scratchpadToggleBtn,
-              showScratchpad && styles.scratchpadToggleBtnActive,
-            ]}
-          >
-            <Text style={styles.scratchpadToggleText}>
-              {showScratchpad ? "⚡ EVAL ON" : "⚡ EVAL"}
-            </Text>
-          </Pressable>
           {Platform.OS !== "web" && (
             <Pressable
               onPress={() => {
@@ -648,17 +643,20 @@ export default function StudioCodeEditor({
               const lineNum = i + 1;
               const isCurrent = lineNum === activeLine;
               const isErrorLine = errorLineNumber === lineNum;
+              const isTraced = tracedLineNumber === lineNum;
               return (
                 <Pressable
                   key={i}
                   onPress={() => jumpToLine(lineNum)}
                   style={styles.lineNumberRow}
                 >
+                  {isTraced && <Text style={styles.lineTraceArrow}>▶</Text>}
                   {isErrorLine && <Text style={styles.lineErrorDot}>!</Text>}
                   <Text
                     style={[
                       styles.lineNumberText,
                       isCurrent && styles.lineNumberTextActive,
+                      isTraced && styles.lineNumberTextTraced,
                       isErrorLine && styles.lineNumberTextError,
                     ]}
                   >
@@ -682,6 +680,17 @@ export default function StudioCodeEditor({
                 { top: 16 + (activeLine - 1) * 21 },
               ]}
             />
+            {tracedLineNumber !== null &&
+              tracedLineNumber >= 1 &&
+              tracedLineNumber <= lineCount && (
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.traceLineBand,
+                    { top: 16 + (tracedLineNumber - 1) * 21 },
+                  ]}
+                />
+              )}
             {errorLineNumber !== null && errorLineNumber <= lineCount && (
               <View
                 pointerEvents="none"
@@ -824,33 +833,6 @@ export default function StudioCodeEditor({
           </View>
         </ScrollView>
 
-        {showScratchpad && (
-          <View style={styles.scratchpadBar}>
-            <Text style={styles.scratchpadLabel}>EVAL &gt;</Text>
-            <TextInput
-              style={styles.scratchpadInput}
-              value={scratchpadExpr}
-              onChangeText={setScratchpadExpr}
-              placeholder='print(solve(...))'
-              placeholderTextColor={StudioColors.codeMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-              spellCheck={false}
-              onSubmitEditing={handleRunScratchpad}
-            />
-            <Pressable
-              disabled={isExecuting}
-              onPress={handleRunScratchpad}
-              style={[
-                styles.scratchpadRunBtn,
-                isExecuting && styles.disabledButton,
-              ]}
-            >
-              <Text style={styles.scratchpadRunBtnText}>▶ EVAL</Text>
-            </Pressable>
-          </View>
-        )}
-
         <View style={styles.ideFooter}>
           <Text style={styles.ideFooterText}>
             LN {activeLine} · COL {activeCol} · {totalLines} LINES
@@ -902,6 +884,22 @@ export default function StudioCodeEditor({
             </View>
           )}
         </HoverLiftButton>
+
+        {onTraceCode && (
+          <HoverLiftButton
+            disabled={isExecuting || isTracing}
+            onPress={onTraceCode}
+            style={(hovered) => [
+              styles.traceRunBtn,
+              hovered && styles.traceRunBtnHovered,
+              (isExecuting || isTracing) && styles.disabledButton,
+            ]}
+          >
+            <Text style={styles.traceRunBtnText}>
+              {isTracing ? "TRACING..." : "🔬 TRACE"}
+            </Text>
+          </HoverLiftButton>
+        )}
 
         <HoverLiftButton
           flex={1}

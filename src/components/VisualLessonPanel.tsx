@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "./StudioIcon";
+import LiveTraceInspector from "./LiveTraceInspector";
 import {
   HardShadow,
   HardShadowSm,
@@ -10,6 +11,7 @@ import {
 } from "../constants/theme";
 import { useThemedStyles } from "../constants/themeContext";
 import { Lesson, TestCaseResult } from "../types/lesson";
+import type { PythonTraceResult } from "../utils/pythonTrace";
 import { playKeyClick } from "../utils/soundEffects";
 
 interface TraceItem {
@@ -24,6 +26,11 @@ interface VisualLessonPanelProps {
   data: any;
   lesson?: Lesson;
   testResults?: TestCaseResult[] | null;
+  userCode?: string;
+  liveTraceResult?: PythonTraceResult | null;
+  isTracing?: boolean;
+  onRunLiveTrace?: (customDriver?: string) => void;
+  onTracedLineChange?: (lineNum: number | null) => void;
 }
 
 function getTraceMeta(type: string) {
@@ -83,6 +90,11 @@ export default function VisualLessonPanel({
   data,
   lesson,
   testResults,
+  userCode = "",
+  liveTraceResult = null,
+  isTracing = false,
+  onRunLiveTrace,
+  onTracedLineChange,
 }: VisualLessonPanelProps) {
   const styles = useThemedStyles(createStyles);
   const [stepIndex, setStepIndex] = useState<number>(0);
@@ -90,6 +102,26 @@ export default function VisualLessonPanel({
   const [fastSpeed, setFastSpeed] = useState<boolean>(false);
 
   const hasTraceData = Array.isArray(data) && data.length > 0;
+  const [modeOverride, setModeOverride] = useState<{
+    mode: "concept" | "live";
+    traceRef: PythonTraceResult | null;
+  } | null>(null);
+
+  const visualMode: "concept" | "live" =
+    !hasTraceData || isTracing
+      ? "live"
+      : modeOverride && modeOverride.traceRef === liveTraceResult
+        ? modeOverride.mode
+        : liveTraceResult
+          ? "live"
+          : "concept";
+
+  useEffect(() => {
+    if (visualMode === "concept") {
+      onTracedLineChange?.(null);
+    }
+  }, [visualMode, onTracedLineChange]);
+
   const safeData: TraceItem[] = hasTraceData ? data : [];
   const itemCount = safeData.length;
   const safeStepIndex = itemCount > 0 ? Math.min(stepIndex, itemCount - 1) : 0;
@@ -162,9 +194,71 @@ export default function VisualLessonPanel({
       </View>
     ) : null;
 
+  const modeSwitcherBar = onRunLiveTrace ? (
+    <View style={styles.visualModeBar}>
+      <Pressable
+        style={[
+          styles.visualModeBtn,
+          visualMode === "live" && styles.visualModeBtnActive,
+        ]}
+        onPress={() => {
+          playKeyClick();
+          setModeOverride({ mode: "live", traceRef: liveTraceResult });
+        }}
+      >
+        <Text
+          style={[
+            styles.visualModeBtnText,
+            visualMode === "live" && styles.visualModeBtnTextActive,
+          ]}
+        >
+          🔬 LIVE TRACE (sys.settrace)
+        </Text>
+      </Pressable>
+      {hasTraceData && (
+        <Pressable
+          style={[
+            styles.visualModeBtn,
+            visualMode === "concept" && styles.visualModeBtnActive,
+          ]}
+          onPress={() => {
+            playKeyClick();
+            setModeOverride({ mode: "concept", traceRef: liveTraceResult });
+          }}
+        >
+          <Text
+            style={[
+              styles.visualModeBtnText,
+              visualMode === "concept" && styles.visualModeBtnTextActive,
+            ]}
+          >
+            📘 CONCEPT TRACE
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  ) : null;
+
+  if (visualMode === "live" && onRunLiveTrace) {
+    return (
+      <View>
+        {modeSwitcherBar}
+        <LiveTraceInspector
+          traceResult={liveTraceResult}
+          isTracing={isTracing}
+          userCode={userCode}
+          onRunTrace={onRunLiveTrace}
+          onActiveLineChange={onTracedLineChange}
+        />
+        {runtimeTraceCard}
+      </View>
+    );
+  }
+
   if (!hasTraceData) {
     return (
       <View>
+        {modeSwitcherBar}
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>[TRACE // 00]</Text>
           <Text style={styles.emptyTitle}>Step-by-Step Trace Inspector</Text>
@@ -180,6 +274,7 @@ export default function VisualLessonPanel({
 
   return (
     <View>
+      {modeSwitcherBar}
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -507,6 +602,40 @@ export default function VisualLessonPanel({
 
 const createStyles = (StudioColors: StudioThemeColors) =>
   StyleSheet.create({
+  visualModeBar: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+    flexWrap: "wrap",
+  },
+  visualModeBtn: {
+    flex: 1,
+    minWidth: 140,
+    backgroundColor: StudioColors.surface,
+    borderWidth: 1.5,
+    borderColor: StudioColors.border,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    alignItems: "center",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  visualModeBtnActive: {
+    backgroundColor: StudioColors.yellow,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    ...HardShadowSm,
+  },
+  visualModeBtnText: {
+    color: StudioColors.textSecondary,
+    fontSize: 10.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  visualModeBtnTextActive: {
+    color: StudioColors.ink,
+  },
   container: {
     backgroundColor: StudioColors.surface,
     borderRadius: 12,

@@ -65,7 +65,8 @@ export type StudioIconName =
   | "check_box"
   | "terminal"
   | "cross_box"
-  | "yellow_box";
+  | "yellow_box"
+  | "algo";
 
 const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
   crown: `
@@ -225,6 +226,26 @@ const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
     <path d="M22 22.5 H16.5 V21 H22.5 C26 21 27.5 19 27.5 15.5 C27.5 12 26 10.5 22.5 10.5 H20.5 V14 C20.5 16.5 18.8 18 16.2 18 H10.5 C8.8 18 7.5 19.3 7.5 21 V24.5 C7.5 26.8 10 28 14.8 28 C19.5 28 22 26.8 22 24.5 Z" fill="#FFDE59" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
     <circle cx="13.5" cy="7.3" r="1.4" fill="#111111"/>
     <circle cx="18.5" cy="24.7" r="1.4" fill="#111111"/>
+  `,
+  algo: `
+    <g fill="#111111" transform="translate(1.6,1.6)">
+      <circle cx="16" cy="7.5" r="4"/>
+      <circle cx="7.5" cy="17" r="3.8"/>
+      <circle cx="24.5" cy="17" r="3.8"/>
+      <circle cx="16" cy="25.5" r="3.8"/>
+    </g>
+    <line x1="16" y1="7.5" x2="7.5" y2="17" stroke="#111111" stroke-width="3.2" stroke-linecap="round"/>
+    <line x1="16" y1="7.5" x2="24.5" y2="17" stroke="#111111" stroke-width="3.2" stroke-linecap="round"/>
+    <line x1="7.5" y1="17" x2="24.5" y2="17" stroke="#111111" stroke-width="2.4" stroke-linecap="round"/>
+    <line x1="7.5" y1="17" x2="16" y2="25.5" stroke="#111111" stroke-width="3.2" stroke-linecap="round"/>
+    <line x1="24.5" y1="17" x2="16" y2="25.5" stroke="#111111" stroke-width="3.2" stroke-linecap="round"/>
+    <line x1="16" y1="7.5" x2="7.5" y2="17" stroke="#B8FF3B" stroke-width="1.3" stroke-linecap="round"/>
+    <line x1="7.5" y1="17" x2="16" y2="25.5" stroke="#B8FF3B" stroke-width="1.3" stroke-linecap="round"/>
+    <circle cx="16" cy="7.5" r="4" fill="#B8FF3B" stroke="#111111" stroke-width="2"/>
+    <circle cx="7.5" cy="17" r="3.8" fill="#C4B5FD" stroke="#111111" stroke-width="2"/>
+    <circle cx="24.5" cy="17" r="3.8" fill="#38BDF8" stroke="#111111" stroke-width="2"/>
+    <circle cx="16" cy="25.5" r="3.8" fill="#FFDE59" stroke="#111111" stroke-width="2"/>
+    <circle cx="15" cy="6.6" r="1.1" fill="#FFFFFF"/>
   `,
   search: `
     <circle cx="14" cy="14" r="8.5" fill="#111111" transform="translate(1.6,1.6)"/>
@@ -539,6 +560,7 @@ export const EMOJI_TO_STUDIO_ICON: Record<string, StudioIconName> = {
   "🟩": "check_box",
   "🟥": "cross_box",
   "🟨": "yellow_box",
+  "🧬": "algo",
 };
 
 const SORTED_EMOJI_KEYS = Object.keys(EMOJI_TO_STUDIO_ICON).sort(
