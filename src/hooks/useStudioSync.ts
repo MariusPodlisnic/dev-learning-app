@@ -190,17 +190,22 @@ export function useStudioSync({
   ) {
     const canUnlockAll = initialPremiumFlag ?? effectiveIsPremium;
     try {
-      const { data, error } = await supabase
-        .from("lessons")
-        .select("*")
-        .order("lesson_order", { ascending: true });
-
-      const all = error
-        ? mergeCurriculumLessons<Lesson>([])
-        : mergeCurriculumLessons<Lesson>((data as Lesson[]) || []);
-      if (error) {
-        console.error("Error fetching lessons:", error);
+      let remoteLessons: Lesson[] = [];
+      try {
+        const { data, error } = await supabase
+          .from("lessons")
+          .select("*")
+          .order("lesson_order", { ascending: true });
+        if (error) {
+          console.warn("Falling back to local curriculum lessons:", error.message);
+        } else if (Array.isArray(data)) {
+          remoteLessons = data as Lesson[];
+        }
+      } catch (err) {
+        console.warn("Offline lesson fetch fallback activated:", err);
       }
+
+      const all = mergeCurriculumLessons<Lesson>(remoteLessons);
 
       lessonsRef.current = all;
       setLessons(all);
@@ -213,41 +218,39 @@ export function useStudioSync({
         applyCloudSnapshotToState(remappedSnapshot);
       }
 
-      if (!error) {
-        const targetTrack =
-          preferredTrack && TrackThemes[preferredTrack]
-            ? preferredTrack
-            : "python_basics";
-        const resolvedPreferredId =
-          remappedSnapshot.lastLessonId || preferredLessonId;
-        const candidateById = resolvedPreferredId
-          ? all.find((l) => l.id === resolvedPreferredId)
+      const targetTrack =
+        preferredTrack && TrackThemes[preferredTrack]
+          ? preferredTrack
+          : "python_basics";
+      const resolvedPreferredId =
+        remappedSnapshot.lastLessonId || preferredLessonId;
+      const candidateById = resolvedPreferredId
+        ? all.find((l) => l.id === resolvedPreferredId)
+        : undefined;
+      const allowedCandidate =
+        candidateById && !isLessonLockedForUser(candidateById, canUnlockAll)
+          ? candidateById
           : undefined;
-        const allowedCandidate =
-          candidateById && !isLessonLockedForUser(candidateById, canUnlockAll)
-            ? candidateById
-            : undefined;
-        const initialLesson =
-          allowedCandidate ||
-          all.find(
-            (l) =>
-              l.track === targetTrack &&
-              !isLessonLockedForUser(l, canUnlockAll),
-          ) ||
-          all.find((l) => l.track === "python_basics" && l.is_free) ||
-          all.find((l) => l.track === "python_basics");
-        if (initialLesson) {
-          const defaultCode = (initialLesson.initial_code || "").replace(
-            /\\n/g,
-            "\n",
-          );
-          const draft = codeDraftsRef.current[initialLesson.id];
-          callbacksRef.current.onInitialLessonResolved(
-            initialLesson,
-            draft !== undefined ? draft : defaultCode,
-            draft !== undefined && draft !== defaultCode,
-          );
-        }
+      const initialLesson =
+        allowedCandidate ||
+        all.find(
+          (l) =>
+            l.track === targetTrack &&
+            !isLessonLockedForUser(l, canUnlockAll),
+        ) ||
+        all.find((l) => l.track === "python_basics" && l.is_free) ||
+        all.find((l) => l.track === "python_basics");
+      if (initialLesson) {
+        const defaultCode = (initialLesson.initial_code || "").replace(
+          /\\n/g,
+          "\n",
+        );
+        const draft = codeDraftsRef.current[initialLesson.id];
+        callbacksRef.current.onInitialLessonResolved(
+          initialLesson,
+          draft !== undefined ? draft : defaultCode,
+          draft !== undefined && draft !== defaultCode,
+        );
       }
     } finally {
       setLoading(false);
