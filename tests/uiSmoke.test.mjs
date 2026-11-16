@@ -52,6 +52,12 @@ const { getDeveloperRank, MAX_DEVELOPER_LEVEL, default: ProfileStatsModal } = lo
 const { default: SuccessModal } = loadTsModule(
   "src/components/SuccessModal.tsx",
 );
+const { default: StudioErrorBoundary } = loadTsModule(
+  "src/components/StudioErrorBoundary.tsx",
+);
+const { StudioIcon } = loadTsModule("src/components/StudioIcon.tsx");
+loadTsModule("src/hooks/useArenaRewards.ts");
+loadTsModule("src/hooks/useLessonExecution.ts");
 const { StudioColors } = loadTsModule("src/constants/theme.ts");
 
 function renderThemed(element) {
@@ -646,4 +652,62 @@ test("10-level developer rank system enforces wider XP gaps, caps at Level 10, a
     return html.match(/viewBox="0 0 64 64"[\s\S]*?<\/svg>/)?.[0];
   });
   assert.equal(new Set(headerAvatars.filter(Boolean)).size, 10);
+});
+
+test("StudioErrorBoundary recovers cleanly and split StudioIcon dictionaries render all icon groups", () => {
+  const normalText = visibleText(
+    renderThemed(
+      React.createElement(
+        StudioErrorBoundary,
+        null,
+        React.createElement("div", null, "STUDIO OK"),
+      ),
+    ),
+  );
+  assert.ok(normalText.includes("STUDIO OK"));
+
+  const derivedState = StudioErrorBoundary.getDerivedStateFromError(
+    new Error("Circuit tripped"),
+  );
+  assert.equal(derivedState.hasError, true);
+  assert.equal(derivedState.error.message, "Circuit tripped");
+
+  let resetCalled = false;
+  const boundary = new StudioErrorBoundary({
+    children: React.createElement("div", null, "OK"),
+    fallbackTitle: "Arena tripped",
+    onReset: () => {
+      resetCalled = true;
+    },
+  });
+  boundary.state = derivedState;
+  const fallbackHtml = renderThemed(boundary.render());
+  const fallbackText = visibleText(fallbackHtml);
+  assert.ok(fallbackText.includes("SYSTEM INTERRUPT // RECOVERABLE"));
+  assert.ok(fallbackText.includes("Arena tripped"));
+  assert.ok(fallbackText.includes("Circuit tripped"));
+  assert.ok(fallbackText.includes("RECOVER STUDIO"));
+
+  boundary.setState = (next) => {
+    boundary.state = { ...boundary.state, ...next };
+  };
+  boundary.handleRecover();
+  assert.equal(boundary.state.hasError, false);
+  assert.equal(boundary.state.error, null);
+  assert.equal(resetCalled, true);
+
+  for (const iconName of [
+    "crown",
+    "devlearn_logo",
+    "crt_ch_lofi",
+    "level_avatar_8",
+  ]) {
+    const iconHtml = renderThemed(
+      React.createElement(StudioIcon, { name: iconName, size: 24 }),
+    );
+    assert.ok(
+      iconHtml.includes("<svg"),
+      `Expected SVG output for split icon ${iconName}`,
+    );
+  }
 });

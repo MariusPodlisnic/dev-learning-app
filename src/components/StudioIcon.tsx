@@ -8,8 +8,23 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import {
+  CRT_CHANNEL_INNER_SVG,
+  type CrtChannelIconName,
+} from "./icons/crtChannelSvgs";
+import {
+  getLevelAvatarIcon,
+  LEVEL_AVATAR_INNER_SVG,
+  type LevelAvatarIconName,
+} from "./icons/levelAvatarSvgs";
+import {
+  NAVIGATION_ICON_INNER_SVG,
+  type NavigationIconName,
+} from "./icons/navigationSvgs";
 
-export type StudioIconName =
+export { getLevelAvatarIcon };
+
+export type CoreStudioIconName =
   | "crown"
   | "rocket"
   | "rain"
@@ -70,42 +85,15 @@ export type StudioIconName =
   | "practice_1"
   | "practice_2"
   | "practice_3"
-  | "practice_4"
-  | "devlearn_logo"
-  | "menu_coding"
-  | "menu_account_rank"
-  | "menu_settings"
-  | "pro_member"
-  | "nav_skillmap"
-  | "nav_studio"
-  | "nav_bughunt"
-  | "nav_blitz"
-  | "nav_algolab"
-  | "nav_showcase"
-  | "nav_achievements"
-  | "free_preview"
-  | "crt_ch_kernel"
-  | "crt_ch_telemetry"
-  | "crt_ch_bytecat"
-  | "crt_ch_lofi"
-  | "crt_ch_brew"
-  | "level_avatar_1"
-  | "level_avatar_2"
-  | "level_avatar_3"
-  | "level_avatar_4"
-  | "level_avatar_5"
-  | "level_avatar_6"
-  | "level_avatar_7"
-  | "level_avatar_8"
-  | "level_avatar_9"
-  | "level_avatar_10";
+  | "practice_4";
 
-export function getLevelAvatarIcon(level: number): StudioIconName {
-  const clamped = Math.min(10, Math.max(1, Math.floor(level || 1)));
-  return `level_avatar_${clamped}` as StudioIconName;
-}
+export type StudioIconName =
+  | CoreStudioIconName
+  | NavigationIconName
+  | CrtChannelIconName
+  | LevelAvatarIconName;
 
-const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
+const CORE_ICON_INNER_SVG: Record<CoreStudioIconName, string> = {
   crown: `
     <path d="M5 25 H27 L29 11 L22 16 L16 7 L10 16 L3 11 Z" fill="#111111" transform="translate(1.8, 1.8)"/>
     <path d="M5 25 H27 L29 11 L22 16 L16 7 L10 16 L3 11 Z" fill="#FFDE59" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
@@ -535,335 +523,13 @@ const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
     <polygon points="10,12 13,8.5 16,12 19,8.5 22,12 21,17 11,17" fill="#FFDE59" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
     <polygon points="16,19.5 19.2,22 16,25 12.8,22" fill="#FFFBEB" stroke="#111111" stroke-width="1.5" stroke-linejoin="round"/>
   `,
-  devlearn_logo: `
-    <rect x="3" y="5" width="26" height="22" rx="5" fill="#111111" transform="translate(1.6,1.6)"/>
-    <rect x="3" y="5" width="26" height="22" rx="5" fill="#B8FF3B" stroke="#111111" stroke-width="2.2"/>
-    <rect x="6" y="8" width="20" height="16" rx="2.5" fill="#18181B" stroke="#111111" stroke-width="1.6"/>
-    <polyline points="9.5,12.5 14,16 9.5,19.5" fill="none" stroke="#B8FF3B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <line x1="16" y1="19.5" x2="22" y2="19.5" stroke="#FFDE59" stroke-width="2.4" stroke-linecap="round"/>
-    <circle cx="22.5" cy="11.5" r="1.6" fill="#FF90E8"/>
-  `,
-  menu_coding: `
-    <polygon points="16,4 27,10 16,16 5,10" fill="#6EE7B7" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
-    <polygon points="5,10 16,16 16,28 5,22" fill="#38BDF8" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
-    <polygon points="27,10 16,16 16,28 27,22" fill="#C4B5FD" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
-  `,
-  menu_account_rank: `
-    <polygon points="16,3 27,8.5 25,22 16,29 7,22 5,8.5" fill="#111111" transform="translate(1.6,1.6)"/>
-    <polygon points="16,3 27,8.5 25,22 16,29 7,22 5,8.5" fill="#C4B5FD" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
-    <polyline points="11,18 16,12.5 21,18" fill="none" stroke="#FFDE59" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="11,22.5 16,17 21,22.5" fill="none" stroke="#111111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="16" cy="8.5" r="2" fill="#FFDE59" stroke="#111111" stroke-width="1.4"/>
-  `,
-  menu_settings: `
-    <path d="M13.5 4 H18.5 L19.4 7.2 A9 9 0 0 1 22.1 8.4 L25 6.8 L28.2 10 L26.5 12.9 A9 9 0 0 1 27.7 15.6 L30 16.5 V21.5 L27.7 22.4 A9 9 0 0 1 26.5 25.1 L28.2 28 L25 31.2 L22.1 29.5 A9 9 0 0 1 19.4 30.7 L18.5 33 H13.5" fill="none"/>
-    <circle cx="16" cy="16" r="10.5" fill="#111111" transform="translate(1.5,1.5)"/>
-    <path d="M14 4 H18 L19 7.2 L22.2 8.5 L25.2 6.8 L28 9.6 L26.3 12.6 L27.6 15.8 L30.8 16.8 V20.8 L27.6 21.8 L26.3 25 L28 28 L25.2 30.8" fill="none"/>
-    <circle cx="16" cy="16" r="10" fill="#38BDF8" stroke="#111111" stroke-width="2.2"/>
-    <g stroke="#111111" stroke-width="3" stroke-linecap="round">
-      <line x1="16" y1="3.5" x2="16" y2="6.2"/>
-      <line x1="16" y1="25.8" x2="16" y2="28.5"/>
-      <line x1="3.5" y1="16" x2="6.2" y2="16"/>
-      <line x1="25.8" y1="16" x2="28.5" y2="16"/>
-      <line x1="7.2" y1="7.2" x2="9.1" y2="9.1"/>
-      <line x1="22.9" y1="22.9" x2="24.8" y2="24.8"/>
-      <line x1="24.8" y1="7.2" x2="22.9" y2="9.1"/>
-      <line x1="9.1" y1="22.9" x2="7.2" y2="24.8"/>
-    </g>
-    <circle cx="16" cy="16" r="4.5" fill="#FFDE59" stroke="#111111" stroke-width="2"/>
-  `,
-  pro_member: `
-    <polygon points="16,2 28,9 26,23 16,30 6,23 4,9" fill="#111111" transform="translate(1.8,1.8)"/>
-    <polygon points="16,2 28,9 26,23 16,30 6,23 4,9" fill="#FFDE59" stroke="#111111" stroke-width="2.1" stroke-linejoin="round"/>
-    <polygon points="16,2 28,9 16,15 4,9" fill="#FF90E8" stroke="#111111" stroke-width="1.6" stroke-linejoin="round"/>
-    <polygon points="4,9 16,15 16,30 6,23" fill="#38BDF8" stroke="#111111" stroke-width="1.6" stroke-linejoin="round"/>
-    <polygon points="16,8.5 22,15.5 16,23.5 10,15.5" fill="#111111" stroke="#111111" stroke-width="1.4" stroke-linejoin="round"/>
-    <polygon points="16,10.2 19.6,15.5 16,21.5 12.4,15.5" fill="#B8FF3B"/>
-    <circle cx="16" cy="5.8" r="1.4" fill="#FFFFFF" stroke="#111111" stroke-width="1"/>
-    <path d="M25.5 4.2 L26.5 6 L28.3 7 L26.5 8 L25.5 9.8 L24.5 8 L22.7 7 L24.5 6 Z" fill="#FFFFFF" stroke="#111111" stroke-width="0.9" stroke-linejoin="round"/>
-  `,
-  nav_skillmap: `
-    <line x1="8" y1="24" x2="16" y2="16" stroke="#111111" stroke-width="3" stroke-linecap="round"/>
-    <line x1="16" y1="16" x2="24" y2="8" stroke="#111111" stroke-width="3" stroke-linecap="round"/>
-    <line x1="16" y1="16" x2="24" y2="23" stroke="#111111" stroke-width="2.6" stroke-linecap="round"/>
-    <circle cx="8" cy="24" r="4.2" fill="#6EE7B7" stroke="#111111" stroke-width="2"/>
-    <circle cx="16" cy="16" r="4.2" fill="#38BDF8" stroke="#111111" stroke-width="2"/>
-    <circle cx="24" cy="8" r="4.5" fill="#FFDE59" stroke="#111111" stroke-width="2"/>
-    <circle cx="24" cy="23" r="3.5" fill="#FF90E8" stroke="#111111" stroke-width="2"/>
-  `,
-  nav_studio: `
-    <rect x="3" y="5" width="26" height="22" rx="4" fill="#111111" transform="translate(1.6,1.6)"/>
-    <rect x="3" y="5" width="26" height="22" rx="4" fill="#1A1A1E" stroke="#111111" stroke-width="2.2"/>
-    <rect x="3" y="5" width="26" height="6.5" rx="3" fill="#38BDF8" stroke="#111111" stroke-width="2"/>
-    <line x1="8" y1="16.5" x2="17" y2="16.5" stroke="#B8FF3B" stroke-width="2.4" stroke-linecap="round"/>
-    <line x1="8" y1="21.5" x2="14" y2="21.5" stroke="#FFDE59" stroke-width="2.4" stroke-linecap="round"/>
-    <polygon points="20,15 26,18.5 20,22" fill="#B8FF3B" stroke="#111111" stroke-width="1.4" stroke-linejoin="round"/>
-  `,
-  nav_bughunt: `
-    <circle cx="16" cy="16" r="11" fill="#111111" transform="translate(1.5,1.5)"/>
-    <circle cx="16" cy="16" r="11" fill="#FF6B6B" stroke="#111111" stroke-width="2.2"/>
-    <circle cx="16" cy="16" r="6" fill="#1A1A1E" stroke="#111111" stroke-width="1.8"/>
-    <circle cx="16" cy="16" r="2.6" fill="#FFDE59"/>
-    <g stroke="#111111" stroke-width="2.2" stroke-linecap="round">
-      <line x1="16" y1="3" x2="16" y2="7.5"/>
-      <line x1="16" y1="24.5" x2="16" y2="29"/>
-      <line x1="3" y1="16" x2="7.5" y2="16"/>
-      <line x1="24.5" y1="16" x2="29" y2="16"/>
-    </g>
-  `,
-  nav_blitz: `
-    <circle cx="15" cy="17" r="10.5" fill="#111111" transform="translate(1.5,1.5)"/>
-    <rect x="12" y="3.5" width="6" height="3" rx="1" fill="#FFDE59" stroke="#111111" stroke-width="1.8"/>
-    <circle cx="15" cy="17" r="10.5" fill="#B8FF3B" stroke="#111111" stroke-width="2.2"/>
-    <polygon points="16.5,9.5 11,17.5 15.2,17.5 13.5,24.5 20,15.5 15.8,15.5" fill="#FFDE59" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
-    <polygon points="24,6 28,9.5 24,12.5" fill="#FF90E8" stroke="#111111" stroke-width="1.4" stroke-linejoin="round"/>
-  `,
-  nav_algolab: `
-    <rect x="4" y="5" width="24" height="22" rx="4" fill="#111111" transform="translate(1.5,1.5)"/>
-    <rect x="4" y="5" width="24" height="22" rx="4" fill="#C4B5FD" stroke="#111111" stroke-width="2.2"/>
-    <rect x="7.5" y="16" width="4" height="8" rx="1" fill="#38BDF8" stroke="#111111" stroke-width="1.5"/>
-    <rect x="14" y="10" width="4" height="14" rx="1" fill="#FFDE59" stroke="#111111" stroke-width="1.5"/>
-    <rect x="20.5" y="13" width="4" height="11" rx="1" fill="#B8FF3B" stroke="#111111" stroke-width="1.5"/>
-  `,
-  nav_showcase: `
-    <rect x="5" y="4" width="22" height="24" rx="4" fill="#111111" transform="translate(1.6,1.6)"/>
-    <rect x="5" y="4" width="22" height="24" rx="4" fill="#FFDE59" stroke="#111111" stroke-width="2.2"/>
-    <rect x="9" y="8" width="14" height="6" rx="1.5" fill="#38BDF8" stroke="#111111" stroke-width="1.6"/>
-    <line x1="9" y1="18" x2="23" y2="18" stroke="#111111" stroke-width="2.2" stroke-linecap="round"/>
-    <line x1="9" y1="22.5" x2="18" y2="22.5" stroke="#111111" stroke-width="2.2" stroke-linecap="round"/>
-  `,
-  nav_achievements: `
-    <polygon points="16,4 25,9 25,18 16,28 7,18 7,9" fill="#111111" transform="translate(1.5,1.5)"/>
-    <polygon points="16,4 25,9 25,18 16,28 7,18 7,9" fill="#6EE7B7" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
-    <polygon points="16,9.5 18,13.8 22.5,14.5 19.2,17.6 20,22 16,19.8 12,22 12.8,17.6 9.5,14.5 14,13.8" fill="#FFDE59" stroke="#111111" stroke-width="1.6" stroke-linejoin="round"/>
-  `,
-  free_preview: `
-    <rect x="3" y="6" width="26" height="20" rx="4.5" fill="#111111" transform="translate(1.6,1.6)"/>
-    <rect x="3" y="6" width="26" height="20" rx="4.5" fill="#FFDE59" stroke="#111111" stroke-width="2.1"/>
-    <rect x="6.5" y="9.5" width="19" height="13" rx="2.5" fill="#1A1A1E" stroke="#111111" stroke-width="1.5"/>
-    <polygon points="13,12.2 21,16 13,19.8" fill="#B8FF3B" stroke="#38BDF8" stroke-width="1.1" stroke-linejoin="round"/>
-    <path d="M25.5 3 L26.5 5 L28.5 6 L26.5 7 L25.5 9 L24.5 7 L22.5 6 L24.5 5 Z" fill="#FF90E8" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
-  `,
-  crt_ch_kernel: `
-    <g stroke="#111111" stroke-width="2" stroke-linecap="round">
-      <line x1="11" y1="3.5" x2="11" y2="6.5"/>
-      <line x1="16" y1="3.5" x2="16" y2="6.5"/>
-      <line x1="21" y1="3.5" x2="21" y2="6.5"/>
-      <line x1="11" y1="25.5" x2="11" y2="28.5"/>
-      <line x1="16" y1="25.5" x2="16" y2="28.5"/>
-      <line x1="21" y1="25.5" x2="21" y2="28.5"/>
-    </g>
-    <rect x="6" y="6.5" width="20" height="19" rx="4" fill="#111111" transform="translate(1.4,1.4)"/>
-    <rect x="6" y="6.5" width="20" height="19" rx="4" fill="#FFDE59" stroke="#111111" stroke-width="2"/>
-    <rect x="9.5" y="10" width="13" height="12" rx="2" fill="#1A1A1E" stroke="#111111" stroke-width="1.4"/>
-    <polyline points="11.5,14 14.5,16 11.5,18" fill="none" stroke="#B8FF3B" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-    <line x1="16.5" y1="18" x2="20" y2="18" stroke="#38BDF8" stroke-width="1.9" stroke-linecap="round"/>
-  `,
-  crt_ch_telemetry: `
-    <circle cx="16" cy="16" r="11.5" fill="#111111" transform="translate(1.4,1.4)"/>
-    <circle cx="16" cy="16" r="11.5" fill="#1A1A1E" stroke="#111111" stroke-width="2.1"/>
-    <rect x="8.8" y="16" width="3.4" height="5.8" rx="1" fill="#38BDF8"/>
-    <rect x="14.3" y="11.5" width="3.4" height="10.3" rx="1" fill="#6EE7B7"/>
-    <rect x="19.8" y="8.8" width="3.4" height="13" rx="1" fill="#B8FF3B"/>
-    <circle cx="21.5" cy="6.8" r="1.8" fill="#FFDE59" stroke="#111111" stroke-width="1"/>
-  `,
-  crt_ch_bytecat: `
-    <path d="M6 12 L8.5 5 L13.5 9.5 H18.5 L23.5 5 L26 12 V23 C26 25.5 23.8 27 21 27 H11 C8.2 27 6 25.5 6 23 Z" fill="#111111" transform="translate(1.4,1.4)"/>
-    <path d="M6 12 L8.5 5 L13.5 9.5 H18.5 L23.5 5 L26 12 V23 C26 25.5 23.8 27 21 27 H11 C8.2 27 6 25.5 6 23 Z" fill="#C4B5FD" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
-    <rect x="9.5" y="13" width="13" height="9.5" rx="2.5" fill="#1A1A1E" stroke="#111111" stroke-width="1.4"/>
-    <path d="M11.8 17.5 Q13.2 15.6 14.5 17.5" fill="none" stroke="#B8FF3B" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M17.5 17.5 Q18.8 15.6 20.2 17.5" fill="none" stroke="#B8FF3B" stroke-width="1.8" stroke-linecap="round"/>
-    <polygon points="15,19.4 17,19.4 16,20.8" fill="#FF90E8"/>
-  `,
-  crt_ch_lofi: `
-    <rect x="4" y="8.5" width="24" height="16" rx="3.5" fill="#111111" transform="translate(1.4,1.4)"/>
-    <rect x="4" y="8.5" width="24" height="16" rx="3.5" fill="#FF90E8" stroke="#111111" stroke-width="2"/>
-    <rect x="7" y="11" width="18" height="7" rx="1.5" fill="#FEF9C3" stroke="#111111" stroke-width="1.4"/>
-    <circle cx="11.5" cy="14.5" r="2.1" fill="#1A1A1E" stroke="#111111" stroke-width="1.1"/>
-    <circle cx="20.5" cy="14.5" r="2.1" fill="#1A1A1E" stroke="#111111" stroke-width="1.1"/>
-    <polygon points="10,24.5 22,24.5 20.5,21 11.5,21" fill="#C4B5FD" stroke="#111111" stroke-width="1.3" stroke-linejoin="round"/>
-    <circle cx="24" cy="5.5" r="2" fill="#38BDF8" stroke="#111111" stroke-width="1.2"/>
-    <line x1="25.6" y1="5.5" x2="25.6" y2="2" stroke="#38BDF8" stroke-width="1.8" stroke-linecap="round"/>
-  `,
-  crt_ch_brew: `
-    <g stroke="#FFDE59" stroke-width="1.9" stroke-linecap="round" fill="none">
-      <path d="M12.5 9.5 C12.5 7.2 14.5 7 14 4.5"/>
-      <path d="M18 9.5 C18 7.2 20 7 19.5 4.5"/>
-    </g>
-    <ellipse cx="16" cy="25.5" rx="10.5" ry="2.6" fill="#FDBA74" stroke="#111111" stroke-width="1.8"/>
-    <path d="M8 13 H22 V19.5 C22 23 19.3 25 15 25 C10.7 25 8 23 8 19.5 Z" fill="#F8FAFC" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
-    <ellipse cx="15" cy="13.2" rx="6.2" ry="1.8" fill="#6EE7B7" stroke="#111111" stroke-width="1.3"/>
-    <path d="M22 14.8 H24.5 A2.4 2.4 0 0 1 24.5 19.8 H22" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
-  `,
-  level_avatar_1: `
-    <rect width="64" height="64" rx="12" fill="#253341"/>
-    <circle cx="50" cy="14" r="3" fill="#FFDE59" opacity="0.75"/>
-    <path d="M10 14 H20" stroke="#7CA5B8" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-    <path d="M16 58 C16 45 48 45 48 58 Z" fill="#475569" stroke="#111111" stroke-width="2.4" stroke-linejoin="round"/>
-    <rect x="13" y="15" width="38" height="31" rx="7" fill="#D6B88D" stroke="#111111" stroke-width="2.4"/>
-    <path d="M17 15 L23 8 L28 15 M47 15 L41 8 L36 15" fill="#D6B88D" stroke="#111111" stroke-width="2.3" stroke-linejoin="round"/>
-    <rect x="27" y="12" width="10" height="5" rx="1" fill="#FFDE59" stroke="#111111" stroke-width="1.6" transform="rotate(-6 32 14)"/>
-    <rect x="19" y="22" width="26" height="19" rx="5" fill="#F8FAFC" stroke="#111111" stroke-width="2.1"/>
-    <circle cx="26.5" cy="30.5" r="3.2" fill="#111111"/>
-    <circle cx="37.5" cy="30.5" r="3.2" fill="#111111"/>
-    <circle cx="25.5" cy="29.3" r="1.1" fill="#FFFFFF"/>
-    <circle cx="36.5" cy="29.3" r="1.1" fill="#FFFFFF"/>
-    <polygon points="30.5,34.5 33.5,34.5 32,36.6" fill="#FF90E8"/>
-    <path d="M29 38.2 Q32 40 35 38.2" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
-    <rect x="37" y="44" width="20" height="14" rx="3" fill="#FFDE59" stroke="#111111" stroke-width="2"/>
-    <polyline points="41,53 43.5,48.5 46,53" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M53.5 49.2 A2.5 2.5 0 1 0 53.5 52.8" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
-  `,
-  level_avatar_2: `
-    <rect width="64" height="64" rx="12" fill="#2E261B"/>
-    <ellipse cx="32" cy="17" rx="22" ry="6" fill="none" stroke="#FFDE59" stroke-width="2" stroke-dasharray="4 3"/>
-    <path d="M16 58 C16 44 48 44 48 58 Z" fill="#F59E0B" stroke="#111111" stroke-width="2.4"/>
-    <polygon points="22,47 32,56 42,47" fill="#FF6B6B" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
-    <circle cx="32" cy="34" r="15.5" fill="#FFFBEB" stroke="#111111" stroke-width="2.4"/>
-    <polygon points="19,26 20,14 28,22" fill="#FFFBEB" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
-    <polygon points="45,26 44,14 36,22" fill="#FFFBEB" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
-    <ellipse cx="32" cy="19" rx="21" ry="4.8" fill="#D97706" stroke="#111111" stroke-width="2.2"/>
-    <path d="M23 18 L25 9 Q32 7 39 9 L41 18 Z" fill="#F59E0B" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
-    <circle cx="26.5" cy="32" r="2.7" fill="#111111"/>
-    <circle cx="37.5" cy="32" r="2.7" fill="#111111"/>
-    <circle cx="25.8" cy="31" r="0.9" fill="#FFFFFF"/>
-    <circle cx="36.8" cy="31" r="0.9" fill="#FFFFFF"/>
-    <polygon points="30.5,35.5 33.5,35.5 32,37.5" fill="#FB7185"/>
-    <path d="M28.5 39.5 Q32 42 35.5 39.5" fill="none" stroke="#111111" stroke-width="1.9" stroke-linecap="round"/>
-    <circle cx="46" cy="52" r="2.2" fill="#FFDE59"/>
-    <circle cx="51" cy="52" r="2.2" fill="#FFDE59"/>
-  `,
-  level_avatar_3: `
-    <rect width="64" height="64" rx="12" fill="#2A1D2E"/>
-    <path d="M13 58 L20 43 H44 L51 58 Z" fill="#64748B" stroke="#111111" stroke-width="2.4" stroke-linejoin="round"/>
-    <polygon points="21,43 27,51 32,46 37,51 43,43" fill="#475569" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
-    <circle cx="31" cy="32" r="14.5" fill="#F1F5F9" stroke="#111111" stroke-width="2.4"/>
-    <path d="M16 24 Q31 11 46 24 Z" fill="#C084FC" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
-    <path d="M12 24 H50 L45 27 H17 Z" fill="#FF90E8" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
-    <circle cx="25.5" cy="31.5" r="2.5" fill="#111111"/>
-    <circle cx="38" cy="32" r="6.8" fill="#38BDF8" fill-opacity="0.32" stroke="#111111" stroke-width="2.4"/>
-    <circle cx="38" cy="32" r="4.2" fill="#111111"/>
-    <circle cx="36.8" cy="30.6" r="1.4" fill="#FFFFFF"/>
-    <line x1="43" y1="37" x2="52" y2="47" stroke="#FFDE59" stroke-width="3.6" stroke-linecap="round"/>
-    <line x1="43" y1="37" x2="52" y2="47" stroke="#111111" stroke-width="1.6" stroke-linecap="round"/>
-    <polygon points="29.5,35.5 32.5,35.5 31,37.4" fill="#FF90E8"/>
-    <line x1="27" y1="39.5" x2="33" y2="39.5" stroke="#111111" stroke-width="1.9" stroke-linecap="round"/>
-  `,
-  level_avatar_4: `
-    <rect width="64" height="64" rx="12" fill="#172B27"/>
-    <path d="M15 58 C15 44 49 44 49 58 Z" fill="#10B981" stroke="#111111" stroke-width="2.4"/>
-    <circle cx="32" cy="33" r="15" fill="#FEF3C7" stroke="#111111" stroke-width="2.4"/>
-    <path d="M15 28 C15 14 49 14 49 28 Z" fill="#6EE7B7" stroke="#111111" stroke-width="2.4" stroke-linejoin="round"/>
-    <rect x="29" y="13" width="6" height="14" rx="2" fill="#FFDE59" stroke="#111111" stroke-width="1.8"/>
-    <rect x="19" y="27" width="26" height="10" rx="5" fill="#1A1A1E" stroke="#111111" stroke-width="2.2"/>
-    <path d="M23.5 32 C23.5 29.3 27.5 29.3 29.5 32 C31.5 34.7 32.5 34.7 34.5 32 C36.5 29.3 40.5 29.3 40.5 32 C40.5 34.7 36.5 34.7 34.5 32 C32.5 29.3 31.5 29.3 29.5 32 C27.5 34.7 23.5 34.7 23.5 32 Z" fill="none" stroke="#38BDF8" stroke-width="2"/>
-    <rect x="37" y="38" width="8.5" height="3.8" rx="1.4" fill="#FFFFFF" stroke="#111111" stroke-width="1.4" transform="rotate(-14 41 40)"/>
-    <path d="M28 41.5 H35" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
-    <rect x="42" y="45" width="12" height="11" rx="2.5" fill="#F8FAFC" stroke="#111111" stroke-width="2"/>
-    <path d="M54 47.5 H57 A2 2 0 0 1 57 52.5 H54" fill="none" stroke="#111111" stroke-width="2"/>
-    <path d="M46 43 Q47 40 46 38 M50 43 Q51 40 50 38" stroke="#FFDE59" stroke-width="1.6" stroke-linecap="round" fill="none"/>
-  `,
-  level_avatar_5: `
-    <rect width="64" height="64" rx="12" fill="#231E38"/>
-    <circle cx="13" cy="18" r="2.2" fill="#C4B5FD"/>
-    <circle cx="52" cy="24" r="2" fill="#FFDE59"/>
-    <path d="M14 58 C14 43 50 43 50 58 Z" fill="#7C3AED" stroke="#111111" stroke-width="2.4"/>
-    <path d="M13 38 C13 15 51 15 51 38 L47 47 H17 Z" fill="#A78BFA" stroke="#111111" stroke-width="2.4" stroke-linejoin="round"/>
-    <circle cx="32" cy="34" r="13" fill="#FFF1F2" stroke="#111111" stroke-width="2.2"/>
-    <path d="M24 32 Q26.5 29.5 29 32" fill="none" stroke="#111111" stroke-width="2.2" stroke-linecap="round"/>
-    <path d="M35 32 Q37.5 29.5 40 32" fill="none" stroke="#111111" stroke-width="2.2" stroke-linecap="round"/>
-    <circle cx="24" cy="36" r="2.2" fill="#FF90E8" opacity="0.7"/>
-    <circle cx="40" cy="36" r="2.2" fill="#FF90E8" opacity="0.7"/>
-    <path d="M29.5 38 Q32 40.5 34.5 38" fill="none" stroke="#111111" stroke-width="1.9" stroke-linecap="round"/>
-    <circle cx="44" cy="18" r="6" fill="#FF6B6B" stroke="#111111" stroke-width="2"/>
-    <path d="M40.5 14.5 H47.5 L44 12 Z" fill="#111111"/>
-    <line x1="44" y1="15" x2="44" y2="24" stroke="#111111" stroke-width="1.6"/>
-    <circle cx="41.8" cy="18.2" r="1.1" fill="#111111"/>
-    <circle cx="46.2" cy="19.2" r="1.1" fill="#111111"/>
-  `,
-  level_avatar_6: `
-    <rect width="64" height="64" rx="12" fill="#1A2918"/>
-    <path d="M16 58 C16 44 48 44 48 58 Z" fill="#3F6212" stroke="#111111" stroke-width="2.4"/>
-    <circle cx="32" cy="36" r="13.5" fill="#F8FAFC" stroke="#111111" stroke-width="2.3"/>
-    <path d="M12 27 H52 L45 22 L35 6 L20 22 Z" fill="#65A30D" stroke="#111111" stroke-width="2.3" stroke-linejoin="round"/>
-    <rect x="20" y="21" width="24" height="4.5" rx="1.5" fill="#B8FF3B" stroke="#111111" stroke-width="1.8"/>
-    <polygon points="34,11 35.5,14.5 39,15 36.2,17.3 37,20.5 34,18.7 31,20.5 31.8,17.3 29,15 32.5,14.5" fill="#FFDE59"/>
-    <polygon points="23,33 29,34.5 23,36" fill="#B8FF3B" stroke="#111111" stroke-width="1.4"/>
-    <polygon points="41,33 35,34.5 41,36" fill="#B8FF3B" stroke="#111111" stroke-width="1.4"/>
-    <path d="M29 40.5 Q32 42.8 35 40.5" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
-    <circle cx="48" cy="48" r="9.5" fill="#111111"/>
-    <circle cx="48" cy="48" r="7.5" fill="#B8FF3B" stroke="#38BDF8" stroke-width="2"/>
-    <circle cx="45.6" cy="48" r="2.2" fill="none" stroke="#111111" stroke-width="1.7"/>
-    <line x1="50.5" y1="45.6" x2="50.5" y2="50.6" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
-  `,
-  level_avatar_7: `
-    <rect width="64" height="64" rx="12" fill="#331E14"/>
-    <path d="M51 44 L54 20" stroke="#B8FF3B" stroke-width="2" stroke-dasharray="3 2"/>
-    <path d="M54 10 L58 19 H50 Z" fill="#F8FAFC" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
-    <polygon points="51.5,19 56.5,19 54,25" fill="#FFDE59"/>
-    <path d="M14 58 C14 44 46 44 46 58 Z" fill="#C2410C" stroke="#111111" stroke-width="2.4"/>
-    <circle cx="29" cy="34" r="14.5" fill="#FED7AA" stroke="#111111" stroke-width="2.4"/>
-    <ellipse cx="29" cy="21" rx="20" ry="4.5" fill="#FB923C" stroke="#111111" stroke-width="2.2"/>
-    <path d="M19 20 L22 10 L29 12.5 L36 10 L39 20 Z" fill="#EA580C" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
-    <rect x="17" y="29" width="10.5" height="7" rx="2.5" fill="#111111" stroke="#FFDE59" stroke-width="1.5"/>
-    <rect x="30.5" y="29" width="10.5" height="7" rx="2.5" fill="#111111" stroke="#FFDE59" stroke-width="1.5"/>
-    <line x1="27.5" y1="31.5" x2="30.5" y2="31.5" stroke="#FFDE59" stroke-width="1.8"/>
-    <line x1="19" y1="31.5" x2="25" y2="31.5" stroke="#B8FF3B" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="32.5" y1="31.5" x2="38.5" y2="31.5" stroke="#B8FF3B" stroke-width="1.5" stroke-linecap="round"/>
-    <path d="M25 40.5 Q31 43.5 35 39" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
-  `,
-  level_avatar_8: `
-    <rect width="64" height="64" rx="12" fill="#0F2233"/>
-    <circle cx="32" cy="33" r="24" fill="#38BDF8" opacity="0.14"/>
-    <rect x="6" y="10" width="11" height="9" rx="2.2" fill="#FFDE59" stroke="#111111" stroke-width="1.8" transform="rotate(-10 11.5 14.5)"/>
-    <line x1="8.5" y1="14.5" x2="14.5" y2="14.5" stroke="#111111" stroke-width="1.6" stroke-linecap="round" transform="rotate(-10 11.5 14.5)"/>
-    <rect x="47" y="10" width="11" height="9" rx="2.2" fill="#B8FF3B" stroke="#111111" stroke-width="1.8" transform="rotate(10 52.5 14.5)"/>
-    <line x1="49.5" y1="14.5" x2="55.5" y2="14.5" stroke="#111111" stroke-width="1.6" stroke-linecap="round" transform="rotate(10 52.5 14.5)"/>
-    <path d="M15 58 C15 44 49 44 49 58 Z" fill="#0284C7" stroke="#111111" stroke-width="2.4"/>
-    <path d="M16 33 C16 20 48 20 48 33" fill="none" stroke="#38BDF8" stroke-width="4.5" stroke-linecap="round"/>
-    <path d="M16 33 C16 20 48 20 48 33" fill="none" stroke="#111111" stroke-width="1.6" stroke-linecap="round"/>
-    <circle cx="32" cy="35" r="14" fill="#F8FAFC" stroke="#111111" stroke-width="2.4"/>
-    <polygon points="20,25 22,14 29,21" fill="#F8FAFC" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
-    <polygon points="44,25 42,14 35,21" fill="#F8FAFC" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
-    <rect x="11" y="28" width="8" height="13" rx="3" fill="#38BDF8" stroke="#111111" stroke-width="2"/>
-    <rect x="45" y="28" width="8" height="13" rx="3" fill="#38BDF8" stroke="#111111" stroke-width="2"/>
-    <rect x="13" y="31" width="4" height="7" rx="1" fill="#FF90E8"/>
-    <rect x="47" y="31" width="4" height="7" rx="1" fill="#B8FF3B"/>
-    <circle cx="27" cy="34" r="2.7" fill="#111111"/>
-    <circle cx="37" cy="34" r="2.7" fill="#111111"/>
-    <circle cx="26.2" cy="33" r="1" fill="#38BDF8"/>
-    <circle cx="36.2" cy="33" r="1" fill="#38BDF8"/>
-    <polygon points="30.5,37.2 33.5,37.2 32,39.2" fill="#FF90E8"/>
-    <path d="M29 41 Q32 43.2 35 41" fill="none" stroke="#111111" stroke-width="1.9" stroke-linecap="round"/>
-  `,
-  level_avatar_9: `
-    <rect width="64" height="64" rx="12" fill="#2A162B"/>
-    <ellipse cx="32" cy="31" rx="25" ry="11" fill="none" stroke="#FFDE59" stroke-width="2" transform="rotate(-18 32 31)"/>
-    <circle cx="10" cy="28" r="3.4" fill="#38BDF8" stroke="#111111" stroke-width="1.6"/>
-    <circle cx="54" cy="32" r="3.4" fill="#B8FF3B" stroke="#111111" stroke-width="1.6"/>
-    <path d="M15 58 C15 44 49 44 49 58 Z" fill="#DB2777" stroke="#111111" stroke-width="2.4"/>
-    <circle cx="32" cy="32" r="15.5" fill="#FDF2F8" stroke="#111111" stroke-width="2.4"/>
-    <rect x="20" y="24" width="24" height="14" rx="7" fill="#1A1A1E" stroke="#111111" stroke-width="2"/>
-    <circle cx="27" cy="31" r="2.7" fill="#F472B6"/>
-    <circle cx="37" cy="31" r="2.7" fill="#38BDF8"/>
-    <path d="M29.5 34.5 Q32 36.2 34.5 34.5" fill="none" stroke="#FFDE59" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M22 18 L25 11 L32 15 L39 11 L42 18 Z" fill="#F472B6" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
-  `,
-  level_avatar_10: `
-    <rect width="64" height="64" rx="12" fill="#111816"/>
-    <polygon points="32,4 54,16 54,44 32,56 10,44 10,16" fill="#1B2A24" stroke="#B8FF3B" stroke-width="2"/>
-    <path d="M15 58 L22 44 H42 L49 58 Z" fill="#FFDE59" stroke="#111111" stroke-width="2.4" stroke-linejoin="round"/>
-    <polygon points="27,44 32,53 37,44" fill="#38BDF8" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
-    <circle cx="32" cy="33" r="13.5" fill="#FEF9C3" stroke="#111111" stroke-width="2.4"/>
-    <polygon points="19,22 21,10 27.5,16 32,7 36.5,16 43,10 45,22" fill="#FFDE59" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
-    <circle cx="32" cy="14.5" r="2.2" fill="#FF90E8" stroke="#111111" stroke-width="1.2"/>
-    <polygon points="21,29 43,29 41,36 23,36" fill="#111111" stroke="#B8FF3B" stroke-width="1.6" stroke-linejoin="round"/>
-    <circle cx="27" cy="32.5" r="2.3" fill="#B8FF3B"/>
-    <circle cx="37" cy="32.5" r="2.3" fill="#38BDF8"/>
-    <path d="M29 39.5 Q32 42 35 39.5" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
-    <path d="M10 12 L12 15 L15 16 L12 17 L10 20 L8 17 L5 16 L8 15 Z" fill="#FFDE59"/>
-    <path d="M54 12 L56 15 L59 16 L56 17 L54 20 L52 17 L49 16 L52 15 Z" fill="#FF90E8"/>
-  `,
+};
+
+const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
+  ...CORE_ICON_INNER_SVG,
+  ...NAVIGATION_ICON_INNER_SVG,
+  ...CRT_CHANNEL_INNER_SVG,
+  ...LEVEL_AVATAR_INNER_SVG,
 };
 
 export const EMOJI_TO_STUDIO_ICON: Record<string, StudioIconName> = {

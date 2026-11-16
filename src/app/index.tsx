@@ -2,12 +2,14 @@ import { useLocalSearchParams } from "expo-router";
 import Head from "expo-router/head";
 import type { Metadata } from "expo-router/server";
 import React, {
+  Suspense,
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 import {
+  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -18,56 +20,42 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
-import AchievementsHall from "../components/AchievementsHall";
-import AlgorithmVisualizerLab from "../components/AlgorithmVisualizerLab";
 import AppHeader from "../components/AppHeader";
-import BugHuntArena from "../components/BugHuntArena";
 import { renderHighlightedPython } from "../components/FormattedText";
 import LessonProblemPanel from "../components/LessonProblemPanel";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
 import MobileThumbNav from "../components/MobileThumbNav";
 import {
-  getKeyboardAvoidingBehavior,
-  isCompactHeaderWidth,
-  isCompactStudioWidth,
-  shouldShowBottomThumbNav,
-} from "../utils/mobileLayout";
-import {
   PaywallPlanId,
   PaywallTriggerContext,
 } from "../components/PaywallModal";
-import {
-  getDeveloperRank,
-} from "../components/ProfileStatsModal";
+import { getDeveloperRank } from "../components/ProfileStatsModal";
 import RoadmapTree from "../components/RoadmapTree";
 import StudioCodeEditor from "../components/StudioCodeEditor";
+import StudioErrorBoundary from "../components/StudioErrorBoundary";
 import StudioFocusBackground from "../components/StudioFocusBackground";
 import StudioModals from "../components/StudioModals";
 import StudioSidebar from "../components/StudioSidebar";
 import { getStudioScreenStyles } from "../components/studioScreenStyles";
-import SyntaxBlitzArena from "../components/SyntaxBlitzArena";
-import {
-  computeStreakUpdate,
-  StreakMilestone,
-} from "../constants/streaks";
 import {
   buildChapterCertificate,
   buildTrackCertificate,
   CertificateData,
   ChapterTierMeta,
   isLessonInChapter,
-  TRACK_CHAPTERS,
 } from "../constants/certificates";
 import { getLessonEnrichment } from "../constants/curriculum";
+import { StreakMilestone } from "../constants/streaks";
 import {
   StudioColors,
   TrackThemes,
 } from "../constants/theme";
 import { useTheme, useThemedStyles } from "../constants/themeContext";
+import { useArenaRewards } from "../hooks/useArenaRewards";
+import { useLessonExecution } from "../hooks/useLessonExecution";
 import { useStudioSync } from "../hooks/useStudioSync";
 import {
   ExplainStyle,
-  getLessonStarRating,
   isLessonLockedForUser,
   isProTrackPreviewLesson,
   Lesson,
@@ -81,24 +69,56 @@ import {
   trackFunnelMilestone,
 } from "../utils/attribution";
 import {
-  executeBugPatchVerification,
-  executeLessonVerification,
-  executePlaygroundPython,
-  executePythonTrace,
-} from "../utils/pyodideRunner";
+  getKeyboardAvoidingBehavior,
+  isCompactHeaderWidth,
+  isCompactStudioWidth,
+  shouldShowBottomThumbNav,
+} from "../utils/mobileLayout";
+import { executeBugPatchVerification } from "../utils/pyodideRunner";
 import type { PythonTraceResult } from "../utils/pythonTrace";
 import { playVictoryFanfare } from "../utils/soundEffects";
-import {
-  getIsoDateKey,
-  REVIEW_BONUS_XP,
-  ReviewSignal,
-  updateReviewScheduleOnSolve,
-} from "../utils/spacedRepetition";
-import {
-  CloudProgressState,
-  CurriculumProgressDeltaItem,
-  pushCloudProgressState,
-} from "../utils/supabaseSync";
+
+const AchievementsHall = React.lazy(
+  () => import("../components/AchievementsHall"),
+);
+const AlgorithmVisualizerLab = React.lazy(
+  () => import("../components/AlgorithmVisualizerLab"),
+);
+const BugHuntArena = React.lazy(() => import("../components/BugHuntArena"));
+const SyntaxBlitzArena = React.lazy(
+  () => import("../components/SyntaxBlitzArena"),
+);
+
+function ArenaLoadingFallback({
+  label,
+}: {
+  label: string;
+}) {
+  const { colors } = useTheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        gap: 10,
+      }}
+    >
+      <ActivityIndicator size="small" color={colors.lime} />
+      <Text
+        style={{
+          color: colors.textSecondary,
+          fontSize: 12,
+          fontWeight: "800",
+          letterSpacing: 0.5,
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
 
 export function generateMetadata(): Metadata {
   return {
@@ -559,351 +579,6 @@ export default function HomeScreen() {
     }
   }
 
-  function recordActiveDevSession(bonusXp = 0): {
-    newXp: number;
-    newStreak: number;
-    newLastActiveDate: string;
-  } {
-    const streakUpdate = computeStreakUpdate({
-      currentStreak: streakCount,
-      lastActiveDate,
-      claimedMilestones: claimedStreakMilestones,
-      streakShields,
-    });
-
-    const milestoneXp = streakUpdate.unlockedMilestone
-      ? streakUpdate.unlockedMilestone.bonusXp
-      : 0;
-    const newXp = xpPoints + bonusXp + milestoneXp;
-    const newStreak = streakUpdate.newStreak;
-    const newLastActiveDate = streakUpdate.newLastActiveDate;
-
-    setStreakCount(newStreak);
-    setLastActiveDate(newLastActiveDate);
-    setStreakShields(streakUpdate.remainingShields);
-    if (bonusXp > 0 || milestoneXp > 0) {
-      setXpPoints(newXp);
-    }
-
-    if (streakUpdate.unlockedMilestone) {
-      const milestoneDays = streakUpdate.unlockedMilestone.days;
-      setClaimedStreakMilestones((prev) => ({
-        ...prev,
-        [milestoneDays]: true,
-      }));
-      setActiveStreakMilestone(streakUpdate.unlockedMilestone);
-      trackFunnelMilestone("share_triggered", {
-        channel: `streak_milestone_${milestoneDays}`,
-      });
-    }
-
-    return { newXp, newStreak, newLastActiveDate };
-  }
-
-  async function runPlaygroundOnly(customSnippet?: string) {
-    setIsExecuting(true);
-    setBottomTab("console");
-    setOutput("Running code...");
-    trackFunnelMilestone("first_code_run");
-    try {
-      const trimmedSnippet =
-        typeof customSnippet === "string" ? customSnippet.trim() : "";
-      const codeToExecute = trimmedSnippet ? `${code}\n${trimmedSnippet}` : code;
-      const consoleOut = await executePlaygroundPython(
-        pyodideRef.current,
-        codeToExecute,
-      );
-      setOutput(consoleOut);
-    } finally {
-      setIsExecuting(false);
-    }
-  }
-
-  async function runTraceExecution(customDriver?: string) {
-    if (!selectedLesson) return;
-    setIsTracing(true);
-    setActiveTab("visual");
-    if (isCompactStudio) {
-      setMobileStudioPane("learn");
-    }
-    const activePractice =
-      activeChallengeIdx > 0 && selectedLesson.practiceChallenges
-        ? selectedLesson.practiceChallenges[activeChallengeIdx - 1]
-        : undefined;
-    const traceLesson: Lesson = activePractice
-      ? {
-          ...selectedLesson,
-          expected_output: activePractice.expected_output,
-          hidden_tests: activePractice.hidden_tests,
-          examples: activePractice.examples,
-        }
-      : selectedLesson;
-
-    try {
-      const traceRes = await executePythonTrace(pyodideRef.current, code, {
-        lesson: traceLesson,
-        enrichment: activeChallengeIdx === 0 ? lessonEnrichment : null,
-        driverCode: customDriver,
-      });
-      setLiveTraceResult(traceRes);
-    } finally {
-      setIsTracing(false);
-    }
-  }
-
-  async function runPythonCode() {
-    setIsExecuting(true);
-    setOutput("Running verification suite...");
-    setTestResults(null);
-    trackFunnelMilestone("first_code_run");
-
-    const activePractice =
-      activeChallengeIdx > 0 && selectedLesson?.practiceChallenges
-        ? selectedLesson.practiceChallenges[activeChallengeIdx - 1]
-        : undefined;
-    const verificationLesson: Lesson | null =
-      selectedLesson && activePractice
-        ? {
-            ...selectedLesson,
-            expected_output: activePractice.expected_output,
-            hidden_tests: activePractice.hidden_tests,
-          }
-        : selectedLesson;
-
-    try {
-      const outcome = await executeLessonVerification(
-        pyodideRef.current,
-        code,
-        verificationLesson,
-      );
-
-      setTestResults(outcome.testResults);
-      if (outcome.testResults) {
-        setSelectedTestIndex(0);
-      }
-      setBottomTab(outcome.targetTab);
-      setOutput(outcome.consoleOutput);
-
-      if (!outcome.allPassed && selectedLesson) {
-        failedAttemptsByLessonRef.current[selectedLesson.id] =
-          (failedAttemptsByLessonRef.current[selectedLesson.id] || 0) + 1;
-      }
-
-      if (outcome.allPassed && selectedLesson) {
-        setShowSuccessModal(true);
-        trackFunnelMilestone("first_lesson_solved");
-        const stageKey =
-          activeChallengeIdx === 0
-            ? `${selectedLesson.id}::core`
-            : activePractice?.id ||
-              `${selectedLesson.id}::stage_${activeChallengeIdx}`;
-        const isStageAlreadyCompleted = Boolean(
-          completedChallenges[stageKey] ||
-            (activeChallengeIdx === 0 && completedLessons[selectedLesson.id]),
-        );
-        const failedCount =
-          failedAttemptsByLessonRef.current[selectedLesson.id] || 0;
-        const reviewSignal: ReviewSignal = usedSolutionInAttemptRef.current
-          ? "peeked"
-          : usedScaffoldInAttemptRef.current
-            ? "scaffolded"
-            : failedCount >= 2
-              ? "retries"
-              : "clean";
-        failedAttemptsByLessonRef.current[selectedLesson.id] = 0;
-
-        const existingReviewEntry = reviewSchedule[selectedLesson.id];
-        const todayKey = getIsoDateKey();
-        const wasScheduledDue = Boolean(
-          existingReviewEntry &&
-            existingReviewEntry.nextReviewAt.slice(0, 10) <= todayKey,
-        );
-        const wasImplicitPeekDue = Boolean(
-          !existingReviewEntry &&
-            completedLessons[selectedLesson.id] &&
-            peekedSolutions[selectedLesson.id],
-        );
-        const reviewBonusXp =
-          isStageAlreadyCompleted &&
-          (wasScheduledDue || wasImplicitPeekDue) &&
-          reviewSignal === "clean"
-            ? REVIEW_BONUS_XP
-            : 0;
-
-        const stageXp = activePractice?.xpReward || 50;
-        const { newXp, newStreak, newLastActiveDate } = recordActiveDevSession(
-          (isStageAlreadyCompleted ? 0 : stageXp) + reviewBonusXp,
-        );
-
-        const nextCompletedChallenges = {
-          ...completedChallenges,
-          [stageKey]: true,
-        };
-        setCompletedChallenges(nextCompletedChallenges);
-
-        const practiceList = selectedLesson.practiceChallenges || [];
-        const allStagesNowDone =
-          practiceList.length === 0 ||
-          (Boolean(
-            nextCompletedChallenges[`${selectedLesson.id}::core`] ||
-              completedLessons[selectedLesson.id],
-          ) &&
-            practiceList.every((ch, idx) =>
-              Boolean(
-                nextCompletedChallenges[ch.id] ||
-                  nextCompletedChallenges[
-                    `${selectedLesson.id}::stage_${idx + 1}`
-                  ],
-              ),
-            ));
-
-        const nextPeekedSolutions = { ...peekedSolutions };
-        if (usedSolutionInAttemptRef.current) {
-          nextPeekedSolutions[selectedLesson.id] = true;
-          setPeekedSolutions(nextPeekedSolutions);
-        } else if (allStagesNowDone && nextPeekedSolutions[selectedLesson.id]) {
-          delete nextPeekedSolutions[selectedLesson.id];
-          setPeekedSolutions(nextPeekedSolutions);
-        }
-
-        const nextCompletedLessons = allStagesNowDone
-          ? { ...completedLessons, [selectedLesson.id]: true }
-          : completedLessons;
-        if (allStagesNowDone) {
-          setCompletedLessons(nextCompletedLessons);
-        }
-
-        const shouldUpdateReviewSchedule =
-          allStagesNowDone ||
-          Boolean(existingReviewEntry) ||
-          Boolean(nextCompletedLessons[selectedLesson.id]);
-        let nextReviewSchedule = reviewSchedule;
-        let updatedReviewEntry = existingReviewEntry || null;
-        if (shouldUpdateReviewSchedule) {
-          const updated = updateReviewScheduleOnSolve({
-            currentSchedule: reviewSchedule,
-            lessonId: selectedLesson.id,
-            signal: reviewSignal,
-          });
-          nextReviewSchedule = updated.nextSchedule;
-          updatedReviewEntry = updated.entry;
-          setReviewSchedule(nextReviewSchedule);
-        }
-
-        const nextSnapshot: CloudProgressState = {
-          ...latestGuestStateRef.current,
-          completedLessons: nextCompletedLessons,
-          completedChallenges: nextCompletedChallenges,
-          peekedSolutions: nextPeekedSolutions,
-          reviewSchedule: nextReviewSchedule,
-          xpPoints: newXp,
-          streakCount: newStreak,
-          lastActiveDate: newLastActiveDate,
-          codeDrafts: codeDraftsRef.current,
-          updatedAt: new Date().toISOString(),
-        };
-        latestGuestStateRef.current = nextSnapshot;
-
-        if (session) {
-          const deltaItems: CurriculumProgressDeltaItem[] = [
-            {
-              itemKey: stageKey,
-              itemType: "stage",
-              lessonId: selectedLesson.id,
-              completed: true,
-            },
-          ];
-          const updatedLessonObj = {
-            ...selectedLesson,
-          };
-          const lessonStars = getLessonStarRating(
-            updatedLessonObj,
-            nextCompletedLessons,
-            nextCompletedChallenges,
-            nextPeekedSolutions,
-          );
-          deltaItems.push({
-            itemKey: selectedLesson.id,
-            itemType: "lesson",
-            lessonId: selectedLesson.id,
-            completed:
-              allStagesNowDone || Boolean(nextCompletedLessons[selectedLesson.id]),
-            peekedSolution: Boolean(nextPeekedSolutions[selectedLesson.id]),
-            stars: lessonStars,
-            nextReviewAt: updatedReviewEntry?.nextReviewAt ?? null,
-            reviewIntervalDays: updatedReviewEntry?.intervalDays ?? null,
-            reviewReps: updatedReviewEntry?.reps ?? 0,
-            weakSignalCount: updatedReviewEntry?.weakSignalCount ?? 0,
-          });
-          await pushCloudProgressState({
-            userId: session.user.id,
-            userEmail: session.user.email,
-            state: nextSnapshot,
-            deltaItems,
-          });
-        }
-      }
-    } finally {
-      setIsExecuting(false);
-    }
-  }
-
-  async function handleAwardBugHuntXp(xpEarned: number, incidentId: string) {
-    const alreadySolved = solvedIncidents[incidentId];
-    const nextSolvedIncidents = { ...solvedIncidents, [incidentId]: true };
-    setSolvedIncidents(nextSolvedIncidents);
-    if (alreadySolved) return;
-
-    const { newXp, newStreak, newLastActiveDate } =
-      recordActiveDevSession(xpEarned);
-    const nextSnapshot: CloudProgressState = {
-      ...latestGuestStateRef.current,
-      solvedIncidents: nextSolvedIncidents,
-      xpPoints: newXp,
-      streakCount: newStreak,
-      lastActiveDate: newLastActiveDate,
-      updatedAt: new Date().toISOString(),
-    };
-    latestGuestStateRef.current = nextSnapshot;
-
-    if (session) {
-      await pushCloudProgressState({
-        userId: session.user.id,
-        userEmail: session.user.email,
-        state: nextSnapshot,
-        deltaItems: [
-          {
-            itemKey: incidentId,
-            itemType: "bug_incident",
-            completed: true,
-          },
-        ],
-      });
-    }
-  }
-
-  async function handleAwardBlitzXp(xpEarned: number) {
-    if (xpEarned <= 0) return;
-    const { newXp, newStreak, newLastActiveDate } =
-      recordActiveDevSession(xpEarned);
-    const nextSnapshot: CloudProgressState = {
-      ...latestGuestStateRef.current,
-      xpPoints: newXp,
-      streakCount: newStreak,
-      lastActiveDate: newLastActiveDate,
-      updatedAt: new Date().toISOString(),
-    };
-    latestGuestStateRef.current = nextSnapshot;
-
-    if (session) {
-      await pushCloudProgressState({
-        userId: session.user.id,
-        userEmail: session.user.email,
-        state: nextSnapshot,
-      });
-    }
-  }
-
   function openTrackCertificate(
     trackKey: string,
     overrideXp: number = xpPoints,
@@ -947,54 +622,73 @@ export default function HomeScreen() {
     );
   }
 
-  async function handleClaimChapterBonus(chapterKey: string, bonusXp: number) {
-    if (claimedChapters[chapterKey]) return;
-    playVictoryFanfare();
-    const newXp = xpPoints + bonusXp;
-    const newStreak = streakCount === 0 ? 1 : streakCount;
-    const nextClaimedChapters = { ...claimedChapters, [chapterKey]: true };
-    setClaimedChapters(nextClaimedChapters);
-    setXpPoints(newXp);
-    setStreakCount(newStreak);
-
-    const [trackKey, chIdRaw] = chapterKey.split("_ch_");
-    const chapterMeta = (TRACK_CHAPTERS[trackKey] || []).find(
-      (c) => String(c.id) === chIdRaw,
-    );
-    if (chapterMeta) {
-      openChapterCertificate(trackKey, chapterMeta, newXp, newStreak);
-    }
-
-    const nextSnapshot: CloudProgressState = {
-      ...latestGuestStateRef.current,
-      claimedChapters: nextClaimedChapters,
-      xpPoints: newXp,
-      streakCount: newStreak,
-      updatedAt: new Date().toISOString(),
-    };
-    latestGuestStateRef.current = nextSnapshot;
-
-    if (session) {
-      await pushCloudProgressState({
-        userId: session.user.id,
-        userEmail: session.user.email,
-        state: nextSnapshot,
-        deltaItems: [
-          {
-            itemKey: chapterKey,
-            itemType: "chapter",
-            completed: true,
-          },
-        ],
-      });
-    }
-  }
-
-  const styles = useThemedStyles(getStudioScreenStyles);
-  const devRank = getDeveloperRank(xpPoints);
   const lessonEnrichment = selectedLesson
     ? getLessonEnrichment(selectedLesson)
     : null;
+
+  const {
+    recordActiveDevSession,
+    handleAwardBugHuntXp,
+    handleAwardBlitzXp,
+    handleClaimChapterBonus,
+  } = useArenaRewards({
+    xpPoints,
+    setXpPoints,
+    streakCount,
+    setStreakCount,
+    lastActiveDate,
+    setLastActiveDate,
+    claimedStreakMilestones,
+    setClaimedStreakMilestones,
+    streakShields,
+    setStreakShields,
+    setActiveStreakMilestone,
+    solvedIncidents,
+    setSolvedIncidents,
+    claimedChapters,
+    setClaimedChapters,
+    session,
+    latestGuestStateRef,
+    onOpenChapterCertificate: openChapterCertificate,
+  });
+
+  const { runPlaygroundOnly, runTraceExecution, runPythonCode } =
+    useLessonExecution({
+      code,
+      selectedLesson,
+      activeChallengeIdx,
+      lessonEnrichment,
+      isCompactStudio,
+      pyodideRef,
+      setIsExecuting,
+      setIsTracing,
+      setOutput,
+      setTestResults,
+      setSelectedTestIndex,
+      setBottomTab,
+      setActiveTab,
+      setMobileStudioPane,
+      setLiveTraceResult,
+      setShowSuccessModal,
+      usedSolutionInAttemptRef,
+      usedScaffoldInAttemptRef,
+      failedAttemptsByLessonRef,
+      completedLessons,
+      setCompletedLessons,
+      completedChallenges,
+      setCompletedChallenges,
+      peekedSolutions,
+      setPeekedSolutions,
+      reviewSchedule,
+      setReviewSchedule,
+      session,
+      codeDraftsRef,
+      latestGuestStateRef,
+      recordActiveDevSession,
+    });
+
+  const styles = useThemedStyles(getStudioScreenStyles);
+  const devRank = getDeveloperRank(xpPoints);
 
   const currentLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = currentLessons.filter(
@@ -1164,60 +858,86 @@ export default function HomeScreen() {
             openChapterCertificate(trackKey, chapter)
           }
         />
-      ) : viewMode === "bughunt" ? (
-        <BugHuntArena
-          pyodideReady={pyodideReady}
-          isPremium={effectiveIsPremium}
-          onRequirePro={() =>
-            openPaywall({
-              source: "arena",
-              lessonTitle: "Pro Production Incidents",
-            })
-          }
-          onExecutePatch={(userCode, testHarness) =>
-            executeBugPatchVerification(
-              pyodideRef.current,
-              userCode,
-              testHarness,
-            )
-          }
-          onAwardBugHuntXp={handleAwardBugHuntXp}
-          solvedIncidents={solvedIncidents}
-          renderHighlightedPython={renderHighlightedPython}
-        />
-      ) : viewMode === "blitz" ? (
-        <SyntaxBlitzArena
-          isPremium={effectiveIsPremium}
-          onRequirePro={() =>
-            openPaywall({
-              source: "arena",
-              lessonTitle: "All Speed Blitz Tracks",
-            })
-          }
-          onAwardBlitzXp={handleAwardBlitzXp}
-        />
-      ) : viewMode === "algolab" ? (
-        <AlgorithmVisualizerLab
-          isPremium={effectiveIsPremium}
-          onRequirePro={() =>
-            openPaywall({
-              source: "arena",
-              lessonTitle: "Pro Algorithm Visual Lab",
-            })
-          }
-          onBackToMap={() => setViewMode("roadmap")}
-        />
-      ) : viewMode === "achievements" ? (
-        <AchievementsHall
-          xpPoints={xpPoints}
-          streakCount={streakCount}
-          lessons={lessons}
-          completedLessons={completedLessons}
-          completedChallenges={completedChallenges}
-          peekedSolutions={peekedSolutions}
-          solvedIncidents={solvedIncidents}
-          onNavigateMode={(mode) => setViewMode(mode)}
-        />
+      ) : viewMode === "bughunt" ||
+        viewMode === "blitz" ||
+        viewMode === "algolab" ||
+        viewMode === "achievements" ? (
+        <StudioErrorBoundary
+          onReset={() => setViewMode("roadmap")}
+          fallbackTitle="Arena interrupted"
+        >
+          <Suspense
+            fallback={
+              <ArenaLoadingFallback
+                label={
+                  viewMode === "bughunt"
+                    ? "Loading Bug Hunt Arena..."
+                    : viewMode === "blitz"
+                      ? "Loading Speed Blitz..."
+                      : viewMode === "algolab"
+                        ? "Loading Algorithm Lab..."
+                        : "Loading Trophy Hall..."
+                }
+              />
+            }
+          >
+            {viewMode === "bughunt" ? (
+              <BugHuntArena
+                pyodideReady={pyodideReady}
+                isPremium={effectiveIsPremium}
+                onRequirePro={() =>
+                  openPaywall({
+                    source: "arena",
+                    lessonTitle: "Pro Production Incidents",
+                  })
+                }
+                onExecutePatch={(userCode, testHarness) =>
+                  executeBugPatchVerification(
+                    pyodideRef.current,
+                    userCode,
+                    testHarness,
+                  )
+                }
+                onAwardBugHuntXp={handleAwardBugHuntXp}
+                solvedIncidents={solvedIncidents}
+                renderHighlightedPython={renderHighlightedPython}
+              />
+            ) : viewMode === "blitz" ? (
+              <SyntaxBlitzArena
+                isPremium={effectiveIsPremium}
+                onRequirePro={() =>
+                  openPaywall({
+                    source: "arena",
+                    lessonTitle: "All Speed Blitz Tracks",
+                  })
+                }
+                onAwardBlitzXp={handleAwardBlitzXp}
+              />
+            ) : viewMode === "algolab" ? (
+              <AlgorithmVisualizerLab
+                isPremium={effectiveIsPremium}
+                onRequirePro={() =>
+                  openPaywall({
+                    source: "arena",
+                    lessonTitle: "Pro Algorithm Visual Lab",
+                  })
+                }
+                onBackToMap={() => setViewMode("roadmap")}
+              />
+            ) : (
+              <AchievementsHall
+                xpPoints={xpPoints}
+                streakCount={streakCount}
+                lessons={lessons}
+                completedLessons={completedLessons}
+                completedChallenges={completedChallenges}
+                peekedSolutions={peekedSolutions}
+                solvedIncidents={solvedIncidents}
+                onNavigateMode={(mode) => setViewMode(mode)}
+              />
+            )}
+          </Suspense>
+        </StudioErrorBoundary>
       ) : (
         <View style={styles.content}>
           <StudioSidebar
