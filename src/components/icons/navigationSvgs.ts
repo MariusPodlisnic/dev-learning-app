@@ -14,13 +14,19 @@ export type NavigationIconName =
   | "free_preview";
 
 export const NAVIGATION_ICON_INNER_SVG: Record<NavigationIconName, string> = {
+  // Devy Concept 1 brand mark: Cozy Byte-Cat Companion
   devlearn_logo: `
-    <rect x="3" y="5" width="26" height="22" rx="5" fill="#111111" transform="translate(1.6,1.6)"/>
-    <rect x="3" y="5" width="26" height="22" rx="5" fill="#B8FF3B" stroke="#111111" stroke-width="2.2"/>
-    <rect x="6" y="8" width="20" height="16" rx="2.5" fill="#18181B" stroke="#111111" stroke-width="1.6"/>
-    <polyline points="9.5,12.5 14,16 9.5,19.5" fill="none" stroke="#B8FF3B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-    <line x1="16" y1="19.5" x2="22" y2="19.5" stroke="#FFDE59" stroke-width="2.4" stroke-linecap="round"/>
-    <circle cx="22.5" cy="11.5" r="1.6" fill="#FF90E8"/>
+    <path d="M5.2 16 A10.8 10.8 0 0 1 26.8 16" fill="none" stroke="#FFDE59" stroke-width="2.6" stroke-linecap="round"/>
+    <polygon points="8,11.5 10.6,4.2 14.8,9" fill="#F4F0E6" stroke="#111111" stroke-width="1.5" stroke-linejoin="round"/>
+    <polygon points="24,11.5 21.4,4.2 17.2,9" fill="#F4F0E6" stroke="#111111" stroke-width="1.5" stroke-linejoin="round"/>
+    <polygon points="9.6,10.2 11,6.4 13,8.9" fill="#FF90E8"/>
+    <polygon points="22.4,10.2 21,6.4 19,8.9" fill="#FF90E8"/>
+    <rect x="6.2" y="8.8" width="19.6" height="18.2" rx="7.2" fill="#F4F0E6" stroke="#111111" stroke-width="1.5"/>
+    <rect x="9" y="11.6" width="14" height="9.8" rx="4" fill="#181B24" stroke="#6EE7B7" stroke-width="0.9"/>
+    <path d="M11.6 16.4 Q13.1 14 14.6 16.4 M17.4 16.4 Q18.9 14 20.4 16.4" fill="none" stroke="#6EE7B7" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M14.7 18.9 Q16 20.1 17.3 18.9" fill="none" stroke="#6EE7B7" stroke-width="1.4" stroke-linecap="round"/>
+    <rect x="3.2" y="13.2" width="3.8" height="7.4" rx="1.8" fill="#FFDE59" stroke="#111111" stroke-width="1.2"/>
+    <rect x="25" y="13.2" width="3.8" height="7.4" rx="1.8" fill="#FFDE59" stroke="#111111" stroke-width="1.2"/>
   `,
   menu_coding: `
     <polygon points="16,4 27,10 16,16 5,10" fill="#6EE7B7" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
