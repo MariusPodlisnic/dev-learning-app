@@ -124,11 +124,11 @@ function ArenaLoadingFallback({
 
 export function generateMetadata(): Metadata {
   return {
-    title: "DevLearn Arcade | Interactive Python, Algorithms & System Design",
+    title: "Devy | Interactive Python, Algorithms & System Design",
     description:
       "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.",
     openGraph: {
-      title: "DevLearn Arcade | Interactive Coding Arcade",
+      title: "Devy | Interactive Coding Arcade",
       description:
         "Learn Python, Algorithms & System Design through live playgrounds, playable mini-apps, and 60-second coding sprints.",
       type: "website",
@@ -136,7 +136,7 @@ export function generateMetadata(): Metadata {
     },
     twitter: {
       card: "summary_large_image",
-      title: "DevLearn Arcade | Interactive Coding Arcade",
+      title: "Devy | Interactive Coding Arcade",
       description:
         "Learn Python, Algorithms & System Design through live playgrounds, playable mini-apps, and 60-second coding sprints.",
       images: ["/og-preview.jpg"],
@@ -753,22 +753,22 @@ export default function HomeScreen() {
 
   const seoTitle =
     viewMode === "studio" && selectedLesson
-      ? `${selectedLesson.title} | DevLearn Arcade`
+      ? `${selectedLesson.title} | Devy`
       : viewMode === "bughunt"
-        ? "Bug Hunt Arena | DevLearn Arcade"
+        ? "Bug Hunt Arena | Devy"
         : viewMode === "blitz"
-          ? "60s Syntax Blitz | DevLearn Arcade"
+          ? "60s Syntax Blitz | Devy"
           : viewMode === "algolab"
-            ? "Pro Algorithm Visual Lab | DevLearn Arcade"
-            : "DevLearn Arcade | Interactive Python, Algorithms & System Design";
+            ? "Pro Algorithm Visual Lab | Devy"
+            : "Devy | Interactive Python, Algorithms & System Design";
 
   const seoDescription =
     viewMode === "studio" && selectedLesson
-      ? `${selectedLesson.description} Practice interactively in the live DevLearn Arcade studio.`
+      ? `${selectedLesson.description} Practice interactively in the live Devy studio.`
       : viewMode === "bughunt"
-        ? "Spot and fix broken Python and algorithm snippets in the DevLearn Arcade Bug Hunt Arena."
+        ? "Spot and fix broken Python and algorithm snippets in the Devy Bug Hunt Arena."
         : viewMode === "blitz"
-          ? "Race the 60-second clock to predict outputs and spot syntax bugs in DevLearn Arcade."
+          ? "Race the 60-second clock to predict outputs and spot syntax bugs in Devy."
           : viewMode === "algolab"
             ? "Observe Binary Search, Two Pointers, Sliding Window, Sorting, Hash Maps, and BFS step-by-step in the Pro Algorithm Visual Lab."
             : "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.";

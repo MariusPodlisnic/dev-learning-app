@@ -438,7 +438,7 @@ export default function AchievementsHall({
       // 16. HARD (HIGHLIGHTED!)
       {
         id: "full_curriculum_grandmaster",
-        title: "Supreme DevLearn Grandmaster",
+        title: "Supreme Devy Grandmaster",
         subtitle: "100% ALL-TRACK COMPLETION + 10K XP",
         howToObtain:
           "Solve all 64 modules across Python Foundations, Algorithms, and System Design to complete the entire academy.",

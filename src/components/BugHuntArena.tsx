@@ -518,13 +518,13 @@ export default function BugHuntArena({
       .join(" · ");
     const url = buildChallengeUrl({ mode: "bughunt", ref: "bughunt_card" });
     const message = [
-      `🪲 DevLearn Bug Hunt — ${currentIncident.codeId}: ${currentIncident.title}${modeTags ? ` [${modeTags}]` : ""}`,
+      `🪲 Devy Bug Hunt — ${currentIncident.codeId}: ${currentIncident.title}${modeTags ? ` [${modeTags}]` : ""}`,
       `${speedBar} Defect Patched! (+${earnedXp} XP)`,
       `⏱ ${formattedTime} remaining · ${currentIncident.difficulty}`,
       `Can you fix this production bug faster? 👉 ${url}`,
     ].join("\n");
     const outcome = await shareOrCopyText({
-      title: `DevLearn Bug Hunt — ${currentIncident.title}`,
+      title: `Devy Bug Hunt — ${currentIncident.title}`,
       message,
       channel: "bughunt_card",
     });

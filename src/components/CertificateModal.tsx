@@ -37,7 +37,7 @@ export default function CertificateModal({
   async function handleShareCertificate() {
     playKeyClick();
     const outcome = await shareOrCopyText({
-      title: `DevLearn Arcade — ${certificate.title}`,
+      title: `Devy — ${certificate.title}`,
       message: buildCertificateShareText(certificate),
       channel: "certificate",
     });
@@ -94,7 +94,7 @@ export default function CertificateModal({
       {/* Framed Certificate Parchment */}
       <View style={styles.parchmentFrame}>
         <Text style={styles.issuerEyebrow}>
-          DEVLEARN ARCADE · CERTIFICATE OF COMPLETION
+          DEVY · CERTIFICATE OF COMPLETION
         </Text>
 
         <Text style={styles.awardedLabel}>PROUDLY AWARDED TO</Text>

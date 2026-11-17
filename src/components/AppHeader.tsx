@@ -449,7 +449,7 @@ export default function AppHeader({
         >
           <View style={styles.brandIconBox}>
             <StudioIcon name="devlearn_logo" size={22} />
-            <Text style={styles.brandIconText}>DEVLEARN</Text>
+            <Text style={styles.brandIconText}>DEVY</Text>
           </View>
         </Pressable>
 

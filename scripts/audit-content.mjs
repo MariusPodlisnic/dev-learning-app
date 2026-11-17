@@ -16,7 +16,7 @@ if (jsonMode) {
   console.log(JSON.stringify(report, null, 2));
 } else {
   const { summary, errors } = report;
-  console.log("=== DevLearn Content Quality Audit ===");
+  console.log("=== Devy Content Quality Audit ===");
   console.log(`  Lessons & Practice Drills : ${summary.lessonsAndDrills}`);
   console.log(`  Verified Solution Snippets: ${summary.solutions}`);
   console.log(`  Enrichment Quizzes        : ${summary.quizzes}`);

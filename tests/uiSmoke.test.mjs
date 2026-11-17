@@ -160,7 +160,7 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
   const headerSvgs = proHeaderHtml.match(/<svg[\s\S]*?<\/svg>/g) || [];
   assert.ok(
     new Set(headerSvgs).size >= 11,
-    "Desktop header should render unique custom SVGs for DevLearn, menu buttons, Account & Rank, Pro Member, and Settings",
+    "Desktop header should render unique custom SVGs for Devy, menu buttons, Account & Rank, Pro Member, and Settings",
   );
 
   const mobileText = visibleText(

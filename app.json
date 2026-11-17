@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "DevLearn Arcade",
+    "name": "Devy",
     "slug": "dev-learning-app",
     "description": "Interactive Python, Algorithms & System Design coding arcade with live browser execution and Byte-Cat.",
     "version": "1.0.0",
@@ -23,8 +23,8 @@
     "web": {
       "output": "server",
       "favicon": "./assets/images/favicon.png",
-      "name": "DevLearn Arcade",
-      "shortName": "DevLearn",
+      "name": "Devy",
+      "shortName": "Devy",
       "description": "Interactive Python, Algorithms & System Design coding arcade with live browser execution.",
       "themeColor": "#F4F0E6"
     },

@@ -445,7 +445,7 @@ export default function Auth({
           style={styles.switchBtn}
         >
           <Text style={styles.switchText}>
-            {isSignUp ? "Already have an account? " : "New to DevLearn? "}
+            {isSignUp ? "Already have an account? " : "New to Devy? "}
             <Text style={styles.switchTextHighlight}>
               {isSignUp ? "Sign In" : "Create Account"}
             </Text>

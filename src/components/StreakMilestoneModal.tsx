@@ -46,7 +46,7 @@ export default function StreakMilestoneModal({
   async function handleShareStreak() {
     playKeyClick();
     const outcome = await shareOrCopyText({
-      title: `DevLearn — ${milestone.badge}: ${milestone.title}`,
+      title: `Devy — ${milestone.badge}: ${milestone.title}`,
       message: buildStreakShareText({
         streakCount,
         milestone,

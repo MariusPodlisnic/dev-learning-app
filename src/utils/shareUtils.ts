@@ -73,7 +73,7 @@ export async function shareOrCopyText(options: {
       typeof navigator.share === "function"
     ) {
       try {
-        await navigator.share({ title: title || "DevLearn", text: message });
+        await navigator.share({ title: title || "Devy", text: message });
         return recordSuccess("shared");
       } catch (err: any) {
         if (err?.name === "AbortError") {
@@ -113,7 +113,7 @@ export async function shareOrCopyText(options: {
 
   try {
     const res = await Share.share({
-      title: title || "DevLearn",
+      title: title || "Devy",
       message,
     });
     if (res.action === Share.dismissedAction) {

@@ -95,7 +95,7 @@ const OUTFITS: Record<MascotOutfitId, OutfitMeta> = {
     quotes: [
       '"Scaling distributed Python clusters to 100,000 req/sec in zero gravity!"',
       '"Load balancers, Redis LRU caches, and consistent sharding — all hands-on!"',
-      '"Complete any track to mint your verifiable DevLearn Career Diploma!"',
+      '"Complete any track to mint your verifiable Devy Career Diploma!"',
     ],
     perkLabel: "🏗️ Pro Perk: Full System Architecture Track + Verified Diplomas",
     leftCardTop: "REDIS LRU",

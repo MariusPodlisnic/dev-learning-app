@@ -41,11 +41,11 @@ import {
 
 export function generateMetadata(): Metadata {
   return {
-    title: "Curriculum Showcase & Pro Syllabus | DevLearn Arcade",
+    title: "Curriculum Showcase & Pro Syllabus | Devy",
     description:
-      "Explore Python Foundations, Algorithmic Mastery, System Architecture, interactive Algo Visualizer Labs, Bug Hunt, and DevLearn Pro membership.",
+      "Explore Python Foundations, Algorithmic Mastery, System Architecture, interactive Algo Visualizer Labs, Bug Hunt, and Devy Pro membership.",
     openGraph: {
-      title: "Curriculum Showcase & Pro Syllabus | DevLearn Arcade",
+      title: "Curriculum Showcase & Pro Syllabus | Devy",
       description:
         "Master Python, Algorithms & System Design with browser-based code execution, visual roadmaps, and 60s arcade sprints.",
       type: "website",
@@ -53,7 +53,7 @@ export function generateMetadata(): Metadata {
     },
     twitter: {
       card: "summary_large_image",
-      title: "Curriculum Showcase & Pro Syllabus | DevLearn Arcade",
+      title: "Curriculum Showcase & Pro Syllabus | Devy",
       description:
         "Interactive coding roadmaps, playable Python mini-apps, and 60-second arcade sprints.",
       images: ["/og-preview.jpg"],
@@ -129,9 +129,9 @@ export default function ExploreScreen() {
     }
   }
 
-  const pageTitle = "Curriculum Showcase & Pro Syllabus | DevLearn Arcade";
+  const pageTitle = "Curriculum Showcase & Pro Syllabus | Devy";
   const pageDesc =
-    "Explore Python Foundations, Algorithmic Mastery, System Architecture, playable mini-apps, and DevLearn Pro membership.";
+    "Explore Python Foundations, Algorithmic Mastery, System Architecture, playable mini-apps, and Devy Pro membership.";
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -166,7 +166,7 @@ export default function ExploreScreen() {
             <View style={[styles.brandBadge, { flexDirection: "row", alignItems: "center", gap: 8 }]}>
               <StudioIcon name="devlearn_logo" size={20} />
               <Text style={styles.brandBadgeText}>
-                DEVLEARN // SYLLABUS &amp; PRO SHOWCASE
+                DEVY // SYLLABUS &amp; PRO SHOWCASE
               </Text>
             </View>
             {!isCompact && (
@@ -606,7 +606,7 @@ export default function ExploreScreen() {
         <View style={styles.commandDeckCard}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionEyebrow, { color: "#38BDF8" }]}>
-              ★ INSIDE THE DEVLEARN ENGINE
+              ★ INSIDE THE DEVY ENGINE
             </Text>
             <Text style={styles.sectionHeading}>
               6 Gripping Features That Make Learning Addictive
@@ -894,12 +894,12 @@ export default function ExploreScreen() {
               <View style={[styles.proVaultKicker, { flexDirection: "row", alignItems: "center", gap: 7 }]}>
                 <StudioIcon name="pro_member" size={17} />
                 <Text style={styles.proVaultKickerText}>
-                  DEVLEARN PRO MEMBERSHIP · FULL STUDIO UNLOCK
+                  DEVY PRO MEMBERSHIP · FULL STUDIO UNLOCK
                 </Text>
               </View>
               <Text style={styles.proVaultTitle}>
                 Why Serious Learners Upgrade to{" "}
-                <Text style={{ color: "#FFDE59" }}>DevLearn Pro</Text>
+                <Text style={{ color: "#FFDE59" }}>Devy Pro</Text>
               </Text>
               <Text style={styles.proVaultSubtitle}>
                 Unlock all 3 engineering tracks, 30+ interactive algorithm
@@ -1076,7 +1076,7 @@ export default function ExploreScreen() {
                     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 }}>
                       <StudioIcon name="pro_member" size={18} />
                       <Text style={styles.joinProBtnText}>
-                        JOIN DEVLEARN PRO NOW →
+                        JOIN DEVY PRO NOW →
                       </Text>
                     </View>
                   </Pressable>

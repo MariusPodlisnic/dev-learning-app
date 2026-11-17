@@ -208,13 +208,13 @@ export default function ProfileStatsModal({
     playKeyClick();
     const url = buildChallengeUrl({ ref: "profile_card" });
     const message = [
-      `🐾 DevLearn Developer Card`,
+      `🐾 Devy Developer Card`,
       `🏅 Level ${rank.level}: ${rank.title}`,
       `⚡ ${xpPoints} XP · 🔥 ${streakCount}d streak · ✓ ${totalCompleted}/${totalLessons} modules solved`,
-      `Join me on DevLearn 👉 ${url}`,
+      `Join me on Devy 👉 ${url}`,
     ].join("\n");
     const outcome = await shareOrCopyText({
-      title: `DevLearn Rank: ${rank.title}`,
+      title: `Devy Rank: ${rank.title}`,
       message,
       channel: "profile_card",
     });

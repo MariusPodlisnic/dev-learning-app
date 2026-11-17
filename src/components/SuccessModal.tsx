@@ -73,11 +73,11 @@ export default function SuccessModal({
     );
     const streakSegment = streakCount > 0 ? ` · 🔥 ${streakCount}d streak` : "";
     const message = didLevelUp
-      ? `🎉 Promoted to LVL ${currentRank.level}: ${currentRank.title} in DevLearn!\n✅ Just solved "${lessonTitle}" (+${xpEarned} XP${streakSegment})\nTry this lab 👉 ${challengeUrl}`
-      : `✅ Solved "${lessonTitle}" in DevLearn (+${xpEarned} XP${streakSegment})!\n🏅 Rank: LVL ${currentRank.level} · ${currentRank.title}\nBeat my solution 👉 ${challengeUrl}`;
+      ? `🎉 Promoted to LVL ${currentRank.level}: ${currentRank.title} in Devy!\n✅ Just solved "${lessonTitle}" (+${xpEarned} XP${streakSegment})\nTry this lab 👉 ${challengeUrl}`
+      : `✅ Solved "${lessonTitle}" in Devy (+${xpEarned} XP${streakSegment})!\n🏅 Rank: LVL ${currentRank.level} · ${currentRank.title}\nBeat my solution 👉 ${challengeUrl}`;
 
     const outcome = await shareOrCopyText({
-      title: `DevLearn — ${lessonTitle}`,
+      title: `Devy — ${lessonTitle}`,
       message,
       channel: "lesson_win",
     });

@@ -260,7 +260,7 @@ export function buildStreakShareText(options: {
     : `🔥 ${options.streakCount}-Day Coding Streak!`;
 
   return [
-    `🔥 DevLearn Arcade — ${options.streakCount}-Day Streak!`,
+    `🔥 Devy — ${options.streakCount}-Day Streak!`,
     milestoneBadge,
     `⚡ ${options.xpPoints} XP · 🏅 ${options.rankTitle}`,
     `Writing real code every single day without stopping.`,

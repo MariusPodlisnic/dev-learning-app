@@ -612,7 +612,7 @@ print(get_cart_total([15, 25, 10]))`,
     analogyTitle: "Checking the Start of a Word with .startswith()",
     analogyText:
       'Want to check how a string begins? Call **`url.startswith("https://")`** — Python immediately returns `True` or `False`!',
-    cheatSheet: `link = "https://devlearn.app"
+    cheatSheet: `link = "https://devy.app"
 
 # Check if link begins with "https://":
 is_safe = link.startswith("https://")

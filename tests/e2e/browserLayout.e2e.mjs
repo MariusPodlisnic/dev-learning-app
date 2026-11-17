@@ -158,7 +158,7 @@ test("Showcase route (/explore) renders cleanly without horizontal overflow or r
 
   try {
     const { page, pageErrors } = session;
-    await page.waitForSelector("text=DevLearn", { timeout: 10000 });
+    await page.waitForSelector("text=Devy", { timeout: 10000 });
     const overflowX = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );

@@ -325,7 +325,7 @@ __run_tests__()`,
   },
   {
     id: "py-recap-ch6",
-    title: "Final Python Capstone: DevLearn Arcade Boss Server",
+    title: "Final Python Capstone: Devy Boss Server",
     track: "python_basics",
     category: "🏆 TRACK CAPSTONE",
     difficulty: "Hard",

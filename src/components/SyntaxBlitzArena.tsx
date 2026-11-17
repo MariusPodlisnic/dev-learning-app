@@ -550,14 +550,14 @@ export default function SyntaxBlitzArena({
           ? " [🔁 MISTAKE DRILL]"
           : "";
     const message = [
-      `⚡ DevLearn Speed Blitz${modeLabel} — ${rating.badge}`,
+      `⚡ Devy Speed Blitz${modeLabel} — ${rating.badge}`,
       `🏆 ${rating.title}`,
       `+${scoreXp} XP · ${correctCount} cleared · ${maxCombo}x streak · ${accuracyPct}% accuracy`,
       ...(formattedEmojiGrid ? [formattedEmojiGrid] : []),
       `Beat my 60s score 👉 ${url}`,
     ].join("\n");
     const outcome = await shareOrCopyText({
-      title: `DevLearn Speed Blitz — +${scoreXp} XP`,
+      title: `Devy Speed Blitz — +${scoreXp} XP`,
       message,
       channel: "blitz_card",
     });

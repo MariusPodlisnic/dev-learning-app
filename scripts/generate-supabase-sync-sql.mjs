@@ -176,7 +176,7 @@ const lessonRowsSql = allExportedLessons
   .join(",\n");
 
 const sqlOutput = `-- ============================================================================
--- DevLearn Arcade — Full Schema & Curriculum Sync (Generated)
+-- Devy — Full Schema & Curriculum Sync (Generated)
 -- Generated at: ${new Date().toISOString()}
 -- Total synced curriculum modules: ${allExportedLessons.length}
 --

@@ -19,12 +19,12 @@ export default function Root({ children }: PropsWithChildren) {
         />
 
         <meta name="theme-color" content="#111217" />
-        <meta name="application-name" content="DevLearn Arcade" />
+        <meta name="application-name" content="Devy" />
         <meta
           name="keywords"
           content="learn python, interactive coding, algorithms, system design, coding games, developer arcade"
         />
-        <meta property="og:site_name" content="DevLearn Arcade" />
+        <meta property="og:site_name" content="Devy" />
 
         <ScrollViewStyleReset />
         {headNodes}

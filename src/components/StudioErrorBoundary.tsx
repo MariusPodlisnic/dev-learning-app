@@ -39,7 +39,7 @@ function ErrorFallbackCard({
         </View>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>
-          DevLearn Arcade hit an unexpected UI error. Your local progress and
+          Devy hit an unexpected UI error. Your local progress and
           code drafts are safe.
         </Text>
         {error?.message ? (

@@ -263,9 +263,9 @@ function makeCredentialCode(seed: string, prefix: string): string {
 }
 
 export function formatCertificateRecipient(userEmail?: string): string {
-  if (!userEmail) return "DevLearn Arcade Coder";
+  if (!userEmail) return "Devy Coder";
   const handle = userEmail.split("@")[0]?.trim();
-  return handle ? handle : "DevLearn Arcade Coder";
+  return handle ? handle : "Devy Coder";
 }
 
 function formatIssuedDate(): string {
@@ -402,7 +402,7 @@ export function buildCertificateShareText(cert: CertificateData): string {
   const url = buildChallengeUrl({ track: cert.trackKey, ref: "certificate" });
   const streakPart = cert.streakCount > 0 ? ` · 🔥 ${cert.streakCount}d streak` : "";
   return [
-    `🎓 Just earned "${cert.title}" on DevLearn Arcade!`,
+    `🎓 Just earned "${cert.title}" on Devy!`,
     `✅ ${cert.completedCount} verified coding labs · ⚡ ${cert.xpPoints} XP${streakPart}`,
     `🏅 Rank: ${cert.rankLabel} · Credential ID: ${cert.credentialCode}`,
     `Try the interactive track 👉 ${url}`,
@@ -413,7 +413,7 @@ export function buildLinkedInCredentialText(cert: CertificateData): string {
   const url = buildChallengeUrl({ track: cert.trackKey, ref: "certificate" });
   return [
     `Name: ${cert.title}`,
-    `Issuing Organization: DevLearn Arcade`,
+    `Issuing Organization: Devy`,
     `Issue Date: ${cert.issuedDate}`,
     `Credential ID: ${cert.credentialCode}`,
     `Credential URL: ${url}`,

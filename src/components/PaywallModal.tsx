@@ -156,7 +156,7 @@ export default function PaywallModal({
         bounces={false}
       >
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>EDITION // DEVLEARN PRO</Text>
+          <Text style={styles.badgeText}>EDITION // DEVY PRO</Text>
         </View>
 
         {triggerPillText && (
