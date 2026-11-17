@@ -55,6 +55,7 @@ const { default: SuccessModal } = loadTsModule(
 const { default: StudioErrorBoundary } = loadTsModule(
   "src/components/StudioErrorBoundary.tsx",
 );
+const { default: Auth } = loadTsModule("src/components/Auth.tsx");
 const { StudioIcon } = loadTsModule("src/components/StudioIcon.tsx");
 loadTsModule("src/hooks/useArenaRewards.ts");
 loadTsModule("src/hooks/useLessonExecution.ts");
@@ -710,4 +711,46 @@ test("StudioErrorBoundary recovers cleanly and split StudioIcon dictionaries ren
       `Expected SVG output for split icon ${iconName}`,
     );
   }
+});
+
+test("Auth renders password reset, OAuth providers, recovery update, and top-right close button cleanly", () => {
+  const signInText = visibleText(
+    renderThemed(
+      React.createElement(Auth, {
+        defaultMode: "signin",
+        guestXp: 350,
+        guestSolvedCount: 5,
+        onClose: () => {},
+      }),
+    ),
+  );
+  assert.ok(signInText.includes("Welcome Back"));
+  assert.ok(signInText.includes("✕"));
+  assert.ok(!signInText.includes("CLOUD SYNC ·"));
+  assert.ok(!signInText.includes("higher progress is always kept"));
+  assert.ok(signInText.includes("Forgot password?"));
+  assert.ok(signInText.includes("GitHub"));
+  assert.ok(signInText.includes("Google"));
+
+  const forgotText = visibleText(
+    renderThemed(
+      React.createElement(Auth, {
+        defaultMode: "forgot",
+      }),
+    ),
+  );
+  assert.ok(forgotText.includes("Reset Your Password"));
+  assert.ok(forgotText.includes("Send Reset Link"));
+  assert.ok(forgotText.includes("Back to Sign In"));
+  assert.ok(!forgotText.includes("GitHub"));
+
+  const recoveryText = visibleText(
+    renderThemed(
+      React.createElement(Auth, {
+        defaultMode: "update_password",
+      }),
+    ),
+  );
+  assert.ok(recoveryText.includes("Choose a New Password"));
+  assert.ok(recoveryText.includes("Update Password"));
 });

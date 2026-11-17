@@ -117,6 +117,15 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     );
     await page.getByText("✕").first().click();
 
+    // Auth modal exposes OAuth buttons & Forgot Password reset flow
+    await page.getByText("SAVE PROGRESS").first().click();
+    await page.waitForSelector("text=GitHub", { timeout: 5000 });
+    await page.waitForSelector("text=Google", { timeout: 5000 });
+    await page.getByText("Forgot password?").first().click();
+    await page.waitForSelector("text=Reset Your Password", { timeout: 5000 });
+    await page.getByText("Send Reset Link", { exact: false }).waitFor({ timeout: 5000 });
+    await page.getByLabel("Close authentication modal").click();
+
     // Secondary lazy-loaded arenas hydrate cleanly via React.lazy + Suspense
     await page.getByText("ACHIEVEMENTS").first().click();
     await page.waitForSelector("text=TROPHY HALL", { timeout: 10000 });

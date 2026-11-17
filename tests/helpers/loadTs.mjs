@@ -203,6 +203,17 @@ export function loadTsModule(relOrAbsPath) {
     if (specifier === "expo-glass-effect") {
       return { GlassView: MockView, isLiquidGlassAvailable: () => false };
     }
+    if (specifier === "expo-linking") {
+      return {
+        createURL: (p = "") => `devlearningapp://${p}`,
+      };
+    }
+    if (specifier === "expo-web-browser") {
+      return {
+        maybeCompleteAuthSession: () => ({ type: "dismiss" }),
+        openAuthSessionAsync: async () => ({ type: "cancel" }),
+      };
+    }
     if (specifier === "react-native-webview") {
       return { WebView: MockView };
     }
@@ -234,6 +245,7 @@ export function loadTsModule(relOrAbsPath) {
           absoluteFill: {},
         },
         View: MockView,
+        ActivityIndicator: MockView,
         Text: MockText,
         Pressable: MockPressable,
         ScrollView: MockView,

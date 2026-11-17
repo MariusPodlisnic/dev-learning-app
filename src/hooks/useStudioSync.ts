@@ -30,6 +30,12 @@ import {
 
 const IS_DEV_MODE = typeof __DEV__ !== "undefined" && __DEV__;
 
+interface CloudSyncSummary {
+  mergedXp: number;
+  mergedSolvedCount: number;
+  hadGuestProgress: boolean;
+}
+
 interface UseStudioSyncOptions {
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
@@ -40,6 +46,8 @@ interface UseStudioSyncOptions {
     hasSavedDraft: boolean,
   ) => void;
   onAuthSignedIn?: () => void;
+  onPasswordRecovery?: () => void;
+  onCloudSyncComplete?: (summary: CloudSyncSummary) => void;
   pyodideRef: { current: any };
   onPyodideReady: () => void;
 }
@@ -50,6 +58,8 @@ export function useStudioSync({
   selectedLessonId,
   onInitialLessonResolved,
   onAuthSignedIn,
+  onPasswordRecovery,
+  onCloudSyncComplete,
   pyodideRef,
   onPyodideReady,
 }: UseStudioSyncOptions) {
@@ -120,6 +130,8 @@ export function useStudioSync({
     setThemeMode,
     onInitialLessonResolved,
     onAuthSignedIn,
+    onPasswordRecovery,
+    onCloudSyncComplete,
     onPyodideReady,
   });
   useEffect(() => {
@@ -127,6 +139,8 @@ export function useStudioSync({
       setThemeMode,
       onInitialLessonResolved,
       onAuthSignedIn,
+      onPasswordRecovery,
+      onCloudSyncComplete,
       onPyodideReady,
     };
   });
@@ -138,7 +152,11 @@ export function useStudioSync({
       _preferredLessonId?: string,
       _initialPremiumFlag?: boolean,
     ) => {},
-    syncCloudAndGuestAccount: (_userId: string, _userEmail?: string) => {},
+    syncCloudAndGuestAccount: (
+      _userId: string,
+      _userEmail?: string,
+      _notifyCompletion?: boolean,
+    ) => {},
   });
 
   function applyCloudSnapshotToState(snapshot: CloudProgressState) {
@@ -257,8 +275,18 @@ export function useStudioSync({
     }
   }
 
-  async function syncCloudAndGuestAccount(userId: string, userEmail?: string) {
+  async function syncCloudAndGuestAccount(
+    userId: string,
+    userEmail?: string,
+    notifyCompletion = false,
+  ) {
     try {
+      const preSyncLocalXp = latestGuestStateRef.current.xpPoints || 0;
+      const preSyncSolvedCount = Object.values(
+        latestGuestStateRef.current.completedLessons || {},
+      ).filter(Boolean).length;
+      const hadGuestProgress = preSyncLocalXp > 0 || preSyncSolvedCount > 0;
+
       const { isPremium: cloudIsPremium, mergedState } =
         await pullAndMergeCloudState({
           userId,
@@ -270,6 +298,16 @@ export function useStudioSync({
       setIsPremium(cloudIsPremium);
       applyCloudSnapshotToState(mergedState);
       cloudSyncCompletedRef.current = true;
+      if (notifyCompletion) {
+        const mergedSolvedCount = Object.values(
+          mergedState.completedLessons || {},
+        ).filter(Boolean).length;
+        callbacksRef.current.onCloudSyncComplete?.({
+          mergedXp: mergedState.xpPoints || 0,
+          mergedSolvedCount,
+          hadGuestProgress,
+        });
+      }
     } catch (err) {
       console.error("Failed to sync account state:", err);
     }
@@ -508,13 +546,18 @@ export function useStudioSync({
     }, 0);
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
+      (event, nextSession) => {
         setSession(nextSession);
+        if (event === "PASSWORD_RECOVERY") {
+          callbacksRef.current.onPasswordRecovery?.();
+          return;
+        }
         if (nextSession) {
           callbacksRef.current.onAuthSignedIn?.();
           syncHelpersRef.current.syncCloudAndGuestAccount(
             nextSession.user.id,
             nextSession.user.email,
+            event === "SIGNED_IN",
           );
         } else {
           cloudSyncCompletedRef.current = false;

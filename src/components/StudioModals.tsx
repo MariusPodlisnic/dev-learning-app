@@ -3,7 +3,6 @@ import {
   KeyboardAvoidingView,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { CertificateData } from "../constants/certificates";
@@ -14,7 +13,7 @@ import {
   Lesson,
 } from "../types/lesson";
 import { LessonEnrichment } from "../constants/curriculum";
-import Auth from "./Auth";
+import Auth, { type AuthModalMode } from "./Auth";
 import CertificateModal from "./CertificateModal";
 import PaywallModal, {
   PaywallPlanId,
@@ -28,7 +27,7 @@ interface StudioModalsProps {
   styles: any;
   keyboardBehavior: "padding" | "height" | undefined;
   showAuthModal: boolean;
-  authDefaultMode: "signup" | "signin";
+  authDefaultMode: AuthModalMode;
   authPromptReason?: string;
   onAuthSuccess: () => void;
   onCloseAuth: () => void;
@@ -136,6 +135,12 @@ export default function StudioModals({
           style={styles.modalOverlay}
           behavior={keyboardBehavior}
         >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close authentication backdrop"
+            style={StyleSheet.absoluteFill}
+            onPress={onCloseAuth}
+          />
           <View style={styles.modalContent}>
             <Auth
               defaultMode={authDefaultMode}
@@ -143,10 +148,8 @@ export default function StudioModals({
               guestSolvedCount={totalSolvedCount}
               promptReason={authPromptReason}
               onSuccess={onAuthSuccess}
+              onClose={onCloseAuth}
             />
-            <Pressable style={styles.closeModalBtn} onPress={onCloseAuth}>
-              <Text style={styles.closeModalText}>Cancel</Text>
-            </Pressable>
           </View>
         </KeyboardAvoidingView>
       )}

@@ -21,6 +21,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
 import AppHeader from "../components/AppHeader";
+import { type AuthModalMode } from "../components/Auth";
 import { renderHighlightedPython } from "../components/FormattedText";
 import LessonProblemPanel from "../components/LessonProblemPanel";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
@@ -68,6 +69,7 @@ import {
   captureLandingAttribution,
   trackFunnelMilestone,
 } from "../utils/attribution";
+import { buildCloudSyncFeedback } from "../utils/authHelpers";
 import {
   getKeyboardAvoidingBehavior,
   isCompactHeaderWidth,
@@ -207,12 +209,21 @@ export default function HomeScreen() {
 
   const { themeMode, setThemeMode, toggleTheme } = useTheme();
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
-  const [authDefaultMode, setAuthDefaultMode] = useState<"signup" | "signin">(
-    "signin",
-  );
+  const [authDefaultMode, setAuthDefaultMode] =
+    useState<AuthModalMode>("signin");
   const [authPromptReason, setAuthPromptReason] = useState<string | undefined>(
     undefined,
   );
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const syncNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (syncNoticeTimerRef.current) {
+        clearTimeout(syncNoticeTimerRef.current);
+      }
+    };
+  }, []);
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [paywallContext, setPaywallContext] = useState<PaywallTriggerContext>({
     source: "header",
@@ -287,6 +298,21 @@ export default function HomeScreen() {
         resumePaywallAfterAuthRef.current = false;
         setShowPaywallModal(true);
       }
+    },
+    onPasswordRecovery: () => {
+      setAuthDefaultMode("update_password");
+      setAuthPromptReason(undefined);
+      setShowAuthModal(true);
+    },
+    onCloudSyncComplete: (summary) => {
+      const msg = buildCloudSyncFeedback(summary);
+      setSyncNotice(msg);
+      if (syncNoticeTimerRef.current) {
+        clearTimeout(syncNoticeTimerRef.current);
+      }
+      syncNoticeTimerRef.current = setTimeout(() => {
+        setSyncNotice(null);
+      }, 4500);
     },
     pyodideRef,
     onPyodideReady: () => setPyodideReady(true),
@@ -810,6 +836,33 @@ export default function HomeScreen() {
         onOpenAuth={() => openAuthModal()}
         onSignOut={() => supabase.auth.signOut()}
       />
+
+      {syncNotice ? (
+        <Pressable
+          onPress={() => setSyncNotice(null)}
+          style={{
+            alignSelf: "center",
+            backgroundColor: StudioColors.emeraldSoft,
+            borderColor: StudioColors.ink,
+            borderWidth: 1.5,
+            borderRadius: 999,
+            paddingHorizontal: 14,
+            paddingVertical: 5,
+            marginTop: 6,
+          }}
+        >
+          <Text
+            style={{
+              color: "#065F46",
+              fontSize: 11,
+              fontWeight: "900",
+              letterSpacing: 0.3,
+            }}
+          >
+            ✓ {syncNotice}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <KeyboardAvoidingView
         style={styles.keyboardContainer}

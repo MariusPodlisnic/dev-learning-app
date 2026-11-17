@@ -135,10 +135,4 @@ export const getStudioScreenStyles = (StudioColors: StudioThemeColors) =>
       zIndex: 999,
     },
     modalContent: { alignItems: "center" },
-    closeModalBtn: {
-      marginTop: 12,
-      padding: 8,
-      ...Platform.select({ web: { cursor: "pointer" } }),
-    },
-    closeModalText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   });
