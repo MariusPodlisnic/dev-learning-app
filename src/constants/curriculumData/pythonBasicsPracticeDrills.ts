@@ -31,6 +31,8 @@ export const PYTHON_BASICS_PRACTICE_DRILLS: Record<
         {
           input: 'player_tag = "Nova", starting_coins = 50, spent_coins = 20',
           output: "('Nova', 30, True)",
+          explanation:
+            "50 - 20 leaves 30 remaining coins, and 30 > 0 is True, returning ('Nova', 30, True).",
         },
       ],
       initial_code: `def update_wallet(player_tag, starting_coins, spent_coins):
@@ -71,6 +73,8 @@ __run_tests__()`,
         {
           input: "cells = [4, 7, 10, 3, 8]",
           output: "3",
+          explanation:
+            "4, 10, and 8 are divisible by 2 (c % 2 == 0), so 3 even cells are counted.",
         },
       ],
       initial_code: `def count_even_cells(cells):
@@ -105,6 +109,8 @@ __run_tests__()`,
         {
           input: "speeds = [100, 120, 90], bonus = 15",
           output: "[115, 135, 105]",
+          explanation:
+            "Adding 15 to each speed gives 100+15=115, 120+15=135, and 90+15=105.",
         },
       ],
       initial_code: `def boost_speeds(speeds, bonus):
@@ -137,6 +143,8 @@ __run_tests__()`,
         {
           input: "hits = [25, 60, 40, 80, 50]",
           output: "140",
+          explanation:
+            "Only 60 and 80 are strictly greater than 50 (50 is not > 50), and 60 + 80 = 140.",
         },
       ],
       initial_code: `def sum_heavy_hits(hits):
@@ -177,6 +185,8 @@ __run_tests__()`,
         {
           input: "ms = 320",
           output: "WARNING",
+          explanation:
+            "320 is not > 500, so the first check fails; 320 > 200 is True, returning 'WARNING'.",
         },
       ],
       initial_code: `def check_latency(ms):
@@ -212,6 +222,8 @@ __run_tests__()`,
         {
           input: "level = 12, has_key = False",
           output: "MISSING_KEY",
+          explanation:
+            "Level 12 meets the level >= 10 check, but has_key is False, so it returns 'MISSING_KEY'.",
         },
       ],
       initial_code: `def can_enter_raid(level, has_key):
@@ -240,7 +252,7 @@ __run_tests__()`,
   4: [
     {
       id: "py-04-d2",
-      title: "Practice 2/4:Mana Potion Restorer",
+      title: "Practice 2/4: Mana Potion Restorer",
       difficultyLabel: "PRACTICE DRILL",
       assignment:
         "Complete `restore_mana(current_mana, potion_amount)`: add `current_mana + potion_amount`, but cap the maximum possible result at `100` using `min(..., 100)`. Return the result.",
@@ -253,6 +265,8 @@ __run_tests__()`,
         {
           input: "current_mana = 85, potion_amount = 30",
           output: "100",
+          explanation:
+            "85 + 30 = 115, which exceeds the 100 cap, so min(115, 100) returns 100.",
         },
       ],
       initial_code: `def restore_mana(current_mana, potion_amount):
@@ -285,6 +299,8 @@ __run_tests__()`,
         {
           input: "price = 200, discount_pct = 15",
           output: "170.0",
+          explanation:
+            "15% of 200 is 200 * 0.15 = 30.0, and 200 - 30.0 returns 170.0.",
         },
       ],
       initial_code: `def apply_discount(price, discount_pct):
@@ -317,6 +333,8 @@ __run_tests__()`,
         {
           input: "kills = 4, won_match = True",
           output: "300",
+          explanation:
+            "base_xp(4) returns 4 * 50 = 200, plus 100 for won_match=True gives 300.",
         },
       ],
       initial_code: `def base_xp(kills):

@@ -477,11 +477,39 @@ export function mergeCurriculumLessons<
       typeof item.initial_code === "string"
         ? minimizeStarterCode(item.initial_code)
         : item.initial_code;
-    const cleanChallenges = item.practiceChallenges?.map((ch) =>
-      ch && typeof ch === "object" && typeof ch.initial_code === "string"
-        ? { ...ch, initial_code: minimizeStarterCode(ch.initial_code) }
-        : ch,
-    );
+    const cleanChallenges = item.practiceChallenges?.map((ch) => {
+      if (!ch || typeof ch !== "object") return ch;
+      const nextInitial =
+        typeof ch.initial_code === "string"
+          ? minimizeStarterCode(ch.initial_code)
+          : ch.initial_code;
+      const nextExamples = Array.isArray(ch.examples)
+        ? ch.examples.map(
+            (ex: { input: string; output: string; explanation?: string }) => {
+              if (!ex || typeof ex !== "object") return ex;
+              if (ex.explanation && ex.explanation.trim().length > 0) return ex;
+              const cleanRule = (
+                ch.constraints?.[0] ||
+                ch.hints?.[0] ||
+                ch.assignment ||
+                ""
+              )
+                .replace(/`/g, "")
+                .replace(/\.$/, "")
+                .trim();
+              const explanation = cleanRule
+                ? `For ${ex.input}, applying the rule (${cleanRule.charAt(0).toLowerCase() + cleanRule.slice(1)}) produces ${ex.output}.`
+                : `Evaluating ${ex.input} returns ${ex.output}.`;
+              return { ...ex, explanation };
+            },
+          )
+        : ch.examples;
+      return {
+        ...ch,
+        ...(typeof nextInitial === "string" ? { initial_code: nextInitial } : {}),
+        ...(nextExamples ? { examples: nextExamples } : {}),
+      };
+    });
     merged[i] = {
       ...item,
       ...(typeof cleanInitial === "string" ? { initial_code: cleanInitial } : {}),

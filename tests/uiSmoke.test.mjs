@@ -369,6 +369,11 @@ test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) 
   assert.equal(fullGuideText.includes("TOOLS USED IN THIS LESSON"), false);
   assert.equal(fullGuideText.includes("TOOLS NEEDED"), false);
   assert.equal(fullGuideText.includes("TOOLBOX"), false);
+  assert.equal(
+    fullGuideText.includes("PROGRESSIVE CLUES"),
+    false,
+    "Progressive Clues should be hidden on the Learn & Tools tab",
+  );
   assert.equal(fullGuideHtml.includes("💻"), false);
 
   const analogyText = visibleText(
@@ -406,15 +411,76 @@ test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) 
     ),
   );
   assert.ok(missionText.includes("EXAMPLE 01"));
-  assert.ok(missionText.includes("EXPECTED RETURN VALUE (EXAMPLE 01)"));
+  assert.equal(
+    missionText.includes("EXPECTED RETURN VALUE (EXAMPLE 01)"),
+    false,
+    "Redundant EXPECTED RETURN VALUE box should be omitted when EXAMPLE 01 is present",
+  );
   assert.equal(missionText.includes("EXPECTED CONSOLE OUTPUT TARGET"), false);
   assert.ok(missionText.includes("NEW TO PYTHON? 3 QUICK RULES FOR THE EDITOR"));
+  assert.ok(missionText.includes("PROGRESSIVE CLUES"));
   assert.ok(missionText.includes("GUIDED SCAFFOLDING MODE"));
   assert.ok(missionText.includes("LOAD SKELETON"));
   assert.ok(
     missionText.indexOf("EXAMPLE 01") <
       missionText.indexOf("GUIDED SCAFFOLDING MODE"),
     "Core Mission Brief should show examples before Guided Scaffolding Mode",
+  );
+
+  // Fallback targetOutputTerminal renders when a lesson has no examples array
+  const noExamplesMissionText = visibleText(
+    renderThemed(
+      React.createElement(LessonProblemPanel, {
+        ...baseProps,
+        selectedLesson: { ...firstLesson, examples: [] },
+        activeTab: "mission",
+        userCode: firstLesson.initial_code,
+      }),
+    ),
+  );
+  assert.ok(
+    noExamplesMissionText.includes("EXPECTED RETURN VALUE (EXAMPLE 01)"),
+    "Fallback EXPECTED RETURN VALUE box should render when examples array is empty",
+  );
+
+  // Action plan steps should not show false-positive checkmarks when only 1 of 2 tests passes
+  const partialTestMissionText = visibleText(
+    renderThemed(
+      React.createElement(LessonProblemPanel, {
+        ...baseProps,
+        activeTab: "mission",
+        userCode: firstLesson.initial_code,
+        testResults: [
+          { id: 1, passed: true, expected: "1", actual: "1" },
+          { id: 2, passed: false, expected: "2", actual: "0" },
+        ],
+      }),
+    ),
+  );
+  assert.ok(
+    partialTestMissionText.includes("01") && partialTestMissionText.includes("02"),
+    "Step numbers should stay un-checked when any test case fails",
+  );
+
+  // Algorithms lessons with class Solution wrapper should show the class Solution & self beginner tip
+  const algoSolutionText = visibleText(
+    renderThemed(
+      React.createElement(LessonProblemPanel, {
+        ...baseProps,
+        activeTrack: "algorithms",
+        selectedLesson: {
+          ...firstLesson,
+          track: "algorithms",
+          initial_code: "class Solution:\n    def twoSum(self, nums, target):\n        pass",
+        },
+        activeTab: "mission",
+        userCode: "class Solution:\n    def twoSum(self, nums, target):\n        pass",
+      }),
+    ),
+  );
+  assert.ok(
+    algoSolutionText.includes("USING CLASS SOLUTION & SELF"),
+    "Algorithms lessons with class Solution should explain class Solution and self",
   );
 
   const practiceHtml = renderThemed(
@@ -428,6 +494,10 @@ test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) 
   );
   const practiceText = visibleText(practiceHtml);
   assert.ok(practiceText.includes("EXAMPLE 01"));
+  assert.ok(
+    practiceText.includes("Why:"),
+    "Practice drill EXAMPLE 01 should include a Why explanation line",
+  );
   assert.ok(
     practiceText.indexOf("EXAMPLE 01") <
       practiceText.indexOf("GUIDED SCAFFOLDING MODE"),

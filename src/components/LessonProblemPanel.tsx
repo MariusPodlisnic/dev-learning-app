@@ -121,6 +121,16 @@ export default function LessonProblemPanel({
   const hasMultipleChallenges = totalChallengeStages > 1;
   const activePracticeDrill =
     activeChallengeIdx > 0 ? practiceDrills[activeChallengeIdx - 1] : null;
+  const allTestsPassed = Boolean(
+    testResults && testResults.length > 0 && testResults.every((r) => r.passed),
+  );
+  const activeInitialCode =
+    (activePracticeDrill
+      ? activePracticeDrill.initial_code
+      : selectedLesson.initial_code) || "";
+  const usesClassSolutionWrapper = /\bclass\s+Solution\b/.test(
+    activeInitialCode || userCode,
+  );
   const starRating = getLessonStarRating(
     selectedLesson,
     completedLessons,
@@ -421,13 +431,29 @@ export default function LessonProblemPanel({
               />
             </View>
 
+            {usesClassSolutionWrapper && /\bpass\b/.test(userCode) && (
+              <View style={styles.beginnerTipCard}>
+                <Text style={styles.beginnerTipHeader}>
+                  💡 USING CLASS SOLUTION &amp; SELF
+                </Text>
+                <FormattedText
+                  text="1. **`class Solution:`** and **`self`** are just the test-runner wrapper—leave them as-is."
+                  style={styles.beginnerTipLine}
+                />
+                <FormattedText
+                  text="2. **Delete `pass`** and write your normal Python logic indented inside `def ...(self, ...):`."
+                  style={styles.beginnerTipLine}
+                />
+              </View>
+            )}
+
             {activePracticeDrill.constraints.length > 0 && (
               <View style={styles.checklistContainer}>
                 <Text style={styles.checklistSectionTitle}>
                   MISSION REQUIREMENTS
                 </Text>
                 {activePracticeDrill.constraints.map((c, i) => {
-                  const isStepPassed = testResults?.[i]?.passed;
+                  const isStepPassed = allTestsPassed;
                   return (
                     <View
                       key={i}
@@ -461,7 +487,9 @@ export default function LessonProblemPanel({
               </View>
             )}
 
-            {activePracticeDrill.expected_output ? (
+            {(!activePracticeDrill.examples ||
+              activePracticeDrill.examples.length === 0) &&
+            activePracticeDrill.expected_output ? (
               <View style={styles.targetOutputTerminal}>
                 <View style={styles.targetOutputHeader}>
                   <Text style={styles.targetOutputHeaderLabel}>
@@ -884,6 +912,22 @@ export default function LessonProblemPanel({
                 </View>
               )}
 
+            {usesClassSolutionWrapper && /\bpass\b/.test(userCode) && (
+              <View style={styles.beginnerTipCard}>
+                <Text style={styles.beginnerTipHeader}>
+                  💡 USING CLASS SOLUTION &amp; SELF
+                </Text>
+                <FormattedText
+                  text="1. **`class Solution:`** and **`self`** are just the test-runner wrapper—leave them as-is."
+                  style={styles.beginnerTipLine}
+                />
+                <FormattedText
+                  text="2. **Delete `pass`** and write your normal Python logic indented inside `def ...(self, ...):`."
+                  style={styles.beginnerTipLine}
+                />
+              </View>
+            )}
+
             {selectedLesson.constraints &&
               selectedLesson.constraints.length > 0 && (
                 <View style={styles.checklistContainer}>
@@ -891,7 +935,7 @@ export default function LessonProblemPanel({
                     STEP-BY-STEP ACTION PLAN
                   </Text>
                   {selectedLesson.constraints.map((c, i) => {
-                    const isStepPassed = testResults?.[i]?.passed;
+                    const isStepPassed = allTestsPassed;
                     return (
                       <View
                         key={i}
@@ -925,7 +969,9 @@ export default function LessonProblemPanel({
                 </View>
               )}
 
-            {selectedLesson.expected_output ? (
+            {(!selectedLesson.examples ||
+              selectedLesson.examples.length === 0) &&
+            selectedLesson.expected_output ? (
               <View style={styles.targetOutputTerminal}>
                 <View style={styles.targetOutputHeader}>
                   <Text style={styles.targetOutputHeaderLabel}>
@@ -996,13 +1042,15 @@ export default function LessonProblemPanel({
       )}
         </>
       )}
-      <HintAccordion
-        hints={
-          activePracticeDrill
-            ? activePracticeDrill.hints
-            : selectedLesson.hints || []
-        }
-      />
+      {(Boolean(activePracticeDrill) || activeTab === "mission") && (
+        <HintAccordion
+          hints={
+            activePracticeDrill
+              ? activePracticeDrill.hints
+              : selectedLesson.hints || []
+          }
+        />
+      )}
     </ScrollView>
   );
 }

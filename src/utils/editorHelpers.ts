@@ -326,6 +326,46 @@ export function suggestQuickTestExpression(code: string): string {
   return `print(${fnName}(${sampleArgs.join(", ")}))`;
 }
 
+function stripOuterQuotes(value: string): string {
+  if (
+    value.length >= 2 &&
+    ((value.startsWith("'") && value.endsWith("'")) ||
+      (value.startsWith('"') && value.endsWith('"')))
+  ) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+function hasUnconditionalLoopReturn(code: string): boolean {
+  const lines = code.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    if (!/^(for|while)\b.*:\s*(#.*)?$/.test(trimmed)) continue;
+
+    const loopIndent = raw.match(/^\s*/)?.[0].length ?? 0;
+    let bodyIndent: number | null = null;
+
+    for (let j = i + 1; j < lines.length; j++) {
+      const nextRaw = lines[j];
+      const nextTrimmed = nextRaw.trim();
+      if (!nextTrimmed || nextTrimmed.startsWith("#")) continue;
+
+      const nextIndent = nextRaw.match(/^\s*/)?.[0].length ?? 0;
+      if (nextIndent <= loopIndent) break;
+      if (bodyIndent === null) {
+        bodyIndent = nextIndent;
+      }
+      if (nextIndent === bodyIndent && /^return(\b|$)/.test(nextTrimmed)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /**
  * Produces an actionable conceptual debugging hint for a failed test assertion.
  */
@@ -333,9 +373,13 @@ export function diagnoseFailedTest(
   test: { input?: string; expected: string; actual: string },
   code: string = "",
 ): FailedTestDiagnosis | null {
-  const expected = (test.expected ?? "").trim();
-  const actual = (test.actual ?? "").trim();
+  const rawExpected = String(test.expected ?? "");
+  const rawActual = String(test.actual ?? "");
+  const expected = rawExpected.trim();
+  const actual = rawActual.trim();
   const input = (test.input ?? "").trim();
+  const expUnquoted = stripOuterQuotes(expected);
+  const actUnquoted = stripOuterQuotes(actual);
 
   if (
     actual.includes("'___' is not defined") ||
@@ -349,6 +393,16 @@ export function diagnoseFailedTest(
   }
 
   if (actual === "None") {
+    if (
+      /\breturn\s+[^\n#]*\.(sort|append|extend|reverse|insert|remove|clear)\s*\(/.test(
+        code,
+      )
+    ) {
+      return {
+        badge: "IN-PLACE METHOD RETURNS NONE",
+        tip: "List methods like `.sort()`, `.append()`, and `.reverse()` modify the list in-place and return `None`. Call the method on its own line, then `return` the list on the next line.",
+      };
+    }
     const usesPrint = /\bprint\s*\(/.test(code);
     return {
       badge: "RETURNED NONE",
@@ -362,6 +416,35 @@ export function diagnoseFailedTest(
     return {
       badge: "RUNTIME EXCEPTION",
       tip: "Your function raised a Python error on this test input. Check the CONSOLE tab or guard edge inputs before indexing.",
+    };
+  }
+
+  if (
+    (rawExpected !== rawActual && expected !== "" && expected === actual) ||
+    (expUnquoted !== actUnquoted &&
+      expUnquoted.trim() !== "" &&
+      expUnquoted.trim() === actUnquoted.trim())
+  ) {
+    return {
+      badge: "EXTRA WHITESPACE",
+      tip: "Your returned string has extra leading or trailing spaces — use `.strip()` or check the spaces inside your quotes.",
+    };
+  }
+
+  if (
+    (rawExpected === rawActual && expected !== "") ||
+    (expected !== actual && expUnquoted !== "" && expUnquoted === actUnquoted)
+  ) {
+    return {
+      badge: "STRING VS NUMBER TYPE",
+      tip: "The value text matches, but the Python type differs (e.g., string `'150'` in quotes vs number `150`). Remove quotes or convert with `int(...)` / `str(...)`.",
+    };
+  }
+
+  if (expected !== actual && hasUnconditionalLoopReturn(code)) {
+    return {
+      badge: "EARLY RETURN IN LOOP",
+      tip: "Your `return` statement is indented directly inside the loop, so the function stops on the very first item! Unindent your final `return` so it runs after the loop finishes.",
     };
   }
 
@@ -386,6 +469,17 @@ export function diagnoseFailedTest(
     return {
       badge: "BOUNDARY LOGIC",
       tip: "Boolean result flipped — double-check comparison operators (`<` vs `<=`, `>` vs `>=`) and `and`/`or` conditions.",
+    };
+  }
+
+  if (
+    expUnquoted.trim() !== "" &&
+    expUnquoted.trim() !== actUnquoted.trim() &&
+    expUnquoted.trim().toLowerCase() === actUnquoted.trim().toLowerCase()
+  ) {
+    return {
+      badge: "LETTER CASING MISMATCH",
+      tip: "The text matches, but uppercase/lowercase casing differs — check exact capitalization, `.lower()`, or `.upper()`.",
     };
   }
 

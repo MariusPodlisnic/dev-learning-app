@@ -122,4 +122,37 @@ test("diagnoseFailedTest surfaces conceptual debugging hints for common failure 
     actual: "False",
   });
   assert.equal(boolDiag?.badge, "BOUNDARY LOGIC");
+
+  const inPlaceDiag = diagnoseFailedTest(
+    { input: "sort_items([3, 1, 2])", expected: "[1, 2, 3]", actual: "None" },
+    "def sort_items(items):\n    return items.sort()",
+  );
+  assert.equal(inPlaceDiag?.badge, "IN-PLACE METHOD RETURNS NONE");
+
+  const earlyLoopReturnDiag = diagnoseFailedTest(
+    { input: "sum_all([4, 6, 10])", expected: "20", actual: "4" },
+    "def sum_all(nums):\n    total = 0\n    for n in nums:\n        total += n\n        return total",
+  );
+  assert.equal(earlyLoopReturnDiag?.badge, "EARLY RETURN IN LOOP");
+
+  const typeMismatchDiag = diagnoseFailedTest({
+    input: "calc(15)",
+    expected: "150",
+    actual: "'150'",
+  });
+  assert.equal(typeMismatchDiag?.badge, "STRING VS NUMBER TYPE");
+
+  const whitespaceDiag = diagnoseFailedTest({
+    input: "greet('Ada')",
+    expected: "'Hello Ada'",
+    actual: "'Hello Ada '",
+  });
+  assert.equal(whitespaceDiag?.badge, "EXTRA WHITESPACE");
+
+  const casingDiag = diagnoseFailedTest({
+    input: "status(200)",
+    expected: "HEALTHY",
+    actual: "healthy",
+  });
+  assert.equal(casingDiag?.badge, "LETTER CASING MISMATCH");
 });
