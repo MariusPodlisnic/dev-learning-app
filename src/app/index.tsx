@@ -152,7 +152,7 @@ export default function HomeScreen() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
   const [activeTab, setActiveTab] = useState<"problem" | "mission" | "visual">(
-    "mission",
+    "problem",
   );
   const [explainStyle, setExplainStyle] = useState<ExplainStyle>("guide");
   const [bottomTab, setBottomTab] = useState<"console" | "tests">("console");
@@ -476,7 +476,11 @@ export default function HomeScreen() {
     setTestResults(null);
     setLiveTraceResult(null);
     setTracedLineNumber(null);
-    setActiveTab("mission");
+    setActiveTab(
+      stageIdx === 0 && !completedLessons[targetLesson.id]
+        ? "problem"
+        : "mission",
+    );
     setBottomTab("console");
   }
 
@@ -494,7 +498,7 @@ export default function HomeScreen() {
     setTestResults(null);
     setLiveTraceResult(null);
     setTracedLineNumber(null);
-    setActiveTab("mission");
+    setActiveTab(completedLessons[fullLesson.id] ? "mission" : "problem");
     setBottomTab("console");
     setMobileDrawerOpen(false);
     setViewMode("studio");
@@ -559,7 +563,7 @@ export default function HomeScreen() {
       setTestResults(null);
       setLiveTraceResult(null);
       setTracedLineNumber(null);
-      setActiveTab("mission");
+      setActiveTab(completedLessons[firstInTrack.id] ? "mission" : "problem");
     }
   }
 

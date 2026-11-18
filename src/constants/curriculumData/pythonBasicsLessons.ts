@@ -11,13 +11,13 @@ export const PYTHON_BASICS_EXPANSION_LESSONS = [
     description:
       "Store text strings, integer numbers, and boolean switches in variables and return a formatted summary.",
     content:
-      'In Python, a **variable** is a named label that stores a value in memory using `=`:\n\n• **Strings (`"Aria"`)**: Text wrapped in quotes.\n• **Integers (`100`)**: Whole numbers written without quotes so you can do math.\n• **Booleans (`True` / `False`)**: Capitalized ON/OFF switches.\n\n```python\nhero = "Aria"       # str\nhp = 100            # int\nis_ready = True     # bool\nprint(hero, hp, is_ready)\n```',
+      'In Python, a **variable** is a named label that stores a value in memory using `=`:\n\n• **Strings (`"Aria"`)**: Text wrapped in quotes.\n• **Integers (`100`)**: Whole numbers written without quotes so you can do math.\n• **Booleans (`True` / `False`)**: Capitalized ON/OFF switches.\n\n**How Devy Challenges Work:**\n1. The starter line `def create_hero_profile(name, bonus_hp):` gives you `name` and `bonus_hp` ready to use.\n2. **Delete `pass`** and write your lines **indented by 4 spaces**.\n3. Use **`return (name, total_hp, is_online)`** to send your answer back (parentheses group multiple values together into a tuple).\n\n```python\ndef create_hero_profile(name, bonus_hp):\n    total_hp = 100 + bonus_hp\n    is_online = True\n    return (name, total_hp, is_online)\n```',
     assignment:
-      "Complete `create_hero_profile(name, bonus_hp)`: calculate `total_hp = 100 + bonus_hp`, set `is_online = True`, and return the tuple `(name, total_hp, is_online)`.",
+      "Complete `create_hero_profile(name, bonus_hp)`: delete `pass`, calculate `total_hp = 100 + bonus_hp`, set `is_online = True`, and `return (name, total_hp, is_online)`.",
     constraints: [
+      "Delete `pass` and keep your lines indented by 4 spaces inside `def create_hero_profile(name, bonus_hp):`",
       "Compute `total_hp = 100 + bonus_hp` using integer math (no quotes around 100)",
-      "Create a boolean `is_online = True`",
-      "Return `(name, total_hp, is_online)`",
+      "Create `is_online = True` and return `(name, total_hp, is_online)`",
     ],
     examples: [
       {
@@ -65,13 +65,13 @@ except Exception as e:
     description:
       "Store ordered collections of data in a list and iterate over every item using a for loop.",
     content:
-      "A **List (`[10, 20, 30]`)** stores an ordered sequence of items. A **`for` loop** visits each item one by one from left to right so you can accumulate totals or transform values:\n\n```python\nquests = [10, 20, 30]\ntotal_xp = 0\nfor xp in quests:\n    total_xp += xp\nprint(total_xp)  # 60\n```",
+      "A **List (`[10, 20, 30]`)** stores an ordered collection of items inside square brackets. A **`for` loop** visits each item one by one from left to right:\n\n1. **Before the loop:** Start a counter variable like `total = 0`.\n2. **Inside the loop (indented 4 spaces):** Add each item to `total` (`total += xp * 2` is shorthand for `total = total + xp * 2`).\n3. **After the loop (unindented back to 4 spaces):** `return total`.\n\n```python\ndef sum_xp(quests):\n    total = 0\n    for xp in quests:\n        total += xp\n    return total\n```",
     assignment:
-      "Complete `sum_doubled_xp(quests)`: loop through every number `xp` in `quests`, double it (`xp * 2`), add it to a running `total`, and return `total`.",
+      "Complete `sum_doubled_xp(quests)`: start `total = 0`, loop through every number `xp` in `quests` with `for xp in quests:`, add `xp * 2` to `total`, and `return total` after the loop.",
     constraints: [
-      "Start with `total = 0` before the loop",
-      "Use `for xp in quests:` to visit each quest reward",
-      "Add `xp * 2` to `total` on each step and return `total` outside the loop",
+      "Start with `total = 0` before the `for` loop",
+      "Write `for xp in quests:` (ending with a colon `:`) and indent the next line 4 extra spaces",
+      "Add `total += xp * 2` inside the loop, then `return total` outside the loop",
     ],
     examples: [
       {

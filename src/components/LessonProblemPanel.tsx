@@ -160,12 +160,12 @@ export default function LessonProblemPanel({
         {isProTrackPreviewLesson(selectedLesson) && !isPremium && (
           <Text style={styles.freePreviewLessonPill}>★ FREE PRO PREVIEW</Text>
         )}
-        {selectedLesson.complexities?.time && (
+        {activeTrack !== "python_basics" && selectedLesson.complexities?.time && (
           <Text style={styles.complexityBadge}>
             TIME: {selectedLesson.complexities.time}
           </Text>
         )}
-        {selectedLesson.complexities?.space && (
+        {activeTrack !== "python_basics" && selectedLesson.complexities?.space && (
           <Text style={styles.complexityBadge}>
             SPACE: {selectedLesson.complexities.space}
           </Text>
@@ -465,10 +465,10 @@ export default function LessonProblemPanel({
               <View style={styles.targetOutputTerminal}>
                 <View style={styles.targetOutputHeader}>
                   <Text style={styles.targetOutputHeaderLabel}>
-                    EXPECTED CONSOLE OUTPUT TARGET
+                    EXPECTED RETURN VALUE (EXAMPLE 01)
                   </Text>
                   <Text style={styles.targetOutputMatchTag}>
-                    MUST MATCH EXACTLY
+                    RETURNED BY YOUR FUNCTION
                   </Text>
                 </View>
                 <Text style={styles.targetOutputCode}>
@@ -536,24 +536,8 @@ export default function LessonProblemPanel({
         </View>
       ) : (
         <>
-          {/* 3-Mode Focused Tab Switcher (Stage 1 Core Lesson only) */}
+          {/* 3-Mode Focused Tab Switcher (Stage 1 Core Lesson only — Learn First!) */}
           <View style={styles.tabBar}>
-            <Pressable
-              style={[
-                styles.tabItem,
-                activeTab === "mission" && styles.activeMissionTabItem,
-              ]}
-              onPress={() => handleSwitchTab("mission")}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === "mission" && styles.activeTabText,
-                ]}
-              >
-                01. 🎯 MISSION BRIEF
-              </Text>
-            </Pressable>
             <Pressable
               style={[
                 styles.tabItem,
@@ -567,7 +551,23 @@ export default function LessonProblemPanel({
                   activeTab === "problem" && styles.activeTabText,
                 ]}
               >
-                02. 🧰 LEARN & TOOLS
+                01. 📖 LEARN &amp; TOOLS
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.tabItem,
+                activeTab === "mission" && styles.activeMissionTabItem,
+              ]}
+              onPress={() => handleSwitchTab("mission")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "mission" && styles.activeTabText,
+                ]}
+              >
+                02. 🎯 MISSION BRIEF
               </Text>
             </Pressable>
             <Pressable
@@ -829,7 +829,7 @@ export default function LessonProblemPanel({
                 READY TO WRITE YOUR SOLUTION?
               </Text>
               <Text style={styles.jumpToMissionMainText}>
-                ← BACK TO MISSION BRIEF & EXAMPLES
+                START CODING → OPEN MISSION BRIEF &amp; EXAMPLES
               </Text>
             </View>
             <View style={styles.xpRewardPill}>
@@ -861,6 +861,28 @@ export default function LessonProblemPanel({
                 style={styles.assignmentDescription}
               />
             </View>
+
+            {activeTrack === "python_basics" &&
+              (selectedLesson.lesson_order ?? 99) <= 4 &&
+              /\bpass\b/.test(userCode) && (
+                <View style={styles.beginnerTipCard}>
+                  <Text style={styles.beginnerTipHeader}>
+                    💡 NEW TO PYTHON? 3 QUICK RULES FOR THE EDITOR
+                  </Text>
+                  <FormattedText
+                    text="1. **Delete `pass`** inside `def ...:` and keep your code **indented by 4 spaces**."
+                    style={styles.beginnerTipLine}
+                  />
+                  <FormattedText
+                    text="2. Input names inside `( ... )` are **already created for you**—use them directly."
+                    style={styles.beginnerTipLine}
+                  />
+                  <FormattedText
+                    text="3. Use **`return`** (not `print`) to send back your answer, or tap **LOAD SKELETON** below for fill-in-the-blank (`___`) training wheels!"
+                    style={styles.beginnerTipLine}
+                  />
+                </View>
+              )}
 
             {selectedLesson.constraints &&
               selectedLesson.constraints.length > 0 && (
@@ -907,10 +929,10 @@ export default function LessonProblemPanel({
               <View style={styles.targetOutputTerminal}>
                 <View style={styles.targetOutputHeader}>
                   <Text style={styles.targetOutputHeaderLabel}>
-                    EXPECTED CONSOLE OUTPUT TARGET
+                    EXPECTED RETURN VALUE (EXAMPLE 01)
                   </Text>
                   <Text style={styles.targetOutputMatchTag}>
-                    MUST MATCH EXACTLY
+                    RETURNED BY YOUR FUNCTION
                   </Text>
                 </View>
                 <Text style={styles.targetOutputCode}>

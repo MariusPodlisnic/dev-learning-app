@@ -9,14 +9,13 @@ export const PYTHON_BASICS_ENRICHMENTS: EnrichedLessonData[] = [
       "Used in every app: storing a player's score, a user's display name, or whether dark mode is turned on.",
     analogyTitle: "Think of Variables Like Labeled Sticky Notes",
     analogyText:
-      'Imagine putting a sticky note that says `score` on a box and dropping the number `100` inside. Whenever you ask Python for `score`, it hands you back `100`.\n\n• **Strings (`"hello"`)** are words wrapped in quotes.\n• **Numbers (`42`)** are written without quotes.\n• **Booleans (`True` / `False`)** are simple ON/OFF switches.',
-    cheatSheet: `# 1. Create variables with '='
-username = "Alex"     # Text (String)
-level = 5             # Number (Integer)
-is_active = True      # Switch (Boolean)
+      'Imagine putting a sticky note that says `total_hp` on a box and dropping `100 + bonus_hp` inside. Whenever you ask Python for `total_hp`, it hands you back that calculated number.\n\n• **Strings (`"Aria"`)** are words wrapped in quotes.\n• **Numbers (`100`)** are written without quotes so you can add them.\n• **Booleans (`True` / `False`)** are simple capitalized ON/OFF switches.\n• **`return (name, total_hp, is_online)`** packages all 3 values together in parentheses and sends them back!',
+    cheatSheet: `# Inside def create_hero_profile(name, bonus_hp):
+total_hp = 100 + bonus_hp   # Math with numbers
+is_online = True            # Boolean switch (capital T)
 
-# 2. Show them with print()
-print(username)`,
+# Send back all 3 values in parentheses:
+return (name, total_hp, is_online)`,
     commonPitfall: {
       title: "Wrapping numbers in quotes when you want to do math",
       wrongCode: 'points = "50"  # This is text, not a number!',
@@ -52,13 +51,11 @@ print(username)`,
     analogyTitle: "Lists Are Playlists, Loops Are Auto-Play",
     analogyText:
       "A **List** keeps multiple items in order inside square brackets `[10, 20, 30]`.\n\nA **`for` loop** is like hitting Auto-Play: Python picks up the first item, runs your indented code on it, and repeats for every item in the list.",
-    cheatSheet: `prices = [10, 20, 30]
-total = 0
-
-for price in prices:
-    total = total + price
-
-print(total)  # Prints 60`,
+    cheatSheet: `def sum_prices(prices):
+    total = 0
+    for price in prices:
+        total += price * 2
+    return total`,
     commonPitfall: {
       title: "Forgetting to indent the line inside the for loop",
       wrongCode: "for p in prices:\ntotal = total + p  # IndentationError!",

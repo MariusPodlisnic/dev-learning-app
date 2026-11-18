@@ -960,5 +960,26 @@ export const getLessonProblemStyles = (StudioColors: StudioThemeColors) =>
       lineHeight: 18,
       fontWeight: "600",
     },
+    beginnerTipCard: {
+      backgroundColor: StudioColors.bg,
+      borderRadius: 8,
+      borderWidth: 1.5,
+      borderColor: StudioColors.mint,
+      padding: 12,
+      gap: 6,
+    },
+    beginnerTipHeader: {
+      color: StudioColors.mint,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.6,
+    },
+    beginnerTipLine: {
+      color: StudioColors.textPrimary,
+      fontSize: 12.5,
+      lineHeight: 19,
+      fontWeight: "600",
+    },
   });
 

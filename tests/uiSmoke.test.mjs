@@ -351,6 +351,16 @@ test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) 
     }),
   );
   const fullGuideText = visibleText(fullGuideHtml);
+  assert.ok(
+    fullGuideText.indexOf("01. LEARN & TOOLS") <
+      fullGuideText.indexOf("02. MISSION BRIEF"),
+    "Learn tab should come before Mission tab for beginner flow",
+  );
+  assert.equal(
+    fullGuideText.includes("TIME: O(1)"),
+    false,
+    "Python Basics lessons should hide Big-O header badges",
+  );
   assert.ok(fullGuideText.includes("SIMPLE EXAMPLE"));
   assert.ok(fullGuideText.includes("COMMON PITFALL TO AVOID"));
   assert.ok(fullGuideText.includes("CONCEPT CHECK · QUICK RECALL"));
@@ -396,6 +406,9 @@ test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) 
     ),
   );
   assert.ok(missionText.includes("EXAMPLE 01"));
+  assert.ok(missionText.includes("EXPECTED RETURN VALUE (EXAMPLE 01)"));
+  assert.equal(missionText.includes("EXPECTED CONSOLE OUTPUT TARGET"), false);
+  assert.ok(missionText.includes("NEW TO PYTHON? 3 QUICK RULES FOR THE EDITOR"));
   assert.ok(missionText.includes("GUIDED SCAFFOLDING MODE"));
   assert.ok(missionText.includes("LOAD SKELETON"));
   assert.ok(
