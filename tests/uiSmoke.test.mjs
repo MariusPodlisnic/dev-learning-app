@@ -754,3 +754,38 @@ test("Auth renders password reset, OAuth providers, recovery update, and top-rig
   assert.ok(recoveryText.includes("Choose a New Password"));
   assert.ok(recoveryText.includes("Update Password"));
 });
+
+test("ByteCat quotes catalog has unique IDs, no duplicate quotes, and ByteCatGuideCard renders quote without top badge/counter strip", () => {
+  const { BYTE_CAT_QUOTES } = loadTsModule("src/constants/byteCatData.ts");
+  assert.equal(BYTE_CAT_QUOTES.length, 50);
+
+  const ids = new Set();
+  const normalizedQuotes = new Set();
+  for (const item of BYTE_CAT_QUOTES) {
+    assert.ok(item.id > 0 && !ids.has(item.id), `Duplicate or invalid id: ${item.id}`);
+    ids.add(item.id);
+    const norm = item.quote.trim().toLowerCase();
+    assert.ok(norm.length > 0 && !normalizedQuotes.has(norm), `Duplicate or empty quote: ${item.quote}`);
+    normalizedQuotes.add(norm);
+    assert.ok(item.author.trim().length > 0, `Missing author on quote ${item.id}`);
+    assert.ok(item.moodBadge.trim().length > 0, `Missing moodBadge on quote ${item.id}`);
+    assert.match(item.accentBg, /^#[0-9A-Fa-f]{6}$/, `Invalid accentBg on quote ${item.id}`);
+  }
+
+  const { default: ByteCatGuideCard } = loadTsModule("src/components/ByteCatGuideCard.tsx");
+  const cardText = visibleText(
+    renderThemed(
+      React.createElement(ByteCatGuideCard, {
+        completedCount: 3,
+        totalCount: 20,
+        activeTrack: "python_basics",
+        activeTrackLabel: "PYTHON BASICS",
+      }),
+    ),
+  );
+  assert.ok(cardText.includes(BYTE_CAT_QUOTES[0].quote));
+  assert.ok(cardText.includes(BYTE_CAT_QUOTES[0].author));
+  assert.ok(cardText.includes("♪") && cardText.includes("♫"));
+  assert.ok(!cardText.includes("#01/50"));
+  assert.ok(!cardText.includes("STRATEGIC PAWS"));
+});

@@ -64,6 +64,8 @@ export const getByteCatStyles = (StudioColors: StudioThemeColors) => {
       letterSpacing: 0.5,
     },
     cardBodyRow: {
+      position: "relative",
+      overflow: "hidden",
       flexDirection: "row",
       alignItems: "center",
       padding: 16,
@@ -71,6 +73,8 @@ export const getByteCatStyles = (StudioColors: StudioThemeColors) => {
       flexWrap: "wrap",
     },
     avatarColumn: {
+      position: "relative",
+      zIndex: 2,
       alignItems: "center",
       justifyContent: "center",
       gap: 8,
@@ -381,6 +385,8 @@ export const getByteCatStyles = (StudioColors: StudioThemeColors) => {
       fontFamily: MonoFont,
     },
     speechBubble: {
+      position: "relative",
+      zIndex: 2,
       flex: 1,
       minWidth: 260,
       backgroundColor: cozyStudySurface,

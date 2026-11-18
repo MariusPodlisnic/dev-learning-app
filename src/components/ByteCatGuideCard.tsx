@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   AppState,
   Easing,
+  PanResponder,
   Platform,
   Pressable,
   View,
@@ -25,6 +26,7 @@ import {
   playSuccessChime,
   playVictoryFanfare,
 } from "../utils/soundEffects";
+import ByteCatChillhopBackdrop from "./ByteCatChillhopBackdrop";
 import CozyCodingByteCatStage from "./ByteCatCozyStage";
 import { getByteCatStyles } from "./byteCatStyles";
 import {
@@ -72,7 +74,7 @@ export default function ByteCatGuideCard({
   nextLessonTitle,
   onPressNextLesson,
 }: ByteCatGuideCardProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useThemedStyles(getByteCatStyles);
 
   const [mode, setMode] = useState<CompanionMode>("wisdom");
@@ -116,6 +118,8 @@ export default function ByteCatGuideCard({
   const hyperTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const breakStepRef = useRef<number>(0);
   const breakResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quoteSwapSeqRef = useRef<number>(0);
+  const stepQuoteRef = useRef<(direction: -1 | 1) => void>(() => {});
 
   // Stage animations
   const [wiggleAnim] = useState(() => new Animated.Value(0));
@@ -130,6 +134,11 @@ export default function ByteCatGuideCard({
   const [eqAnim3] = useState(() => new Animated.Value(0.5));
   const [contentFadeAnim] = useState(() => new Animated.Value(1));
   const [contentSlideAnim] = useState(() => new Animated.Value(0));
+  const [quoteFadeAnim] = useState(() => new Animated.Value(1));
+  const [quoteSlideXAnim] = useState(() => new Animated.Value(0));
+  const [quoteScaleAnim] = useState(() => new Animated.Value(1));
+  const [quoteMarkPopAnim] = useState(() => new Animated.Value(1));
+  const [quoteMarkFloatAnim] = useState(() => new Animated.Value(0));
   const [progressAnim] = useState(() => new Animated.Value(0));
   const [petBarAnim] = useState(() => new Animated.Value(8));
 
@@ -179,14 +188,33 @@ export default function ByteCatGuideCard({
       ]),
     );
 
+    const quoteFloatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(quoteMarkFloatAnim, {
+          toValue: 1,
+          duration: 1600,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+        Animated.timing(quoteMarkFloatAnim, {
+          toValue: 0,
+          duration: 1600,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+
     ledLoop.start();
     sparkleLoop.start();
+    quoteFloatLoop.start();
 
     return () => {
       ledLoop.stop();
       sparkleLoop.stop();
+      quoteFloatLoop.stop();
     };
-  }, [ledPulseAnim, sparkleAnim]);
+  }, [ledPulseAnim, quoteMarkFloatAnim, sparkleAnim]);
 
   // Mini equalizer waveform loop (speeds up in Hyper Purr or Level 3+ Cyber Whisker)
   useEffect(() => {
@@ -353,6 +381,129 @@ export default function ByteCatGuideCard({
     ]).start();
   }, [contentFadeAnim, contentSlideAnim]);
 
+  const animateQuoteSwap = useCallback(
+    (direction: -1 | 0 | 1, applyQuote: () => void) => {
+      quoteSwapSeqRef.current += 1;
+      const seq = quoteSwapSeqRef.current;
+
+      quoteFadeAnim.stopAnimation();
+      quoteSlideXAnim.stopAnimation();
+      quoteScaleAnim.stopAnimation();
+      quoteMarkPopAnim.stopAnimation();
+
+      const exitX = direction === 0 ? 0 : -direction * 24;
+      const enterX = direction === 0 ? 0 : direction * 28;
+
+      Animated.parallel([
+        Animated.timing(quoteFadeAnim, {
+          toValue: 0,
+          duration: 115,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(quoteSlideXAnim, {
+          toValue: exitX,
+          duration: 115,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(quoteScaleAnim, {
+          toValue: 0.965,
+          duration: 115,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(quoteMarkPopAnim, {
+          toValue: 0.86,
+          duration: 115,
+          useNativeDriver: false,
+        }),
+      ]).start(({ finished }) => {
+        if (!finished || seq !== quoteSwapSeqRef.current) return;
+        applyQuote();
+        quoteSlideXAnim.setValue(enterX);
+        quoteFadeAnim.setValue(0);
+        quoteScaleAnim.setValue(0.965);
+        quoteMarkPopAnim.setValue(0.86);
+
+        Animated.parallel([
+          Animated.timing(quoteFadeAnim, {
+            toValue: 1,
+            duration: 240,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: false,
+          }),
+          Animated.timing(quoteSlideXAnim, {
+            toValue: 0,
+            duration: 240,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: false,
+          }),
+          Animated.timing(quoteScaleAnim, {
+            toValue: 1,
+            duration: 240,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: false,
+          }),
+          Animated.spring(quoteMarkPopAnim, {
+            toValue: 1,
+            friction: 7,
+            tension: 160,
+            useNativeDriver: false,
+          }),
+        ]).start();
+      });
+    },
+    [quoteFadeAnim, quoteMarkPopAnim, quoteScaleAnim, quoteSlideXAnim],
+  );
+
+  const quotePanResponder = useMemo(() => {
+    const snapQuoteBack = () => {
+      Animated.parallel([
+        Animated.timing(quoteSlideXAnim, {
+          toValue: 0,
+          duration: 180,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(quoteFadeAnim, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: false,
+        }),
+        Animated.timing(quoteScaleAnim, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: false,
+        }),
+      ]).start();
+    };
+
+    return PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, gesture) =>
+        Math.abs(gesture.dx) > 10 &&
+        Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
+      onPanResponderMove: (_evt, gesture) => {
+        const clampedDx = Math.max(-56, Math.min(56, gesture.dx * 0.5));
+        quoteSlideXAnim.setValue(clampedDx);
+        quoteFadeAnim.setValue(Math.max(0.45, 1 - Math.abs(gesture.dx) / 200));
+        quoteScaleAnim.setValue(
+          Math.max(0.97, 1 - Math.abs(gesture.dx) / 1400),
+        );
+      },
+      onPanResponderRelease: (_evt, gesture) => {
+        if (gesture.dx <= -34 || gesture.vx <= -0.35) {
+          stepQuoteRef.current(1);
+        } else if (gesture.dx >= 34 || gesture.vx >= 0.35) {
+          stepQuoteRef.current(-1);
+        } else {
+          snapQuoteBack();
+        }
+      },
+      onPanResponderTerminate: snapQuoteBack,
+    });
+  }, [quoteFadeAnim, quoteScaleAnim, quoteSlideXAnim]);
+
   const spawnFloatingPopup = useCallback(
     (label: string, delayMs = 0) => {
       const slotIdx = nextPopupSlotRef.current % 4;
@@ -491,24 +642,28 @@ export default function ByteCatGuideCard({
   }, [wiggleAnim]);
 
   const advanceToFreshQuote = useCallback(
-    (playAudio = false) => {
-      if (playAudio) {
-        playKeyClick();
-        triggerPlayfulBounce(false);
-        triggerContentTransition();
-      }
-      setQuoteIndex((prev) => {
-        const offset =
-          1 + Math.floor(Math.random() * (BYTE_CAT_QUOTES.length - 1));
-        const nextIdx = (prev + offset) % BYTE_CAT_QUOTES.length;
-        writeLocalJson(STORAGE_BYTECAT_QUOTE_KEY, {
-          lastIndex: nextIdx,
-          updatedAt: Date.now(),
+    (animate = false) => {
+      const applyNext = () => {
+        setQuoteIndex((prev) => {
+          const offset =
+            1 + Math.floor(Math.random() * (BYTE_CAT_QUOTES.length - 1));
+          const nextIdx = (prev + offset) % BYTE_CAT_QUOTES.length;
+          writeLocalJson(STORAGE_BYTECAT_QUOTE_KEY, {
+            lastIndex: nextIdx,
+            updatedAt: Date.now(),
+          });
+          return nextIdx;
         });
-        return nextIdx;
-      });
+      };
+
+      if (animate) {
+        playKeyClick();
+        animateQuoteSwap(1, applyNext);
+      } else {
+        applyNext();
+      }
     },
-    [triggerContentTransition, triggerPlayfulBounce],
+    [animateQuoteSwap],
   );
 
   // On mount: load persisted quote state & Pro Pet XP state asynchronously
@@ -617,25 +772,32 @@ export default function ByteCatGuideCard({
   const selectedQuizOpt =
     quizSelection?.key === currentQuizKey ? quizSelection.optionIdx : null;
 
-  function stepQuote(direction: -1 | 1) {
-    playKeyClick();
-    triggerPlayfulBounce(false);
-    triggerContentTransition();
-    const nextPoolIdx =
-      (activePoolIdx + direction + activeQuotePool.length) %
-      activeQuotePool.length;
-    const nextQuote = activeQuotePool[nextPoolIdx] || BYTE_CAT_QUOTES[0];
-    const nextGlobalIdx = Math.max(
-      0,
-      BYTE_CAT_QUOTES.findIndex((q) => q.id === nextQuote.id),
-    );
-    setQuoteIndex(nextGlobalIdx);
-    writeLocalJson(STORAGE_BYTECAT_QUOTE_KEY, {
-      lastIndex: nextGlobalIdx,
-      updatedAt: Date.now(),
-    });
-    setWhisperText(direction > 0 ? "▶ NEXT QUOTE!" : "◀ PREV QUOTE!");
-  }
+  const stepQuote = useCallback(
+    (direction: -1 | 1) => {
+      playKeyClick();
+      const nextPoolIdx =
+        (activePoolIdx + direction + activeQuotePool.length) %
+        activeQuotePool.length;
+      const nextQuote = activeQuotePool[nextPoolIdx] || BYTE_CAT_QUOTES[0];
+      const nextGlobalIdx = Math.max(
+        0,
+        BYTE_CAT_QUOTES.findIndex((q) => q.id === nextQuote.id),
+      );
+      animateQuoteSwap(direction, () => {
+        setQuoteIndex(nextGlobalIdx);
+        writeLocalJson(STORAGE_BYTECAT_QUOTE_KEY, {
+          lastIndex: nextGlobalIdx,
+          updatedAt: Date.now(),
+        });
+      });
+      setWhisperText(direction > 0 ? "▶ NEXT QUOTE!" : "◀ PREV QUOTE!");
+    },
+    [activePoolIdx, activeQuotePool, animateQuoteSwap],
+  );
+
+  useEffect(() => {
+    stepQuoteRef.current = stepQuote;
+  }, [stepQuote]);
 
   function handleToggleSaveQuote() {
     const exists = savedQuoteIds.includes(currentQuote.id);
@@ -663,19 +825,22 @@ export default function ByteCatGuideCard({
 
   function handleToggleQuoteFilter() {
     playKeyClick();
-    triggerContentTransition();
     if (quoteFilter === "saved") {
-      setQuoteFilter("all");
+      animateQuoteSwap(0, () => {
+        setQuoteFilter("all");
+      });
       setWhisperText(`📚 ALL ${BYTE_CAT_QUOTES.length} QUOTES`);
       return;
     }
     if (savedQuotes.length === 0) return;
-    setQuoteFilter("saved");
     const firstSavedGlobalIdx = Math.max(
       0,
       BYTE_CAT_QUOTES.findIndex((q) => q.id === savedQuotes[0].id),
     );
-    setQuoteIndex(firstSavedGlobalIdx);
+    animateQuoteSwap(0, () => {
+      setQuoteFilter("saved");
+      setQuoteIndex(firstSavedGlobalIdx);
+    });
     setWhisperText(`★ ${savedQuotes.length} SAVED`);
   }
 
@@ -774,11 +939,12 @@ export default function ByteCatGuideCard({
 
   function handleShuffleActiveMode() {
     playKeyClick();
-    triggerPlayfulBounce(false);
-    triggerContentTransition();
 
     if (mode === "wisdom" || mode === "perks") {
-      if (mode === "perks") setMode("wisdom");
+      if (mode === "perks") {
+        triggerContentTransition();
+        setMode("wisdom");
+      }
       if (usingSavedFilter && activeQuotePool.length > 1) {
         const offset =
           1 + Math.floor(Math.random() * (activeQuotePool.length - 1));
@@ -788,17 +954,25 @@ export default function ByteCatGuideCard({
           0,
           BYTE_CAT_QUOTES.findIndex((q) => q.id === nextSaved.id),
         );
-        setQuoteIndex(nextGlobal);
+        animateQuoteSwap(1, () => {
+          setQuoteIndex(nextGlobal);
+        });
       } else {
-        advanceToFreshQuote(false);
+        animateQuoteSwap(1, () => {
+          advanceToFreshQuote(false);
+        });
       }
       setWhisperText("💬 FRESH WISDOM!");
       spawnFloatingPopup("💬 WISDOM ↻");
     } else if (mode === "snack") {
+      triggerPlayfulBounce(false);
+      triggerContentTransition();
       setSnackIndex((prev) => (prev + 1) % snacks.length);
       setWhisperText("💡 NEW SNACK LOADED!");
       spawnFloatingPopup("💡 SYNTAX TIP");
     } else {
+      triggerPlayfulBounce(false);
+      triggerContentTransition();
       setQuizSelection(null);
       setQuizIndex((prev) => (prev + 1) % quizzes.length);
       setWhisperText("⚡ QUIZ RESET!");
@@ -984,6 +1158,12 @@ export default function ByteCatGuideCard({
       </View>
 
       <View style={styles.cardBodyRow}>
+        {/* Ambient Chillhop Ripples & Floating Notes Backdrop */}
+        <ByteCatChillhopBackdrop
+          accentColor={currentQuote.accentBg}
+          isDark={isDark}
+        />
+
         {/* Left Column: Cozy Wooden Framed Animated Byte-Cat Stage */}
         <View style={styles.avatarColumn}>
           <Pressable
@@ -1234,64 +1414,54 @@ export default function ByteCatGuideCard({
           >
             {mode === "wisdom" ? (
               <>
-                <View style={styles.bubbleBadgeGroup}>
-                  <View
-                    style={[
-                      styles.moodSticker,
-                      { backgroundColor: currentQuote.accentBg },
-                    ]}
-                  >
-                    <Text style={styles.moodStickerText}>
-                      {currentQuote.moodBadge}
-                    </Text>
-                  </View>
-                  <Text style={styles.quoteCounterText}>
-                    {usingSavedFilter
-                      ? `★ ${activePoolIdx + 1}/${activeQuotePool.length} SAVED`
-                      : `#${String(currentQuote.id).padStart(2, "0")}/${String(BYTE_CAT_QUOTES.length).padStart(2, "0")}`}
-                  </Text>
-                  {savedQuoteIds.length > 0 && (
-                    <Pressable
-                      style={[
-                        styles.quoteFilterPill,
-                        usingSavedFilter && styles.quoteFilterPillActive,
-                      ]}
-                      onPress={handleToggleQuoteFilter}
-                    >
-                      <Text
-                        style={[
-                          styles.quoteFilterPillText,
-                          usingSavedFilter && styles.quoteFilterPillTextActive,
-                        ]}
-                      >
-                        ★ FAVS ({savedQuoteIds.length})
-                      </Text>
-                    </Pressable>
-                  )}
-                </View>
-
                 <View
+                  {...quotePanResponder.panHandlers}
                   style={[
                     styles.quoteSpotlightBox,
-                    { borderLeftColor: currentQuote.accentBg },
+                    {
+                      borderLeftColor: currentQuote.accentBg,
+                      overflow: "hidden",
+                    },
                   ]}
                 >
-                  <View style={styles.quoteSpotlightTopRow}>
-                    <View
-                      style={[
-                        styles.quoteCornerMark,
-                        { backgroundColor: currentQuote.accentBg },
-                      ]}
-                    >
-                      <Text style={styles.quoteCornerMarkText}>&ldquo;</Text>
+                  <Animated.View
+                    style={{
+                      gap: 9,
+                      opacity: quoteFadeAnim,
+                      transform: [
+                        { translateX: quoteSlideXAnim },
+                        { scale: quoteScaleAnim },
+                      ],
+                    }}
+                  >
+                    <View style={styles.quoteSpotlightTopRow}>
+                      <Animated.View
+                        style={[
+                          styles.quoteCornerMark,
+                          {
+                            backgroundColor: currentQuote.accentBg,
+                            transform: [
+                              {
+                                translateY: quoteMarkFloatAnim.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: [0, -2.5],
+                                }),
+                              },
+                              { scale: quoteMarkPopAnim },
+                            ],
+                          },
+                        ]}
+                      >
+                        <Text style={styles.quoteCornerMarkText}>&ldquo;</Text>
+                      </Animated.View>
+                      <Text style={styles.quoteAuthor}>
+                        — {currentQuote.author}
+                      </Text>
                     </View>
-                    <Text style={styles.quoteAuthor}>
-                      — {currentQuote.author}
+                    <Text style={styles.quoteText}>
+                      {currentQuote.quote}
                     </Text>
-                  </View>
-                  <Text style={styles.quoteText}>
-                    {currentQuote.quote}
-                  </Text>
+                  </Animated.View>
                 </View>
 
                 <View style={styles.quoteInteractiveBar}>
@@ -1331,6 +1501,24 @@ export default function ByteCatGuideCard({
                         {isCurrentQuoteSaved ? "★ SAVED" : "☆ SAVE"}
                       </Text>
                     </Pressable>
+                    {savedQuoteIds.length > 0 && (
+                      <Pressable
+                        style={[
+                          styles.quoteFilterPill,
+                          usingSavedFilter && styles.quoteFilterPillActive,
+                        ]}
+                        onPress={handleToggleQuoteFilter}
+                      >
+                        <Text
+                          style={[
+                            styles.quoteFilterPillText,
+                            usingSavedFilter && styles.quoteFilterPillTextActive,
+                          ]}
+                        >
+                          ★ FAVS ({savedQuoteIds.length})
+                        </Text>
+                      </Pressable>
+                    )}
                   </View>
                 </View>
               </>

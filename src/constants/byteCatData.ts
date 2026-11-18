@@ -183,6 +183,201 @@ export const BYTE_CAT_QUOTES: ByteCatQuote[] = [
     moodBadge: "🔥 REFACTOR HERO",
     accentBg: "#FF90E8",
   },
+  {
+    id: 25,
+    quote: "Code never lies, comments sometimes do.",
+    author: "Ron Jeffries",
+    moodBadge: "🔍 READ THE SOURCE",
+    accentBg: "#6EE7B7",
+  },
+  {
+    id: 26,
+    quote: "Weeks of coding can save you hours of planning.",
+    author: "Developer Proverb",
+    moodBadge: "🧠 PLAN FIRST",
+    accentBg: "#FFDE59",
+  },
+  {
+    id: 27,
+    quote: "The best way to predict the future is to invent it.",
+    author: "Alan Kay",
+    moodBadge: "🚀 BUILD THE FUTURE",
+    accentBg: "#C4B5FD",
+  },
+  {
+    id: 28,
+    quote: "Readability counts.",
+    author: "Tim Peters (The Zen of Python)",
+    moodBadge: "🐍 PYTHONIC CRAFT",
+    accentBg: "#A3E635",
+  },
+  {
+    id: 29,
+    quote: "Simple is better than complex.",
+    author: "Tim Peters (The Zen of Python)",
+    moodBadge: "✨ CLEAR LOGIC",
+    accentBg: "#6EE7B7",
+  },
+  {
+    id: 30,
+    quote: "Errors should never pass silently.",
+    author: "Tim Peters (The Zen of Python)",
+    moodBadge: "🛡️ FAIL LOUDLY",
+    accentBg: "#FF90E8",
+  },
+  {
+    id: 31,
+    quote:
+      "Confusion is just the feeling of your brain wiring a new mental model.",
+    author: "Byte-Cat Wisdom",
+    moodBadge: "💡 NEURAL LEVEL-UP",
+    accentBg: "#FFDE59",
+  },
+  {
+    id: 32,
+    quote:
+      "You don't have to write the whole system today. Just make the next test pass.",
+    author: "Devy Studio Note",
+    moodBadge: "🎯 ONE TEST AT A TIME",
+    accentBg: "#A3E635",
+  },
+  {
+    id: 33,
+    quote: "Software is a gas: it expands to fill its container.",
+    author: "Nathan Myhrvold",
+    moodBadge: "🏗️ STAY LEAN",
+    accentBg: "#C4B5FD",
+  },
+  {
+    id: 34,
+    quote: "Good code is its own best documentation.",
+    author: "Steve McConnell",
+    moodBadge: "📖 SELF-EXPLAINING",
+    accentBg: "#6EE7B7",
+  },
+  {
+    id: 35,
+    quote:
+      "Optimism is an occupational hazard of programming; feedback is the treatment.",
+    author: "Kent Beck",
+    moodBadge: "🔬 FAST FEEDBACK",
+    accentBg: "#FF90E8",
+  },
+  {
+    id: 36,
+    quote: "A failing test is not a setback—it is a map straight to the fix.",
+    author: "Byte-Cat Wisdom",
+    moodBadge: "🪲 BUG GPS",
+    accentBg: "#FFDE59",
+  },
+  {
+    id: 37,
+    quote:
+      "Discipline is doing twenty minutes of code even when inspiration is asleep.",
+    author: "Devy Studio Note",
+    moodBadge: "🔥 SHOW UP DAILY",
+    accentBg: "#A3E635",
+  },
+  {
+    id: 38,
+    quote: "Simple things should be simple, complex things should be possible.",
+    author: "Alan Kay",
+    moodBadge: "💎 BALANCED DESIGN",
+    accentBg: "#C4B5FD",
+  },
+  {
+    id: 39,
+    quote:
+      "It's not a bug—it's an undocumented feature waiting for a unit test.",
+    author: "Developer Humor",
+    moodBadge: "⚡ TEST IT NOW",
+    accentBg: "#FFDE59",
+  },
+  {
+    id: 40,
+    quote: "Every senior engineer still reads error messages line by line.",
+    author: "Byte-Cat Protocol // 14",
+    moodBadge: "🐾 CALM DEBUGGER",
+    accentBg: "#6EE7B7",
+  },
+  {
+    id: 41,
+    quote: "Done is better than perfect when you're learning something new.",
+    author: "Devy Studio Note",
+    moodBadge: "🚀 SHIP & ITERATE",
+    accentBg: "#FF90E8",
+  },
+  {
+    id: 42,
+    quote:
+      "Data dominates. If you've chosen the right data structures, the algorithms will almost always be self-evident.",
+    author: "Rob Pike",
+    moodBadge: "🧠 SHAPE DATA FIRST",
+    accentBg: "#C4B5FD",
+  },
+  {
+    id: 43,
+    quote:
+      "Twenty focused minutes beats three distracted hours with twenty tabs open.",
+    author: "Byte-Cat Focus Lab",
+    moodBadge: "🎧 DEEP FLOW STATE",
+    accentBg: "#A3E635",
+  },
+  {
+    id: 44,
+    quote: "Don't compare your Chapter 1 to someone else's Chapter 20.",
+    author: "Developer Proverb",
+    moodBadge: "🏆 OWN YOUR PACE",
+    accentBg: "#FFDE59",
+  },
+  {
+    id: 45,
+    quote:
+      "If debugging is the process of removing bugs, then programming must be the process of putting them in.",
+    author: "Edsger W. Dijkstra",
+    moodBadge: "🔬 CLASSIC WISDOM",
+    accentBg: "#6EE7B7",
+  },
+  {
+    id: 46,
+    quote:
+      "A complex system that works is invariably found to have evolved from a simple system that worked.",
+    author: "John Gall",
+    moodBadge: "🏗️ EVOLVE CLEANLY",
+    accentBg: "#C4B5FD",
+  },
+  {
+    id: 47,
+    quote:
+      "Learning to code teaches you how to think clearly when nobody gave you the answer key.",
+    author: "Devy Studio Note",
+    moodBadge: "🎓 BUILDER MINDSET",
+    accentBg: "#FF90E8",
+  },
+  {
+    id: 48,
+    quote:
+      "Pause, take a sip, read the stack trace from the bottom up, and try again.",
+    author: "Byte-Cat Protocol // 21",
+    moodBadge: "☕ COZY RESET",
+    accentBg: "#FFDE59",
+  },
+  {
+    id: 49,
+    quote:
+      "The function that looks obvious tomorrow is worth five extra minutes of naming today.",
+    author: "Byte-Cat Wisdom",
+    moodBadge: "⌨️ THOUGHTFUL NAMING",
+    accentBg: "#A3E635",
+  },
+  {
+    id: 50,
+    quote:
+      "Nothing builds confidence faster than watching a red assertion bar turn green.",
+    author: "Devy Studio Note",
+    moodBadge: "👑 GREEN CHECKS",
+    accentBg: "#6EE7B7",
+  },
 ];
 
 export interface PetLevelTier {

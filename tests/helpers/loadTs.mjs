@@ -67,6 +67,9 @@ function createAnimatedValue(initial) {
     setValue(v) {
       this._value = v;
     },
+    stopAnimation(cb) {
+      if (typeof cb === "function") cb(this._value);
+    },
     interpolate() {
       return "0deg";
     },
@@ -243,6 +246,7 @@ export function loadTsModule(relOrAbsPath) {
             );
           },
           absoluteFill: {},
+          absoluteFillObject: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 },
         },
         View: MockView,
         ActivityIndicator: MockView,
@@ -260,8 +264,16 @@ export function loadTsModule(relOrAbsPath) {
           addListener: () => ({ remove: () => {} }),
           dismiss: () => {},
         },
+        PanResponder: {
+          create: () => ({ panHandlers: {} }),
+        },
+        AppState: {
+          currentState: "active",
+          addEventListener: () => ({ remove: () => {} }),
+        },
         Easing: {
           linear: (t) => t,
+          sin: (t) => Math.sin((t * Math.PI) / 2),
           quad: (t) => t * t,
           cubic: (t) => t * t * t,
           inOut: (fn) => fn,
@@ -279,6 +291,8 @@ export function loadTsModule(relOrAbsPath) {
           sequence: createNoopAnimation,
           parallel: createNoopAnimation,
           loop: createNoopAnimation,
+          multiply: (a, b) => createAnimatedValue((a?._value ?? 1) * (b?._value ?? 1)),
+          add: (a, b) => createAnimatedValue((a?._value ?? 0) + (b?._value ?? 0)),
         },
       };
     }
