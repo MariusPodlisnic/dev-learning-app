@@ -451,13 +451,20 @@ export function mergeCurriculumLessons<
           if (!fallback || !ch || typeof ch !== "object") return ch;
           const hasExamples =
             Array.isArray(ch.examples) && ch.examples.length > 0;
+          const preferLocalExamples =
+            Array.isArray(fallback.examples) &&
+            fallback.examples.some((ex) => Boolean(ex?.explanation));
           const hasHints = Array.isArray(ch.hints) && ch.hints.length > 0;
           const hasConstraints =
             Array.isArray(ch.constraints) && ch.constraints.length > 0;
           return {
             ...fallback,
             ...ch,
-            examples: hasExamples ? ch.examples : fallback.examples,
+            examples: preferLocalExamples
+              ? fallback.examples
+              : hasExamples
+                ? ch.examples
+                : fallback.examples,
             hints: hasHints ? ch.hints : fallback.hints,
             constraints: hasConstraints ? ch.constraints : fallback.constraints,
             expected_output: ch.expected_output || fallback.expected_output,

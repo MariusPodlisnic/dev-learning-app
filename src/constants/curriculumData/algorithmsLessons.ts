@@ -11,7 +11,7 @@ export const ALGORITHMS_EXPANSION_LESSONS = [
     description:
       "Find the indices of two numbers in an array that add up to a specific target in O(n) time.",
     content:
-      "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input has **exactly one solution**, and you may not use the same element twice.\n\nInstead of an O(n²) nested loop, store each visited number's index inside a dictionary `seen = {}` and check if `target - num` already exists in `seen`!",
+      "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nA brute-force double loop checks every pair in **O(n²)** time. Instead, walk through `nums` once with a dictionary `seen = {}` that remembers each visited number's index:\n\n1. Use `for i, num in enumerate(nums):` to get both the index `i` and value `num`.\n2. Calculate `needed = target - num`.\n3. If `needed in seen:`, return `[seen[needed], i]` immediately!\n4. Otherwise store `seen[num] = i` and continue.\n\n```python\nclass Solution:\n    def twoSum(self, nums, target):\n        seen = {}\n        for i, num in enumerate(nums):\n            needed = target - num\n            if needed in seen:\n                return [seen[needed], i]\n            seen[num] = i\n```",
     assignment:
       "Implement `twoSum(self, nums, target)` inside `class Solution` to return `[index1, index2]` of the two elements summing to `target`.",
     constraints: [
@@ -74,28 +74,29 @@ __run_tests__()`,
     lesson_order: 2,
     is_free: false,
     description:
-      "Check whether a phrase reads the same forward and backward after ignoring punctuation and letter casing.",
+      "Check whether a word reads the same forward and backward using two converging pointers.",
     content:
-      "A phrase is a **palindrome** if, after converting uppercase letters to lowercase and removing all non-alphanumeric characters (`c.isalnum()`), it reads the same forward and backward.\n\nPlace `left = 0` at the beginning and `right = len(cleaned) - 1` at the end, comparing inward while `left < right`.",
+      "A **palindrome** is a word like `\"racecar\"` or `\"level\"` that reads the exact same forward and backward.\n\nWith the **Two-Pointer** pattern, you place one index at the start (`left = 0`) and one at the end (`right = len(s) - 1`), then step them toward each other while `left < right`:\n\n```python\nclass Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            if s[left] != s[right]:\n                return False\n            left += 1\n            right -= 1\n        return True\n```",
     assignment:
-      "Complete `isPalindrome(self, s: str) -> bool` inside `class Solution` to return `True` if `s` is a valid alphanumeric palindrome, else `False`.",
+      "Complete `isPalindrome(self, s: str) -> bool` inside `class Solution` to return `True` if `s` reads the same forward and backward, else `False`.",
     constraints: [
-      "Ignore spaces, punctuation, and case differences (`c.lower()` if `c.isalnum()`)",
-      "Use converging two pointers (`left += 1`, `right -= 1`) in O(n) time",
+      "Start `left = 0` and `right = len(s) - 1`",
+      "Loop `while left < right:`, returning `False` if `s[left] != s[right]`",
+      "Move `left += 1` and `right -= 1` on each match, then return `True`",
     ],
     examples: [
       {
-        input: 's = "A man, a plan, a canal: Panama"',
+        input: 's = "racecar"',
         output: "True",
-        explanation: '"amanaplanacanalpanama" is identical forward and backward.',
+        explanation: '"racecar" is identical forward and backward.',
       },
       {
-        input: 's = "race a car"',
+        input: 's = "hello"',
         output: "False",
-        explanation: '"raceacar" is not symmetric.',
+        explanation: "s[0] ('h') != s[4] ('o'), so it returns False on the first check.",
       },
     ],
-    complexities: { time: "O(n)", space: "O(n)" },
+    complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `class Solution:
     def isPalindrome(self, s: str) -> bool:
         pass`,
@@ -104,7 +105,7 @@ __run_tests__()`,
 def __run_tests__():
     try:
         sol = Solution()
-        cases = [("A man, a plan, a canal: Panama", True), ("race a car", False), (" ", True), ("0P", False)]
+        cases = [("racecar", True), ("hello", False), ("level", True), ("a", True)]
         results = []
         for i, (inp, exp) in enumerate(cases):
             actual = sol.isPalindrome(inp)
@@ -115,13 +116,13 @@ def __run_tests__():
 __run_tests__()`,
     visual_type: "array",
     visual_data: [
-      { label: "left=0 ('a')", value: "right=20 ('a') -> MATCH", address: "step 1" },
-      { label: "left=1 ('m')", value: "right=19 ('m') -> MATCH", address: "step 2" },
+      { label: "left=0 ('r')", value: "right=6 ('r') -> MATCH", address: "step 1" },
+      { label: "left=1 ('a')", value: "right=5 ('a') -> MATCH", address: "step 2" },
       { label: "converge", value: "left >= right -> True ✓", address: "O(n)" },
     ],
     hints: [
-      'Filter first with `cleaned = "".join(c.lower() for c in s if c.isalnum())`.',
-      "Compare `cleaned[left] != cleaned[right]` inside `while left < right:`.",
+      "Set `left = 0` and `right = len(s) - 1` before `while left < right:`.",
+      "Inside the loop, check `if s[left] != s[right]: return False`, then increment `left += 1` and decrement `right -= 1`.",
     ],
   },
   {
@@ -136,7 +137,7 @@ __run_tests__()`,
     description:
       "Validate nested round, square, and curly brackets in a single linear pass using a LIFO stack.",
     content:
-      "Code editors and compilers validate nested brackets using a **Last-In, First-Out (LIFO) Stack**.\n\n• When you see an opener (`(`, `{`, `[`), push it onto `stack`.\n• When you see a closer (`)`, `}`, `]`), check that `stack` is not empty and its top (`stack[-1]`) matches `pairs[ch]`, then `.pop()`.",
+      "Code editors and compilers validate nested brackets using a **Last-In, First-Out (LIFO) Stack** (`stack = []`).\n\n• Store matching pairs in a dictionary: `pairs = {\")\": \"(\", \"]\": \"[\", \"}\": \"{\"}`.\n• When you see an opening bracket (`(`, `[`, `{`), push it with `stack.append(ch)`.\n• When you see a closing bracket (`ch in pairs`), check that `stack` is not empty and `stack[-1] == pairs[ch]`, then remove the top opener with `stack.pop()`.\n\n```python\nclass Solution:\n    def isValid(self, s: str) -> bool:\n        stack = []\n        pairs = {\")\": \"(\", \"]\": \"[\", \"}\": \"{\"}\n        for ch in s:\n            if ch in pairs:\n                if not stack or stack[-1] != pairs[ch]:\n                    return False\n                stack.pop()\n            else:\n                stack.append(ch)\n        return len(stack) == 0\n```",
     assignment:
       "Complete `isValid(self, s: str) -> bool` inside `class Solution` to return `True` only if every opening bracket closes cleanly in matching LIFO order.",
     constraints: [
@@ -152,7 +153,7 @@ __run_tests__()`,
       {
         input: 's = "([)]"',
         output: "False",
-        explanation: "')' expects '[', but top of stack holds '[' instead of '('.",
+        explanation: "')' expects '(', but top of stack holds '[' instead of '('.",
       },
     ],
     complexities: { time: "O(n)", space: "O(n)" },
@@ -180,7 +181,7 @@ __run_tests__()`,
       { label: "see ']' -> pop '['", value: "stack = ['{'] ✓", address: "step 3" },
     ],
     hints: [
-      'Define `pairs = {")": "(", "}": "{", "]": "["}`.',
+      'Define `pairs = {")": "(", "}": "{", "]": "["}` and `stack = []`.',
       "Return `len(stack) == 0` after the loop ends.",
     ],
   },
@@ -196,7 +197,7 @@ __run_tests__()`,
     description:
       "Locate a target index inside a sorted array in O(log n) time by halving the search space.",
     content:
-      "**Binary Search** splits a sorted list in half on every comparison:\n1. Start with `low, high = 0, len(nums) - 1`.\n2. Compute `mid = (low + high) // 2`.\n3. If `nums[mid] == target`, return `mid`. Otherwise discard the half where `target` cannot exist (`low = mid + 1` or `high = mid - 1`).",
+      "**Binary Search** finds an item in a sorted list by cutting the search range in half on every step:\n1. Start with `low = 0` and `high = len(nums) - 1`.\n2. Loop `while low <= high:` and pick the middle index `mid = (low + high) // 2`.\n3. If `nums[mid] == target`, return `mid`. If `nums[mid] < target`, search the right half (`low = mid + 1`); otherwise search the left half (`high = mid - 1`).\n\n```python\nclass Solution:\n    def search(self, nums: list, target: int) -> int:\n        low = 0\n        high = len(nums) - 1\n        while low <= high:\n            mid = (low + high) // 2\n            if nums[mid] == target:\n                return mid\n            elif nums[mid] < target:\n                low = mid + 1\n            else:\n                high = mid - 1\n        return -1\n```",
     assignment:
       "Complete `search(self, nums: list, target: int) -> int` inside `class Solution` to return the index of `target` in sorted `nums`, or `-1` if absent.",
     constraints: [
@@ -255,7 +256,7 @@ __run_tests__()`,
     description:
       "Find the contiguous subarray with the largest sum in a single linear pass using Kadane's algorithm.",
     content:
-      "Given an integer array `nums` (which may include negative values), checking every start/end subarray takes O(n²) time.\n\n**Kadane's Algorithm** computes the best answer ending at index `i` in O(n) time:\n• Track `current = nums[0]` and `best = nums[0]`.\n• For each `n` in `nums[1:]`: `current = max(n, current + n)`, then `best = max(best, current)`.",
+      "Given an integer array `nums` (which may include negative values), checking every start/end subarray takes O(n²) time.\n\n**Kadane's Algorithm** computes the best subarray sum ending at each element in a single O(n) pass:\n• If `not nums: return 0`.\n• Track `current = nums[0]` (best streak ending here) and `best = nums[0]` (best streak seen overall).\n• Loop `for n in nums[1:]:`: either extend the running streak (`current + n`) or start fresh at `n` (`current = max(n, current + n)`), then update `best = max(best, current)`.\n\n```python\nclass Solution:\n    def maxSubArray(self, nums: list) -> int:\n        if not nums:\n            return 0\n        current = nums[0]\n        best = nums[0]\n        for n in nums[1:]:\n            current = max(n, current + n)\n            best = max(best, current)\n        return best\n```",
     assignment:
       "Complete `maxSubArray(self, nums: list) -> int` inside `class Solution` to return the largest possible sum of any non-empty contiguous subarray (return `0` if `nums` is empty).",
     constraints: [
@@ -364,7 +365,7 @@ __run_tests__()`,
     description:
       "Find the highest total traffic over any K consecutive days in O(n) time.",
     content:
-      "Suppose an analytics dashboard asks: *Which `k` consecutive days had the highest combined visitor count?*\n\nInstead of re-summing `k` days from scratch at every index, maintain one running `window_sum`:\n1. Sum the first `k` items (`sum(visitors[:k])`).\n2. Each step right, add the new entering day `visitors[i]` and subtract the leaving day `visitors[i - k]`.",
+      "Suppose an analytics dashboard asks: *Which `k` consecutive days had the highest combined visitor count?*\n\nInstead of re-summing `k` days from scratch at every index, maintain one running `window_sum`:\n1. Sum the first `k` items: `window_sum = sum(visitors[:k])` and `best = window_sum`.\n2. Slide one step at a time (`for i in range(k, len(visitors)):`): add the entering item `visitors[i]` and subtract the leaving item `visitors[i - k]`.\n\n```python\ndef max_window_sum(visitors, k):\n    window_sum = sum(visitors[:k])\n    best = window_sum\n    for i in range(k, len(visitors)):\n        window_sum += visitors[i] - visitors[i - k]\n        best = max(best, window_sum)\n    return best\n```",
     assignment:
       "Complete `max_window_sum(visitors, k)` so it returns the maximum sum of any `k` consecutive integers in `visitors`.",
     constraints: [
@@ -414,7 +415,7 @@ __run_tests__()`,
     description:
       "Validate that every '(' has a matching ')' in proper order using a stack.",
     content:
-      "How does Python know instantly if `((1 + 2)` is missing a closing parenthesis?\n\nIt uses a **Stack** (last-in, first-out list):\n• Push `'('` onto `stack` with `.append('(')`.\n• Whenever you see `')'`, return `False` if `stack` is empty, otherwise `.pop()`.\n• Return `len(stack) == 0` at the end.",
+      "How does Python know instantly if `print((1 + 2)` is missing a closing parenthesis while ignoring letters and numbers?\n\nIt scans characters with a **Stack** (`stack = []`):\n• When `ch == '('`, push it onto `stack` with `stack.append(ch)`.\n• When `ch == ')'`, return `False` immediately if `not stack`, otherwise `stack.pop()`.\n• Ignore all other characters, and return `len(stack) == 0` at the end.\n\n```python\ndef is_balanced(code_str):\n    stack = []\n    for ch in code_str:\n        if ch == \"(\":\n            stack.append(ch)\n        elif ch == \")\":\n            if not stack:\n                return False\n            stack.pop()\n    return len(stack) == 0\n```",
     assignment:
       "Complete `is_balanced(code_str)` so it returns `True` if every `'('` and `')'` in `code_str` is properly balanced, otherwise `False`.",
     constraints: [
@@ -935,7 +936,7 @@ except Exception as e:
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def is_palindrome(text):
     pass`,
-    expected_output: "True False",
+    expected_output: "True",
     hidden_tests: `import json
 results = []
 try:
@@ -988,7 +989,7 @@ except Exception as e:
     complexities: { time: "O(n)", space: "O(n)" },
     initial_code: `def first_duplicate(names):
     pass`,
-    expected_output: "kai None",
+    expected_output: "kai",
     hidden_tests: `import json
 results = []
 try:

@@ -9,60 +9,45 @@ export const SYSTEM_DESIGN_ENRICHMENTS: EnrichedLessonData[] = [
       "Used by Stripe, GitHub, and Cloudflare to stop traffic bursts and DDoS spikes before they overload backend databases.",
     analogyTitle: "An API Bouncer Counting Wristbands",
     analogyText:
-      "Your `TokenBucket` starts with `capacity` tokens. Each incoming request checks `if self.tokens > 0:` — if true, subtract 1 token and allow (`True`); if empty, reject (`False`)!",
-    cheatSheet: `class TokenBucket:
-    def __init__(self, capacity: int):
-        self.tokens = capacity
-
-    def allow_request(self) -> bool:
-        if self.tokens > 0:
-            self.tokens -= 1
-            return True
-        return False`,
+      "Each client bucket holds `tokens`. When a request arrives, check `if tokens > 0:` — if true, subtract 1 token and return `(True, tokens - 1)`; if empty, reject with `(False, 0)`!",
+    cheatSheet: `def allow_request(tokens):
+    if tokens > 0:
+        return (True, tokens - 1)
+    return (False, 0)`,
     commonPitfall: {
-      title: "Checking self.tokens >= 0 or forgetting to decrement self.tokens",
-      wrongCode: "if self.tokens >= 0:\n    return True  # Never runs out or blocks!",
-      rightCode: "if self.tokens > 0:\n    self.tokens -= 1\n    return True\nreturn False",
+      title: "Checking tokens >= 0 or forgetting to subtract 1 token",
+      wrongCode: "if tokens >= 0:\n    return (True, tokens)  # Never drains or blocks at 0!",
+      rightCode: "if tokens > 0:\n    return (True, tokens - 1)\nreturn (False, 0)",
       explanation:
-        "You must check strictly `self.tokens > 0` AND decrement `self.tokens -= 1` before returning `True` so the bucket actually drains.",
+        "You must check strictly `tokens > 0` AND subtract `1` so the bucket actually drains down to `0`.",
     },
-    guidedCode: `class TokenBucket:
-    def __init__(self, capacity: int):
-        self.tokens = capacity
-
-    def allow_request(self) -> bool:
-        # 👉 If self.tokens > 0, decrement self.tokens and return True, else False:
-        if self.tokens > 0:
-            self.tokens -= 1
-            return True
-        return False`,
-    solutionCode: `class TokenBucket:
-    def __init__(self, capacity: int):
-        self.tokens = capacity
-
-    def allow_request(self) -> bool:
-        if self.tokens > 0:
-            self.tokens -= 1
-            return True
-        return False`,
+    guidedCode: `def allow_request(tokens):
+    # 👉 If tokens > 0, return (True, tokens - 1), else (False, 0):
+    if tokens > 0:
+        return (True, tokens - 1)
+    return (False, 0)`,
+    solutionCode: `def allow_request(tokens):
+    if tokens > 0:
+        return (True, tokens - 1)
+    return (False, 0)`,
     proInsights: {
       timeComplexity: "O(1) per request",
       spaceComplexity: "O(1) per client",
       tradeoff:
-        "Token Bucket handles short bursts smoothly up to `capacity` while protecting downstream services; pair it with timestamp-based refill (see Chapter VI) in distributed Redis clusters.",
+        "Token Bucket handles short bursts smoothly up to capacity while protecting downstream services; pair it with timestamp-based refill (see Chapter VI) in distributed Redis clusters.",
       followUp:
         "In multi-server deployments, why must the check-and-decrement run inside a Redis Lua script instead of two separate GET/SET commands?",
     },
     quiz: {
-      question: "If a `TokenBucket` starts with `capacity = 2`, what does the 3rd consecutive `allow_request()` call return?",
+      question: "What does `allow_request(0)` return when a client bucket has 0 tokens left?",
       options: [
-        "`False` (429 Throttled because tokens reached 0)",
-        "`True` (it resets automatically)",
-        "`-1`",
+        "`(False, 0)` (429 Throttled because tokens reached 0)",
+        "`(True, -1)`",
+        "`(True, 0)`",
       ],
       correctIndex: 0,
       explanation:
-        "Requests 1 and 2 spend tokens `2 -> 1 -> 0`, so the 3rd request sees `self.tokens == 0` and returns `False`!",
+        "When `tokens == 0`, `tokens > 0` is False, so the request is blocked and returns `(False, 0)`!",
     },
   },
   {
@@ -73,36 +58,21 @@ export const SYSTEM_DESIGN_ENRICHMENTS: EnrichedLessonData[] = [
       "Used by Instagram and TikTok to serve popular posts and user profiles instantly from fast in-memory RAM instead of disk.",
     analogyTitle: "Keeping Hot Snacks on Your Desk",
     analogyText:
-      "Check if `key in self.store` first (**Cache Hit** in microseconds). On a **Cache Miss**, return `-1` so the caller knows to query the database!",
-    cheatSheet: `class LRUCache:
-    def __init__(self, capacity: int):
-        self.capacity = capacity
-        self.store = {}
-
-    def get(self, key: str):
-        return self.store.get(key, -1)`,
+      "Check if `key` is in `cache` (**Cache Hit** in microseconds). On a **Cache Miss**, return `-1` safely with `cache.get(key, -1)` so the caller knows to query the database!",
+    cheatSheet: `def get_cached_user(cache, key):
+    return cache.get(key, -1)`,
     commonPitfall: {
-      title: "Indexing self.store[key] directly on a missing key",
-      wrongCode: "return self.store[key]  # Raises KeyError on cache miss!",
-      rightCode: "return self.store.get(key, -1)",
+      title: "Indexing cache[key] directly on a missing key",
+      wrongCode: "return cache[key]  # Raises KeyError on cache miss!",
+      rightCode: "return cache.get(key, -1)",
       explanation:
         "A cache miss is normal behavior, not a crash; `.get(key, -1)` cleanly returns `-1` when `key` is absent.",
     },
-    guidedCode: `class LRUCache:
-    def __init__(self, capacity: int):
-        self.capacity = capacity
-        self.store = {"user:1": "Alice", "user:2": "Bob"}
-
-    def get(self, key: str):
-        # 👉 Return self.store[key] if key exists, otherwise -1:
-        return self.store.get(key, -1)`,
-    solutionCode: `class LRUCache:
-    def __init__(self, capacity: int):
-        self.capacity = capacity
-        self.store = {"user:1": "Alice", "user:2": "Bob"}
-
-    def get(self, key: str):
-        return self.store.get(key, -1)`,
+    guidedCode: `def get_cached_user(cache, key):
+    # 👉 Return cache[key] if key exists, otherwise -1:
+    return cache.get(key, -1)`,
+    solutionCode: `def get_cached_user(cache, key):
+    return cache.get(key, -1)`,
     proInsights: {
       timeComplexity: "O(1) lookup",
       spaceComplexity: "O(capacity)",
@@ -125,15 +95,14 @@ export const SYSTEM_DESIGN_ENRICHMENTS: EnrichedLessonData[] = [
   {
     matchTrack: "system_design",
     matchOrder: 3,
-    matchKeywords: ["consistent hashing", "shard", "ring", "loadbalancer"],
+    matchKeywords: ["consistent hashing", "shard", "ring", "loadbalancer", "get_shard"],
     realWorldUse:
       "Used by Cassandra, DynamoDB, and distributed API routers to map request IDs deterministically across backend partitions.",
     analogyTitle: "Clock-Bucket Routing with Modulo (%)",
     analogyText:
       "Computing `request_id % num_shards` always produces a shard index from `0` to `num_shards - 1`, routing the same ID to the same shard every time.",
-    cheatSheet: `class LoadBalancer:
-    def get_shard(self, request_id: int, num_shards: int) -> int:
-        return request_id % num_shards`,
+    cheatSheet: `def get_shard(request_id, num_shards):
+    return request_id % num_shards`,
     commonPitfall: {
       title: "Using integer division // instead of modulo %",
       wrongCode: "return request_id // num_shards  # Out of shard bounds!",
@@ -141,13 +110,11 @@ export const SYSTEM_DESIGN_ENRICHMENTS: EnrichedLessonData[] = [
       explanation:
         "`10 // 3` is `3` (which overflows 3 shards indexed `0, 1, 2`), whereas `10 % 3` wraps safely to `1`.",
     },
-    guidedCode: `class LoadBalancer:
-    def get_shard(self, request_id: int, num_shards: int) -> int:
-        # 👉 Map request_id to shard 0..num_shards-1 using %:
-        return request_id % num_shards`,
-    solutionCode: `class LoadBalancer:
-    def get_shard(self, request_id: int, num_shards: int) -> int:
-        return request_id % num_shards`,
+    guidedCode: `def get_shard(request_id, num_shards):
+    # 👉 Map request_id to shard 0..num_shards-1 using %:
+    return request_id % num_shards`,
+    solutionCode: `def get_shard(request_id, num_shards):
+    return request_id % num_shards`,
     proInsights: {
       timeComplexity: "O(1)",
       spaceComplexity: "O(1)",

@@ -20,50 +20,49 @@ export const CHAPTER_RECAP_LESSONS = [
       "Functions & Return",
     ],
     description:
-      "Conclusive Chapter I capstone: loop through party members, sum quest XP, classify rank tiers with conditionals, and return a structured summary.",
+      "Conclusive Chapter I capstone: loop through party member scores, sum total XP, count Gold-tier members with conditionals, and return a structured summary.",
     content:
-      'Welcome to the **Chapter I Boss Challenge**!\n\nTo clear Chapter I, combine everything you learned in Modules 01–04 into one clean pipeline:\n1. **Variables & Types:** Track `total_xp` (`int`) and `gold_count` (`int`).\n2. **Lists & Loops:** Iterate over `(name, xp, bonus)` tuples inside `party`.\n3. **Conditionals:** Compute `score = xp + bonus`. Assign `"Gold"` if `score >= 100`, `"Silver"` if `score >= 50`, else `"Bronze"`, and count how many reached `"Gold"`.\n4. **Functions & Return:** Return `(total_xp, gold_count, lead_tier)` where `lead_tier` is `"Elite"` if `gold_count >= 2` else `"Squad"`.',
+      'Welcome to the **Chapter I Boss Challenge**!\n\nTo clear Chapter I, combine everything you learned in Modules 01–04 into one clean function:\n1. **Variables & Types:** Track `total_xp = 0` and `gold_count = 0`.\n2. **Lists & Loops:** Loop over each integer `score` inside `scores` (`for score in scores:`).\n3. **Conditionals:** Add `score` to `total_xp`, and if `score >= 100`, add `1` to `gold_count`.\n4. **Functions & Return:** After the loop, set `squad_rank = "Elite"` if `gold_count >= 2` else `"Squad"`, and `return (total_xp, gold_count, squad_rank)`.\n\n```python\ndef audit_guild_party(scores):\n    total_xp = 0\n    gold_count = 0\n    for score in scores:\n        total_xp += score\n        if score >= 100:\n            gold_count += 1\n    if gold_count >= 2:\n        squad_rank = "Elite"\n    else:\n        squad_rank = "Squad"\n    return (total_xp, gold_count, squad_rank)\n```',
     assignment:
-      'Complete `audit_guild_party(party)` where `party` is a list of `(name, xp, bonus)` tuples. Return `(total_xp, gold_count, squad_rank)` after evaluating every member.',
+      'Complete `audit_guild_party(scores)` where `scores` is a list of member XP numbers. Sum all scores into `total_xp`, count how many scores are `>= 100` (`gold_count`), set `squad_rank` to `"Elite"` if `gold_count >= 2` (or `"Squad"` otherwise), and return `(total_xp, gold_count, squad_rank)`.',
     constraints: [
-      "Combine `xp + bonus` for each tuple `(name, xp, bonus)` in `party`",
-      "Add every member's combined score into `total_xp`",
-      "Increment `gold_count` whenever a member's combined score is `>= 100`",
+      "Loop through each number `score` in `scores` and add it to `total_xp`",
+      "Increment `gold_count += 1` whenever `score >= 100`",
       'Set `squad_rank = "Elite"` if `gold_count >= 2` else `"Squad"`, then return `(total_xp, gold_count, squad_rank)`',
     ],
     examples: [
       {
-        input: 'party = [("Aria", 80, 30), ("Kai", 45, 10), ("Neo", 90, 25)]',
+        input: "scores = [110, 55, 115]",
         output: "(280, 2, 'Elite')",
         explanation:
-          "Scores are 110 (Gold), 55 (Silver), 115 (Gold). Total=280, Gold=2 -> 'Elite'.",
+          "110 + 55 + 115 = 280 total XP; 2 members scored >= 100 (110 and 115), so squad_rank is 'Elite'.",
       },
     ],
     complexities: { time: "O(n)", space: "O(1)" },
-    initial_code: `def audit_guild_party(party):
+    initial_code: `def audit_guild_party(scores):
     pass`,
     expected_output: "(280, 2, 'Elite')",
     hidden_tests: `import json
 def __run_tests__():
     results = []
-    r1 = audit_guild_party([("Aria", 80, 30), ("Kai", 45, 10), ("Neo", 90, 25)])
-    results.append({"id": 1, "input": "2 Gold, 1 Silver", "expected": "(280, 2, 'Elite')", "actual": str(r1), "passed": r1 == (280, 2, "Elite")})
-    r2 = audit_guild_party([("Sam", 90, 10), ("Lee", 30, 5)])
-    results.append({"id": 2, "input": "1 Gold boundary (100)", "expected": "(135, 1, 'Squad')", "actual": str(r2), "passed": r2 == (135, 1, "Squad")})
+    r1 = audit_guild_party([110, 55, 115])
+    results.append({"id": 1, "input": "[110, 55, 115]", "expected": "(280, 2, 'Elite')", "actual": str(r1), "passed": r1 == (280, 2, "Elite")})
+    r2 = audit_guild_party([100, 35])
+    results.append({"id": 2, "input": "[100, 35]", "expected": "(135, 1, 'Squad')", "actual": str(r2), "passed": r2 == (135, 1, "Squad")})
     r3 = audit_guild_party([])
-    results.append({"id": 3, "input": "empty party", "expected": "(0, 0, 'Squad')", "actual": str(r3), "passed": r3 == (0, 0, "Squad")})
+    results.append({"id": 3, "input": "[]", "expected": "(0, 0, 'Squad')", "actual": str(r3), "passed": r3 == (0, 0, "Squad")})
     return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
 __run_tests__()`,
     visual_type: "memory",
     visual_data: [
-      { label: "loop item", value: '("Aria", 80, 30) -> 110', type: "tuple", address: "0xC1" },
+      { label: "scores", value: "[110, 55, 115] -> total 280", type: "list", address: "0xC1" },
       { label: "gold_count", value: "2 (>= 100)", type: "int", address: "0xC2" },
       { label: "return", value: "(280, 2, 'Elite')", type: "tuple", address: "0xC3" },
     ],
     hints: [
-      "Start with `total_xp = 0` and `gold_count = 0`.",
-      "Unpack with `for name, xp, bonus in party:` and compute `score = xp + bonus`.",
-      'Use `squad_rank = "Elite" if gold_count >= 2 else "Squad"`.',
+      "Start with `total_xp = 0` and `gold_count = 0` before your `for score in scores:` loop.",
+      "Inside the loop, add `total_xp += score` and check `if score >= 100: gold_count += 1`.",
+      'After the loop, set `squad_rank = "Elite"` if `gold_count >= 2` else `"Squad"` and return `(total_xp, gold_count, squad_rank)`.',
     ],
   },
   {
@@ -146,32 +145,33 @@ __run_tests__()`,
       '".join()" Slugs',
     ],
     description:
-      "Conclusive Chapter III capstone: count repeated hashtags, sort unique tags by highest frequency (then alphabetically on ties), slice the top 3, and join into a slug.",
+      "Conclusive Chapter III capstone: normalize raw tags, deduplicate and sort them A–Z with sorted(set(...)), slice the first 3 with [:3], and join into a digest.",
     content:
-      "Welcome to the **Chapter III Boss Challenge**!\n\nCombine **Counting, Deduplication, Slicing, and Joining** (plus handle cleaning from Chapter II!):\n1. Count how many times each normalized tag (`tag.strip().lower()`) appears in `tags`.\n2. Rank the unique tags by `(-count, tag)` so higher frequency comes first and ties break alphabetically.\n3. Slice `[:3]` for the podium top 3 tags and join them with `\" | \"` using `.join(...)`.",
+      'Welcome to the **Chapter III Boss Challenge**!\n\nCombine **Handle Cleaning, Deduplication (`sorted(set(...))`), Slicing (`[:3]`), and Joining (`.join()`)**:\n1. Loop through `tags`, clean each tag with `t = tag.strip().lower()`, and append non-empty tags (`if t != "":`) to `cleaned`.\n2. Remove duplicates and sort A–Z using `unique_tags = sorted(set(cleaned))`.\n3. Slice the first 3 tags with `unique_tags[:3]` and join them with `" | "` using `" | ".join(...)`.\n\n```python\ndef build_trending_digest(tags):\n    cleaned = []\n    for tag in tags:\n        t = tag.strip().lower()\n        if t != "":\n            cleaned.append(t)\n    unique_tags = sorted(set(cleaned))\n    return " | ".join(unique_tags[:3])\n```',
     assignment:
-      'Complete `build_trending_digest(tags)` to count normalized tags, keep unique tags sorted by frequency descending (tie-break ascending alphabetically), slice the top 3, and return `" | ".join(top_three)`.',
+      'Complete `build_trending_digest(tags)`: normalize non-empty tags with `.strip().lower()`, deduplicate and sort A–Z with `sorted(set(...))`, slice the first 3 (`[:3]`), and return `" | ".join(top_three)`.',
     constraints: [
       "Normalize each tag with `.strip().lower()` and skip empty strings",
-      "Count occurrences in a frequency dictionary",
-      'Sort unique keys by `(-counts[t], t)`, take `[:3]`, and return `" | ".join(...)`',
+      "Deduplicate and sort alphabetically with `sorted(set(cleaned))`",
+      'Take the first 3 tags with `[:3]` and return `" | ".join(...)`',
     ],
     examples: [
       {
-        input: 'tags = [" Python", "ai", "python", "loops", "AI", "python", "lists"]',
-        output: "python | ai | lists",
-        explanation: "python(3), ai(2), then tie lists(1) vs loops(1) -> lists wins alphabetically.",
+        input: 'tags = [" Python", "ai", "python", "loops", "AI", "lists"]',
+        output: "ai | lists | loops",
+        explanation:
+          "Unique cleaned tags sorted A-Z are ['ai', 'lists', 'loops', 'python']; the first 3 joined with ' | ' give 'ai | lists | loops'.",
       },
     ],
     complexities: { time: "O(n log n)", space: "O(n)" },
     initial_code: `def build_trending_digest(tags):
     pass`,
-    expected_output: "python | ai | lists",
+    expected_output: "ai | lists | loops",
     hidden_tests: `import json
 def __run_tests__():
     results = []
-    r1 = build_trending_digest([" Python", "ai", "python", "loops", "AI", "python", "lists"])
-    results.append({"id": 1, "input": "ranked + tie-break", "expected": "python | ai | lists", "actual": str(r1), "passed": r1 == "python | ai | lists"})
+    r1 = build_trending_digest([" Python", "ai", "python", "loops", "AI", "lists"])
+    results.append({"id": 1, "input": "dedup + A-Z top 3", "expected": "ai | lists | loops", "actual": str(r1), "passed": r1 == "ai | lists | loops"})
     r2 = build_trending_digest(["api", "API", "   ", "db"])
     results.append({"id": 2, "input": "fewer than 3 unique + blanks", "expected": "api | db", "actual": str(r2), "passed": r2 == "api | db"})
     r3 = build_trending_digest(["   ", ""])
@@ -180,14 +180,14 @@ def __run_tests__():
 __run_tests__()`,
     visual_type: "memory",
     visual_data: [
-      { label: "counts", value: "{'python': 3, 'ai': 2, 'lists': 1, 'loops': 1}", type: "dict", address: "0xE1" },
-      { label: "top[:3]", value: "['python', 'ai', 'lists']", type: "list", address: "0xE2" },
-      { label: '" | ".join()', value: '"python | ai | lists"', type: "str", address: "0xE3" },
+      { label: "sorted(set(...))", value: "['ai', 'lists', 'loops', 'python']", type: "list", address: "0xE1" },
+      { label: "top[:3]", value: "['ai', 'lists', 'loops']", type: "list", address: "0xE2" },
+      { label: '" | ".join()', value: '"ai | lists | loops"', type: "str", address: "0xE3" },
     ],
     hints: [
-      "Build `counts = {}` while looping over `tags`: clean with `t = tag.strip().lower()`, ignore if `not t`.",
-      "Sort unique keys using `ranked = sorted(counts.keys(), key=lambda t: (-counts[t], t))`.",
-      'Return `" | ".join(ranked[:3])`.',
+      "Collect cleaned non-empty tags in `cleaned = []` using `t = tag.strip().lower()`.",
+      "Get unique sorted tags with `unique_tags = sorted(set(cleaned))`.",
+      'Return `" | ".join(unique_tags[:3])`.',
     ],
   },
   {
@@ -341,21 +341,21 @@ __run_tests__()`,
       "Mood Bot Lookup",
     ],
     description:
-      "The ultimate Python Basics graduation capstone uniting ALL 4 Chapter VI mini-apps—combat crits, password validation, split rounding, and bot dispatch—inside one command router.",
+      "The Python Basics graduation capstone uniting Chapter VI mini-app skills—crit math, password length check, and mood bot lookup—inside one clean 3-command router.",
     content:
-      "Welcome to the **Python Foundations Grand Finale**!\n\nBuild `run_arcade_command(command, mood_map)` that handles 4 real mini-app commands in one server:\n1. `\"CRIT <base> <is_crit>\"`: return `int(base) * 2` if `is_crit == \"true\"` else `int(base)`.\n2. `\"PASS <pwd>\"`: return `True` if `len(pwd) >= 8` and `any(c.isdigit() for c in pwd)` else `False`.\n3. `\"SPLIT <total> <tip_pct> <people>\"`: return `round((float(total) * (1 + float(tip_pct) / 100)) / int(people), 2)`.\n4. `\"BOT <word>\"`: return `f\"Bot: {mood_map.get(word.lower(), '🤖 Ready!')}\"`. (Wrap unknown/malformed commands cleanly with `\"ERR\"`).",
+      'Welcome to the **Python Foundations Grand Finale**!\n\nBuild `run_arcade_command(command, mood_map)` where every valid `command` is a 2-word string `"<ACTION> <VALUE>"`:\n1. Split with `parts = command.strip().split()`. If `len(parts) != 2`, return `"ERR"`.\n2. Read `cmd = parts[0].upper()` and `val = parts[1]`.\n3. If `cmd == "CRIT"`: return `int(val) * 2`.\n4. Elif `cmd == "PASS"`: return `"STRONG"` if `len(val) >= 8` else `"WEAK"`.\n5. Elif `cmd == "BOT"`: return `f"Bot: {mood_map.get(val.lower(), \'🤖 Ready!\')}"`.\n6. Else: return `"ERR"`.',
     assignment:
-      "Implement `run_arcade_command(command, mood_map)` to parse command tokens with `.strip().split()` and dispatch `'CRIT'`, `'PASS'`, `'SPLIT'`, and `'BOT'` accurately.",
+      "Implement `run_arcade_command(command, mood_map)` to split the 2-word command with `.strip().split()` and dispatch `'CRIT'`, `'PASS'`, and `'BOT'` (or return `'ERR'` for unknown commands).",
     constraints: [
-      "Normalize with `parts = command.strip().split()` and uppercase `cmd = parts[0].upper()`",
-      "Support CRIT (2x on `'true'`), PASS (length >= 8 and contains digit), SPLIT (rounded to 2 decimals), and BOT (`mood_map.get(..., '🤖 Ready!')`)",
-      'Return `"ERR"` cleanly on invalid numbers or unknown commands using `try / except`',
+      "Split `parts = command.strip().split()` and return `'ERR'` if `len(parts) != 2`",
+      "For `'CRIT'`, return `int(parts[1]) * 2`; for `'PASS'`, return `'STRONG'` if `len(parts[1]) >= 8` else `'WEAK'`",
+      "For `'BOT'`, return `f\"Bot: {mood_map.get(parts[1].lower(), '🤖 Ready!')}\"`; otherwise return `'ERR'`",
     ],
     examples: [
       {
-        input: 'command = "SPLIT 100 20 4", mood_map = {"happy": "🎉 Yay!"}',
-        output: "30.0",
-        explanation: "100 + 20% = 120 / 4 people = 30.0.",
+        input: 'command = "CRIT 35", mood_map = {"happy": "🎉 Yay!"}',
+        output: "70",
+        explanation: "CRIT doubles the integer 35 -> 70.",
       },
       {
         input: 'command = "BOT HAPPY", mood_map = {"happy": "🎉 Yay!"}',
@@ -366,17 +366,17 @@ __run_tests__()`,
     complexities: { time: "O(k)", space: "O(k)" },
     initial_code: `def run_arcade_command(command, mood_map):
     pass`,
-    expected_output: "30.0",
+    expected_output: "70",
     hidden_tests: `import json
 def __run_tests__():
     results = []
     moods = {"happy": "🎉 Yay!", "focus": "🎧 Deep Work"}
-    r1 = run_arcade_command("SPLIT 100 20 4", moods)
-    results.append({"id": 1, "input": "SPLIT 100 20 4", "expected": "30.0", "actual": str(r1), "passed": r1 == 30.0})
-    r2 = run_arcade_command("CRIT 35 true", moods)
-    results.append({"id": 2, "input": "CRIT 35 true", "expected": "70", "actual": str(r2), "passed": r2 == 70})
-    r3 = run_arcade_command("PASS devlearn9", moods)
-    results.append({"id": 3, "input": "PASS devlearn9", "expected": "True", "actual": str(r3), "passed": r3 is True})
+    r1 = run_arcade_command("CRIT 35", moods)
+    results.append({"id": 1, "input": "CRIT 35", "expected": "70", "actual": str(r1), "passed": r1 == 70})
+    r2 = run_arcade_command("PASS devlearn9", moods)
+    results.append({"id": 2, "input": "PASS devlearn9", "expected": "STRONG", "actual": str(r2), "passed": r2 == "STRONG"})
+    r3 = run_arcade_command("PASS tiny", moods)
+    results.append({"id": 3, "input": "PASS tiny", "expected": "WEAK", "actual": str(r3), "passed": r3 == "WEAK"})
     r4 = run_arcade_command("BOT HAPPY", moods)
     results.append({"id": 4, "input": "BOT HAPPY", "expected": "Bot: 🎉 Yay!", "actual": str(r4), "passed": r4 == "Bot: 🎉 Yay!"})
     r5 = run_arcade_command("UNKNOWN 1", moods)
@@ -385,15 +385,14 @@ def __run_tests__():
 __run_tests__()`,
     visual_type: "memory",
     visual_data: [
-      { label: "CRIT", value: "35 * 2 -> 70", type: "int", address: "0xB1" },
-      { label: "PASS", value: "len>=8 + digit -> True", type: "bool", address: "0xB2" },
-      { label: "SPLIT", value: "round(120/4, 2) -> 30.0", type: "float", address: "0xB3" },
-      { label: "BOT", value: '"Bot: 🎉 Yay!"', type: "str", address: "0xB4" },
+      { label: "CRIT 35", value: "35 * 2 -> 70", type: "int", address: "0xB1" },
+      { label: "PASS devlearn9", value: "len>=8 -> 'STRONG'", type: "str", address: "0xB2" },
+      { label: "BOT HAPPY", value: '"Bot: 🎉 Yay!"', type: "str", address: "0xB4" },
     ],
     hints: [
-      "Start with `parts = command.strip().split()`, returning `'ERR'` if `not parts`.",
-      "Dispatch on `cmd = parts[0].upper()` inside a `try / except Exception:` block returning `'ERR'`.",
-      "For `PASS`, use `len(pwd) >= 8 and any(ch.isdigit() for ch in pwd)`.",
+      "Start with `parts = command.strip().split()`, returning `'ERR'` if `len(parts) != 2`.",
+      "Read `cmd = parts[0].upper()` and `val = parts[1]`.",
+      "Use `if cmd == 'CRIT':`, `elif cmd == 'PASS':`, `elif cmd == 'BOT':`, and `else: return 'ERR'`.",
     ],
   },
   {

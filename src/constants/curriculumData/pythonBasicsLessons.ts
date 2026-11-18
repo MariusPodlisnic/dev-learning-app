@@ -396,15 +396,20 @@ except Exception as e:
     ],
     examples: [
       {
-        input: "safe_win_rate(6, 10) and safe_win_rate(0, 0)",
-        output: "0.6 0.0",
-        explanation: "6 / 10 is 0.6; dividing by 0 is safely caught and returns 0.0.",
+        input: "wins = 6, matches = 10",
+        output: "0.6",
+        explanation: "6 / 10 is 0.6.",
+      },
+      {
+        input: "wins = 0, matches = 0",
+        output: "0.0",
+        explanation: "Dividing by 0 is safely caught by except ZeroDivisionError and returns 0.0.",
       },
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def safe_win_rate(wins, matches):
     pass`,
-    expected_output: "0.6 0.0",
+    expected_output: "0.6",
     hidden_tests: `import json
 results = []
 try:
@@ -445,7 +450,6 @@ except Exception as e:
     constraints: [
       "Use `.count(target)` on the `reactions` list",
       "Return the matching count from the function",
-      "Keep the `print(...)` line at the bottom so it prints `3`",
     ],
     examples: [
       {
@@ -479,8 +483,8 @@ except Exception as e:
       { label: 'idx 4: "🔥"', value: "MATCH #3 ✓", address: "count = 3" },
     ],
     hints: [
-      "Replace `return 0` with `return reactions.count(target)`.",
-      "Click '🧩 LOAD GUIDED STEPS' if you want the exact line filled in!",
+      "Delete `pass` and write `return reactions.count(target)`.",
+      "Tap 'LOAD SKELETON' above if you want a fill-in-the-blank starter!",
     ],
   },
   {
@@ -497,10 +501,10 @@ except Exception as e:
     content:
       'Sometimes a guest accidentally signs up twice. In Python:\n\n1. **`set(guests)`** automatically removes all duplicates.\n2. **`sorted(...)`** puts the remaining names in A–Z alphabetical order!\n\n```python\nguests = ["Sam", "Alex", "Sam"]\nclean = sorted(set(guests))\n# Result: [\'Alex\', \'Sam\']\n```',
     assignment:
-      "Complete `clean_guest_list(guests)` so it removes duplicate names and returns them as a sorted list.",
+      "Complete `clean_guest_list(guests)` so it removes duplicate names and returns the unique guests sorted in A–Z alphabetical order.",
     constraints: [
-      "Use `set(guests)` to remove duplicate names",
-      "Wrap it in `sorted(set(guests))` so the list is in alphabetical order",
+      "Convert `guests` to a set with `set(guests)` to remove duplicate names",
+      "Wrap it in `sorted(...)` and return the sorted list",
     ],
     examples: [
       {
@@ -532,7 +536,7 @@ except Exception as e:
       { label: '"Zoe"', value: "KEPT ONCE ✓", address: "slot 3" },
     ],
     hints: [
-      "Inside `clean_guest_list(guests)`, replace `return []` with `return sorted(set(guests))`.",
+      "Delete `pass` and write `return sorted(set(guests))`.",
     ],
   },
   {
@@ -551,8 +555,8 @@ except Exception as e:
     assignment:
       'Complete `make_url_slug(words)` so it joins all the words in `words` together with a hyphen `"-"` between them.',
     constraints: [
-      'Use `"-".join(words)` to glue the list of strings together',
-      "Return the combined string",
+      'Call `.join(words)` on the hyphen separator `"-"`',
+      "Return the combined URL slug string",
     ],
     examples: [
       {
@@ -588,7 +592,7 @@ except Exception as e:
         address: "0x18",
       },
     ],
-    hints: ['Replace `return ""` with `return "-".join(words)`.'],
+    hints: ['Delete `pass` and write `return "-".join(words)`.'],
   },
   {
     id: "exp-py-12",
@@ -606,7 +610,7 @@ except Exception as e:
     assignment:
       "Complete `get_top_three(players)` so it returns a slice containing only the first 3 players in the list.",
     constraints: [
-      "Use `players[:3]` to slice the first 3 items",
+      "Use slice syntax `[:3]` on `players`",
       "Return the sliced list",
     ],
     examples: [
@@ -640,7 +644,7 @@ except Exception as e:
       { label: "idx 2: Nova", value: "INCLUDED (3rd) 🥉", address: "[:3]" },
       { label: "idx 3: Leo", value: "stopped at 3", address: "outside" },
     ],
-    hints: ["Replace `return []` with `return players[:3]`."],
+    hints: ["Delete `pass` and write `return players[:3]`."],
   },
   {
     id: "exp-py-13",
@@ -656,9 +660,9 @@ except Exception as e:
     content:
       'Want to swap out a word inside a message? Every Python string has a built-in **`.replace(old, new)`** method:\n\n```python\nmsg = "Alert: spoiler ahead!"\nclean = msg.replace("spoiler", "[HIDDEN]")\nprint(clean)  # "Alert: [HIDDEN] ahead!"\n```',
     assignment:
-      'Complete `hide_spoilers(message)` so it replaces every `"spoiler"` with `"[HIDDEN]"` and returns the updated string.',
+      'Complete `hide_spoilers(message)` so it replaces every occurrence of `"spoiler"` with `"[HIDDEN]"` and returns the updated string.',
     constraints: [
-      'Use `message.replace("spoiler", "[HIDDEN]")`',
+      'Call `.replace(old, new)` on `message` to swap `"spoiler"` with `"[HIDDEN]"`',
       "Return the updated string",
     ],
     examples: [
@@ -696,7 +700,7 @@ except Exception as e:
       },
     ],
     hints: [
-      'Replace `return message` with `return message.replace("spoiler", "[HIDDEN]")`.',
+      'Delete `pass` and write `return message.replace("spoiler", "[HIDDEN]")`.',
     ],
   },
   {
@@ -713,10 +717,10 @@ except Exception as e:
     content:
       "Instead of writing a loop to add numbers one by one, Python gives you **`sum(prices)`** — it adds every number in a list and returns the total immediately!\n\n```python\nprices = [15, 25, 10]\ntotal = sum(prices)\nprint(total)  # 50\n```",
     assignment:
-      "Complete `get_cart_total(prices)` so it returns the sum of all numbers in `prices` using `sum(prices)`.",
+      "Complete `get_cart_total(prices)` so it adds all numbers in `prices` using Python's built-in `sum()` function and returns the total.",
     constraints: [
-      "Use `sum(prices)` to add all numbers in the list",
-      "Return the total",
+      "Pass `prices` into Python's built-in `sum(...)` function",
+      "Return the total sum",
     ],
     examples: [
       {
@@ -747,7 +751,7 @@ except Exception as e:
       { label: "item 2: $25", value: "running = 40", address: "0x02" },
       { label: "item 3: $10", value: "sum = 50 ✓", address: "0x03" },
     ],
-    hints: ["Replace `return 0` with `return sum(prices)`."],
+    hints: ["Delete `pass` and write `return sum(prices)`."],
   },
   {
     id: "exp-py-15",
@@ -765,21 +769,25 @@ except Exception as e:
     assignment:
       'Complete `is_secure_link(url)` so it returns `True` if `url` starts with `"https://"`, or `False` otherwise.',
     constraints: [
-      'Use `url.startswith("https://")`',
-      "Return the boolean result",
+      'Call `.startswith("https://")` on `url`',
+      "Return the boolean result (`True` or `False`)",
     ],
     examples: [
       {
-        input: 'url = "https://arcade.dev" and url = "http://old.site"',
-        output: "True False",
-        explanation:
-          '"https://arcade.dev" starts with "https://", while "http://old.site" does not.',
+        input: 'url = "https://arcade.dev"',
+        output: "True",
+        explanation: '"https://arcade.dev" begins with the secure "https://" prefix.',
+      },
+      {
+        input: 'url = "http://old.site"',
+        output: "False",
+        explanation: '"http://old.site" starts with "http://", not "https://".',
       },
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def is_secure_link(url):
     pass`,
-    expected_output: "True False",
+    expected_output: "True",
     hidden_tests: `import json
 results = []
 try:
@@ -808,7 +816,7 @@ except Exception as e:
       },
     ],
     hints: [
-      'Replace `return False` with `return url.startswith("https://")`.',
+      'Delete `pass` and write `return url.startswith("https://")`.',
     ],
   },
   {
@@ -825,23 +833,27 @@ except Exception as e:
     content:
       'If a new user hasn\'t picked a color theme yet, `settings["theme"]` would crash with a `KeyError`.\n\nInstead, **`settings.get("theme", "light")`** returns their saved theme, or safely falls back to `"light"` if `"theme"` isn\'t in the dictionary!\n\n```python\nmode = settings.get("theme", "light")\n```',
     assignment:
-      'Complete `get_user_theme(settings)` so it returns `settings.get("theme", "light")`.',
+      'Complete `get_user_theme(settings)` so it safely looks up the `"theme"` key in `settings`, falling back to `"light"` whenever `"theme"` is missing.',
     constraints: [
-      'Use `settings.get("theme", "light")`',
-      "Return the theme string",
+      'Use `settings.get(key, default)` to look up `"theme"` with fallback `"light"`',
+      "Return the resulting theme string",
     ],
     examples: [
       {
-        input: 'get_user_theme({"theme": "dark"}) and get_user_theme({})',
-        output: "dark light",
-        explanation:
-          'Returns "dark" when present, and falls back to "light" when missing.',
+        input: 'settings = {"theme": "dark"}',
+        output: "dark",
+        explanation: 'Returns "dark" because the "theme" key exists in settings.',
+      },
+      {
+        input: "settings = {}",
+        output: "light",
+        explanation: 'Falls back to "light" safely when "theme" is missing.',
       },
     ],
     complexities: { time: "O(1)", space: "O(1)" },
     initial_code: `def get_user_theme(settings):
     pass`,
-    expected_output: "dark light",
+    expected_output: "dark",
     hidden_tests: `import json
 results = []
 try:
@@ -868,7 +880,7 @@ except Exception as e:
       },
     ],
     hints: [
-      'Replace `return ""` with `return settings.get("theme", "light")`.',
+      'Delete `pass` and write `return settings.get("theme", "light")`.',
     ],
   },
   {
@@ -885,10 +897,10 @@ except Exception as e:
     content:
       'Instead of gluing strings and numbers together with `+`, modern Python uses **f-strings**! Put the letter **`f`** right before the opening quote, and place any variable inside curly braces **`{ }`**:\n\n```python\nname = "Aria"\nlevel = 5\nbadge = f"Player {name} - Level {level}"\nprint(badge)  # "Player Aria - Level 5"\n```',
     assignment:
-      'Complete `make_badge(name, level)` so it returns `f"Player {name} - Level {level}"`.',
+      'Complete `make_badge(name, level)` so it returns a formatted badge string in the exact pattern `"Player <name> - Level <level>"` using an f-string.',
     constraints: [
-      'Use an f-string: `f"Player {name} - Level {level}"`',
-      "Return the formatted string",
+      'Prefix your string with `f` and embed `{name}` and `{level}` inside curly braces',
+      "Return the formatted badge string",
     ],
     examples: [
       {
@@ -926,7 +938,7 @@ except Exception as e:
       },
     ],
     hints: [
-      'Replace `return ""` with `return f"Player {name} - Level {level}"`.',
+      'Delete `pass` and write `return f"Player {name} - Level {level}"`.',
     ],
   },
   {
@@ -943,10 +955,10 @@ except Exception as e:
     content:
       'How do writing apps count how many words you typed?\n\n1. **`sentence.split()`** chops a sentence at every space and returns a list of words.\n2. **`len(...)`** counts how many words are in that list!\n\n```python\ntext = "Python is super fun"\nwords = text.split()   # [\'Python\', \'is\', \'super\', \'fun\']\nprint(len(words))      # 4\n```',
     assignment:
-      "Complete `count_words(sentence)` so it splits `sentence` into words and returns how many words there are (`len(sentence.split())`).",
+      "Complete `count_words(sentence)` so it splits `sentence` into a list of words and returns the total number of words.",
     constraints: [
       "Use `sentence.split()` to break the sentence into words",
-      "Wrap it in `len(sentence.split())` and return the count",
+      "Use `len(...)` to count how many words are in that list and return the integer count",
     ],
     examples: [
       {
@@ -979,7 +991,7 @@ except Exception as e:
       { label: 'word 2: "super"', value: "count = 3", address: "split[2]" },
       { label: 'word 3: "fun"', value: "len = 4 ✓", address: "split[3]" },
     ],
-    hints: ["Replace `return 0` with `return len(sentence.split())`."],
+    hints: ["Delete `pass` and write `return len(sentence.split())`."],
   },
   {
     id: "exp-py-19",
@@ -997,20 +1009,25 @@ except Exception as e:
     assignment:
       "Complete `has_item(backpack, item)` so it returns `True` if `item` is inside `backpack`, or `False` otherwise.",
     constraints: [
-      "Use `item in backpack`",
+      "Use Python's `in` membership operator (`item in backpack`)",
       "Return the boolean result",
     ],
     examples: [
       {
         input: 'backpack = ["torch", "map", "potion"], item = "map"',
-        output: "True False",
-        explanation: '"map" is in the list (True); "key" is not (False).',
+        output: "True",
+        explanation: '"map" is present in the backpack list.',
+      },
+      {
+        input: 'backpack = ["torch", "map", "potion"], item = "key"',
+        output: "False",
+        explanation: '"key" is not in the backpack list.',
       },
     ],
     complexities: { time: "O(n)", space: "O(1)" },
     initial_code: `def has_item(backpack, item):
     pass`,
-    expected_output: "True False",
+    expected_output: "True",
     hidden_tests: `import json
 results = []
 try:
@@ -1030,7 +1047,7 @@ except Exception as e:
       { label: '"map"', value: "FOUND -> True 🎒", address: "idx 1" },
       { label: '"potion"', value: "in backpack", address: "idx 2" },
     ],
-    hints: ["Replace `return False` with `return item in backpack`."],
+    hints: ["Delete `pass` and write `return item in backpack`."],
   },
   {
     id: "exp-py-20",
@@ -1046,10 +1063,10 @@ except Exception as e:
     content:
       "When you average app reviews, you often get long decimals like `4.6666667`. Python's built-in **`round(number, digits)`** rounds it to the exact number of decimal places you want:\n\n```python\nrating = 4.66667\nclean = round(rating, 1)\nprint(clean)  # 4.7\n```",
     assignment:
-      "Complete `format_rating(rating)` so it rounds `rating` to `1` decimal place using `round(rating, 1)`.",
+      "Complete `format_rating(rating)` so it rounds `rating` to `1` decimal place and returns the rounded number.",
     constraints: [
-      "Use `round(rating, 1)` to round to 1 decimal place",
-      "Return the rounded number",
+      "Use Python's built-in `round(number, digits)` function with `1` decimal place",
+      "Return the rounded float",
     ],
     examples: [
       {
@@ -1085,7 +1102,7 @@ except Exception as e:
         address: "0x18",
       },
     ],
-    hints: ["Replace `return 0.0` with `return round(rating, 1)`."],
+    hints: ["Delete `pass` and write `return round(rating, 1)`."],
   },
   {
     id: "exp-py-21",

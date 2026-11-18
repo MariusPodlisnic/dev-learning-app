@@ -12,28 +12,26 @@ export const CHAPTER_RECAP_ENRICHMENTS: EnrichedLessonData[] = [
       "Used in multiplayer game leaderboards and HR/payroll batch jobs that classify and total user records in one pass.",
     analogyTitle: "Roster Sheet + Score Counter in One Loop",
     analogyText:
-      "Each `(name, xp, bonus)` tuple is one character card. Walk the list once, add `xp + bonus` to `total_xp`, bump `gold_count` whenever the sum is `>= 100`, then pick `'Elite'` vs `'Squad'` at the end.",
+      "Each number in `scores` is one party member's XP. Walk the list once, add `score` to `total_xp`, bump `gold_count` whenever `score >= 100`, then pick `'Elite'` vs `'Squad'` at the end.",
     cheatSheet: `total_xp = 0
 gold_count = 0
-for name, xp, bonus in party:
-    score = xp + bonus
+for score in scores:
     total_xp += score
     if score >= 100:
         gold_count += 1`,
     commonPitfall: {
       title: "Checking tier or returning inside the for loop",
       wrongCode:
-        "for name, xp, bonus in party:\n    return (total_xp, gold_count, 'Squad')  # Stops after 1 player!",
+        "for score in scores:\n    return (total_xp, gold_count, 'Squad')  # Stops after 1 player!",
       rightCode:
-        "for name, xp, bonus in party:\n    ...\nreturn (total_xp, gold_count, squad_rank)",
+        "for score in scores:\n    ...\nreturn (total_xp, gold_count, squad_rank)",
       explanation:
         "Finish summing all party members before computing `squad_rank` and returning the tuple.",
     },
-    solutionCode: `def audit_guild_party(party):
+    solutionCode: `def audit_guild_party(scores):
     total_xp = 0
     gold_count = 0
-    for name, xp, bonus in party:
-        score = xp + bonus
+    for score in scores:
         total_xp += score
         if score >= 100:
             gold_count += 1
@@ -115,50 +113,50 @@ for raw_handle, raw_score in entries:
     matchKeywords: ["chapter iii recap", "trending slug", "build_trending_digest"],
     realWorldUse:
       "Powers social media trending hashtags, search autocomplete rankings, and top-3 leaderboard cards.",
-    analogyTitle: "Count -> Rank -> Slice Top 3 -> Join",
+    analogyTitle: "Clean -> Deduplicate & Sort -> Slice Top 3 -> Join",
     analogyText:
-      "Clean each non-empty tag, count occurrences in a dict, sort keys by `(-count, tag)` so highest count wins and ties sort alphabetically, slice `[:3]`, and join with `' | '`.",
-    cheatSheet: `counts = {}
+      "Clean each non-empty tag with `.strip().lower()`, deduplicate and sort alphabetically with `sorted(set(cleaned))`, slice `[:3]`, and join with `' | '`.",
+    cheatSheet: `cleaned = []
 for raw in tags:
     tag = raw.strip().lower()
-    if tag:
-        counts[tag] = counts.get(tag, 0) + 1
-ranked = sorted(counts.keys(), key=lambda t: (-counts[t], t))
-return " | ".join(ranked[:3])`,
+    if tag != "":
+        cleaned.append(tag)
+unique_tags = sorted(set(cleaned))
+return " | ".join(unique_tags[:3])`,
     commonPitfall: {
-      title: "Sorting ascending instead of descending frequency",
+      title: "Forgetting to skip empty whitespace-only tags after .strip()",
       wrongCode:
-        "sorted(counts.keys())  # Sorts A-Z and ignores frequency counts!",
+        "cleaned.append(raw.strip().lower())  # Includes '' from '   '!",
       rightCode:
-        "sorted(counts.keys(), key=lambda t: (-counts[t], t))",
+        "tag = raw.strip().lower()\nif tag != '':\n    cleaned.append(tag)",
       explanation:
-        "Negating `-counts[t]` orders largest counts first while positive `t` breaks ties alphabetically.",
+        "Stripping `'   '` leaves an empty string `''`, so check `if tag != '':` before appending.",
     },
     solutionCode: `def build_trending_digest(tags):
-    counts = {}
+    cleaned = []
     for raw in tags:
         clean = raw.strip().lower()
-        if clean:
-            counts[clean] = counts.get(clean, 0) + 1
-    ranked = sorted(counts.keys(), key=lambda t: (-counts[t], t))
-    return " | ".join(ranked[:3])`,
+        if clean != "":
+            cleaned.append(clean)
+    unique_tags = sorted(set(cleaned))
+    return " | ".join(unique_tags[:3])`,
     proInsights: {
       timeComplexity: "O(n + u log u)",
       spaceComplexity: "O(u)",
       tradeoff:
-        "Sorting only the unique tags `u` rather than scanning repeatedly keeps ranking clean and concise.",
+        "Deduplicating with `set(...)` before calling `sorted(...)` only sorts the unique tags `u`.",
     },
     quiz: {
       question:
-        "What does `key=lambda t: (-counts[t], t)` accomplish when sorting unique tags?",
+        "What does `sorted(set(cleaned))[:3]` return?",
       options: [
-        "Highest frequency first, breaking ties alphabetically",
-        "Lowest frequency first, reverse alphabetically",
-        "Removes tags with frequency 0",
+        "The first 3 unique tags in A–Z alphabetical order",
+        "The last 3 duplicate tags",
+        "A dictionary of tag counts",
       ],
       correctIndex: 0,
       explanation:
-        "`-counts[t]` puts larger counts first, and tuple comparison uses `t` ascending when counts match.",
+        "`set(cleaned)` removes duplicates, `sorted(...)` orders them A–Z, and `[:3]` slices the first 3.",
     },
   },
   {
@@ -235,8 +233,10 @@ status = "FLAGGED" if flagged else "APPROVED"`,
     },
     solutionCode: `def format_review_badge(comment, scores, banned_words):
     words = comment.lower().split()
-    banned_set = {w.lower() for w in banned_words}
-    flagged = any(word in banned_set for word in words)
+    flagged = False
+    for word in words:
+        if word in banned_words:
+            flagged = True
     avg = round(sum(scores) / len(scores), 1) if scores else 0.0
     status = "FLAGGED" if flagged else "APPROVED"
     return f"{status} | avg {avg}/5 ({len(words)} words)"`,
@@ -263,45 +263,33 @@ status = "FLAGGED" if flagged else "APPROVED"`,
       "Mirrors CLI command routers and chat slash-command bots that dispatch subcommands safely with fallback errors.",
     analogyTitle: "Command Dispatcher Switchboard",
     analogyText:
-      "Split the raw line into tokens with `.strip().split()`, inspect `tokens[0].upper()`, parse typed arguments safely inside `try / except`, and return `'ERR'` on unknown or malformed requests.",
+      "Split the 2-word command into `parts = command.strip().split()`, inspect `cmd = parts[0].upper()` and `val = parts[1]`, and route `'CRIT'`, `'PASS'`, or `'BOT'` (returning `'ERR'` otherwise).",
     cheatSheet: `parts = command.strip().split()
+if len(parts) != 2:
+    return "ERR"
 cmd = parts[0].upper()
-if cmd == "CRIT": ...
-elif cmd == "PASS": ...
-elif cmd == "SPLIT": ...
-elif cmd == "BOT": ...
-return "ERR"`,
+val = parts[1]`,
     commonPitfall: {
-      title: "Crashing with ValueError or IndexError on malformed arguments",
+      title: "Indexing parts[1] before checking len(parts) == 2",
       wrongCode:
-        "return int(parts[1]) * 2  # Crashes if parts has 1 element or 'abc'!",
+        "parts = command.strip().split()\nval = parts[1]  # Crashes if command has 0 or 1 words!",
       rightCode:
-        "try:\n    ...\nexcept (IndexError, ValueError, ZeroDivisionError):\n    return 'ERR'",
+        "parts = command.strip().split()\nif len(parts) != 2:\n    return 'ERR'",
       explanation:
-        "Production command routers always guard parsing errors and return `'ERR'` rather than crashing the server.",
+        "Checking `len(parts) != 2` first ensures `parts[0]` and `parts[1]` both exist safely.",
     },
     solutionCode: `def run_arcade_command(command, mood_map):
     parts = command.strip().split()
-    if not parts:
+    if len(parts) != 2:
         return "ERR"
     cmd = parts[0].upper()
-    try:
-        if cmd == "CRIT" and len(parts) == 3:
-            base = int(parts[1])
-            return base * 2 if parts[2].lower() == "true" else base
-        if cmd == "PASS" and len(parts) == 2:
-            pwd = parts[1]
-            return len(pwd) >= 8 and any(c.isdigit() for c in pwd)
-        if cmd == "SPLIT" and len(parts) == 4:
-            total = float(parts[1])
-            tip_pct = float(parts[2])
-            people = int(parts[3])
-            return round((total * (1 + tip_pct / 100)) / people, 2)
-        if cmd == "BOT" and len(parts) >= 2:
-            word = parts[1].lower()
-            return f"Bot: {mood_map.get(word, '🤖 Ready!')}"
-    except (ValueError, ZeroDivisionError):
-        return "ERR"
+    val = parts[1]
+    if cmd == "CRIT":
+        return int(val) * 2
+    elif cmd == "PASS":
+        return "STRONG" if len(val) >= 8 else "WEAK"
+    elif cmd == "BOT":
+        return f"Bot: {mood_map.get(val.lower(), '🤖 Ready!')}"
     return "ERR"`,
     proInsights: {
       timeComplexity: "O(len(command))",

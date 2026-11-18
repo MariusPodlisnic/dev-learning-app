@@ -71,27 +71,28 @@ for i, num in enumerate(nums):
     analogyText:
       "Put `left = 0` at the start and `right = len(items) - 1` at the end. Compare them, then move `left += 1` and `right -= 1` inward!",
     cheatSheet: `left = 0
-right = len(items) - 1
+right = len(s) - 1
 while left < right:
+    if s[left] != s[right]:
+        return False
     left += 1
-    right -= 1`,
+    right -= 1
+return True`,
     guidedCode: `class Solution:
     def isPalindrome(self, s: str) -> bool:
-        cleaned = "".join(c.lower() for c in s if c.isalnum())
-        left, right = 0, len(cleaned) - 1
+        left, right = 0, len(s) - 1
         while left < right:
-            # 👉 Return False if cleaned[left] != cleaned[right], then move inward:
-            if cleaned[left] != cleaned[right]:
+            # 👉 Return False if s[left] != s[right], then move inward:
+            if s[left] != s[right]:
                 return False
             left += 1
             right -= 1
         return True`,
     solutionCode: `class Solution:
     def isPalindrome(self, s: str) -> bool:
-        cleaned = "".join(c.lower() for c in s if c.isalnum())
-        left, right = 0, len(cleaned) - 1
+        left, right = 0, len(s) - 1
         while left < right:
-            if cleaned[left] != cleaned[right]:
+            if s[left] != s[right]:
                 return False
             left += 1
             right -= 1

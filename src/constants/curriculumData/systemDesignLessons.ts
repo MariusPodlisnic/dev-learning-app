@@ -9,57 +9,55 @@ export const SYSTEM_DESIGN_EXPANSION_LESSONS = [
     lesson_order: 1,
     is_free: true,
     description:
-      "Build an in-memory Token Bucket rate limiter that permits bursts up to capacity and returns 429 once drained.",
+      "Build a Token Bucket rate-limit check that consumes 1 token when capacity remains and blocks requests once drained.",
     content:
-      "APIs like Stripe, GitHub, and Cloudflare protect backend databases using the **Token Bucket** pattern:\n• Start each client bucket with `self.tokens = capacity`.\n• When `allow_request()` runs, if `self.tokens > 0`, decrement `self.tokens -= 1` and return `True`.\n• Otherwise the bucket is empty — reject with `False` (HTTP 429 Too Many Requests).",
+      "APIs like Stripe, GitHub, and Cloudflare protect backend databases using the **Token Bucket** pattern:\n• Each client bucket holds an integer `tokens` count.\n• When `allow_request(tokens)` runs, if `tokens > 0`, allow the request and spend 1 token by returning `(True, tokens - 1)`.\n• Otherwise the bucket is empty — reject the request with `(False, 0)` (HTTP 429 Too Many Requests).\n\n```python\ndef allow_request(tokens):\n    if tokens > 0:\n        return (True, tokens - 1)\n    return (False, 0)\n```",
     assignment:
-      "Implement `TokenBucket.__init__(self, capacity: int)` storing `self.tokens = capacity`, and `allow_request(self) -> bool` returning `True` (and consuming 1 token) when tokens remain, or `False` otherwise.",
+      "Complete `allow_request(tokens)`: if `tokens > 0`, return `(True, tokens - 1)`; otherwise return `(False, 0)`.",
     constraints: [
-      "Store `self.tokens = capacity` inside `__init__`",
-      "Check strictly `self.tokens > 0` before decrementing `self.tokens -= 1`",
+      "Check strictly `if tokens > 0:` before subtracting `1`",
+      "Return `(True, tokens - 1)` when allowed, or `(False, 0)` when empty",
       "Run in O(1) time per request",
     ],
     examples: [
       {
-        input: "tb = TokenBucket(2); [tb.allow_request(), tb.allow_request(), tb.allow_request()]",
-        output: "[True, True, False]",
-        explanation: "Tokens drain 2 -> 1 -> 0; the 3rd request is throttled.",
+        input: "tokens = 2",
+        output: "(True, 1)",
+        explanation: "2 > 0, so the request is allowed and 1 token remains.",
+      },
+      {
+        input: "tokens = 0",
+        output: "(False, 0)",
+        explanation: "0 tokens left, so the request is throttled (False) and tokens stay at 0.",
       },
     ],
     complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `class TokenBucket:
-    def __init__(self, capacity: int):
-        pass
-
-    def allow_request(self) -> bool:
-        pass`,
-    expected_output: "True",
+    initial_code: `def allow_request(tokens):
+    pass`,
+    expected_output: "(True, 1)",
     hidden_tests: `import json
 def __run_tests__():
     try:
         results = []
-        tb = TokenBucket(2)
-        seq = [tb.allow_request(), tb.allow_request(), tb.allow_request()]
-        results.append({"id": 1, "input": "capacity=2, 3 calls", "expected": "[True, True, False]", "actual": str(seq), "passed": seq == [True, True, False]})
-        tb0 = TokenBucket(0)
-        r0 = tb0.allow_request()
-        results.append({"id": 2, "input": "capacity=0, 1 call", "expected": "False", "actual": str(r0), "passed": r0 is False})
-        tb1 = TokenBucket(1)
-        seq1 = [tb1.allow_request(), tb1.allow_request()]
-        results.append({"id": 3, "input": "capacity=1, 2 calls", "expected": "[True, False]", "actual": str(seq1), "passed": seq1 == [True, False]})
+        r1 = allow_request(2)
+        results.append({"id": 1, "input": "tokens=2", "expected": "(True, 1)", "actual": str(r1), "passed": r1 == (True, 1)})
+        r2 = allow_request(1)
+        results.append({"id": 2, "input": "tokens=1", "expected": "(True, 0)", "actual": str(r2), "passed": r2 == (True, 0)})
+        r3 = allow_request(0)
+        results.append({"id": 3, "input": "tokens=0", "expected": "(False, 0)", "actual": str(r3), "passed": r3 == (False, 0)})
         return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
     except Exception as e:
         return json.dumps({"is_test_suite": True, "error": str(e)})
 __run_tests__()`,
     visual_type: "memory",
     visual_data: [
-      { label: "req 1 (tokens=2)", value: "ALLOW -> tokens=1", type: "bool", address: "200 OK" },
-      { label: "req 2 (tokens=1)", value: "ALLOW -> tokens=0", type: "bool", address: "200 OK" },
-      { label: "req 3 (tokens=0)", value: "BLOCK -> False ✓", type: "bool", address: "429" },
+      { label: "req 1 (tokens=2)", value: "(True, 1) ALLOW", type: "tuple", address: "200 OK" },
+      { label: "req 2 (tokens=1)", value: "(True, 0) ALLOW", type: "tuple", address: "200 OK" },
+      { label: "req 3 (tokens=0)", value: "(False, 0) BLOCK ✓", type: "tuple", address: "429" },
     ],
     hints: [
-      "In `__init__`, set `self.tokens = capacity`.",
-      "In `allow_request`, check `if self.tokens > 0: self.tokens -= 1; return True` and fallback `return False`.",
+      "Check `if tokens > 0:` and return `(True, tokens - 1)`.",
+      "Outside the `if`, return `(False, 0)`.",
     ],
   },
   {
@@ -72,40 +70,41 @@ __run_tests__()`,
     lesson_order: 2,
     is_free: false,
     description:
-      "Serve hot keys in O(1) from RAM and return a clean -1 sentinel on cache misses.",
+      "Serve hot keys in O(1) from an in-memory cache dictionary and return a clean -1 sentinel on cache misses.",
     content:
-      "High-scale feeds avoid hammering SQL databases on every profile render by checking an in-memory key-value store first:\n• **Cache Hit:** Key exists in `self.store` — return the cached value in O(1).\n• **Cache Miss:** Key does not exist — safely return `-1` with `self.store.get(key, -1)` instead of crashing with `KeyError`.",
+      "High-scale feeds avoid hammering SQL databases on every profile render by checking an in-memory key-value `cache` dictionary first:\n• **Cache Hit:** `key` exists in `cache` — return the cached value in O(1).\n• **Cache Miss:** `key` does not exist — safely return `-1` with `cache.get(key, -1)` instead of crashing with `KeyError`.\n\n```python\ndef get_cached_user(cache, key):\n    return cache.get(key, -1)\n```",
     assignment:
-      'Complete `LRUCache.__init__(self, capacity: int)` initializing `self.capacity = capacity` and `self.store = {"user:1": "Alice", "user:2": "Bob"}`, and `get(self, key: str)` returning the cached value or `-1` on a miss.',
+      "Complete `get_cached_user(cache, key)` so it returns the value for `key` from `cache`, or `-1` on a cache miss.",
     constraints: [
-      'Initialize `self.store = {"user:1": "Alice", "user:2": "Bob"}` inside `__init__`',
-      "Return `-1` on missing keys without raising `KeyError`",
+      "Use `cache.get(key, -1)` to avoid raising `KeyError` on missing keys",
       "Serve lookups in O(1) time",
     ],
     examples: [
       {
-        input: 'cache = LRUCache(2); cache.get("user:1"), cache.get("user:99")',
-        output: "('Alice', -1)",
-        explanation: '"user:1" is a cache hit; "user:99" misses and returns -1.',
+        input: 'cache = {"user:1": "Alice", "user:2": "Bob"}, key = "user:1"',
+        output: "Alice",
+        explanation: '"user:1" is present in RAM (Cache Hit), returning "Alice".',
+      },
+      {
+        input: 'cache = {"user:1": "Alice", "user:2": "Bob"}, key = "user:99"',
+        output: "-1",
+        explanation: '"user:99" is not in cache (Cache Miss), returning -1.',
       },
     ],
-    complexities: { time: "O(1)", space: "O(capacity)" },
-    initial_code: `class LRUCache:
-    def __init__(self, capacity: int):
-        pass
-
-    def get(self, key: str):
-        pass`,
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def get_cached_user(cache, key):
+    pass`,
     expected_output: "Alice",
     hidden_tests: `import json
 def __run_tests__():
     try:
-        cache = LRUCache(2)
-        cases = [("user:1", "Alice"), ("user:2", "Bob"), ("user:999", -1)]
         results = []
-        for idx, (k, exp) in enumerate(cases):
-            actual = cache.get(k)
-            results.append({"id": idx + 1, "input": f"cache.get({k!r})", "expected": repr(exp), "actual": repr(actual), "passed": actual == exp})
+        r1 = get_cached_user({"user:1": "Alice", "user:2": "Bob"}, "user:1")
+        results.append({"id": 1, "input": "key='user:1'", "expected": "'Alice'", "actual": repr(r1), "passed": r1 == "Alice"})
+        r2 = get_cached_user({"user:1": "Alice", "user:2": "Bob"}, "user:2")
+        results.append({"id": 2, "input": "key='user:2'", "expected": "'Bob'", "actual": repr(r2), "passed": r2 == "Bob"})
+        r3 = get_cached_user({"user:1": "Alice", "user:2": "Bob"}, "user:999")
+        results.append({"id": 3, "input": "key='user:999'", "expected": "-1", "actual": repr(r3), "passed": r3 == -1})
         return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
     except Exception as e:
         return json.dumps({"is_test_suite": True, "error": str(e)})
@@ -116,8 +115,7 @@ __run_tests__()`,
       { label: '"user:999"', value: "-1 (CACHE MISS)", address: "0xDB_FALLBACK" },
     ],
     hints: [
-      'In `__init__`, save `self.capacity = capacity` and `self.store = {"user:1": "Alice", "user:2": "Bob"}`.',
-      "In `get(self, key)`, write `return self.store.get(key, -1)`.",
+      "Delete `pass` and write `return cache.get(key, -1)`.",
     ],
   },
   {
@@ -132,33 +130,31 @@ __run_tests__()`,
     description:
       "Map incoming request IDs deterministically across backend partitions using modulo hashing.",
     content:
-      "Distributed databases and API gateways split millions of keys across independent shards (`0 .. num_shards - 1`) so no single node saturates.\n\nUsing modulo hashing (`request_id % num_shards`), the exact same `request_id` deterministically maps to the same shard in O(1) time without needing a lookup table!",
+      "Distributed databases and API gateways split millions of keys across independent shards (`0 .. num_shards - 1`) so no single node saturates.\n\nUsing modulo hashing (`request_id % num_shards`), the exact same `request_id` deterministically maps to the same shard in O(1) time without needing a lookup table!\n\n```python\ndef get_shard(request_id, num_shards):\n    return request_id % num_shards\n```",
     assignment:
-      "Implement `LoadBalancer.get_shard(self, request_id: int, num_shards: int) -> int` returning `request_id % num_shards`.",
+      "Complete `get_shard(request_id, num_shards)` so it returns the integer shard index `request_id % num_shards`.",
     constraints: [
       "Return an integer shard index strictly in `0 .. num_shards - 1`",
       "Run in O(1) time and O(1) space",
     ],
     examples: [
       {
-        input: "LoadBalancer().get_shard(10, 3)",
+        input: "request_id = 10, num_shards = 3",
         output: "1",
         explanation: "10 % 3 evaluates to Shard 1.",
       },
     ],
     complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `class LoadBalancer:
-    def get_shard(self, request_id: int, num_shards: int) -> int:
-        pass`,
+    initial_code: `def get_shard(request_id, num_shards):
+    pass`,
     expected_output: "1",
     hidden_tests: `import json
 def __run_tests__():
     try:
-        lb = LoadBalancer()
         cases = [((10, 3), 1), ((12, 3), 0), ((7, 4), 3), ((0, 5), 0)]
         results = []
         for idx, ((rid, n), exp) in enumerate(cases):
-            actual = lb.get_shard(rid, n)
+            actual = get_shard(rid, n)
             results.append({"id": idx + 1, "input": f"get_shard({rid}, {n})", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
         return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
     except Exception as e:
@@ -186,7 +182,7 @@ __run_tests__()`,
     description:
       "Distribute incoming API traffic evenly across servers using modulo cycling.",
     content:
-      "When millions of users open an app at once, a single server would crash. A **Load Balancer** sits in front and distributes traffic evenly in **Round-Robin** order:\n\nRequest 0 -> Server 0, Request 1 -> Server 1, Request 2 -> Server 2, Request 3 -> Server 0 again!\n\nUse the remainder operator (`%`) to wrap back smoothly: `slot = request_index % len(servers)`.",
+      "When millions of users open an app at once, a single server would crash. A **Load Balancer** sits in front and distributes traffic evenly in **Round-Robin** order:\n\nRequest 0 -> Server 0, Request 1 -> Server 1, Request 2 -> Server 2, Request 3 -> Server 0 again!\n\nUse the remainder operator (`%`) to wrap `request_index` around `len(servers)`:\n\n```python\ndef route_request(servers, request_index):\n    slot = request_index % len(servers)\n    return servers[slot]\n```",
     assignment:
       "Complete `route_request(servers, request_index)` so it returns the server name chosen by Round-Robin cycling.",
     constraints: [
@@ -237,7 +233,7 @@ __run_tests__()`,
     description:
       "Partition millions of users evenly across database shards deterministically.",
     content:
-      "When a database grows to billions of messages (like Discord or WhatsApp), one machine runs out of disk and memory. Engineers split users across multiple **Database Shards**.\n\nA deterministic shard key maps every `user_id` to the exact same shard every time: `shard_id = user_id % num_shards` -> `f\"shard_{shard_id}\"`.",
+      "When a database grows to billions of messages (like Discord or WhatsApp), one machine runs out of disk and memory. Engineers split users across multiple **Database Shards**.\n\nA deterministic shard key maps every `user_id` to the exact same shard hostname every time using `%` and an f-string:\n\n```python\ndef get_user_shard(user_id, num_shards):\n    shard_id = user_id % num_shards\n    return f\"shard_{shard_id}\"\n```",
     assignment:
       'Complete `get_user_shard(user_id, num_shards)` to compute `user_id % num_shards` and return `f"shard_{shard_id}"`.',
     constraints: [
