@@ -45,6 +45,50 @@ export const getByteCatStyles = (StudioColors: StudioThemeColors) => {
       gap: 8,
       flexWrap: "wrap",
     },
+    companionBarRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginLeft: "auto",
+    },
+    rhythmDotsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+    },
+    rhythmDot: {
+      width: 9,
+      height: 9,
+      borderRadius: 5,
+      borderWidth: 1.5,
+      borderColor: "#484D62",
+      backgroundColor: "transparent",
+    },
+    rhythmDotDone: {
+      backgroundColor: StudioColors.mint,
+      borderColor: StudioColors.mint,
+    },
+    rhythmDotToday: {
+      borderColor: StudioColors.yellow,
+    },
+    rhythmStreakPill: {
+      backgroundColor: "#242034",
+      borderWidth: 1.5,
+      borderColor: "#3D3656",
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 2.5,
+    },
+    rhythmStreakText: {
+      color: StudioColors.mint,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.5,
+    },
+    rhythmStreakTextIdle: {
+      color: "#B9B5AC",
+    },
     cardBodyRow: {
       position: "relative",
       overflow: "hidden",

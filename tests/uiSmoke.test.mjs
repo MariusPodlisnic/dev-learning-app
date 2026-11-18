@@ -772,7 +772,9 @@ test("ByteCat quotes catalog has unique IDs, no duplicate quotes, and ByteCatGui
     assert.match(item.accentBg, /^#[0-9A-Fa-f]{6}$/, `Invalid accentBg on quote ${item.id}`);
   }
 
+  const { getTodayDateKey } = loadTsModule("src/constants/streaks.ts");
   const { default: ByteCatGuideCard } = loadTsModule("src/components/ByteCatGuideCard.tsx");
+  const todayKey = getTodayDateKey();
   const cardText = visibleText(
     renderThemed(
       React.createElement(ByteCatGuideCard, {
@@ -780,12 +782,15 @@ test("ByteCat quotes catalog has unique IDs, no duplicate quotes, and ByteCatGui
         totalCount: 20,
         activeTrack: "python_basics",
         activeTrackLabel: "PYTHON BASICS",
+        streakCount: 3,
+        lastActiveDate: todayKey,
       }),
     ),
   );
   assert.ok(cardText.includes(BYTE_CAT_QUOTES[0].quote));
   assert.ok(cardText.includes(BYTE_CAT_QUOTES[0].author));
   assert.ok(cardText.includes("♪") && cardText.includes("♫"));
+  assert.ok(cardText.includes("3D STREAK"));
   assert.ok(!cardText.includes("#01/50"));
   assert.ok(!cardText.includes("STRATEGIC PAWS"));
 });

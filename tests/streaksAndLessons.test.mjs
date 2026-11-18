@@ -10,7 +10,7 @@ const {
   isProTrackPreviewLesson,
 } = loadTsModule("src/types/lesson.ts");
 
-const { computeStreakUpdate, getStreakStatus } = loadTsModule(
+const { buildWeeklyRhythmDays, computeStreakUpdate, getStreakStatus } = loadTsModule(
   "src/constants/streaks.ts",
 );
 
@@ -119,6 +119,29 @@ test("streak computation handles extend, shield protection, milestone unlock, an
   });
   assert.equal(status.isAtRisk, true);
   assert.equal(status.nextMilestone?.days, 7);
+
+  // Wednesday 2026-11-18 with a 3-day active streak (Mon/Tue/Wed)
+  const wedActive = buildWeeklyRhythmDays({
+    streakCount: 3,
+    lastActiveDate: "2026-11-18",
+    todayKey: "2026-11-18",
+  });
+  assert.equal(wedActive.activeStreak, 3);
+  assert.equal(wedActive.isActiveToday, true);
+  assert.deepEqual(
+    wedActive.days.map((d) => d.done),
+    [true, true, true, false, false, false, false],
+  );
+  assert.equal(wedActive.days[2].isToday, true);
+
+  // Broken streak resets active weekly rhythm cleanly
+  const brokenRhythm = buildWeeklyRhythmDays({
+    streakCount: 4,
+    lastActiveDate: "2026-11-10",
+    todayKey: "2026-11-18",
+  });
+  assert.equal(brokenRhythm.activeStreak, 0);
+  assert.equal(brokenRhythm.days.some((d) => d.done), false);
 });
 
 test("chapter recaps sort directly after their chapter's 4th module", () => {

@@ -121,6 +121,8 @@ export default function RoadmapTree({
   claimedChapters = {},
   onClaimChapterBonus,
   totalXp = 0,
+  streakCount = 0,
+  lastActiveDate = null,
   totalSolvedCount = 0,
   onStartQuickMode,
   onOpenPaywall,
@@ -627,6 +629,8 @@ export default function RoadmapTree({
           activeTrackLabel={currentTrackMeta.label}
           activeTrackAccent={currentTrackMeta.stickerBg}
           isPremium={isPremium}
+          streakCount={streakCount}
+          lastActiveDate={lastActiveDate}
           onOpenPaywall={onOpenPaywall}
           nextLessonTitle={nextUpLesson?.title}
           onPressNextLesson={

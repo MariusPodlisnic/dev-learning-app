@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Text } from "./StudioIcon";
 import {
+  buildWeeklyRhythmDays,
   getHoursUntilMidnight,
   getTodayDateKey,
 } from "../constants/streaks";
@@ -58,6 +59,8 @@ interface ByteCatGuideCardProps {
   activeTrackLabel: string;
   activeTrackAccent?: string;
   isPremium?: boolean;
+  streakCount?: number;
+  lastActiveDate?: string | null;
   onOpenPaywall?: () => void;
   nextLessonTitle?: string;
   onPressNextLesson?: () => void;
@@ -70,6 +73,8 @@ export default function ByteCatGuideCard({
   activeTrackLabel,
   activeTrackAccent = StudioColors.yellow,
   isPremium = false,
+  streakCount = 0,
+  lastActiveDate = null,
   onOpenPaywall,
   nextLessonTitle,
   onPressNextLesson,
@@ -151,6 +156,16 @@ export default function ByteCatGuideCard({
 
   const trackPct =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const weeklyRhythm = useMemo(
+    () =>
+      buildWeeklyRhythmDays({
+        streakCount,
+        lastActiveDate,
+        todayKey: todayKey || undefined,
+      }),
+    [lastActiveDate, streakCount, todayKey],
+  );
 
   // Top bar LED pulse and subtle crown/ambient drift
   useEffect(() => {
@@ -1132,6 +1147,35 @@ export default function ByteCatGuideCard({
               <Animated.View style={[styles.eqBar, { height: eqHeight2 }]} />
               <Animated.View style={[styles.eqBar, { height: eqHeight3 }]} />
             </View>
+          </View>
+        </View>
+
+        {/* Option 03: Minimal 7-Day Study Rhythm & Streak Chip */}
+        <View style={styles.companionBarRight}>
+          <View style={styles.rhythmDotsRow}>
+            {weeklyRhythm.days.map((day) => (
+              <View
+                key={day.dateKey}
+                accessibilityLabel={`${day.label}: ${day.done ? "completed" : day.isToday ? "today" : "pending"}`}
+                style={[
+                  styles.rhythmDot,
+                  day.done && styles.rhythmDotDone,
+                  day.isToday && styles.rhythmDotToday,
+                ]}
+              />
+            ))}
+          </View>
+          <View style={styles.rhythmStreakPill}>
+            <Text
+              style={[
+                styles.rhythmStreakText,
+                weeklyRhythm.activeStreak === 0 && styles.rhythmStreakTextIdle,
+              ]}
+            >
+              {weeklyRhythm.activeStreak > 0
+                ? `${weeklyRhythm.activeStreak}D STREAK`
+                : "READY TODAY"}
+            </Text>
           </View>
         </View>
       </View>

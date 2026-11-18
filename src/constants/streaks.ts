@@ -135,6 +135,67 @@ export function getStreakStatus(params: {
   };
 }
 
+export interface WeeklyRhythmDay {
+  dateKey: string;
+  label: string;
+  done: boolean;
+  isToday: boolean;
+}
+
+const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"] as const;
+
+/**
+ * Builds the Monday-Sunday 7-dot weekly study rhythm from the active streak
+ * and last active calendar key.
+ */
+export function buildWeeklyRhythmDays(params: {
+  streakCount: number;
+  lastActiveDate: string | null;
+  todayKey?: string;
+}): { days: WeeklyRhythmDay[]; activeStreak: number; isActiveToday: boolean } {
+  const effectiveTodayKey = params.todayKey || getTodayDateKey();
+  const status = getStreakStatus({
+    streakCount: params.streakCount,
+    lastActiveDate: params.lastActiveDate,
+    todayKey: effectiveTodayKey,
+  });
+  const activeStreak = status.isBroken ? 0 : Math.max(0, status.currentStreak);
+  const refDate = parseDateKey(effectiveTodayKey) || new Date();
+  const dayOfWeek = refDate.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+  const days: WeeklyRhythmDay[] = WEEKDAY_LABELS.map((label, idx) => {
+    const dayDate = new Date(
+      refDate.getFullYear(),
+      refDate.getMonth(),
+      refDate.getDate() + mondayOffset + idx,
+    );
+    const dateKey = getTodayDateKey(dayDate);
+    const diffFromLast =
+      activeStreak > 0 && params.lastActiveDate
+        ? getDateDiffInDays(dateKey, params.lastActiveDate)
+        : -1;
+    const done =
+      activeStreak > 0 &&
+      params.lastActiveDate !== null &&
+      diffFromLast >= 0 &&
+      diffFromLast < activeStreak;
+
+    return {
+      dateKey,
+      label,
+      done,
+      isToday: dateKey === effectiveTodayKey,
+    };
+  });
+
+  return {
+    days,
+    activeStreak,
+    isActiveToday: status.isActiveToday,
+  };
+}
+
 export interface StreakUpdateResult {
   newStreak: number;
   newLastActiveDate: string;
