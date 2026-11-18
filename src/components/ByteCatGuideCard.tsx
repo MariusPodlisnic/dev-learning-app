@@ -1016,16 +1016,6 @@ export default function ByteCatGuideCard({
     }
   }
 
-  const mascotRank = isPremium
-    ? activeTier.title
-    : completedCount >= 10
-      ? "SENIOR PURRCHITECT"
-      : completedCount >= 5
-        ? "BRANCH SLAPPER"
-        : completedCount >= 1
-          ? "CONSOLE STALKER"
-          : "KEYCAP INTERN";
-
   // Stationary, cozy twilight studio window frame colors (matches StudioColors & rainy room palette)
   const cozyOuterFrameBg = hyperPurrActive
     ? "#23293A"
@@ -1142,17 +1132,6 @@ export default function ByteCatGuideCard({
               <Animated.View style={[styles.eqBar, { height: eqHeight2 }]} />
               <Animated.View style={[styles.eqBar, { height: eqHeight3 }]} />
             </View>
-          </View>
-
-          <View
-            style={[
-              styles.rankBadge,
-              petLevel >= 5 && styles.rankBadgeLegend,
-            ]}
-          >
-            <Text style={styles.rankBadgeText}>
-              {activeTier.icon} {mascotRank}
-            </Text>
           </View>
         </View>
       </View>
@@ -1287,21 +1266,6 @@ export default function ByteCatGuideCard({
                 ]}
               />
             </View>
-
-            <Pressable
-              style={styles.perkPeekPill}
-              onPress={() =>
-                handleSwitchMode(mode === "perks" ? "wisdom" : "perks")
-              }
-            >
-              <Text style={styles.perkPeekText} numberOfLines={1}>
-                {isPremium
-                  ? petProgress.nextTier
-                    ? `NEXT LVL ${petProgress.nextTier.level}: ${petProgress.nextTier.icon} ${petProgress.nextTier.perkTitle}`
-                    : `🚀 LVL ${petLevel} · ALL PERKS ACTIVE`
-                  : "✨ VIEW 6 PRO LEVEL PERKS →"}
-              </Text>
-            </Pressable>
           </View>
 
           {/* Unified Single Daily Treat Button (Pro Only, locked after daily use) + Shuffle Button */}

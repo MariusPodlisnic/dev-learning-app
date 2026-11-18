@@ -45,24 +45,6 @@ export const getByteCatStyles = (StudioColors: StudioThemeColors) => {
       gap: 8,
       flexWrap: "wrap",
     },
-    rankBadge: {
-      backgroundColor: "#242034",
-      borderWidth: 1.5,
-      borderColor: "#3D3656",
-      borderRadius: 6,
-      paddingHorizontal: 8,
-      paddingVertical: 2.5,
-    },
-    rankBadgeLegend: {
-      borderColor: StudioColors.yellow,
-    },
-    rankBadgeText: {
-      color: StudioColors.yellow,
-      fontSize: 9,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.5,
-    },
     cardBodyRow: {
       position: "relative",
       overflow: "hidden",
@@ -296,22 +278,6 @@ export const getByteCatStyles = (StudioColors: StudioThemeColors) => {
     },
     bondMeterFill: {
       height: "100%",
-    },
-    perkPeekPill: {
-      backgroundColor: cozyStudySurface,
-      borderWidth: 1,
-      borderColor: cozyPanelBorder,
-      borderRadius: 6,
-      paddingHorizontal: 6,
-      paddingVertical: 3.5,
-      alignItems: "center",
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    perkPeekText: {
-      color: StudioColors.textSecondary,
-      fontSize: 8,
-      fontWeight: "800",
-      fontFamily: MonoFont,
     },
     actionBtnRow: {
       flexDirection: "row",
