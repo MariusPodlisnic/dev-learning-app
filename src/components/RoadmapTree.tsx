@@ -4,7 +4,6 @@ import { Link } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Animated,
-  Easing,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
@@ -14,7 +13,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { StudioIcon, type StudioIconName, Text } from "./StudioIcon";
+import { Text } from "./StudioIcon";
 import {
   ChapterTierMeta,
   getChapterForTrackLesson,
@@ -34,7 +33,7 @@ import {
   isProTrackPreviewLesson,
   PracticeChallenge,
 } from "../types/lesson";
-import { playCrtChannelSwitch, playKeyClick } from "../utils/soundEffects";
+import { playKeyClick } from "../utils/soundEffects";
 import {
   buildDueReviewQueue,
   getReviewRetentionSummary,
@@ -42,6 +41,7 @@ import {
 } from "../utils/spacedRepetition";
 import ByteCatGuideCard from "./ByteCatGuideCard";
 import RoadmapDailyQuestCard from "./RoadmapDailyQuestCard";
+import RoadmapRetroTv from "./RoadmapRetroTv";
 import RoadmapReviewCard from "./RoadmapReviewCard";
 import RoadmapScrollBackdrop from "./RoadmapScrollBackdrop";
 import RoadmapWelcomeCard from "./RoadmapWelcomeCard";
@@ -147,7 +147,6 @@ export default function RoadmapTree({
   >("all");
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [crtChannel, setCrtChannel] = useState<0 | 1 | 2 | 3 | 4>(0);
   const [onboardingState, setOnboardingState] = useState<UserOnboardingState>(
     () => getOnboardingState(),
   );
@@ -161,77 +160,6 @@ export default function RoadmapTree({
   const [contentHeight, setContentHeight] = useState<number>(2000);
   const [scrollViewHeight, setScrollViewHeight] = useState<number>(viewportHeight);
   const [scrollAnim] = useState(() => new Animated.Value(0));
-  const [cozyFloatAnim] = useState(() => new Animated.Value(0));
-
-  useEffect(() => {
-    const floatLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(cozyFloatAnim, {
-          toValue: 1,
-          duration: 2800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: false,
-        }),
-        Animated.timing(cozyFloatAnim, {
-          toValue: 0,
-          duration: 2800,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: false,
-        }),
-      ]),
-    );
-    floatLoop.start();
-    return () => floatLoop.stop();
-  }, [cozyFloatAnim]);
-
-  const cozyOrbTranslateY = cozyFloatAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [2, -6],
-  });
-  const cozyOrbRotate = cozyFloatAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["-3deg", "4deg"],
-  });
-  const cozyOrbOpacity = cozyFloatAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.88, 1, 0.88],
-  });
-  const cozySparkTranslateY = cozyFloatAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-3, 3],
-  });
-  const cozyCharmByChannel: {
-    icon: StudioIconName;
-    tintBg: string;
-    tintBorder: string;
-  }[] = [
-    {
-      icon: "crt_ch_kernel",
-      tintBg: "rgba(255, 222, 89, 0.16)",
-      tintBorder: "rgba(255, 222, 89, 0.5)",
-    },
-    {
-      icon: "crt_ch_telemetry",
-      tintBg: "rgba(184, 255, 59, 0.14)",
-      tintBorder: "rgba(184, 255, 59, 0.45)",
-    },
-    {
-      icon: "crt_ch_bytecat",
-      tintBg: "rgba(196, 181, 253, 0.18)",
-      tintBorder: "rgba(196, 181, 253, 0.52)",
-    },
-    {
-      icon: "crt_ch_lofi",
-      tintBg: "rgba(255, 144, 232, 0.16)",
-      tintBorder: "rgba(255, 144, 232, 0.5)",
-    },
-    {
-      icon: "crt_ch_brew",
-      tintBg: "rgba(110, 231, 183, 0.16)",
-      tintBorder: "rgba(110, 231, 183, 0.48)",
-    },
-  ];
-  const activeCozyCharm = cozyCharmByChannel[crtChannel];
 
   const effectiveViewportHeight = Math.max(scrollViewHeight, viewportHeight);
   const scrollThresholdY = Math.max(maxScrollBottomY, effectiveViewportHeight);
@@ -448,227 +376,18 @@ export default function RoadmapTree({
             ) : null}
           </View>
 
-          {/* Right-Side Interactive 3-Channel Retro CRT & Code Cartridge */}
-          <Animated.View
-            style={{
-              transform: [{ translateY: crtParallaxY }, { scale: crtScrollScale }],
-              opacity: crtScrollOpacity,
-            }}
-          >
-            <Pressable
-              style={({ pressed }) => [
-                styles.heroIllustrationWrap,
-                pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-              ]}
-              onPress={() => {
-                playCrtChannelSwitch();
-                setCrtChannel((prev) => ((prev + 1) % 5) as 0 | 1 | 2 | 3 | 4);
-              }}
-            >
-            {/* Inserted ROM Cartridge on Top */}
-            <View
-              style={[
-                styles.crtCartridge,
-                { backgroundColor: currentTrackMeta.stickerBg },
-              ]}
-            >
-              <View style={styles.crtCartridgeGrip} />
-              <Text style={styles.crtCartridgeText}>
-                ROM // CH-0{crtChannel + 1}
-              </Text>
-            </View>
-
-            {/* Retro Arcade Monitor Bezel */}
-            <View style={styles.crtMonitorFrame}>
-              <View style={styles.crtScreen}>
-                <View style={styles.crtScreenTopBar}>
-                  <Text style={styles.crtScreenTag}>
-                    ●{" "}
-                    {crtChannel === 1
-                      ? "SYS_TELEMETRY.SH"
-                      : crtChannel === 2
-                        ? "BYTE_CAT_OS.EXE"
-                        : crtChannel === 3
-                          ? "LOFI_MIXER.SYS"
-                          : crtChannel === 4
-                            ? "COZY_BREW.MD"
-                            : activeTrack === "python_basics"
-                              ? "PYTHON_KERNEL.PY"
-                              : activeTrack === "algorithms"
-                                ? "GRAPH_ENGINE.PY"
-                                : "CLUSTER_MESH.PY"}
-                  </Text>
-                  <Text style={styles.crtScreenFps}>
-                    CH 0{crtChannel + 1}/05
-                  </Text>
-                </View>
-
-                {crtChannel === 0 && activeTrack === "python_basics" && (
-                  <View style={styles.crtCodeBlock}>
-                    <Text style={styles.crtCodeLineLime}>
-                      {"def train_skill(dev):"}
-                    </Text>
-                    <Text style={styles.crtCodeLineYellow}>
-                      {"  while dev.curious:"}
-                    </Text>
-                    <Text style={styles.crtCodeLinePink}>
-                      {"    yield dev.level_up()"}
-                    </Text>
-                  </View>
-                )}
-
-                {crtChannel === 0 && activeTrack === "algorithms" && (
-                  <View style={styles.crtCodeBlock}>
-                    <Text style={styles.crtCodeLineViolet}>
-                      {"      [ROOT: 42]"}
-                    </Text>
-                    <Text style={styles.crtCodeLineYellow}>
-                      {"     /          \\"}
-                    </Text>
-                    <Text style={styles.crtCodeLineLime}>
-                      {" [L: 18]      [R: 89]"}
-                    </Text>
-                  </View>
-                )}
-
-                {crtChannel === 0 && activeTrack === "system_design" && (
-                  <View style={styles.crtCodeBlock}>
-                    <Text style={styles.crtCodeLinePink}>
-                      {"[CDN] ──► [LB: NGINX]"}
-                    </Text>
-                    <Text style={styles.crtCodeLineLime}>
-                      {"  ├──► [API_NODE_01]"}
-                    </Text>
-                    <Text style={styles.crtCodeLineYellow}>
-                      {"  └──► [REDIS_CACHE]"}
-                    </Text>
-                  </View>
-                )}
-
-                {crtChannel === 1 && (
-                  <View style={styles.crtCodeBlock}>
-                    <Text style={styles.crtCodeLineLime}>
-                      {`SOLVED: ${completedCount}/${trackLessons.length} MODULES`}
-                    </Text>
-                    <Text style={styles.crtCodeLineYellow}>
-                      {`METER : [${"█".repeat(
-                        Math.round((progressPercent / 100) * 8),
-                      )}${"░".repeat(
-                        Math.max(
-                          0,
-                          8 - Math.round((progressPercent / 100) * 8),
-                        ),
-                      )}] ${progressPercent}%`}
-                    </Text>
-                    <Text style={styles.crtCodeLinePink}>
-                      {progressPercent === 100
-                        ? "STATUS: TRACK CLEARED ★"
-                        : "STATUS: KERNEL ACTIVE"}
-                    </Text>
-                  </View>
-                )}
-
-                {crtChannel === 2 && (
-                  <View style={styles.crtCodeBlock}>
-                    <Text style={styles.crtCodeLineViolet}>
-                      {"  /\\_/\\   BYTE-CAT v1.0"}
-                    </Text>
-                    <Text style={styles.crtCodeLineLime}>
-                      {completedCount > 0
-                        ? ' ( ★_★ )  "PURR-FECT CODE!"'
-                        : ' ( ^._.^ ) "LET\'S PAW-GRAM!"'}
-                    </Text>
-                    <Text style={styles.crtCodeLineYellow}>
-                      {"  { _ }   [TAP CRT ↻]"}
-                    </Text>
-                  </View>
-                )}
-
-                {crtChannel === 3 && (
-                  <View style={styles.crtCodeBlock}>
-                    <Text style={styles.crtCodeLineViolet}>
-                      {"♪ BEAT : ▂ ▄ ▆ ▃ ▇ ▅ ▂ ▄"}
-                    </Text>
-                    <Text style={styles.crtCodeLineYellow}>
-                      {"  TAPE : LATE NIGHT 72BPM"}
-                    </Text>
-                    <Text style={styles.crtCodeLineLime}>
-                      {"  MOOD : COZY RAIN · FLOW"}
-                    </Text>
-                  </View>
-                )}
-
-                {crtChannel === 4 && (
-                  <View style={styles.crtCodeBlock}>
-                    <Text style={styles.crtCodeLinePink}>
-                      {"☕ BREW : MATCHA + WARM CUP"}
-                    </Text>
-                    <Text style={styles.crtCodeLineYellow}>
-                      {completedCount >= 10
-                        ? '  NOTE : "Quiet mastery grows"'
-                        : '  NOTE : "Small steps build big"'}
-                    </Text>
-                    <Text style={styles.crtCodeLineLime}>
-                      {nextUpLesson
-                        ? `  NEXT : ${nextUpLesson.title.slice(0, 18)}`
-                        : "  MODE : CALM & CURIOUS ✦"}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.crtMonitorChin}>
-                <View style={styles.crtPowerLed} />
-                <Text style={styles.crtMonitorBrand}>
-                  DECK-01 · TAP SCREEN ↻
-                </Text>
-                <View style={styles.crtVentSlots}>
-                  <View style={styles.crtVentSlot} />
-                  <View style={styles.crtVentSlot} />
-                  <View style={styles.crtVentSlot} />
-                </View>
-              </View>
-            </View>
-
-            {/* Decorative Top-Left Sticker + Dynamic Floating Calm Cozy Charm */}
-            <View style={styles.heroArtStickerTopLeft}>
-              <Text style={styles.heroArtStickerText}>✦ {currentTrackMeta.icon}</Text>
-            </View>
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.heroArtStickerBottomRight,
-                {
-                  opacity: cozyOrbOpacity,
-                  transform: [
-                    { translateY: cozyOrbTranslateY },
-                    { rotate: cozyOrbRotate },
-                  ],
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.cozyFloatOrb,
-                  {
-                    backgroundColor: activeCozyCharm.tintBg,
-                    borderColor: activeCozyCharm.tintBorder,
-                  },
-                ]}
-              >
-                <StudioIcon name={activeCozyCharm.icon} size={22} />
-              </View>
-              <Animated.Text
-                style={[
-                  styles.cozyFloatSpark,
-                  { transform: [{ translateY: cozySparkTranslateY }] },
-                ]}
-              >
-                ✦
-              </Animated.Text>
-            </Animated.View>
-            </Pressable>
-          </Animated.View>
+          {/* Right-Side Interactive 5-Channel Midnight Bubble Retro TV + VHS Slot */}
+          <RoadmapRetroTv
+            activeTrack={activeTrack}
+            trackIconLabel={currentTrackMeta.icon}
+            completedCount={completedCount}
+            totalCount={trackLessons.length}
+            progressPercent={progressPercent}
+            nextUpLessonTitle={nextUpLesson?.title}
+            scrollTranslateY={crtParallaxY}
+            scrollScale={crtScrollScale}
+            scrollOpacity={crtScrollOpacity}
+          />
         </View>
 
         {/* 5-Second Interactive Welcome for First-Time Visitors */}

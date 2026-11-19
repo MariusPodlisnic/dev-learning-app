@@ -55,6 +55,9 @@ const { default: StudioSettingsModal } = loadTsModule(
 const { default: RoadmapWelcomeCard } = loadTsModule(
   "src/components/RoadmapWelcomeCard.tsx",
 );
+const { default: RoadmapRetroTv, RETRO_TV_CHANNELS } = loadTsModule(
+  "src/components/RoadmapRetroTv.tsx",
+);
 const {
   completeOnboarding,
   resetOnboardingForTesting,
@@ -1009,4 +1012,39 @@ test("RoadmapWelcomeCard renders 5-second setup with 3 goals and ByteCatGuideCar
     "ByteCatGuideCard should greet the user by their personalized display name",
   );
   resetOnboardingForTesting();
+});
+
+test("RoadmapRetroTv renders Midnight Bubble CRT with VHS slot across all 5 channels", () => {
+  assert.equal(RETRO_TV_CHANNELS.length, 5);
+  const expectedSnippets = [
+    "PYTHON_KERNEL.PY",
+    "TELEMETRY.SH",
+    "BYTE_CAT.EXE",
+    "LOFI_MIXER.SYS",
+    "COZY_BREW.MD",
+  ];
+  for (let ch = 0; ch < 5; ch += 1) {
+    const tvText = visibleText(
+      renderThemed(
+        React.createElement(RoadmapRetroTv, {
+          activeTrack: "python_basics",
+          trackIconLabel: "PY",
+          completedCount: 4,
+          totalCount: 20,
+          progressPercent: 20,
+          nextUpLessonTitle: "Variables",
+          initialChannel: ch,
+        }),
+      ),
+    );
+    assert.ok(tvText.includes(expectedSnippets[ch]));
+    assert.ok(tvText.includes(`CH 0${ch + 1}/05`));
+    assert.ok(tvText.includes("VHS"));
+    if (ch === 3) {
+      assert.ok(
+        !tvText.includes("COZY RAIN"),
+        "CH 04 should not render COZY RAIN · FLOW subtitle",
+      );
+    }
+  }
 });

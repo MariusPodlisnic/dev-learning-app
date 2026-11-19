@@ -97,9 +97,20 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     assert.ok(metrics.boxes.achievements.x < metrics.boxes.pro.x);
     assert.ok(metrics.boxes.pro.x < metrics.boxes.save.x);
 
-    // Toggle Theme (Dark -> Light) and re-check alignment & overflow
+    // Toggle Theme (Dark -> Light) and verify alignment, overflow, and Retro TV cabinet re-theming
+    const darkTvBg = await page
+      .getByTestId("retro-tv-cabinet")
+      .evaluate((el) => window.getComputedStyle(el).backgroundColor);
     await page.getByText(/LIGHT|DARK/).first().click();
     await page.waitForTimeout(150);
+    const lightTvBg = await page
+      .getByTestId("retro-tv-cabinet")
+      .evaluate((el) => window.getComputedStyle(el).backgroundColor);
+    assert.notEqual(
+      lightTvBg,
+      darkTvBg,
+      `Expected Retro TV cabinet to update between dark (${darkTvBg}) and light (${lightTvBg}) mode`,
+    );
     const lightMetrics = await measureAccountHeaderBoxes(page);
     assert.ok(lightMetrics.overflowX <= 1);
     assert.ok(
@@ -117,17 +128,70 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     );
     await page.getByLabel("Close profile modal").click();
 
-    // Settings modal opens from the SETTINGS header tray and exposes Studio Theme Palettes
+    // Settings modal opens from the SETTINGS header tray and switching palette re-themes the Retro TV
     await page.getByLabel("Open Studio Settings and Themes").click();
     await page.waitForSelector("text=STUDIO SETTINGS", { timeout: 5000 });
     await page.waitForSelector("text=STUDIO THEME PALETTE", { timeout: 5000 });
     await page.waitForSelector("text=Matcha Cozy", { timeout: 5000 });
     await page.waitForSelector("text=DISPLAY NAME", { timeout: 5000 });
+    await page.getByText("Matcha Cozy").first().click();
+    await page.waitForTimeout(100);
     await page.getByLabel("Close settings modal").click();
+    const matchaTvBg = await page
+      .getByTestId("retro-tv-cabinet")
+      .evaluate((el) => window.getComputedStyle(el).backgroundColor);
+    assert.notEqual(
+      matchaTvBg,
+      lightTvBg,
+      `Expected Retro TV cabinet to update when switching to Matcha Cozy (${matchaTvBg} vs ${lightTvBg})`,
+    );
 
     // 5-Second Welcome card renders for fresh visitors and can be skipped cleanly
     await page.waitForSelector("text=5-SECOND SETUP", { timeout: 5000 });
     await page.getByLabel("Skip welcome setup").click();
+
+    // Midnight Bubble Retro TV switches channels smoothly and keeps CH 04/05 animations alive on repeat laps
+    await page.waitForSelector("text=CH 01/05", { timeout: 5000 });
+    for (let step = 0; step < 8; step += 1) {
+      const expectedBefore = `CH 0${(step % 5) + 1}/05`;
+      const expectedAfter = `CH 0${((step + 1) % 5) + 1}/05`;
+      await page.getByText(expectedBefore).first().click();
+      await page.waitForSelector(`text=${expectedAfter}`, { timeout: 5000 });
+    }
+    // We are now on the 2nd visit to CH 04 (index 3)
+    const ch4Text = await page.locator("body").innerText();
+    assert.ok(
+      !ch4Text.includes("COZY RAIN"),
+      "CH 04 should not display COZY RAIN · FLOW",
+    );
+    const eqHeights = [];
+    for (let i = 0; i < 4; i += 1) {
+      const h = await page
+        .getByTestId("retro-tv-eq-bar-0")
+        .evaluate((el) => el.getBoundingClientRect().height);
+      eqHeights.push(Math.round(h * 10) / 10);
+      await page.waitForTimeout(120);
+    }
+    assert.ok(
+      new Set(eqHeights).size > 1,
+      `Expected CH 04 equalizer to keep animating on 2nd lap, got heights=${JSON.stringify(eqHeights)}`,
+    );
+
+    // Advance to 2nd visit of CH 05 and verify coffee/matcha steam keeps animating
+    await page.getByText("CH 04/05").first().click();
+    await page.waitForSelector("text=CH 05/05", { timeout: 5000 });
+    const steamTransforms = [];
+    for (let i = 0; i < 4; i += 1) {
+      const tf = await page
+        .getByTestId("retro-tv-steam-0")
+        .evaluate((el) => window.getComputedStyle(el).transform);
+      steamTransforms.push(tf);
+      await page.waitForTimeout(140);
+    }
+    assert.ok(
+      new Set(steamTransforms).size > 1,
+      `Expected CH 05 steam to keep animating on 2nd lap, got transforms=${JSON.stringify(steamTransforms)}`,
+    );
 
     // Auth modal exposes OAuth buttons & Forgot Password reset flow
     await page.getByText("SAVE PROGRESS").first().click();
