@@ -867,23 +867,6 @@ export const getByteCatStyles = (StudioColors: StudioThemeColors) => {
     miniTrackMeterFill: {
       height: "100%",
     },
-    jumpMissionChip: {
-      backgroundColor: StudioColors.lime,
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-      borderRadius: 8,
-      borderWidth: 2,
-      borderColor: StudioColors.ink,
-      ...HardShadowSm,
-      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-    },
-    jumpMissionChipText: {
-      color: StudioColors.ink,
-      fontSize: 10.5,
-      fontWeight: "900",
-      fontFamily: MonoFont,
-      letterSpacing: 0.5,
-    },
   });
 };
 

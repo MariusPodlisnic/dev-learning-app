@@ -73,8 +73,6 @@ interface ByteCatGuideCardProps {
   streakCount?: number;
   lastActiveDate?: string | null;
   onOpenPaywall?: () => void;
-  nextLessonTitle?: string;
-  onPressNextLesson?: () => void;
 }
 
 export default function ByteCatGuideCard({
@@ -87,8 +85,6 @@ export default function ByteCatGuideCard({
   streakCount = 0,
   lastActiveDate = null,
   onOpenPaywall,
-  nextLessonTitle,
-  onPressNextLesson,
 }: ByteCatGuideCardProps) {
   const { colors, isDark } = useTheme();
   const styles = useThemedStyles(getByteCatStyles);
@@ -1874,7 +1870,7 @@ export default function ByteCatGuideCard({
             )}
           </Animated.View>
 
-          {/* Progress Strip + Quick Jump to Next Mission */}
+          {/* Full-Width Track Progress Strip */}
           <View style={styles.guideFooterRow}>
             <View style={styles.guideProgressWrap}>
               <Text style={styles.guideStatusText} numberOfLines={1}>
@@ -1892,20 +1888,6 @@ export default function ByteCatGuideCard({
                 />
               </View>
             </View>
-
-            {nextLessonTitle && onPressNextLesson && (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.jumpMissionChip,
-                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-                ]}
-                onPress={onPressNextLesson}
-              >
-                <Text style={styles.jumpMissionChipText} numberOfLines={1}>
-                  ▶ {nextLessonTitle.toUpperCase()} →
-                </Text>
-              </Pressable>
-            )}
           </View>
         </View>
       </View>

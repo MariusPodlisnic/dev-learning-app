@@ -666,10 +666,6 @@ export default function RoadmapTree({
           streakCount={streakCount}
           lastActiveDate={lastActiveDate}
           onOpenPaywall={onOpenPaywall}
-          nextLessonTitle={nextUpLesson?.title}
-          onPressNextLesson={
-            nextUpLesson ? () => onSelectLesson(nextUpLesson) : undefined
-          }
         />
 
         {/* Suggestive 3-Path Track Switcher */}
