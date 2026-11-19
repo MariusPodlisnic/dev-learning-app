@@ -23,6 +23,17 @@ import {
   writeLocalJson,
 } from "../types/lesson";
 import {
+  getLofiChannelMeta,
+  getLofiRadioState,
+  hydrateLofiChannelPreference,
+  LOFI_CHANNELS,
+  type LofiRadioState,
+  selectAndPlayLofiChannel,
+  subscribeLofiRadio,
+  toggleLofiRadio,
+} from "../utils/lofiRadio";
+import {
+  playCrtChannelSwitch,
   playKeyClick,
   playSuccessChime,
   playVictoryFanfare,
@@ -146,6 +157,15 @@ export default function ByteCatGuideCard({
   const [quoteMarkFloatAnim] = useState(() => new Animated.Value(0));
   const [progressAnim] = useState(() => new Animated.Value(0));
   const [petBarAnim] = useState(() => new Animated.Value(8));
+  const [lofiState, setLofiState] = useState<LofiRadioState>(() =>
+    getLofiRadioState(),
+  );
+  const activeLofiMeta = getLofiChannelMeta(lofiState.channel);
+
+  useEffect(() => {
+    void hydrateLofiChannelPreference();
+    return subscribeLofiRadio(setLofiState);
+  }, []);
 
   const petProgress = isPremium
     ? getPetLevelProgress(petXp)
@@ -231,10 +251,16 @@ export default function ByteCatGuideCard({
     };
   }, [ledPulseAnim, quoteMarkFloatAnim, sparkleAnim]);
 
-  // Mini equalizer waveform loop (speeds up in Hyper Purr or Level 3+ Cyber Whisker)
+  // Mini equalizer waveform loop (active rhythm when Lo-Fi Radio is playing; gentle idle otherwise)
   useEffect(() => {
-    const fastWave = hyperPurrActive || petLevel >= 3;
-    const speed = hyperPurrActive ? 170 : fastWave ? 260 : 420;
+    if (!lofiState.isPlaying && !hyperPurrActive) {
+      eqAnim1.setValue(0.32);
+      eqAnim2.setValue(0.55);
+      eqAnim3.setValue(0.4);
+      return;
+    }
+    const fastWave = hyperPurrActive || lofiState.isPlaying;
+    const speed = hyperPurrActive ? 170 : 280;
     const eqLoop = Animated.loop(
       Animated.parallel([
         Animated.sequence([
@@ -277,7 +303,7 @@ export default function ByteCatGuideCard({
     );
     eqLoop.start();
     return () => eqLoop.stop();
-  }, [eqAnim1, eqAnim2, eqAnim3, hyperPurrActive, petLevel]);
+  }, [eqAnim1, eqAnim2, eqAnim3, hyperPurrActive, lofiState.isPlaying]);
 
   // Avatar & card hover springs
   useEffect(() => {
@@ -1122,31 +1148,149 @@ export default function ByteCatGuideCard({
         ]}
       >
         <View style={styles.companionBarLeft}>
-          <View style={styles.liveDotBadge}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              lofiState.isPlaying
+                ? `Pause ${activeLofiMeta.label}`
+                : `Play ${activeLofiMeta.label}`
+            }
+            onPress={() => {
+              const nowPlaying = toggleLofiRadio();
+              if (nowPlaying) {
+                setWhisperText(`🎧 ${activeLofiMeta.subtitle}`);
+                spawnFloatingPopup(`♫ ${activeLofiMeta.shortLabel}`);
+              } else {
+                playKeyClick();
+                setWhisperText("🔇 RADIO PAUSED");
+              }
+            }}
+            style={({ pressed }) => [
+              styles.liveDotBadge,
+              lofiState.isPlaying && [
+                styles.liveDotBadgePlaying,
+                { borderColor: activeLofiMeta.accentColor },
+              ],
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+          >
             <View style={styles.liveDotWrap}>
-              <Animated.View
+              {lofiState.isPlaying && (
+                <Animated.View
+                  style={[
+                    styles.liveDotHalo,
+                    {
+                      backgroundColor: activeLofiMeta.accentColor,
+                      opacity: ledRingOpacity,
+                      transform: [{ scale: ledRingScale }],
+                    },
+                  ]}
+                />
+              )}
+              <View
                 style={[
-                  styles.liveDotHalo,
+                  styles.liveDot,
                   {
-                    opacity: ledRingOpacity,
-                    transform: [{ scale: ledRingScale }],
+                    backgroundColor: lofiState.isPlaying
+                      ? activeLofiMeta.accentColor
+                      : "#64748B",
                   },
                 ]}
               />
-              <View style={styles.liveDot} />
             </View>
+            <Text
+              style={[
+                styles.lofiStateGlyph,
+                lofiState.isPlaying && [
+                  styles.lofiStateGlyphActive,
+                  { color: activeLofiMeta.accentColor },
+                ],
+              ]}
+            >
+              {lofiState.isPlaying ? "❚❚" : "▶"}
+            </Text>
             <Text style={styles.liveDotText}>
               {hyperPurrActive
                 ? "☕ HYPER PURR FLOW"
-                : petLevel >= 3
-                  ? "🎧 BYTE-OS CHILLHOP"
-                  : "🎧 LO-FI STUDY · LIVE"}
+                : `🎧 ${activeLofiMeta.label}`}
             </Text>
             <View style={styles.eqWrap}>
-              <Animated.View style={[styles.eqBar, { height: eqHeight1 }]} />
-              <Animated.View style={[styles.eqBar, { height: eqHeight2 }]} />
-              <Animated.View style={[styles.eqBar, { height: eqHeight3 }]} />
+              <Animated.View
+                style={[
+                  styles.eqBar,
+                  {
+                    height: eqHeight1,
+                    backgroundColor: lofiState.isPlaying
+                      ? activeLofiMeta.accentColor
+                      : "#64748B",
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.eqBar,
+                  {
+                    height: eqHeight2,
+                    backgroundColor: lofiState.isPlaying
+                      ? activeLofiMeta.accentColor
+                      : "#64748B",
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.eqBar,
+                  {
+                    height: eqHeight3,
+                    backgroundColor: lofiState.isPlaying
+                      ? activeLofiMeta.accentColor
+                      : "#64748B",
+                  },
+                ]}
+              />
             </View>
+          </Pressable>
+
+          <View style={styles.lofiStationTray} accessibilityLabel="Lo-Fi radio stations">
+            {LOFI_CHANNELS.map((station) => {
+              const isSelected = lofiState.channel === station.id;
+              const isLiveStation = isSelected && lofiState.isPlaying;
+              return (
+                <Pressable
+                  key={station.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Switch music to ${station.label}`}
+                  onPress={() => {
+                    playCrtChannelSwitch();
+                    selectAndPlayLofiChannel(station.id);
+                    setWhisperText(`📻 ${station.subtitle}`);
+                    spawnFloatingPopup(`📻 ${station.shortLabel}`);
+                  }}
+                  style={({ pressed }) => [
+                    styles.lofiStationChip,
+                    isSelected && [
+                      styles.lofiStationChipActive,
+                      {
+                        borderColor: isLiveStation
+                          ? station.accentColor
+                          : "#4B4468",
+                      },
+                    ],
+                    pressed && { transform: [{ translateY: 1 }] },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.lofiStationChipText,
+                      isSelected && styles.lofiStationChipTextActive,
+                      isLiveStation && { color: station.accentColor },
+                    ]}
+                  >
+                    {station.chipLabel}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 

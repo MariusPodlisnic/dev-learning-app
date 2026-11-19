@@ -28,10 +28,19 @@ import {
 import { useThemedStyles } from "../constants/themeContext";
 import { ViewMode } from "../types/lesson";
 import {
+  cycleLofiChannel,
+  getLofiChannelMeta,
+  getLofiRadioState,
+  type LofiRadioState,
+  subscribeLofiRadio,
+  toggleLofiRadio,
+} from "../utils/lofiRadio";
+import {
   hydrateSoundPreference,
   isHapticsEnabled,
   isNativeMobilePlatform,
   isSoundEnabled,
+  playCrtChannelSwitch,
   playKeyClick,
   setHapticsEnabled,
   setSoundEnabled,
@@ -403,6 +412,10 @@ export default function AppHeader({
   const [hapticsOn, setHapticsOn] = useState<boolean>(() =>
     isHapticsEnabled()
   );
+  const [lofiState, setLofiState] = useState<LofiRadioState>(() =>
+    getLofiRadioState()
+  );
+  const lofiMeta = getLofiChannelMeta(lofiState.channel);
 
   useEffect(() => {
     let active = true;
@@ -411,8 +424,10 @@ export default function AppHeader({
       setSfxOn(hydratedSound);
       setHapticsOn(isHapticsEnabled());
     });
+    const unsubscribeLofi = subscribeLofiRadio(setLofiState);
     return () => {
       active = false;
+      unsubscribeLofi();
     };
   }, []);
 
@@ -956,6 +971,61 @@ export default function AppHeader({
               );
             })()}
 
+            {(!isCompactHeader || lofiState.isPlaying) && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  lofiState.isPlaying
+                    ? `Pause ${lofiMeta.label}`
+                    : `Play ${lofiMeta.label}`
+                }
+                style={({ pressed }) => [
+                  styles.themeToggleBtn,
+                  lofiState.isPlaying && [
+                    styles.lofiToggleBtnActive,
+                    { borderColor: lofiMeta.accentColor },
+                  ],
+                  pressed && {
+                    transform: [{ translateX: 1 }, { translateY: 1 }],
+                  },
+                ]}
+                onPress={() => {
+                  const playing = toggleLofiRadio();
+                  if (!playing) {
+                    playKeyClick();
+                  }
+                }}
+              >
+                <Text
+                  style={[
+                    styles.themeToggleBtnText,
+                    lofiState.isPlaying && { color: lofiMeta.accentColor },
+                  ]}
+                >
+                  {lofiState.isPlaying ? `❚❚ ${lofiMeta.shortLabel}` : "♫ LO-FI"}
+                </Text>
+              </Pressable>
+            )}
+
+            {!isCompactHeader && lofiState.isPlaying && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Next lo-fi music station"
+                style={({ pressed }) => [
+                  styles.themeToggleBtn,
+                  pressed && {
+                    transform: [{ translateX: 1 }, { translateY: 1 }],
+                  },
+                ]}
+                onPress={() => {
+                  playCrtChannelSwitch();
+                  cycleLofiChannel();
+                }}
+              >
+                <Text style={styles.themeToggleBtnText}>⏭ TRACK</Text>
+              </Pressable>
+            )}
+
             <Pressable
               style={({ pressed }) => [
                 styles.themeToggleBtn,
@@ -1326,6 +1396,9 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.5,
+    },
+    lofiToggleBtnActive: {
+      backgroundColor: "#1B2E2A",
     },
     gamificationHeader: {
       flexDirection: "row",

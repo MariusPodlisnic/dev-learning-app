@@ -23,9 +23,12 @@ const NATIVE_SFX_VOLUMES: Record<SfxEffectId, number> = {
   channel: 0.55,
 };
 
+const NATIVE_LOFI_SOURCE = require("../../assets/sfx/lofi-chillhop.wav");
+
 let hapticsEnabled = true;
 let audioModePromise: Promise<void> | null = null;
 const playerCache: Partial<Record<SfxEffectId, AudioPlayer>> = {};
+let lofiPlayer: AudioPlayer | null = null;
 
 export function isNativeMobilePlatform(): boolean {
   return Platform.OS === "ios" || Platform.OS === "android";
@@ -124,5 +127,33 @@ export function playNativeSfx(id: SfxEffectId): void {
       });
   } catch {
     // Ignore native playback errors gracefully
+  }
+}
+
+export function startNativeLofi(): void {
+  if (!isNativeMobilePlatform()) {
+    return;
+  }
+  try {
+    void ensureNativeAudioMode();
+    if (!lofiPlayer) {
+      lofiPlayer = createAudioPlayer(NATIVE_LOFI_SOURCE);
+      lofiPlayer.loop = true;
+      lofiPlayer.volume = 0.28;
+    }
+    lofiPlayer.play();
+  } catch {
+    // Ignore native lo-fi playback errors gracefully
+  }
+}
+
+export function stopNativeLofi(): void {
+  if (!isNativeMobilePlatform() || !lofiPlayer) {
+    return;
+  }
+  try {
+    lofiPlayer.pause();
+  } catch {
+    // Ignore native pause errors gracefully
   }
 }

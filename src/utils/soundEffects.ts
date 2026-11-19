@@ -1,3 +1,4 @@
+import { stopLofiRadio } from "./lofiRadio";
 import {
   ensureNativeAudioMode,
   hydrateHapticsPreference,
@@ -97,6 +98,8 @@ export function setSoundEnabled(next: boolean): void {
   writeLocalJson(STORAGE_SOUND_KEY, next);
   if (next) {
     playKeyClick();
+  } else {
+    stopLofiRadio();
   }
 }
 
