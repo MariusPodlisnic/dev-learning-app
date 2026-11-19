@@ -9,6 +9,10 @@ import {
   type StreakMilestone,
 } from "../constants/streaks";
 import { trackFunnelMilestone } from "../utils/attribution";
+import {
+  claimDailyQuestBonus,
+  recordDailyQuestStep,
+} from "../utils/dailyQuests";
 import { playVictoryFanfare } from "../utils/soundEffects";
 import {
   type CloudProgressState,
@@ -107,6 +111,7 @@ export function useArenaRewards({
   }
 
   async function handleAwardBugHuntXp(xpEarned: number, incidentId: string) {
+    recordDailyQuestStep("bughunt");
     const alreadySolved = solvedIncidents[incidentId];
     const nextSolvedIncidents = { ...solvedIncidents, [incidentId]: true };
     setSolvedIncidents(nextSolvedIncidents);
@@ -142,6 +147,7 @@ export function useArenaRewards({
 
   async function handleAwardBlitzXp(xpEarned: number) {
     if (xpEarned <= 0) return;
+    recordDailyQuestStep("blitz");
     const { newXp, newStreak, newLastActiveDate } =
       recordActiveDevSession(xpEarned);
     const nextSnapshot: CloudProgressState = {
@@ -205,10 +211,35 @@ export function useArenaRewards({
     }
   }
 
+  async function handleClaimDailyQuestBonus() {
+    const awardedXp = claimDailyQuestBonus();
+    if (awardedXp <= 0) return;
+    playVictoryFanfare();
+    const { newXp, newStreak, newLastActiveDate } =
+      recordActiveDevSession(awardedXp);
+    const nextSnapshot: CloudProgressState = {
+      ...latestGuestStateRef.current,
+      xpPoints: newXp,
+      streakCount: newStreak,
+      lastActiveDate: newLastActiveDate,
+      updatedAt: new Date().toISOString(),
+    };
+    latestGuestStateRef.current = nextSnapshot;
+
+    if (session) {
+      await pushCloudProgressState({
+        userId: session.user.id,
+        userEmail: session.user.email,
+        state: nextSnapshot,
+      });
+    }
+  }
+
   return {
     recordActiveDevSession,
     handleAwardBugHuntXp,
     handleAwardBlitzXp,
     handleClaimChapterBonus,
+    handleClaimDailyQuestBonus,
   };
 }

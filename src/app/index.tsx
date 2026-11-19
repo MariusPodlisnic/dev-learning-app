@@ -661,6 +661,7 @@ export default function HomeScreen() {
     handleAwardBugHuntXp,
     handleAwardBlitzXp,
     handleClaimChapterBonus,
+    handleClaimDailyQuestBonus,
   } = useArenaRewards({
     xpPoints,
     setXpPoints,
@@ -887,6 +888,7 @@ export default function HomeScreen() {
           onSelectLesson={handleSelectLesson}
           claimedChapters={claimedChapters}
           onClaimChapterBonus={handleClaimChapterBonus}
+          onClaimDailyQuestBonus={handleClaimDailyQuestBonus}
           isAuthenticated={Boolean(session)}
           totalXp={xpPoints}
           streakCount={streakCount}

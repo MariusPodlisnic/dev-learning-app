@@ -41,6 +41,7 @@ import {
   ReviewScheduleEntry,
 } from "../utils/spacedRepetition";
 import ByteCatGuideCard from "./ByteCatGuideCard";
+import RoadmapDailyQuestCard from "./RoadmapDailyQuestCard";
 import RoadmapReviewCard from "./RoadmapReviewCard";
 import RoadmapScrollBackdrop from "./RoadmapScrollBackdrop";
 import {
@@ -91,6 +92,7 @@ interface RoadmapTreeProps {
   onSelectLesson: (lesson: Lesson) => void;
   claimedChapters?: Record<string, boolean>;
   onClaimChapterBonus?: (chapterKey: string, bonusXp: number) => void;
+  onClaimDailyQuestBonus?: () => void;
   isAuthenticated?: boolean;
   totalXp?: number;
   streakCount?: number;
@@ -117,6 +119,7 @@ export default function RoadmapTree({
   onSelectLesson,
   claimedChapters = {},
   onClaimChapterBonus,
+  onClaimDailyQuestBonus,
   totalXp = 0,
   streakCount = 0,
   lastActiveDate = null,
@@ -702,6 +705,17 @@ export default function RoadmapTree({
             })}
           </View>
         </View>
+
+        {/* Today's 5-Min Daily Quest Strip */}
+        <RoadmapDailyQuestCard
+          onStartLessonStep={
+            nextUpLesson ? () => onSelectLesson(nextUpLesson) : undefined
+          }
+          onStartArenaStep={
+            onStartQuickMode ? (mode) => onStartQuickMode(mode) : undefined
+          }
+          onClaimBonus={onClaimDailyQuestBonus}
+        />
 
         {/* Spaced Repetition Review Queue */}
         <RoadmapReviewCard

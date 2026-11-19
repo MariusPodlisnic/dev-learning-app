@@ -785,6 +785,7 @@ test("StudioErrorBoundary recovers cleanly and split StudioIcon dictionaries ren
     "devlearn_logo",
     "crt_ch_lofi",
     "level_avatar_8",
+    "daily_quest",
   ]) {
     const iconHtml = renderThemed(
       React.createElement(StudioIcon, { name: iconName, size: 24 }),
@@ -876,4 +877,53 @@ test("ByteCat quotes catalog has unique IDs, no duplicate quotes, and ByteCatGui
   assert.ok(cardText.includes("3D STREAK"));
   assert.ok(!cardText.includes("#01/50"));
   assert.ok(!cardText.includes("STRATEGIC PAWS"));
+});
+
+test("RoadmapDailyQuestCard renders 3-step daily quest, claim button at 3/3, and claimed state", () => {
+  const { default: RoadmapDailyQuestCard } = loadTsModule(
+    "src/components/RoadmapDailyQuestCard.tsx",
+  );
+  const partialText = visibleText(
+    renderThemed(
+      React.createElement(RoadmapDailyQuestCard, {
+        initialQuestState: {
+          dateKey: "2026-11-19",
+          steps: { lesson: true, bughunt: false, blitz: false },
+          claimed: false,
+        },
+      }),
+    ),
+  );
+  assert.ok(partialText.includes("5-MIN QUEST · 1/3"));
+  assert.ok(partialText.includes("Clear 1 Lesson or Drill"));
+  assert.ok(partialText.includes("Squash 1 Bug"));
+  assert.ok(partialText.includes("Play 60s Blitz"));
+  assert.ok(partialText.includes("REWARD: +75 XP"));
+
+  const readyText = visibleText(
+    renderThemed(
+      React.createElement(RoadmapDailyQuestCard, {
+        initialQuestState: {
+          dateKey: "2026-11-19",
+          steps: { lesson: true, bughunt: true, blitz: true },
+          claimed: false,
+        },
+      }),
+    ),
+  );
+  assert.ok(readyText.includes("CLAIM +75 XP"));
+
+  const claimedText = visibleText(
+    renderThemed(
+      React.createElement(RoadmapDailyQuestCard, {
+        initialQuestState: {
+          dateKey: "2026-11-19",
+          steps: { lesson: true, bughunt: true, blitz: true },
+          claimed: true,
+        },
+      }),
+    ),
+  );
+  assert.ok(claimedText.includes("DAILY QUEST CLEARED"));
+  assert.ok(claimedText.includes("+75 XP CLAIMED"));
 });

@@ -7,6 +7,7 @@ import {
   type TestCaseResult,
 } from "../types/lesson";
 import { trackFunnelMilestone } from "../utils/attribution";
+import { recordDailyQuestStep } from "../utils/dailyQuests";
 import {
   executeLessonVerification,
   executePlaygroundPython,
@@ -234,6 +235,7 @@ export function useLessonExecution({
             : 0;
 
         const stageXp = activePractice?.xpReward || 50;
+        recordDailyQuestStep("lesson");
         const { newXp, newStreak, newLastActiveDate } = recordActiveDevSession(
           (isStageAlreadyCompleted ? 0 : stageXp) + reviewBonusXp,
         );

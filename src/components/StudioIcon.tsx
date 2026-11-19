@@ -85,7 +85,8 @@ export type CoreStudioIconName =
   | "practice_1"
   | "practice_2"
   | "practice_3"
-  | "practice_4";
+  | "practice_4"
+  | "daily_quest";
 
 export type StudioIconName =
   | CoreStudioIconName
@@ -522,6 +523,15 @@ const CORE_ICON_INNER_SVG: Record<CoreStudioIconName, string> = {
     <path d="M5 7 H27 V17 C27 23 16 29 16 29 C16 29 5 23 5 17 Z" fill="#FF6B6B" stroke="#111111" stroke-width="2.2" stroke-linejoin="round"/>
     <polygon points="10,12 13,8.5 16,12 19,8.5 22,12 21,17 11,17" fill="#FFDE59" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
     <polygon points="16,19.5 19.2,22 16,25 12.8,22" fill="#FFFBEB" stroke="#111111" stroke-width="1.5" stroke-linejoin="round"/>
+  `,
+  daily_quest: `
+    <rect x="6" y="4.5" width="18" height="22" rx="3" fill="#111111" transform="translate(1.8,1.8)"/>
+    <rect x="6" y="4.5" width="18" height="22" rx="3" fill="#FFFBEB" stroke="#111111" stroke-width="2.1"/>
+    <rect x="4" y="4" width="22" height="4.5" rx="2.2" fill="#F59E0B" stroke="#111111" stroke-width="1.9"/>
+    <rect x="4" y="23" width="16" height="4.2" rx="2" fill="#F59E0B" stroke="#111111" stroke-width="1.9"/>
+    <line x1="10" y1="12.5" x2="20" y2="12.5" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+    <line x1="10" y1="17" x2="17" y2="17" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+    <polygon points="23,15.5 24.8,19.4 29,20 25.9,22.8 26.7,27 23,24.9 19.3,27 20.1,22.8 17,20 21.2,19.4" fill="#B8FF3B" stroke="#111111" stroke-width="1.7" stroke-linejoin="round"/>
   `,
 };
 
