@@ -49,6 +49,9 @@ const { renderHighlightedPython } = loadTsModule(
 const { getDeveloperRank, MAX_DEVELOPER_LEVEL, default: ProfileStatsModal } = loadTsModule(
   "src/components/ProfileStatsModal.tsx",
 );
+const { default: StudioSettingsModal } = loadTsModule(
+  "src/components/StudioSettingsModal.tsx",
+);
 const { default: SuccessModal } = loadTsModule(
   "src/components/SuccessModal.tsx",
 );
@@ -694,6 +697,7 @@ test("10-level developer rank system enforces wider XP gaps, caps at Level 10, a
       ),
     );
     assert.ok(!levelProfileText.includes(rank.tagline));
+    assert.ok(!levelProfileText.includes("STUDIO THEME PALETTE"));
   }
 
   const successHtml = renderThemed(
@@ -926,4 +930,38 @@ test("RoadmapDailyQuestCard renders 3-step daily quest, claim button at 3/3, and
   );
   assert.ok(claimedText.includes("DAILY QUEST CLEARED"));
   assert.ok(claimedText.includes("+75 XP CLAIMED"));
+});
+
+test("StudioSettingsModal renders display mode, all 4 Studio Theme Palettes, lo-fi radio, and audio controls", () => {
+  const freeSettingsText = visibleText(
+    renderThemed(
+      React.createElement(StudioSettingsModal, {
+        level: 1,
+        isPremium: false,
+        onOpenPaywall: () => {},
+        onClose: () => {},
+      }),
+    ),
+  );
+  assert.ok(freeSettingsText.includes("STUDIO SETTINGS"));
+  assert.ok(freeSettingsText.includes("DISPLAY MODE"));
+  assert.ok(freeSettingsText.includes("STUDIO THEME PALETTE"));
+  assert.ok(freeSettingsText.includes("Midnight Arcade"));
+  assert.ok(freeSettingsText.includes("Matcha Cozy"));
+  assert.ok(freeSettingsText.includes("Amber CRT"));
+  assert.ok(freeSettingsText.includes("Sakura Terminal"));
+  assert.ok(freeSettingsText.includes("LVL 2"));
+  assert.ok(freeSettingsText.includes("LO-FI FOCUS RADIO"));
+  assert.ok(freeSettingsText.includes("Sound Effects"));
+
+  const proSettingsText = visibleText(
+    renderThemed(
+      React.createElement(StudioSettingsModal, {
+        level: 1,
+        isPremium: true,
+        onClose: () => {},
+      }),
+    ),
+  );
+  assert.ok(proSettingsText.includes("ALL UNLOCKED ★"));
 });

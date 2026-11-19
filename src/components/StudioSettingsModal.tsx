@@ -1,0 +1,812 @@
+import React, { useEffect, useState } from "react";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import {
+  HardShadow,
+  HardShadowSm,
+  isStudioPaletteUnlocked,
+  MonoFont,
+  STUDIO_PALETTES,
+  StudioColors,
+  StudioThemeColors,
+} from "../constants/theme";
+import { useTheme, useThemedStyles } from "../constants/themeContext";
+import {
+  getLofiChannelMeta,
+  getLofiRadioState,
+  LOFI_CHANNELS,
+  type LofiRadioState,
+  selectAndPlayLofiChannel,
+  subscribeLofiRadio,
+  toggleLofiRadio,
+} from "../utils/lofiRadio";
+import {
+  isHapticsEnabled,
+  isNativeMobilePlatform,
+  isSoundEnabled,
+  playCrtChannelSwitch,
+  playKeyClick,
+  setHapticsEnabled,
+  setSoundEnabled,
+  subscribeSoundPreferences,
+} from "../utils/soundEffects";
+import { StudioIcon, Text } from "./StudioIcon";
+
+interface StudioSettingsModalProps {
+  level: number;
+  isPremium: boolean;
+  onOpenPaywall?: () => void;
+  onClose: () => void;
+}
+
+export default function StudioSettingsModal({
+  level,
+  isPremium,
+  onOpenPaywall,
+  onClose,
+}: StudioSettingsModalProps) {
+  const { themeMode, setThemeMode, paletteId, setPaletteId } = useTheme();
+  const styles = useThemedStyles(createStyles);
+
+  const [sfxOn, setSfxOn] = useState<boolean>(() => isSoundEnabled());
+  const [hapticsOn, setHapticsOn] = useState<boolean>(() => isHapticsEnabled());
+  const [lofiState, setLofiState] = useState<LofiRadioState>(() =>
+    getLofiRadioState(),
+  );
+  const showHapticsToggle = isNativeMobilePlatform();
+
+  useEffect(() => {
+    const unsubLofi = subscribeLofiRadio(setLofiState);
+    const unsubSound = subscribeSoundPreferences(() => {
+      setSfxOn(isSoundEnabled());
+      setHapticsOn(isHapticsEnabled());
+    });
+    return () => {
+      unsubLofi();
+      unsubSound();
+    };
+  }, []);
+
+  const activeLofiMeta = getLofiChannelMeta(lofiState.channel);
+  const hasLockedPalettes = STUDIO_PALETTES.some(
+    (pal) => !isStudioPaletteUnlocked(pal.id, level, isPremium),
+  );
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.topAccentBar} />
+
+      <View style={styles.headerRow}>
+        <View style={styles.headerLeft}>
+          <View style={styles.headerIconBadge}>
+            <StudioIcon name="menu_settings" size={22} />
+          </View>
+          <View style={styles.headerTextCol}>
+            <Text style={styles.title}>STUDIO SETTINGS</Text>
+            <Text style={styles.subtitle}>
+              Themes, display mode, lo-fi radio &amp; audio
+            </Text>
+          </View>
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close settings modal"
+          style={styles.closeIconBtn}
+          onPress={() => {
+            playKeyClick();
+            onClose();
+          }}
+        >
+          <Text style={styles.closeIconText}>✕</Text>
+        </Pressable>
+      </View>
+
+      <ScrollView
+        style={styles.scrollBody}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 1. Light / Dark Display Mode */}
+        <Text style={styles.sectionHeading}>DISPLAY MODE</Text>
+        <View style={styles.modeToggleRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Switch to Dark Mode"
+            style={({ pressed }) => [
+              styles.modeChoiceBtn,
+              themeMode === "dark" && styles.modeChoiceBtnActive,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              setThemeMode("dark");
+            }}
+          >
+            <StudioIcon name="moon" size={16} />
+            <Text
+              style={[
+                styles.modeChoiceText,
+                themeMode === "dark" && styles.modeChoiceTextActive,
+              ]}
+            >
+              DARK MODE
+            </Text>
+            {themeMode === "dark" ? (
+              <Text style={styles.modeChoiceCheck}>✓</Text>
+            ) : null}
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Switch to Light Mode"
+            style={({ pressed }) => [
+              styles.modeChoiceBtn,
+              themeMode === "light" && styles.modeChoiceBtnActive,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              setThemeMode("light");
+            }}
+          >
+            <StudioIcon name="sun" size={16} />
+            <Text
+              style={[
+                styles.modeChoiceText,
+                themeMode === "light" && styles.modeChoiceTextActive,
+              ]}
+            >
+              LIGHT MODE
+            </Text>
+            {themeMode === "light" ? (
+              <Text style={styles.modeChoiceCheck}>✓</Text>
+            ) : null}
+          </Pressable>
+        </View>
+
+        {/* 2. Curated Cozy Studio Theme Palettes */}
+        <View style={styles.sectionHeadingRow}>
+          <Text style={styles.sectionHeading}>STUDIO THEME PALETTE</Text>
+          <Text style={styles.sectionMeta}>
+            {isPremium ? "ALL UNLOCKED ★" : `LVL ${level}`}
+          </Text>
+        </View>
+        <View style={styles.paletteGrid}>
+          {STUDIO_PALETTES.map((pal) => {
+            const unlocked = isStudioPaletteUnlocked(pal.id, level, isPremium);
+            const isSelected = paletteId === pal.id;
+            return (
+              <Pressable
+                key={pal.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${pal.name} theme${unlocked ? "" : ` (unlocks at level ${pal.minLevel})`}`}
+                disabled={!unlocked}
+                onPress={() => {
+                  if (!unlocked) return;
+                  playKeyClick();
+                  setPaletteId(pal.id);
+                }}
+                style={({ pressed }) => [
+                  styles.paletteCard,
+                  isSelected && [
+                    styles.paletteCardActive,
+                    { borderColor: pal.accent },
+                  ],
+                  !unlocked && styles.paletteCardLocked,
+                  pressed && unlocked && { transform: [{ translateY: 1 }] },
+                ]}
+              >
+                <View style={styles.paletteTopRow}>
+                  <View style={styles.paletteSwatchesRow}>
+                    {pal.swatches.map((hex, sIdx) => (
+                      <View
+                        key={sIdx}
+                        style={[
+                          styles.paletteSwatchDot,
+                          { backgroundColor: hex },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  {isSelected ? (
+                    <View
+                      style={[
+                        styles.paletteStatusPill,
+                        { backgroundColor: pal.accent },
+                      ]}
+                    >
+                      <Text style={styles.paletteStatusPillText}>✓ ACTIVE</Text>
+                    </View>
+                  ) : !unlocked ? (
+                    <View style={styles.paletteLockPill}>
+                      <Text style={styles.paletteLockPillText}>
+                        🔒 LVL {pal.minLevel}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={styles.paletteName} numberOfLines={1}>
+                  {pal.name}
+                </Text>
+                <Text style={styles.paletteSubtitle} numberOfLines={1}>
+                  {pal.subtitle}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {hasLockedPalettes && onOpenPaywall ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.unlockThemesHint,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              onClose();
+              onOpenPaywall();
+            }}
+          >
+            <Text style={styles.unlockThemesHintText}>
+              Level up by solving lessons — or unlock all 4 cozy themes now with
+              Pro →
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {/* 3. Lo-Fi Focus Radio */}
+        <View style={styles.sectionHeadingRow}>
+          <Text style={styles.sectionHeading}>LO-FI FOCUS RADIO</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              lofiState.isPlaying
+                ? `Pause ${activeLofiMeta.label}`
+                : `Play ${activeLofiMeta.label}`
+            }
+            style={({ pressed }) => [
+              styles.lofiPlayPill,
+              lofiState.isPlaying && {
+                backgroundColor: activeLofiMeta.accentColor,
+              },
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={() => {
+              const playing = toggleLofiRadio();
+              if (!playing) {
+                playKeyClick();
+              }
+            }}
+          >
+            <Text
+              style={[
+                styles.lofiPlayPillText,
+                lofiState.isPlaying && { color: StudioColors.ink },
+              ]}
+            >
+              {lofiState.isPlaying ? "❚❚ PAUSE RADIO" : "▶ PLAY RADIO"}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.lofiChannelsRow}>
+          {LOFI_CHANNELS.map((ch) => {
+            const active = lofiState.channel === ch.id;
+            return (
+              <Pressable
+                key={ch.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Switch lo-fi radio to ${ch.label}`}
+                style={({ pressed }) => [
+                  styles.lofiChannelBtn,
+                  active && [
+                    styles.lofiChannelBtnActive,
+                    { borderColor: ch.accentColor },
+                  ],
+                  pressed && { transform: [{ translateY: 1 }] },
+                ]}
+                onPress={() => {
+                  playCrtChannelSwitch();
+                  selectAndPlayLofiChannel(ch.id);
+                }}
+              >
+                <Text style={styles.lofiChannelChip}>{ch.chipLabel}</Text>
+                <Text style={styles.lofiChannelSub} numberOfLines={1}>
+                  {ch.subtitle}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* 4. Audio & Haptics */}
+        <Text style={styles.sectionHeading}>AUDIO &amp; FEEDBACK</Text>
+        <View style={styles.toggleList}>
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityState={{ checked: sfxOn }}
+            style={({ pressed }) => [
+              styles.settingRow,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={() => {
+              setSoundEnabled(!sfxOn);
+            }}
+          >
+            <View style={styles.settingRowLeft}>
+              <StudioIcon
+                name={sfxOn ? "sound_on" : "sound_off"}
+                size={18}
+              />
+              <View style={styles.settingRowText}>
+                <Text style={styles.settingRowTitle}>Sound Effects</Text>
+                <Text style={styles.settingRowDesc}>
+                  Soft chimes on key clicks, wins &amp; streak milestones
+                </Text>
+              </View>
+            </View>
+            <View
+              style={[
+                styles.switchBadge,
+                sfxOn ? styles.switchBadgeOn : styles.switchBadgeOff,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.switchBadgeText,
+                  sfxOn ? styles.switchBadgeTextOn : styles.switchBadgeTextOff,
+                ]}
+              >
+                {sfxOn ? "ON" : "MUTED"}
+              </Text>
+            </View>
+          </Pressable>
+
+          {showHapticsToggle ? (
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityState={{ checked: hapticsOn }}
+              style={({ pressed }) => [
+                styles.settingRow,
+                pressed && { transform: [{ translateY: 1 }] },
+              ]}
+              onPress={() => {
+                setHapticsEnabled(!hapticsOn);
+              }}
+            >
+              <View style={styles.settingRowLeft}>
+                <StudioIcon name="bolt" size={18} />
+                <View style={styles.settingRowText}>
+                  <Text style={styles.settingRowTitle}>Haptic Feedback</Text>
+                  <Text style={styles.settingRowDesc}>
+                    Tactile taps when solving challenges on mobile
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={[
+                  styles.switchBadge,
+                  hapticsOn ? styles.switchBadgeOn : styles.switchBadgeOff,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.switchBadgeText,
+                    hapticsOn
+                      ? styles.switchBadgeTextOn
+                      : styles.switchBadgeTextOff,
+                  ]}
+                >
+                  {hapticsOn ? "ON" : "OFF"}
+                </Text>
+              </View>
+            </Pressable>
+          ) : null}
+        </View>
+      </ScrollView>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.doneBtn,
+          pressed && { transform: [{ translateY: 1 }] },
+        ]}
+        onPress={() => {
+          playKeyClick();
+          onClose();
+        }}
+      >
+        <Text style={styles.doneBtnText}>DONE</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const createStyles = (StudioColors: StudioThemeColors) =>
+  StyleSheet.create({
+    card: {
+      width: "92%",
+      maxWidth: 540,
+      maxHeight: "90%",
+      backgroundColor: StudioColors.surface,
+      borderRadius: 16,
+      borderWidth: 2,
+      borderColor: StudioColors.border,
+      overflow: "hidden",
+      ...HardShadow,
+    },
+    topAccentBar: {
+      height: 7,
+      backgroundColor: StudioColors.mint,
+      borderBottomWidth: 2,
+      borderBottomColor: StudioColors.border,
+    },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: 2,
+      borderBottomColor: StudioColors.border,
+      backgroundColor: StudioColors.surfaceElevated,
+      gap: 12,
+    },
+    headerLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      flex: 1,
+    },
+    headerIconBadge: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: StudioColors.yellow,
+      borderWidth: 2,
+      borderColor: StudioColors.ink,
+      alignItems: "center",
+      justifyContent: "center",
+      ...HardShadowSm,
+    },
+    headerTextCol: {
+      flex: 1,
+      gap: 2,
+    },
+    title: {
+      color: StudioColors.textPrimary,
+      fontSize: 16,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.6,
+    },
+    subtitle: {
+      color: StudioColors.textMuted,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    closeIconBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      alignItems: "center",
+      justifyContent: "center",
+      ...Platform.select({ web: { cursor: "pointer" } }),
+    },
+    closeIconText: {
+      color: StudioColors.textPrimary,
+      fontSize: 14,
+      fontWeight: "900",
+    },
+    scrollBody: {
+      flexGrow: 0,
+    },
+    scrollContent: {
+      padding: 18,
+    },
+    sectionHeadingRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 8,
+      gap: 8,
+    },
+    sectionHeading: {
+      color: StudioColors.textPrimary,
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 1.3,
+      fontFamily: MonoFont,
+      marginBottom: 8,
+    },
+    sectionMeta: {
+      color: StudioColors.textMuted,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      marginBottom: 8,
+    },
+    modeToggleRow: {
+      flexDirection: "row",
+      gap: 10,
+      marginBottom: 18,
+    },
+    modeChoiceBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 11,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    modeChoiceBtnActive: {
+      backgroundColor: StudioColors.yellow,
+      borderColor: StudioColors.ink,
+      borderWidth: 2,
+    },
+    modeChoiceText: {
+      color: StudioColors.textPrimary,
+      fontSize: 11,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.5,
+    },
+    modeChoiceTextActive: {
+      color: StudioColors.ink,
+    },
+    modeChoiceCheck: {
+      color: StudioColors.ink,
+      fontSize: 12,
+      fontWeight: "900",
+    },
+    paletteGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 12,
+    },
+    paletteCard: {
+      flex: 1,
+      minWidth: 190,
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 10,
+      padding: 10,
+      gap: 4,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    paletteCardActive: {
+      borderWidth: 2,
+      backgroundColor: StudioColors.surfaceElevated,
+    },
+    paletteCardLocked: {
+      opacity: 0.68,
+      ...Platform.select({ web: { cursor: "not-allowed", userSelect: "none" } }),
+    },
+    paletteTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 6,
+      marginBottom: 2,
+    },
+    paletteSwatchesRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    paletteSwatchDot: {
+      width: 14,
+      height: 14,
+      borderRadius: 4,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+    },
+    paletteStatusPill: {
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+      borderRadius: 4,
+      paddingHorizontal: 5,
+      paddingVertical: 1.5,
+    },
+    paletteStatusPillText: {
+      color: StudioColors.ink,
+      fontSize: 8,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+    },
+    paletteLockPill: {
+      backgroundColor: StudioColors.surfaceElevated,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 4,
+      paddingHorizontal: 5,
+      paddingVertical: 1.5,
+    },
+    paletteLockPillText: {
+      color: StudioColors.textMuted,
+      fontSize: 8,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+    },
+    paletteName: {
+      color: StudioColors.textPrimary,
+      fontSize: 12,
+      fontWeight: "900",
+    },
+    paletteSubtitle: {
+      color: StudioColors.textMuted,
+      fontSize: 10,
+      fontWeight: "600",
+    },
+    unlockThemesHint: {
+      backgroundColor: StudioColors.surfaceElevated,
+      borderWidth: 1.5,
+      borderColor: StudioColors.borderSubtle,
+      borderRadius: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      marginBottom: 18,
+      ...Platform.select({ web: { cursor: "pointer" } }),
+    },
+    unlockThemesHintText: {
+      color: StudioColors.textSecondary,
+      fontSize: 11,
+      fontWeight: "700",
+    },
+    lofiPlayPill: {
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 6,
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      marginBottom: 8,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    lofiPlayPillText: {
+      color: StudioColors.textPrimary,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+    },
+    lofiChannelsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 18,
+    },
+    lofiChannelBtn: {
+      flex: 1,
+      minWidth: 130,
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 9,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      gap: 2,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    lofiChannelBtnActive: {
+      borderWidth: 2,
+      backgroundColor: StudioColors.surfaceElevated,
+    },
+    lofiChannelChip: {
+      color: StudioColors.textPrimary,
+      fontSize: 11,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    lofiChannelSub: {
+      color: StudioColors.textMuted,
+      fontSize: 9,
+      fontWeight: "700",
+      fontFamily: MonoFont,
+    },
+    toggleList: {
+      gap: 8,
+    },
+    settingRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    settingRowLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      flex: 1,
+    },
+    settingRowText: {
+      flex: 1,
+      gap: 1,
+    },
+    settingRowTitle: {
+      color: StudioColors.textPrimary,
+      fontSize: 12,
+      fontWeight: "900",
+    },
+    settingRowDesc: {
+      color: StudioColors.textMuted,
+      fontSize: 11,
+      fontWeight: "600",
+    },
+    switchBadge: {
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: 6,
+      borderWidth: 1.5,
+    },
+    switchBadgeOn: {
+      backgroundColor: StudioColors.mint,
+      borderColor: StudioColors.ink,
+    },
+    switchBadgeOff: {
+      backgroundColor: StudioColors.surfaceElevated,
+      borderColor: StudioColors.border,
+    },
+    switchBadgeText: {
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.5,
+    },
+    switchBadgeTextOn: {
+      color: StudioColors.ink,
+    },
+    switchBadgeTextOff: {
+      color: StudioColors.textMuted,
+    },
+    doneBtn: {
+      marginHorizontal: 18,
+      marginBottom: 16,
+      marginTop: 4,
+      paddingVertical: 11,
+      borderRadius: 10,
+      backgroundColor: StudioColors.surfaceElevated,
+      borderWidth: 2,
+      borderColor: StudioColors.border,
+      alignItems: "center",
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer" } }),
+    },
+    doneBtnText: {
+      color: StudioColors.textPrimary,
+      fontSize: 11,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.8,
+    },
+  });

@@ -31,62 +31,271 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export type ThemeMode = 'light' | 'dark';
 
-export const ThemePalettes: Record<
-  ThemeMode,
-  {
-    bg: string;
-    surface: string;
-    surfaceElevated: string;
-    surfaceHover: string;
-    border: string;
-    borderSubtle: string;
-    inkShadow: string;
-    textPrimary: string;
-    textSecondary: string;
-    textMuted: string;
-    textDim: string;
-    cardDoneBg: string;
-    cardDoneBorder: string;
-    cardLockedBg: string;
-  }
-> = {
-  light: {
-    bg: '#F4F0E6',
-    surface: '#FFFFFF',
-    surfaceElevated: '#EDE7D9',
-    surfaceHover: '#E4DEC9',
-    border: '#111111',
-    borderSubtle: '#D5CFC0',
-    inkShadow: '#111111',
-    textPrimary: '#111111',
-    textSecondary: '#38352F',
-    textMuted: '#686359',
-    textDim: '#8C8579',
-    cardDoneBg: '#C9F2D9',
-    cardDoneBorder: '#059669',
-    cardLockedBg: '#E6E0D0',
-  },
-  dark: {
-    bg: '#111217',
-    surface: '#1B1D24',
-    surfaceElevated: '#252833',
-    surfaceHover: '#2E3240',
-    border: '#484D62',
-    borderSubtle: '#2C2F3E',
-    inkShadow: '#000000',
-    textPrimary: '#F4F0E6',
-    textSecondary: '#B9B5AC',
-    textMuted: '#8B877E',
-    textDim: '#68655E',
-    cardDoneBg: '#162621',
-    cardDoneBorder: '#34D399',
-    cardLockedBg: '#16171D',
-  },
-};
+export type StudioPaletteId = 'arcade' | 'matcha' | 'amber' | 'sakura';
 
-export function applyColorTheme(mode: ThemeMode) {
+export const STORAGE_STUDIO_PALETTE_KEY = 'devlearn_studio_palette_v1';
+
+export interface ModeSurfacePalette {
+  bg: string;
+  surface: string;
+  surfaceElevated: string;
+  surfaceHover: string;
+  border: string;
+  borderSubtle: string;
+  inkShadow: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  textDim: string;
+  cardDoneBg: string;
+  cardDoneBorder: string;
+  cardLockedBg: string;
+  codeBg: string;
+  codeSurface: string;
+  codeBorder: string;
+}
+
+export interface StudioPaletteDefinition {
+  id: StudioPaletteId;
+  name: string;
+  subtitle: string;
+  minLevel: number;
+  accent: string;
+  swatches: readonly [string, string, string];
+  modes: Record<ThemeMode, ModeSurfacePalette>;
+}
+
+export const STUDIO_PALETTES: readonly StudioPaletteDefinition[] = [
+  {
+    id: 'arcade',
+    name: 'Midnight Arcade',
+    subtitle: 'Classic obsidian & warm cream paper',
+    minLevel: 1,
+    accent: '#B8FF3B',
+    swatches: ['#111217', '#1B1D24', '#B8FF3B'],
+    modes: {
+      light: {
+        bg: '#F4F0E6',
+        surface: '#FFFFFF',
+        surfaceElevated: '#EDE7D9',
+        surfaceHover: '#E4DEC9',
+        border: '#111111',
+        borderSubtle: '#D5CFC0',
+        inkShadow: '#111111',
+        textPrimary: '#111111',
+        textSecondary: '#38352F',
+        textMuted: '#686359',
+        textDim: '#8C8579',
+        cardDoneBg: '#C9F2D9',
+        cardDoneBorder: '#059669',
+        cardLockedBg: '#E6E0D0',
+        codeBg: '#121214',
+        codeSurface: '#1A1A1E',
+        codeBorder: '#2E2E36',
+      },
+      dark: {
+        bg: '#111217',
+        surface: '#1B1D24',
+        surfaceElevated: '#252833',
+        surfaceHover: '#2E3240',
+        border: '#484D62',
+        borderSubtle: '#2C2F3E',
+        inkShadow: '#000000',
+        textPrimary: '#F4F0E6',
+        textSecondary: '#B9B5AC',
+        textMuted: '#8B877E',
+        textDim: '#68655E',
+        cardDoneBg: '#162621',
+        cardDoneBorder: '#34D399',
+        cardLockedBg: '#16171D',
+        codeBg: '#121214',
+        codeSurface: '#1A1A1E',
+        codeBorder: '#2E2E36',
+      },
+    },
+  },
+  {
+    id: 'matcha',
+    name: 'Matcha Cozy',
+    subtitle: 'Calm Kyoto forest tea & mint glow',
+    minLevel: 1,
+    accent: '#6EE7B7',
+    swatches: ['#101A16', '#182620', '#6EE7B7'],
+    modes: {
+      light: {
+        bg: '#EFF6F0',
+        surface: '#FAFDF9',
+        surfaceElevated: '#E1EFE4',
+        surfaceHover: '#D3E7D8',
+        border: '#183629',
+        borderSubtle: '#C2DBC8',
+        inkShadow: '#10261C',
+        textPrimary: '#10261C',
+        textSecondary: '#2C4A3B',
+        textMuted: '#547364',
+        textDim: '#789687',
+        cardDoneBg: '#C6F6D5',
+        cardDoneBorder: '#059669',
+        cardLockedBg: '#E2ECE4',
+        codeBg: '#0E1713',
+        codeSurface: '#15231D',
+        codeBorder: '#2A4338',
+      },
+      dark: {
+        bg: '#101A16',
+        surface: '#182620',
+        surfaceElevated: '#21342C',
+        surfaceHover: '#2A4238',
+        border: '#3F6555',
+        borderSubtle: '#263D33',
+        inkShadow: '#050A08',
+        textPrimary: '#ECFDF5',
+        textSecondary: '#B4D3C5',
+        textMuted: '#81A696',
+        textDim: '#5B7C6E',
+        cardDoneBg: '#143126',
+        cardDoneBorder: '#6EE7B7',
+        cardLockedBg: '#131E1A',
+        codeBg: '#0D1512',
+        codeSurface: '#14211B',
+        codeBorder: '#2A4439',
+      },
+    },
+  },
+  {
+    id: 'amber',
+    name: 'Amber CRT',
+    subtitle: 'Warm espresso desk & retro gold phosphor',
+    minLevel: 2,
+    accent: '#FFDE59',
+    swatches: ['#16120D', '#221C14', '#FFDE59'],
+    modes: {
+      light: {
+        bg: '#FAF3E3',
+        surface: '#FFFDF7',
+        surfaceElevated: '#F2E5C9',
+        surfaceHover: '#E9D9B6',
+        border: '#2B2114',
+        borderSubtle: '#DFCFAF',
+        inkShadow: '#1C150C',
+        textPrimary: '#1F180F',
+        textSecondary: '#4A3C2A',
+        textMuted: '#78664E',
+        textDim: '#9A876E',
+        cardDoneBg: '#D8F3DC',
+        cardDoneBorder: '#059669',
+        cardLockedBg: '#ECE0C6',
+        codeBg: '#14100B',
+        codeSurface: '#1E1810',
+        codeBorder: '#433522',
+      },
+      dark: {
+        bg: '#16120D',
+        surface: '#221C14',
+        surfaceElevated: '#2E261B',
+        surfaceHover: '#3B3123',
+        border: '#6E5A3C',
+        borderSubtle: '#3C3122',
+        inkShadow: '#080604',
+        textPrimary: '#FEF3C7',
+        textSecondary: '#D8C7A8',
+        textMuted: '#A69578',
+        textDim: '#786A53',
+        cardDoneBg: '#1B2D21',
+        cardDoneBorder: '#34D399',
+        cardLockedBg: '#1A1510',
+        codeBg: '#120E09',
+        codeSurface: '#1C1710',
+        codeBorder: '#453724',
+      },
+    },
+  },
+  {
+    id: 'sakura',
+    name: 'Sakura Terminal',
+    subtitle: 'Lo-fi twilight plum & blossom neon',
+    minLevel: 3,
+    accent: '#FF90E8',
+    swatches: ['#17111C', '#231A2B', '#FF90E8'],
+    modes: {
+      light: {
+        bg: '#FAF0F6',
+        surface: '#FFFBFD',
+        surfaceElevated: '#F3E2ED',
+        surfaceHover: '#E9D2E1',
+        border: '#2D162A',
+        borderSubtle: '#DFC4D7',
+        inkShadow: '#1C0D1A',
+        textPrimary: '#241122',
+        textSecondary: '#4E304A',
+        textMuted: '#7D5B78',
+        textDim: '#9E7F99',
+        cardDoneBg: '#D1FAE5',
+        cardDoneBorder: '#059669',
+        cardLockedBg: '#EFE0EA',
+        codeBg: '#150F1A',
+        codeSurface: '#201728',
+        codeBorder: '#443255',
+      },
+      dark: {
+        bg: '#17111C',
+        surface: '#231A2B',
+        surfaceElevated: '#30243B',
+        surfaceHover: '#3D2E4B',
+        border: '#6A4E82',
+        borderSubtle: '#3A2B48',
+        inkShadow: '#09060B',
+        textPrimary: '#FDF2F8',
+        textSecondary: '#D5C2DB',
+        textMuted: '#A18BA8',
+        textDim: '#76627D',
+        cardDoneBg: '#172C26',
+        cardDoneBorder: '#6EE7B7',
+        cardLockedBg: '#1B1421',
+        codeBg: '#130D17',
+        codeSurface: '#1D1524',
+        codeBorder: '#433154',
+      },
+    },
+  },
+] as const;
+
+export function isValidStudioPaletteId(value: unknown): value is StudioPaletteId {
+  return (
+    value === 'arcade' ||
+    value === 'matcha' ||
+    value === 'amber' ||
+    value === 'sakura'
+  );
+}
+
+export function getStudioPaletteMeta(
+  paletteId: StudioPaletteId = 'arcade',
+): StudioPaletteDefinition {
+  return (
+    STUDIO_PALETTES.find((p) => p.id === paletteId) || STUDIO_PALETTES[0]
+  );
+}
+
+export function isStudioPaletteUnlocked(
+  paletteId: StudioPaletteId,
+  userLevel: number,
+  isPremium: boolean = false,
+): boolean {
+  if (isPremium) return true;
+  const meta = getStudioPaletteMeta(paletteId);
+  return userLevel >= meta.minLevel;
+}
+
+export const ThemePalettes: Record<ThemeMode, ModeSurfacePalette> =
+  STUDIO_PALETTES[0].modes;
+
+export function applyColorTheme(
+  mode: ThemeMode,
+  paletteId: StudioPaletteId = 'arcade',
+) {
   if (Platform.OS === 'web' && typeof document !== 'undefined') {
-    const pal = ThemePalettes[mode];
+    const pal = getStudioPaletteMeta(paletteId).modes[mode];
     const root = document.documentElement;
     root.style.setProperty('--dl-bg', pal.bg);
     root.style.setProperty('--dl-surface', pal.surface);
@@ -102,6 +311,9 @@ export function applyColorTheme(mode: ThemeMode) {
     root.style.setProperty('--dl-card-done-bg', pal.cardDoneBg);
     root.style.setProperty('--dl-card-done-border', pal.cardDoneBorder);
     root.style.setProperty('--dl-card-locked-bg', pal.cardLockedBg);
+    root.style.setProperty('--dl-code-bg', pal.codeBg);
+    root.style.setProperty('--dl-code-surface', pal.codeSurface);
+    root.style.setProperty('--dl-code-border', pal.codeBorder);
   }
 }
 
@@ -173,11 +385,18 @@ export type StudioThemeColors = {
   textSecondary: string;
   textMuted: string;
   textDim: string;
-} & typeof SHARED_ACCENT_COLORS;
+  codeBg: string;
+  codeSurface: string;
+  codeBorder: string;
+} & Omit<typeof SHARED_ACCENT_COLORS, 'codeBg' | 'codeSurface' | 'codeBorder'>;
 
-export function getStudioColors(mode: ThemeMode): StudioThemeColors {
-  const pal = ThemePalettes[mode];
+export function getStudioColors(
+  mode: ThemeMode,
+  paletteId: StudioPaletteId = 'arcade',
+): StudioThemeColors {
+  const pal = getStudioPaletteMeta(paletteId).modes[mode];
   return {
+    ...SHARED_ACCENT_COLORS,
     bg: pal.bg,
     surface: pal.surface,
     surfaceElevated: pal.surfaceElevated,
@@ -195,12 +414,16 @@ export function getStudioColors(mode: ThemeMode): StudioThemeColors {
     textSecondary: pal.textSecondary,
     textMuted: pal.textMuted,
     textDim: pal.textDim,
-    ...SHARED_ACCENT_COLORS,
+    codeBg: pal.codeBg,
+    codeSurface: pal.codeSurface,
+    codeBorder: pal.codeBorder,
   };
 }
 
 export const StudioColors: StudioThemeColors = {
-  // Dynamic Theme Surfaces (CSS-var driven on web,Midnight Dark baseline statically)
+  ...SHARED_ACCENT_COLORS,
+
+  // Dynamic Theme Surfaces (CSS-var driven on web, Midnight Dark baseline statically)
   bg: isWeb ? 'var(--dl-bg, #111217)' : '#111217',
   surface: isWeb ? 'var(--dl-surface, #1B1D24)' : '#1B1D24',
   surfaceElevated: isWeb ? 'var(--dl-surface-elevated, #252833)' : '#252833',
@@ -222,7 +445,10 @@ export const StudioColors: StudioThemeColors = {
   textMuted: isWeb ? 'var(--dl-text-muted, #8B877E)' : '#8B877E',
   textDim: isWeb ? 'var(--dl-text-dim, #68655E)' : '#68655E',
 
-  ...SHARED_ACCENT_COLORS,
+  // Deep Ink Code Editor Island (adapts cleanly to curated Studio Palettes)
+  codeBg: isWeb ? 'var(--dl-code-bg, #121214)' : '#121214',
+  codeSurface: isWeb ? 'var(--dl-code-surface, #1A1A1E)' : '#1A1A1E',
+  codeBorder: isWeb ? 'var(--dl-code-border, #2E2E36)' : '#2E2E36',
 };
 
 export const TrackThemes: Record<

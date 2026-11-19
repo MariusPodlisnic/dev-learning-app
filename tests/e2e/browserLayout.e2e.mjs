@@ -117,6 +117,13 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     );
     await page.getByText("✕").first().click();
 
+    // Settings modal opens from the SETTINGS header tray and exposes Studio Theme Palettes
+    await page.getByLabel("Open Studio Settings and Themes").click();
+    await page.waitForSelector("text=STUDIO SETTINGS", { timeout: 5000 });
+    await page.waitForSelector("text=STUDIO THEME PALETTE", { timeout: 5000 });
+    await page.waitForSelector("text=Matcha Cozy", { timeout: 5000 });
+    await page.getByLabel("Close settings modal").click();
+
     // Auth modal exposes OAuth buttons & Forgot Password reset flow
     await page.getByText("SAVE PROGRESS").first().click();
     await page.waitForSelector("text=GitHub", { timeout: 5000 });

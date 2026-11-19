@@ -18,6 +18,7 @@ import {
   Text,
 } from "./StudioIcon";
 import {
+  getStudioPaletteMeta,
   HardShadow,
   HardShadowSm,
   MonoFont,
@@ -25,7 +26,7 @@ import {
   StudioThemeColors,
   ThemeMode,
 } from "../constants/theme";
-import { useThemedStyles } from "../constants/themeContext";
+import { useTheme, useThemedStyles } from "../constants/themeContext";
 import { ViewMode } from "../types/lesson";
 import {
   cycleLofiChannel,
@@ -44,6 +45,7 @@ import {
   playKeyClick,
   setHapticsEnabled,
   setSoundEnabled,
+  subscribeSoundPreferences,
 } from "../utils/soundEffects";
 import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 
@@ -61,6 +63,7 @@ interface AppHeaderProps {
   isPremium: boolean;
   session: Session | null;
   onOpenProfile: () => void;
+  onOpenSettings?: () => void;
   onOpenPaywall: () => void;
   onOpenAuth: () => void;
   onSignOut: () => void;
@@ -402,10 +405,13 @@ export default function AppHeader({
   isPremium,
   session,
   onOpenProfile,
+  onOpenSettings,
   onOpenPaywall,
   onOpenAuth,
   onSignOut,
 }: AppHeaderProps) {
+  const { paletteId } = useTheme();
+  const activePalette = getStudioPaletteMeta(paletteId);
   const styles = useThemedStyles(getStyles);
   const showHapticsToggle = isNativeMobilePlatform();
   const [sfxOn, setSfxOn] = useState<boolean>(() => isSoundEnabled());
@@ -425,9 +431,14 @@ export default function AppHeader({
       setHapticsOn(isHapticsEnabled());
     });
     const unsubscribeLofi = subscribeLofiRadio(setLofiState);
+    const unsubscribeSound = subscribeSoundPreferences(() => {
+      setSfxOn(isSoundEnabled());
+      setHapticsOn(isHapticsEnabled());
+    });
     return () => {
       active = false;
       unsubscribeLofi();
+      unsubscribeSound();
     };
   }, []);
 
@@ -1080,6 +1091,34 @@ export default function AppHeader({
                 {themeMode === "light" ? "DARK" : "LIGHT"}
               </Text>
             </Pressable>
+
+            {onOpenSettings ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open Studio Settings and Themes"
+                style={({ pressed }) => [
+                  styles.themeToggleBtn,
+                  pressed && {
+                    transform: [{ translateX: 1 }, { translateY: 1 }],
+                  },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  onOpenSettings();
+                }}
+              >
+                <StudioIcon name="menu_settings" size={14} />
+                <View
+                  style={[
+                    styles.paletteAccentDot,
+                    { backgroundColor: activePalette.accent },
+                  ]}
+                />
+                {!isCompactHeader && (
+                  <Text style={styles.themeToggleBtnText}>THEMES</Text>
+                )}
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </View>
@@ -1399,6 +1438,13 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     },
     lofiToggleBtnActive: {
       backgroundColor: "#1B2E2A",
+    },
+    paletteAccentDot: {
+      width: 9,
+      height: 9,
+      borderRadius: 99,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
     },
     gamificationHeader: {
       flexDirection: "row",

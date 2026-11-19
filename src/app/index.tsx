@@ -230,6 +230,7 @@ export default function HomeScreen() {
   });
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [activeCertificate, setActiveCertificate] =
     useState<CertificateData | null>(null);
   const [upgrading, setUpgrading] = useState<boolean>(false);
@@ -837,6 +838,7 @@ export default function HomeScreen() {
         isPremium={effectiveIsPremium}
         session={session}
         onOpenProfile={() => setShowProfileModal(true)}
+        onOpenSettings={() => setShowSettingsModal(true)}
         onOpenPaywall={() => openPaywall({ source: "header" })}
         onOpenAuth={() => openAuthModal()}
         onSignOut={() => supabase.auth.signOut()}
@@ -1305,6 +1307,14 @@ export default function HomeScreen() {
             : undefined
         }
         onCloseProfile={() => setShowProfileModal(false)}
+        showSettingsModal={showSettingsModal}
+        onOpenSettingsPaywall={() =>
+          openPaywall({
+            source: "header",
+            lessonTitle: "All 4 Cozy Studio Theme Palettes",
+          })
+        }
+        onCloseSettings={() => setShowSettingsModal(false)}
         activeCertificate={activeCertificate}
         onCloseCertificate={() => setActiveCertificate(null)}
         activeStreakMilestone={activeStreakMilestone}

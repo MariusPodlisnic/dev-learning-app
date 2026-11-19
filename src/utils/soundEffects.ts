@@ -5,7 +5,7 @@ import {
   isHapticsEnabled,
   isNativeMobilePlatform,
   playNativeSfx,
-  setHapticsEnabled,
+  setHapticsEnabled as setNativeHapticsEnabled,
   STORAGE_HAPTICS_KEY,
   triggerHapticFeedback,
 } from "./nativeFeedback";
@@ -20,11 +20,37 @@ export {
   hydrateHapticsPreference,
   isHapticsEnabled,
   isNativeMobilePlatform,
-  setHapticsEnabled,
   STORAGE_HAPTICS_KEY,
 };
 
 export const STORAGE_SOUND_KEY = "devlearn_sound_enabled_v1";
+
+type SoundPrefListener = () => void;
+const soundPrefListeners = new Set<SoundPrefListener>();
+
+function notifySoundPrefListeners(): void {
+  soundPrefListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch {
+      // Ignore subscriber errors
+    }
+  });
+}
+
+export function subscribeSoundPreferences(
+  listener: SoundPrefListener,
+): () => void {
+  soundPrefListeners.add(listener);
+  return () => {
+    soundPrefListeners.delete(listener);
+  };
+}
+
+export function setHapticsEnabled(next: boolean): void {
+  setNativeHapticsEnabled(next);
+  notifySoundPrefListeners();
+}
 
 let soundEnabled = true;
 let audioCtx: any = null;
@@ -52,6 +78,7 @@ export async function hydrateSoundPreference(): Promise<boolean> {
   ]);
   soundEnabled = savedSound !== false;
   void ensureNativeAudioMode();
+  notifySoundPrefListeners();
   return soundEnabled;
 }
 
@@ -101,6 +128,7 @@ export function setSoundEnabled(next: boolean): void {
   } else {
     stopLofiRadio();
   }
+  notifySoundPrefListeners();
 }
 
 /**

@@ -21,6 +21,7 @@ import PaywallModal, {
 } from "./PaywallModal";
 import ProfileStatsModal from "./ProfileStatsModal";
 import StreakMilestoneModal from "./StreakMilestoneModal";
+import StudioSettingsModal from "./StudioSettingsModal";
 import SuccessModal from "./SuccessModal";
 
 interface StudioModalsProps {
@@ -69,6 +70,9 @@ interface StudioModalsProps {
   onOpenAchievementsTab: () => void;
   onToggleDevPro?: () => void;
   onCloseProfile: () => void;
+  showSettingsModal: boolean;
+  onOpenSettingsPaywall?: () => void;
+  onCloseSettings: () => void;
   activeCertificate: CertificateData | null;
   onCloseCertificate: () => void;
   activeStreakMilestone: StreakMilestone | null;
@@ -122,6 +126,9 @@ export default function StudioModals({
   onOpenAchievementsTab,
   onToggleDevPro,
   onCloseProfile,
+  showSettingsModal,
+  onOpenSettingsPaywall,
+  onCloseSettings,
   activeCertificate,
   onCloseCertificate,
   activeStreakMilestone,
@@ -290,6 +297,23 @@ export default function StudioModals({
             onToggleDevPro={onToggleDevPro}
             onOpenAuth={() => onOpenAuthPrompt("signin")}
             onClose={onCloseProfile}
+          />
+        </View>
+      )}
+
+      {showSettingsModal && (
+        <View style={styles.modalOverlay}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close settings backdrop"
+            style={StyleSheet.absoluteFill}
+            onPress={onCloseSettings}
+          />
+          <StudioSettingsModal
+            level={devRank.level}
+            isPremium={effectiveIsPremium}
+            onOpenPaywall={onOpenSettingsPaywall}
+            onClose={onCloseSettings}
           />
         </View>
       )}
