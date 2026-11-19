@@ -115,14 +115,19 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       !modalText.includes("Professional StackOverflow archaeologist"),
       "Profile modal should exclude rank taglines",
     );
-    await page.getByText("✕").first().click();
+    await page.getByLabel("Close profile modal").click();
 
     // Settings modal opens from the SETTINGS header tray and exposes Studio Theme Palettes
     await page.getByLabel("Open Studio Settings and Themes").click();
     await page.waitForSelector("text=STUDIO SETTINGS", { timeout: 5000 });
     await page.waitForSelector("text=STUDIO THEME PALETTE", { timeout: 5000 });
     await page.waitForSelector("text=Matcha Cozy", { timeout: 5000 });
+    await page.waitForSelector("text=DISPLAY NAME", { timeout: 5000 });
     await page.getByLabel("Close settings modal").click();
+
+    // 5-Second Welcome card renders for fresh visitors and can be skipped cleanly
+    await page.waitForSelector("text=5-SECOND SETUP", { timeout: 5000 });
+    await page.getByLabel("Skip welcome setup").click();
 
     // Auth modal exposes OAuth buttons & Forgot Password reset flow
     await page.getByText("SAVE PROGRESS").first().click();

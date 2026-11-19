@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
   getLevelAvatarIcon,
@@ -21,6 +21,10 @@ import {
 import { useTheme, useThemedStyles } from "../constants/themeContext";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick } from "../utils/soundEffects";
+import {
+  getOnboardingState,
+  subscribeOnboarding,
+} from "../utils/userOnboarding";
 import { Lesson } from "./RoadmapTree";
 
 interface ProfileStatsModalProps {
@@ -192,6 +196,15 @@ export default function ProfileStatsModal({
   const { colors } = useTheme();
   const styles = useThemedStyles(createStyles);
   const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
+  const [displayName, setDisplayName] = useState<string>(
+    () => getOnboardingState().displayName,
+  );
+
+  useEffect(() => {
+    return subscribeOnboarding((state) => {
+      setDisplayName(state.displayName);
+    });
+  }, []);
   const rank = getDeveloperRank(xpPoints);
   const totalLessons = lessons.length;
   const totalCompleted = lessons.filter((l) => completedLessons[l.id]).length;
@@ -273,7 +286,11 @@ export default function ProfileStatsModal({
               </View>
             </View>
             <Text style={styles.emailText} numberOfLines={1}>
-              {userEmail ? userEmail : "Guest Profile · Not synced to cloud"}
+              {displayName
+                ? `${displayName} · ${userEmail ? userEmail : "Guest Profile"}`
+                : userEmail
+                  ? userEmail
+                  : "Guest Profile · Not synced to cloud"}
             </Text>
             {onToggleDevPro && (
               <Pressable
@@ -299,7 +316,12 @@ export default function ProfileStatsModal({
           </View>
         </View>
 
-        <Pressable style={styles.closeIconBtn} onPress={onClose}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close profile modal"
+          style={styles.closeIconBtn}
+          onPress={onClose}
+        >
           <Text style={styles.closeIconText}>✕</Text>
         </Pressable>
       </View>

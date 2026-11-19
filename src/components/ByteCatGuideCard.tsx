@@ -38,6 +38,10 @@ import {
   playSuccessChime,
   playVictoryFanfare,
 } from "../utils/soundEffects";
+import {
+  getOnboardingState,
+  subscribeOnboarding,
+} from "../utils/userOnboarding";
 import ByteCatChillhopBackdrop from "./ByteCatChillhopBackdrop";
 import CozyCodingByteCatStage from "./ByteCatCozyStage";
 import { getByteCatStyles } from "./byteCatStyles";
@@ -156,11 +160,21 @@ export default function ByteCatGuideCard({
   const [lofiState, setLofiState] = useState<LofiRadioState>(() =>
     getLofiRadioState(),
   );
+  const [displayName, setDisplayName] = useState<string>(
+    () => getOnboardingState().displayName,
+  );
   const activeLofiMeta = getLofiChannelMeta(lofiState.channel);
 
   useEffect(() => {
     void hydrateLofiChannelPreference();
-    return subscribeLofiRadio(setLofiState);
+    const unsubLofi = subscribeLofiRadio(setLofiState);
+    const unsubOnboarding = subscribeOnboarding((state) => {
+      setDisplayName(state.displayName);
+    });
+    return () => {
+      unsubLofi();
+      unsubOnboarding();
+    };
   }, []);
 
   const petProgress = isPremium
@@ -1072,10 +1086,10 @@ export default function ByteCatGuideCard({
 
   const guideStatusText =
     totalCount > 0 && completedCount === totalCount
-      ? `Purr-fect! All ${totalCount} ${activeTrackLabel} modules cleared!`
+      ? `Purr-fect${displayName ? `, ${displayName}` : ""}! All ${totalCount} ${activeTrackLabel} modules cleared!`
       : completedCount === 0
-        ? `Ready to guide you through ${activeTrackLabel}!`
-        : `${completedCount}/${totalCount} solved (${trackPct}%) in ${activeTrackLabel}`;
+        ? `Ready to guide you${displayName ? `, ${displayName},` : ""} through ${activeTrackLabel}!`
+        : `${displayName ? `${displayName} · ` : ""}${completedCount}/${totalCount} solved (${trackPct}%) in ${activeTrackLabel}`;
 
   const wiggleRotate = wiggleAnim.interpolate({
     inputRange: [-2, 2],

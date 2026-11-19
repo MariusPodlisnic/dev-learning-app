@@ -52,6 +52,13 @@ const { getDeveloperRank, MAX_DEVELOPER_LEVEL, default: ProfileStatsModal } = lo
 const { default: StudioSettingsModal } = loadTsModule(
   "src/components/StudioSettingsModal.tsx",
 );
+const { default: RoadmapWelcomeCard } = loadTsModule(
+  "src/components/RoadmapWelcomeCard.tsx",
+);
+const {
+  completeOnboarding,
+  resetOnboardingForTesting,
+} = loadTsModule("src/utils/userOnboarding.ts");
 const { default: SuccessModal } = loadTsModule(
   "src/components/SuccessModal.tsx",
 );
@@ -953,6 +960,7 @@ test("StudioSettingsModal renders display mode, all 4 Studio Theme Palettes, lo-
   assert.ok(freeSettingsText.includes("LVL 2"));
   assert.ok(freeSettingsText.includes("LO-FI FOCUS RADIO"));
   assert.ok(freeSettingsText.includes("Sound Effects"));
+  assert.ok(freeSettingsText.includes("DISPLAY NAME"));
 
   const proSettingsText = visibleText(
     renderThemed(
@@ -964,4 +972,41 @@ test("StudioSettingsModal renders display mode, all 4 Studio Theme Palettes, lo-
     ),
   );
   assert.ok(proSettingsText.includes("ALL UNLOCKED ★"));
+});
+
+test("RoadmapWelcomeCard renders 5-second setup with 3 goals and ByteCatGuideCard personalizes greeting", () => {
+  resetOnboardingForTesting();
+  const welcomeText = visibleText(
+    renderThemed(
+      React.createElement(RoadmapWelcomeCard, {
+        initialGoalTrack: "python_basics",
+        onCompleteWelcome: () => {},
+      }),
+    ),
+  );
+  assert.ok(welcomeText.includes("5-SECOND SETUP"));
+  assert.ok(welcomeText.includes("Total Beginner"));
+  assert.ok(welcomeText.includes("Algorithms"));
+  assert.ok(welcomeText.includes("System Design"));
+  assert.ok(welcomeText.includes("START TOTAL BEGINNER"));
+
+  completeOnboarding({ displayName: "Alex", goalTrack: "python_basics" });
+  const { default: ByteCatGuideCard } = loadTsModule(
+    "src/components/ByteCatGuideCard.tsx",
+  );
+  const personalizedByteCat = visibleText(
+    renderThemed(
+      React.createElement(ByteCatGuideCard, {
+        completedCount: 0,
+        totalCount: 20,
+        activeTrack: "python_basics",
+        activeTrackLabel: "Python Basics",
+      }),
+    ),
+  );
+  assert.ok(
+    personalizedByteCat.includes("Alex"),
+    "ByteCatGuideCard should greet the user by their personalized display name",
+  );
+  resetOnboardingForTesting();
 });

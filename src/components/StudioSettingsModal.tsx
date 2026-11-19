@@ -4,6 +4,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
 } from "react-native";
 import {
@@ -31,10 +32,15 @@ import {
   isSoundEnabled,
   playCrtChannelSwitch,
   playKeyClick,
+  playSuccessChime,
   setHapticsEnabled,
   setSoundEnabled,
   subscribeSoundPreferences,
 } from "../utils/soundEffects";
+import {
+  getOnboardingState,
+  updateDisplayName,
+} from "../utils/userOnboarding";
 import { StudioIcon, Text } from "./StudioIcon";
 
 interface StudioSettingsModalProps {
@@ -58,6 +64,10 @@ export default function StudioSettingsModal({
   const [lofiState, setLofiState] = useState<LofiRadioState>(() =>
     getLofiRadioState(),
   );
+  const [nameDraft, setNameDraft] = useState<string>(
+    () => getOnboardingState().displayName,
+  );
+  const [nameSaved, setNameSaved] = useState<boolean>(false);
   const showHapticsToggle = isNativeMobilePlatform();
 
   useEffect(() => {
@@ -409,6 +419,44 @@ export default function StudioSettingsModal({
               </View>
             </Pressable>
           ) : null}
+        </View>
+
+        {/* 5. Byte-Cat Personalization */}
+        <Text style={[styles.sectionHeading, { marginTop: 18 }]}>
+          DISPLAY NAME
+        </Text>
+        <View style={styles.nameEditRow}>
+          <TextInput
+            accessibilityLabel="Display name for Byte-Cat"
+            style={styles.nameEditInput}
+            value={nameDraft}
+            onChangeText={(txt) => {
+              setNameDraft(txt);
+              if (nameSaved) setNameSaved(false);
+            }}
+            placeholder="Your name or handle"
+            placeholderTextColor={StudioColors.textDim}
+            maxLength={24}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Save display name"
+            style={({ pressed }) => [
+              styles.nameSaveBtn,
+              nameSaved && styles.nameSaveBtnDone,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={() => {
+              const saved = updateDisplayName(nameDraft);
+              setNameDraft(saved.displayName);
+              setNameSaved(true);
+              playSuccessChime();
+            }}
+          >
+            <Text style={styles.nameSaveBtnText}>
+              {nameSaved ? "✓ SAVED" : "SAVE"}
+            </Text>
+          </Pressable>
         </View>
       </ScrollView>
 
@@ -788,6 +836,44 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     },
     switchBadgeTextOff: {
       color: StudioColors.textMuted,
+    },
+    nameEditRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    nameEditInput: {
+      flex: 1,
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 9,
+      paddingHorizontal: 11,
+      paddingVertical: 9,
+      color: StudioColors.textPrimary,
+      fontSize: 12,
+      fontWeight: "700",
+      ...Platform.select({ web: { outlineStyle: "none" } as any }),
+    },
+    nameSaveBtn: {
+      backgroundColor: StudioColors.lime,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+      borderRadius: 9,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    nameSaveBtnDone: {
+      backgroundColor: StudioColors.mint,
+    },
+    nameSaveBtnText: {
+      color: StudioColors.ink,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.6,
     },
     doneBtn: {
       marginHorizontal: 18,

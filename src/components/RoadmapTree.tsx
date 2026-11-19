@@ -44,6 +44,14 @@ import ByteCatGuideCard from "./ByteCatGuideCard";
 import RoadmapDailyQuestCard from "./RoadmapDailyQuestCard";
 import RoadmapReviewCard from "./RoadmapReviewCard";
 import RoadmapScrollBackdrop from "./RoadmapScrollBackdrop";
+import RoadmapWelcomeCard from "./RoadmapWelcomeCard";
+import {
+  getOnboardingState,
+  hydrateOnboardingState,
+  shouldShowWelcomeCard,
+  subscribeOnboarding,
+  type UserOnboardingState,
+} from "../utils/userOnboarding";
 import {
   getDifficultyColor,
   getShortLessonSummary,
@@ -140,7 +148,15 @@ export default function RoadmapTree({
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [crtChannel, setCrtChannel] = useState<0 | 1 | 2 | 3 | 4>(0);
+  const [onboardingState, setOnboardingState] = useState<UserOnboardingState>(
+    () => getOnboardingState(),
+  );
   const [treeOffsetY, setTreeOffsetY] = useState<number>(620);
+
+  useEffect(() => {
+    void hydrateOnboardingState();
+    return subscribeOnboarding(setOnboardingState);
+  }, []);
   const [maxScrollBottomY, setMaxScrollBottomY] = useState<number>(viewportHeight);
   const [contentHeight, setContentHeight] = useState<number>(2000);
   const [scrollViewHeight, setScrollViewHeight] = useState<number>(viewportHeight);
@@ -654,6 +670,29 @@ export default function RoadmapTree({
             </Pressable>
           </Animated.View>
         </View>
+
+        {/* 5-Second Interactive Welcome for First-Time Visitors */}
+        {shouldShowWelcomeCard(onboardingState, totalSolvedCount, totalXp) ? (
+          <RoadmapWelcomeCard
+            initialGoalTrack={activeTrack}
+            onCompleteWelcome={({ goalTrack }) => {
+              onSelectTrack(goalTrack);
+              const goalLessons = lessons
+                .filter((l) => l.track === goalTrack)
+                .sort(
+                  (a, b) =>
+                    getCurriculumLessonSortKey(goalTrack, a) -
+                    getCurriculumLessonSortKey(goalTrack, b),
+                );
+              const firstStarter = goalLessons.find(
+                (l) => !isLessonLockedForUser(l, isPremium),
+              );
+              if (firstStarter) {
+                onSelectLesson(firstStarter);
+              }
+            }}
+          />
+        ) : null}
 
         {/* Byte-Cat Companion Hub & Interactive Quotes */}
         <ByteCatGuideCard
