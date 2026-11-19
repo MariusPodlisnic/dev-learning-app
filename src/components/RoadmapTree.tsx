@@ -33,9 +33,6 @@ import {
   isLessonLockedForUser,
   isProTrackPreviewLesson,
   PracticeChallenge,
-  readLocalJsonAsync,
-  STORAGE_QUICKSTART_DISMISSED_KEY,
-  writeLocalJson,
 } from "../types/lesson";
 import { playCrtChannelSwitch, playKeyClick } from "../utils/soundEffects";
 import {
@@ -140,7 +137,6 @@ export default function RoadmapTree({
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [crtChannel, setCrtChannel] = useState<0 | 1 | 2 | 3 | 4>(0);
-  const [quickstartDismissed, setQuickstartDismissed] = useState<boolean>(false);
   const [treeOffsetY, setTreeOffsetY] = useState<number>(620);
   const [maxScrollBottomY, setMaxScrollBottomY] = useState<number>(viewportHeight);
   const [contentHeight, setContentHeight] = useState<number>(2000);
@@ -223,20 +219,6 @@ export default function RoadmapTree({
   const maxScrollableDistance = Math.max(200, contentHeight - effectiveViewportHeight);
 
   useEffect(() => {
-    let cancelled = false;
-    readLocalJsonAsync<boolean>(STORAGE_QUICKSTART_DISMISSED_KEY, false).then(
-      (dismissed) => {
-        if (!cancelled && dismissed) {
-          setQuickstartDismissed(true);
-        }
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") return;
     const onWinScroll = () => {
       const y = window.scrollY || 0;
@@ -298,13 +280,7 @@ export default function RoadmapTree({
     trackLessons.find((l) => !completedLessons[l.id]) ||
     trackLessons[0];
 
-  const quickstartLesson =
-    lessons.find(
-      (l) => l.track === "python_basics" && !isLessonLockedForUser(l, isPremium),
-    ) || nextUpLesson;
-
-  const showFirstVisitQuickstart =
-    !quickstartDismissed && totalXp === 0 && totalSolvedCount === 0 && Boolean(quickstartLesson);
+  const isBrandNewHero = totalXp === 0 && totalSolvedCount === 0 && completedCount === 0;
 
   const dueReviewItems = buildDueReviewQueue({
     lessons,
@@ -396,6 +372,61 @@ export default function RoadmapTree({
             </View>
             <Text style={styles.mainHeading}>{currentTrackMeta.label}</Text>
             <Text style={styles.subHeading}>{currentTrackMeta.subtitle}</Text>
+
+            {nextUpLesson ? (
+              <View style={styles.heroActionRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    styles.heroPrimaryBtn,
+                    pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                  ]}
+                  onPress={() => {
+                    playKeyClick();
+                    onSelectLesson(nextUpLesson);
+                  }}
+                >
+                  <Text style={styles.heroPrimaryBtnText} numberOfLines={1}>
+                    {isBrandNewHero
+                      ? "▶ START LESSON 01 (+50 XP) →"
+                      : completedCount === trackLessons.length && trackLessons.length > 0
+                        ? "↻ REPLAY TRACK →"
+                        : `▶ CONTINUE: ${nextUpLesson.title} →`}
+                  </Text>
+                </Pressable>
+
+                {onStartQuickMode ? (
+                  <View style={styles.heroQuickModesRow}>
+                    <Pressable
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        styles.heroSecondaryBtn,
+                        pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                      ]}
+                      onPress={() => {
+                        playKeyClick();
+                        onStartQuickMode("blitz");
+                      }}
+                    >
+                      <Text style={styles.heroSecondaryBtnText}>⚡ 60S BLITZ</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        styles.heroSecondaryBtn,
+                        pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                      ]}
+                      onPress={() => {
+                        playKeyClick();
+                        onStartQuickMode("bughunt");
+                      }}
+                    >
+                      <Text style={styles.heroSecondaryBtnText}>🪲 BUG HUNT</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
           </View>
 
           {/* Right-Side Interactive 3-Channel Retro CRT & Code Cartridge */}
@@ -637,91 +668,6 @@ export default function RoadmapTree({
             nextUpLesson ? () => onSelectLesson(nextUpLesson) : undefined
           }
         />
-
-        {showFirstVisitQuickstart && quickstartLesson ? (
-          <View style={styles.onboardingBannerCard}>
-            <View style={styles.onboardingHeaderRow}>
-              <View style={styles.onboardingBadge}>
-                <Text style={styles.onboardingBadgeText}>
-                  ⚡ 30-SECOND QUICKSTART · ZERO SETUP
-                </Text>
-              </View>
-              <Pressable
-                style={styles.onboardingDismissBtn}
-                onPress={() => {
-                  playKeyClick();
-                  setQuickstartDismissed(true);
-                  writeLocalJson(STORAGE_QUICKSTART_DISMISSED_KEY, true);
-                }}
-              >
-                <Text style={styles.onboardingDismissText}>✕</Text>
-              </Pressable>
-            </View>
-
-            <Text style={styles.onboardingTitle}>
-              Claim your first +50 XP in under 30 seconds
-            </Text>
-            <Text style={styles.onboardingSubtext}>
-              Run real Python right in your browser or jump straight into an
-              arcade sprint—no account required to start.
-            </Text>
-
-            <View style={styles.onboardingActionRow}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.onboardingPrimaryBtn,
-                  pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-                ]}
-                onPress={() => {
-                  playKeyClick();
-                  onSelectLesson(quickstartLesson);
-                }}
-              >
-                <Text style={styles.onboardingPrimaryBtnText}>
-                  ▶ LESSON 01 (+50 XP) →
-                </Text>
-              </Pressable>
-
-              {onStartQuickMode ? (
-                <>
-                  <Pressable
-                    style={styles.onboardingSecondaryBtn}
-                    onPress={() => {
-                      playKeyClick();
-                      onStartQuickMode("blitz");
-                    }}
-                  >
-                    <Text style={styles.onboardingSecondaryBtnText}>
-                      ⚡ 60S BLITZ
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.onboardingSecondaryBtn}
-                    onPress={() => {
-                      playKeyClick();
-                      onStartQuickMode("bughunt");
-                    }}
-                  >
-                    <Text style={styles.onboardingSecondaryBtnText}>
-                      🪲 BUG HUNT
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.onboardingSecondaryBtn}
-                    onPress={() => {
-                      playKeyClick();
-                      onStartQuickMode("algolab");
-                    }}
-                  >
-                    <Text style={styles.onboardingSecondaryBtnText}>
-                      ★ ALGO LAB
-                    </Text>
-                  </Pressable>
-                </>
-              ) : null}
-            </View>
-          </View>
-        ) : null}
 
         {/* Suggestive 3-Path Track Switcher */}
         <View style={styles.trackSwitcherSection}>
