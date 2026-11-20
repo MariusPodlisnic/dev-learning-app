@@ -19,6 +19,7 @@ import {
   TrackThemes,
 } from "../constants/theme";
 import { useTheme, useThemedStyles } from "../constants/themeContext";
+import { exportShareCardPng } from "../utils/shareCardImage";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick } from "../utils/soundEffects";
 import {
@@ -193,9 +194,10 @@ export default function ProfileStatsModal({
   onOpenAuth,
   onClose,
 }: ProfileStatsModalProps) {
-  const { colors } = useTheme();
+  const { colors, paletteId } = useTheme();
   const styles = useThemedStyles(createStyles);
   const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
+  const [pngFeedback, setPngFeedback] = useState<"idle" | "saving" | "downloaded" | "shared">("idle");
   const [displayName, setDisplayName] = useState<string>(
     () => getOnboardingState().displayName,
   );
@@ -217,8 +219,7 @@ export default function ProfileStatsModal({
     userEmail,
   });
 
-  async function handleShareDevCard() {
-    playKeyClick();
+  function buildProfileShareData() {
     const url = buildChallengeUrl({ ref: "profile_card" });
     const message = [
       `🐾 Devy Developer Card`,
@@ -226,6 +227,12 @@ export default function ProfileStatsModal({
       `⚡ ${xpPoints} XP · 🔥 ${streakCount}d streak · ✓ ${totalCompleted}/${totalLessons} modules solved`,
       `Join me on Devy 👉 ${url}`,
     ].join("\n");
+    return { url, message };
+  }
+
+  async function handleShareDevCard() {
+    playKeyClick();
+    const { message } = buildProfileShareData();
     const outcome = await shareOrCopyText({
       title: `Devy Rank: ${rank.title}`,
       message,
@@ -234,6 +241,47 @@ export default function ProfileStatsModal({
     if (outcome !== "failed") {
       setShareFeedback(outcome);
       setTimeout(() => setShareFeedback("idle"), 2500);
+    }
+  }
+
+  async function handleSaveDevCardPng() {
+    playKeyClick();
+    setPngFeedback("saving");
+    const { url, message } = buildProfileShareData();
+    const outcome = await exportShareCardPng({
+      payload: {
+        variant: "profile_card",
+        eyebrow: `DEVELOPER CARD · LVL ${rank.level}`,
+        headline: displayName || rank.title,
+        subtitle: displayName
+          ? `LVL ${rank.level} · ${rank.title} — ${isPremium ? "PRO MEMBER ★" : "PYTHON STUDIO"}`
+          : isPremium
+            ? "PRO ARCADE MEMBER · ALL TRACKS UNLOCKED"
+            : "PYTHON · ALGORITHMS · SYSTEM DESIGN",
+        displayName,
+        rankLevel: rank.level,
+        rankTitle: rank.title,
+        xpPoints,
+        streakCount,
+        metric3Label: "SOLVED",
+        metric3Value: `${totalCompleted}/${totalLessons}`,
+        paletteId,
+        accentColor: rank.accent,
+        footerUrl: url,
+      },
+      fallbackTitle: `Devy Rank: ${rank.title}`,
+      fallbackMessage: message,
+      channel: "profile_card",
+    });
+    if (outcome === "downloaded" || outcome === "shared") {
+      setPngFeedback(outcome);
+      setTimeout(() => setPngFeedback("idle"), 2600);
+    } else if (outcome === "copied") {
+      setPngFeedback("idle");
+      setShareFeedback("copied");
+      setTimeout(() => setShareFeedback("idle"), 2500);
+    } else {
+      setPngFeedback("idle");
     }
   }
 
@@ -386,22 +434,49 @@ export default function ProfileStatsModal({
           </View>
         </View>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.shareCardBtn,
-            shareFeedback !== "idle" && styles.shareCardBtnDone,
-            pressed && { transform: [{ translateY: 1 }] },
-          ]}
-          onPress={handleShareDevCard}
-        >
-          <Text style={styles.shareCardBtnText}>
-            {shareFeedback === "copied"
-              ? "✓ DEVELOPER CARD COPIED TO CLIPBOARD!"
-              : shareFeedback === "shared"
-                ? "✓ DEVELOPER CARD SHARED!"
-                : "📤 SHARE MY DEVELOPER CARD ↗"}
-          </Text>
-        </Pressable>
+        <View style={styles.shareActionsRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Save visual PNG developer card"
+            disabled={pngFeedback === "saving"}
+            style={({ pressed }) => [
+              styles.pngCardBtn,
+              (pngFeedback === "downloaded" || pngFeedback === "shared") &&
+                styles.shareCardBtnDone,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={handleSaveDevCardPng}
+          >
+            <Text style={styles.shareCardBtnText}>
+              {pngFeedback === "saving"
+                ? "RENDERING PNG..."
+                : pngFeedback === "downloaded"
+                  ? "✓ PNG SAVED!"
+                  : pngFeedback === "shared"
+                    ? "✓ PNG SHARED!"
+                    : "🖼️ SAVE PNG CARD"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Copy or share developer card text"
+            style={({ pressed }) => [
+              styles.shareCardBtn,
+              shareFeedback !== "idle" && styles.shareCardBtnDone,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={handleShareDevCard}
+          >
+            <Text style={styles.shareCardBtnText}>
+              {shareFeedback === "copied"
+                ? "✓ COPIED!"
+                : shareFeedback === "shared"
+                  ? "✓ SHARED!"
+                  : "📤 COPY TEXT ↗"}
+            </Text>
+          </Pressable>
+        </View>
 
         {/* Track Mastery Breakdown */}
         <Text style={styles.sectionHeading}>TRACK MASTERY</Text>
@@ -820,13 +895,30 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     fontWeight: "900",
     fontFamily: MonoFont,
   },
-  shareCardBtn: {
+  shareActionsRow: {
+    flexDirection: "row",
+    gap: 8,
     marginBottom: 16,
+  },
+  pngCardBtn: {
+    flex: 1,
+    backgroundColor: "#A5F3FC",
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    paddingVertical: 11,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  shareCardBtn: {
+    flex: 1,
     backgroundColor: StudioColors.yellow,
     borderWidth: 2,
     borderColor: StudioColors.ink,
     paddingVertical: 11,
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
     borderRadius: 10,
     alignItems: "center",
     ...HardShadowSm,

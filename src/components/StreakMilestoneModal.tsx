@@ -14,9 +14,11 @@ import {
   StudioColors,
   StudioThemeColors,
 } from "../constants/theme";
-import { useThemedStyles } from "../constants/themeContext";
-import { shareOrCopyText } from "../utils/shareUtils";
+import { useTheme, useThemedStyles } from "../constants/themeContext";
+import { exportShareCardPng } from "../utils/shareCardImage";
+import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick, playVictoryFanfare } from "../utils/soundEffects";
+import { getOnboardingState } from "../utils/userOnboarding";
 import PixelConfetti from "./PixelConfetti";
 
 interface StreakMilestoneModalProps {
@@ -34,10 +36,14 @@ export default function StreakMilestoneModal({
   rankTitle,
   onClose,
 }: StreakMilestoneModalProps) {
+  const { paletteId } = useTheme();
   const styles = useThemedStyles(createStyles);
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "shared">(
     "idle",
   );
+  const [pngStatus, setPngStatus] = useState<
+    "idle" | "saving" | "downloaded" | "shared"
+  >("idle");
 
   React.useEffect(() => {
     playVictoryFanfare();
@@ -58,6 +64,52 @@ export default function StreakMilestoneModal({
     if (outcome !== "failed") {
       setShareStatus(outcome);
       setTimeout(() => setShareStatus("idle"), 2500);
+    }
+  }
+
+  async function handleSaveStreakPng() {
+    playKeyClick();
+    setPngStatus("saving");
+    const { displayName } = getOnboardingState();
+    const levelMatch = rankTitle.match(/\d+/);
+    const parsedLevel = levelMatch ? Number(levelMatch[0]) : 1;
+    const cleanRankTitle = rankTitle.replace(/^L\d+\s*/i, "").trim() || rankTitle;
+
+    const outcome = await exportShareCardPng({
+      payload: {
+        variant: "streak_milestone",
+        eyebrow: `${milestone.badge} · +${milestone.bonusXp} BONUS XP`,
+        headline: `${streakCount}-DAY STREAK!`,
+        subtitle: `"${milestone.tagline}"`,
+        displayName,
+        rankLevel: parsedLevel,
+        rankTitle: cleanRankTitle,
+        xpPoints,
+        streakCount,
+        metric3Label: "MILESTONE",
+        metric3Value: `+${milestone.bonusXp} XP`,
+        paletteId,
+        accentColor: milestone.accent,
+        footerUrl: buildChallengeUrl({ ref: "streak_milestone" }),
+      },
+      fallbackTitle: `Devy — ${milestone.badge}: ${milestone.title}`,
+      fallbackMessage: buildStreakShareText({
+        streakCount,
+        milestone,
+        xpPoints,
+        rankTitle,
+      }),
+      channel: "streak_milestone",
+    });
+    if (outcome === "downloaded" || outcome === "shared") {
+      setPngStatus(outcome);
+      setTimeout(() => setPngStatus("idle"), 2600);
+    } else if (outcome === "copied") {
+      setPngStatus("idle");
+      setShareStatus("copied");
+      setTimeout(() => setShareStatus("idle"), 2500);
+    } else {
+      setPngStatus("idle");
     }
   }
 
@@ -132,22 +184,49 @@ export default function StreakMilestoneModal({
 
       {/* Actions */}
       <View style={styles.actionsCol}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.shareBtn,
-            shareStatus !== "idle" && styles.shareBtnDone,
-            pressed && { transform: [{ translateY: 1 }] },
-          ]}
-          onPress={handleShareStreak}
-        >
-          <Text style={styles.shareBtnText}>
-            {shareStatus === "copied"
-              ? "✓ COPIED TO CLIPBOARD!"
-              : shareStatus === "shared"
-                ? "✓ STREAK CARD SHARED!"
-                : "📤 SHARE MY STREAK CARD ↗"}
-          </Text>
-        </Pressable>
+        <View style={styles.shareActionsRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Save visual PNG streak card"
+            disabled={pngStatus === "saving"}
+            style={({ pressed }) => [
+              styles.pngShareBtn,
+              (pngStatus === "downloaded" || pngStatus === "shared") &&
+                styles.shareBtnDone,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={handleSaveStreakPng}
+          >
+            <Text style={styles.shareBtnText}>
+              {pngStatus === "saving"
+                ? "RENDERING PNG..."
+                : pngStatus === "downloaded"
+                  ? "✓ PNG SAVED!"
+                  : pngStatus === "shared"
+                    ? "✓ PNG SHARED!"
+                    : "🖼️ SAVE PNG CARD"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Copy or share streak text"
+            style={({ pressed }) => [
+              styles.shareBtn,
+              shareStatus !== "idle" && styles.shareBtnDone,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={handleShareStreak}
+          >
+            <Text style={styles.shareBtnText}>
+              {shareStatus === "copied"
+                ? "✓ COPIED!"
+                : shareStatus === "shared"
+                  ? "✓ SHARED!"
+                  : "📤 SHARE TEXT ↗"}
+            </Text>
+          </Pressable>
+        </View>
 
         <Pressable
           style={({ pressed }) => [
@@ -332,12 +411,31 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     gap: 8,
     marginTop: 4,
   },
+  shareActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  pngShareBtn: {
+    flex: 1,
+    backgroundColor: "#A5F3FC",
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer" } }),
+  },
   shareBtn: {
+    flex: 1,
     backgroundColor: StudioColors.yellow,
     borderWidth: 2,
     borderColor: StudioColors.ink,
     borderRadius: 10,
     paddingVertical: 12,
+    paddingHorizontal: 8,
     alignItems: "center",
     justifyContent: "center",
     ...HardShadowSm,

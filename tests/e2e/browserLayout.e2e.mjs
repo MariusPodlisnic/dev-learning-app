@@ -118,13 +118,22 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       "Order should stay intact after toggling theme",
     );
 
-    // Profile modal opens with Level 1 avatar & no excluded rank tagline
+    // Profile modal opens with Level 1 avatar, no excluded rank tagline, and working PNG card download
     await page.getByText("MY PROFILE & STATS").first().click();
     await page.waitForSelector("text=LVL 1", { timeout: 5000 });
+    await page.waitForSelector("text=SAVE PNG CARD", { timeout: 5000 });
     const modalText = await page.locator("body").innerText();
     assert.ok(
       !modalText.includes("Professional StackOverflow archaeologist"),
       "Profile modal should exclude rank taglines",
+    );
+    const [pngDownload] = await Promise.all([
+      page.waitForEvent("download", { timeout: 5000 }),
+      page.getByLabel("Save visual PNG developer card").click(),
+    ]);
+    assert.ok(
+      pngDownload.suggestedFilename().endsWith(".png"),
+      `Expected PNG share card download, got ${pngDownload.suggestedFilename()}`,
     );
     await page.getByLabel("Close profile modal").click();
 

@@ -65,6 +65,9 @@ const {
 const { default: SuccessModal } = loadTsModule(
   "src/components/SuccessModal.tsx",
 );
+const { default: StreakMilestoneModal } = loadTsModule(
+  "src/components/StreakMilestoneModal.tsx",
+);
 const { default: StudioErrorBoundary } = loadTsModule(
   "src/components/StudioErrorBoundary.tsx",
 );
@@ -723,6 +726,29 @@ test("10-level developer rank system enforces wider XP gaps, caps at Level 10, a
   const successText = visibleText(successHtml);
   assert.ok(successText.includes("LVL 10 · MAX"));
   assert.ok(successText.includes("MAX LEVEL 10 REACHED"));
+  assert.ok(successText.includes("SAVE PNG CARD"));
+
+  const streakModalText = visibleText(
+    renderThemed(
+      React.createElement(StreakMilestoneModal, {
+        milestone: {
+          days: 7,
+          badge: "7-DAY FLAME",
+          title: "Unstoppable Rhythm",
+          tagline: "One full week of daily code.",
+          icon: "🔥",
+          accent: "#FFDE59",
+          bonusXp: 150,
+        },
+        streakCount: 7,
+        xpPoints: 650,
+        rankTitle: "L2 Loop Wrangler",
+        onClose: () => {},
+      }),
+    ),
+  );
+  assert.ok(streakModalText.includes("7-DAY STREAK!"));
+  assert.ok(streakModalText.includes("SAVE PNG CARD"));
 
   // Ensure all 10 levels produce unique avatar SVGs in AppHeader
   const headerAvatars = Array.from({ length: 10 }, (_, idx) => {

@@ -9,9 +9,11 @@ import {
   StudioColors,
   StudioThemeColors,
 } from "../constants/theme";
-import { useThemedStyles } from "../constants/themeContext";
+import { useTheme, useThemedStyles } from "../constants/themeContext";
+import { exportShareCardPng } from "../utils/shareCardImage";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick, playVictoryFanfare } from "../utils/soundEffects";
+import { getOnboardingState } from "../utils/userOnboarding";
 import PixelConfetti from "./PixelConfetti";
 import { getDeveloperRank } from "./ProfileStatsModal";
 
@@ -56,8 +58,10 @@ export default function SuccessModal({
   onNextLesson,
   onClose,
 }: SuccessModalProps) {
+  const { paletteId } = useTheme();
   const styles = useThemedStyles(createStyles);
   const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
+  const [pngFeedback, setPngFeedback] = useState<"idle" | "saving" | "downloaded" | "shared">("idle");
   const currentRank = getDeveloperRank(totalXp);
   const previousRank = getDeveloperRank(Math.max(0, totalXp - xpEarned));
   const didLevelUp = currentRank.level > previousRank.level;
@@ -66,8 +70,7 @@ export default function SuccessModal({
     playVictoryFanfare();
   }, []);
 
-  async function handleShare() {
-    playKeyClick();
+  function buildWinShareData() {
     const challengeUrl = buildChallengeUrl(
       lessonId ? { lessonId, ref: "lesson_win" } : { ref: "lesson_win" },
     );
@@ -75,6 +78,12 @@ export default function SuccessModal({
     const message = didLevelUp
       ? `🎉 Promoted to LVL ${currentRank.level}: ${currentRank.title} in Devy!\n✅ Just solved "${lessonTitle}" (+${xpEarned} XP${streakSegment})\nTry this lab 👉 ${challengeUrl}`
       : `✅ Solved "${lessonTitle}" in Devy (+${xpEarned} XP${streakSegment})!\n🏅 Rank: LVL ${currentRank.level} · ${currentRank.title}\nBeat my solution 👉 ${challengeUrl}`;
+    return { challengeUrl, message };
+  }
+
+  async function handleShare() {
+    playKeyClick();
+    const { message } = buildWinShareData();
 
     const outcome = await shareOrCopyText({
       title: `Devy — ${lessonTitle}`,
@@ -84,6 +93,50 @@ export default function SuccessModal({
     if (outcome !== "failed") {
       setShareFeedback(outcome);
       setTimeout(() => setShareFeedback("idle"), 2500);
+    }
+  }
+
+  async function handleSavePngCard() {
+    playKeyClick();
+    setPngFeedback("saving");
+    const { challengeUrl, message } = buildWinShareData();
+    const { displayName } = getOnboardingState();
+    const starsValue =
+      typeof starRating === "number" && starRating > 0
+        ? `${"★".repeat(starRating)}${"☆".repeat(3 - starRating)} ${starRating}/3`
+        : `+${xpEarned} XP`;
+
+    const outcome = await exportShareCardPng({
+      payload: {
+        variant: "lesson_win",
+        eyebrow: didLevelUp
+          ? `PROMOTED TO LVL ${currentRank.level}`
+          : `${challengeStepLabel || "MISSION CLEARED"} · +${xpEarned} XP`,
+        headline: lessonTitle || "Module Mastered",
+        subtitle: keyTakeaway || currentRank.tagline,
+        displayName,
+        rankLevel: currentRank.level,
+        rankTitle: currentRank.title,
+        xpPoints: totalXp,
+        streakCount,
+        metric3Label: typeof starRating === "number" && starRating > 0 ? "MASTERY" : "XP EARNED",
+        metric3Value: starsValue,
+        paletteId,
+        footerUrl: challengeUrl,
+      },
+      fallbackTitle: `Devy — ${lessonTitle}`,
+      fallbackMessage: message,
+      channel: "lesson_win",
+    });
+    if (outcome === "downloaded" || outcome === "shared") {
+      setPngFeedback(outcome);
+      setTimeout(() => setPngFeedback("idle"), 2600);
+    } else if (outcome === "copied") {
+      setPngFeedback("idle");
+      setShareFeedback("copied");
+      setTimeout(() => setShareFeedback("idle"), 2500);
+    } else {
+      setPngFeedback("idle");
     }
   }
 
@@ -285,24 +338,51 @@ export default function SuccessModal({
         </Pressable>
       )}
 
-      <Pressable
-        style={({ pressed }) => [
-          styles.shareBtn,
-          shareFeedback !== "idle" && styles.shareBtnDone,
-          pressed && { opacity: 0.9, transform: [{ translateY: 1 }] },
-        ]}
-        onPress={handleShare}
-      >
-        <Text style={styles.shareBtnText}>
-          {shareFeedback === "copied"
-            ? "✓ ACHIEVEMENT COPIED TO CLIPBOARD!"
-            : shareFeedback === "shared"
-              ? "✓ ACHIEVEMENT SHARED!"
-              : didLevelUp
-                ? "📤 SHARE LEVEL-UP CARD ↗"
-                : "📤 CHALLENGE A FRIEND / SHARE ↗"}
-        </Text>
-      </Pressable>
+      <View style={styles.shareActionsRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Save visual PNG win card"
+          disabled={pngFeedback === "saving"}
+          style={({ pressed }) => [
+            styles.pngShareBtn,
+            (pngFeedback === "downloaded" || pngFeedback === "shared") &&
+              styles.shareBtnDone,
+            pressed && { opacity: 0.9, transform: [{ translateY: 1 }] },
+          ]}
+          onPress={handleSavePngCard}
+        >
+          <Text style={styles.shareBtnText}>
+            {pngFeedback === "saving"
+              ? "RENDERING PNG..."
+              : pngFeedback === "downloaded"
+                ? "✓ PNG SAVED!"
+                : pngFeedback === "shared"
+                  ? "✓ PNG SHARED!"
+                  : "🖼️ SAVE PNG CARD"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Copy or share achievement text"
+          style={({ pressed }) => [
+            styles.shareBtn,
+            shareFeedback !== "idle" && styles.shareBtnDone,
+            pressed && { opacity: 0.9, transform: [{ translateY: 1 }] },
+          ]}
+          onPress={handleShare}
+        >
+          <Text style={styles.shareBtnText}>
+            {shareFeedback === "copied"
+              ? "✓ COPIED!"
+              : shareFeedback === "shared"
+                ? "✓ SHARED!"
+                : didLevelUp
+                  ? "📤 SHARE RANK ↗"
+                  : "📤 SHARE TEXT ↗"}
+          </Text>
+        </Pressable>
+      </View>
 
       {trackCertificateLabel && onViewCertificate ? (
         <Pressable
@@ -666,12 +746,31 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     letterSpacing: 0.5,
     fontFamily: MonoFont,
   },
-  shareBtn: {
+  shareActionsRow: {
     marginTop: 10,
-    backgroundColor: StudioColors.yellow,
     width: "100%",
+    flexDirection: "row",
+    gap: 8,
+  },
+  pngShareBtn: {
+    flex: 1,
+    backgroundColor: "#A5F3FC",
     paddingVertical: 11,
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: StudioColors.ink,
+    alignItems: "center",
+    ...HardShadowSm,
+    ...Platform.select({
+      web: { cursor: "pointer", userSelect: "none" },
+    }),
+  },
+  shareBtn: {
+    flex: 1,
+    backgroundColor: StudioColors.yellow,
+    paddingVertical: 11,
+    paddingHorizontal: 10,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: StudioColors.ink,
