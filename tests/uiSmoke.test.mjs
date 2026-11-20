@@ -158,12 +158,18 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
   const desktopText = visibleText(desktopHtml);
   assert.ok(desktopText.includes("SKILL MAP"));
   assert.ok(desktopText.includes("SPEED BLITZ"));
+  assert.ok(desktopText.includes("LEADERBOARD"));
   assert.ok(desktopText.includes("UPGRADE TO PRO"));
   assert.ok(desktopText.includes("ACCOUNT & RANK"));
   assert.ok(desktopText.includes("SETTINGS"));
   assert.ok(
-    desktopText.indexOf("ACHIEVEMENTS") < desktopText.indexOf("UPGRADE TO PRO"),
-    "Achievements should precede the Pro box in Free mode",
+    !desktopText.includes("THEMES") && !desktopText.includes("SFX"),
+    "Cluttered loose Settings pills should be consolidated into the unified Settings menu",
+  );
+  assert.ok(
+    desktopText.indexOf("ACHIEVEMENTS") < desktopText.indexOf("LEADERBOARD") &&
+      desktopText.indexOf("LEADERBOARD") < desktopText.indexOf("UPGRADE TO PRO"),
+    "Achievements and Leaderboard should precede the Pro box in Free mode",
   );
 
   const proHeaderHtml = renderThemed(
@@ -176,13 +182,14 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
   const proDesktopText = visibleText(proHeaderHtml);
   assert.ok(proDesktopText.includes("PRO MEMBER"));
   assert.ok(
-    proDesktopText.indexOf("ACHIEVEMENTS") < proDesktopText.indexOf("PRO MEMBER"),
-    "Achievements and Pro boxes should keep their order when switching to Pro",
+    proDesktopText.indexOf("ACHIEVEMENTS") < proDesktopText.indexOf("LEADERBOARD") &&
+      proDesktopText.indexOf("LEADERBOARD") < proDesktopText.indexOf("PRO MEMBER"),
+    "Achievements, Leaderboard, and Pro boxes should keep their order when switching to Pro",
   );
   const headerSvgs = proHeaderHtml.match(/<svg[\s\S]*?<\/svg>/g) || [];
   assert.ok(
     new Set(headerSvgs).size >= 11,
-    "Desktop header should render unique custom SVGs for Devy, menu buttons, Account & Rank, Pro Member, and Settings",
+    "Desktop header should render unique custom SVGs for Devy, menu buttons, Account & Rank, Leaderboard, Pro Member, and Settings",
   );
 
   const mobileText = visibleText(
@@ -194,6 +201,8 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
     !mobileText.includes("CODING & LABS"),
     "Compact mobile header should hide duplicate desktop nav row",
   );
+  assert.ok(mobileText.includes("LEAGUE"));
+  assert.ok(mobileText.includes("SETTINGS"));
   assert.ok(mobileText.includes("GET PRO"));
   assert.ok(mobileText.includes("4 D"));
 });
@@ -975,31 +984,61 @@ test("RoadmapDailyQuestCard renders 3-step daily quest, claim button at 3/3, and
   assert.ok(claimedText.includes("+75 XP CLAIMED"));
 });
 
-test("StudioSettingsModal renders display mode, all 4 Studio Theme Palettes, lo-fi radio, and audio controls", () => {
-  const freeSettingsText = visibleText(
+test("StudioSettingsModal renders organized 3-tab menu (Appearance, Audio, Studio)", () => {
+  const appearanceText = visibleText(
     renderThemed(
       React.createElement(StudioSettingsModal, {
         level: 1,
         isPremium: false,
+        initialTab: "appearance",
         onOpenPaywall: () => {},
         onClose: () => {},
       }),
     ),
   );
-  assert.ok(freeSettingsText.includes("STUDIO SETTINGS"));
-  assert.ok(freeSettingsText.includes("DISPLAY MODE"));
-  assert.ok(freeSettingsText.includes("STUDIO THEME PALETTE"));
-  assert.ok(freeSettingsText.includes("Midnight Arcade"));
-  assert.ok(freeSettingsText.includes("Matcha Cozy"));
-  assert.ok(freeSettingsText.includes("Amber CRT"));
-  assert.ok(freeSettingsText.includes("Sakura Terminal"));
-  assert.ok(freeSettingsText.includes("LVL 2"));
-  assert.ok(freeSettingsText.includes("LO-FI FOCUS RADIO"));
-  assert.ok(freeSettingsText.includes("Sound Effects"));
-  assert.ok(freeSettingsText.includes("Mechanical Keycap Typing"));
-  assert.ok(freeSettingsText.includes("THOCK"));
-  assert.ok(freeSettingsText.includes("CLICK"));
-  assert.ok(freeSettingsText.includes("DISPLAY NAME"));
+  assert.ok(appearanceText.includes("STUDIO SETTINGS"));
+  assert.ok(appearanceText.includes("APPEARANCE"));
+  assert.ok(appearanceText.includes("AUDIO"));
+  assert.ok(appearanceText.includes("STUDIO"));
+  assert.ok(appearanceText.includes("DISPLAY MODE"));
+  assert.ok(appearanceText.includes("DARK MODE"));
+  assert.ok(appearanceText.includes("LIGHT MODE"));
+  assert.ok(appearanceText.includes("STUDIO THEME PALETTE"));
+  assert.ok(appearanceText.includes("Midnight Arcade"));
+  assert.ok(appearanceText.includes("Matcha Cozy"));
+  assert.ok(appearanceText.includes("Amber CRT"));
+  assert.ok(appearanceText.includes("Sakura Terminal"));
+  assert.ok(appearanceText.includes("LVL 2"));
+
+  const audioText = visibleText(
+    renderThemed(
+      React.createElement(StudioSettingsModal, {
+        level: 1,
+        isPremium: false,
+        initialTab: "audio",
+        onClose: () => {},
+      }),
+    ),
+  );
+  assert.ok(audioText.includes("LO-FI FOCUS RADIO"));
+  assert.ok(audioText.includes("MECHANICAL KEYCAP TYPING"));
+  assert.ok(audioText.includes("THOCK"));
+  assert.ok(audioText.includes("CLICK"));
+  assert.ok(audioText.includes("Master Sound Effects"));
+
+  const studioText = visibleText(
+    renderThemed(
+      React.createElement(StudioSettingsModal, {
+        level: 1,
+        isPremium: false,
+        pyodideReady: true,
+        initialTab: "studio",
+        onClose: () => {},
+      }),
+    ),
+  );
+  assert.ok(studioText.includes("DEVELOPER DISPLAY NAME"));
+  assert.ok(studioText.includes("PYTHON ENGINE RUNTIME"));
 
   const proSettingsText = visibleText(
     renderThemed(
@@ -1126,4 +1165,8 @@ test("WeeklyLeaguePanel renders tier ladder, Ghost Rivals, promotion zone, and o
   assert.ok(leagueText.includes("GHOST"));
   assert.ok(leagueText.includes("YOU"));
   assert.ok(leagueText.includes("SIGN IN FOR LIVE BOARD"));
+  const leaderboardIconHtml = renderThemed(
+    React.createElement(StudioIcon, { name: "nav_leaderboard", size: 20 }),
+  );
+  assert.ok(leaderboardIconHtml.includes("<svg"));
 });

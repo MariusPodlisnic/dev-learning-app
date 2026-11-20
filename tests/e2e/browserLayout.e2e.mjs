@@ -8,6 +8,7 @@ async function measureAccountHeaderBoxes(page) {
       { key: "profile", needle: "MY PROFILE & STATS" },
       { key: "streak", needle: "DAILY STREAK" },
       { key: "achievements", needle: "ACHIEVEMENTS" },
+      { key: "leaderboard", needle: "LEADERBOARD" },
       { key: "pro", needle: "UPGRADE TO PRO" },
       { key: "save", needle: "SAVE PROGRESS" },
     ];
@@ -75,11 +76,18 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       `Expected no desktop horizontal overflow, got scrollWidth=${metrics.scrollWidth}, innerWidth=${metrics.innerWidth}`,
     );
 
-    for (const key of ["profile", "streak", "achievements", "pro", "save"]) {
+    for (const key of [
+      "profile",
+      "streak",
+      "achievements",
+      "leaderboard",
+      "pro",
+      "save",
+    ]) {
       assert.ok(metrics.boxes[key], `Expected bounding box for ${key}`);
     }
 
-    // All 5 header boxes should share uniform height & vertical top alignment
+    // All 6 Account & Rank header boxes should share uniform height & vertical top alignment
     const heights = Object.values(metrics.boxes).map((b) => b.height);
     const tops = Object.values(metrics.boxes).map((b) => b.y);
     assert.ok(
@@ -91,17 +99,22 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       `Header boxes should align vertically on the same row, got y=${JSON.stringify(tops)}`,
     );
 
-    // Horizontal order: Profile -> Daily Streak -> Achievements -> Upgrade to Pro -> Save Progress
+    // Horizontal order: Profile -> Daily Streak -> Achievements -> Leaderboard -> Upgrade to Pro -> Save Progress
     assert.ok(metrics.boxes.profile.x < metrics.boxes.streak.x);
     assert.ok(metrics.boxes.streak.x < metrics.boxes.achievements.x);
-    assert.ok(metrics.boxes.achievements.x < metrics.boxes.pro.x);
+    assert.ok(metrics.boxes.achievements.x < metrics.boxes.leaderboard.x);
+    assert.ok(metrics.boxes.leaderboard.x < metrics.boxes.pro.x);
     assert.ok(metrics.boxes.pro.x < metrics.boxes.save.x);
 
-    // Toggle Theme (Dark -> Light) and verify alignment, overflow, and Retro TV cabinet re-theming
+    // Unified Settings menu organizes Appearance (Dark/Light + 4 Palettes), Audio, and Studio tabs
     const darkTvBg = await page
       .getByTestId("retro-tv-cabinet")
       .evaluate((el) => window.getComputedStyle(el).backgroundColor);
-    await page.getByText(/LIGHT|DARK/).first().click();
+    await page.getByLabel("Open Studio Settings and Themes").click();
+    await page.waitForSelector("text=STUDIO SETTINGS", { timeout: 5000 });
+    await page.waitForSelector("text=DISPLAY MODE", { timeout: 5000 });
+    await page.waitForSelector("text=STUDIO THEME PALETTE", { timeout: 5000 });
+    await page.getByLabel("Switch to Light Mode").click();
     await page.waitForTimeout(150);
     const lightTvBg = await page
       .getByTestId("retro-tv-cabinet")
@@ -111,11 +124,33 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       darkTvBg,
       `Expected Retro TV cabinet to update between dark (${darkTvBg}) and light (${lightTvBg}) mode`,
     );
+
+    // Switch palette to Matcha Cozy and verify Audio + Studio tabs inside Settings
+    await page.getByText("Matcha Cozy").first().click();
+    await page.waitForTimeout(100);
+    await page.getByLabel("Settings tab: 🎧 AUDIO").click();
+    await page.waitForSelector("text=LO-FI FOCUS RADIO", { timeout: 5000 });
+    await page.waitForSelector("text=MECHANICAL KEYCAP TYPING", { timeout: 5000 });
+    await page.getByLabel("Settings tab: ⚙️ STUDIO").click();
+    await page.waitForSelector("text=DEVELOPER DISPLAY NAME", { timeout: 5000 });
+    await page.waitForSelector("text=PYTHON ENGINE RUNTIME", { timeout: 5000 });
+    await page.getByLabel("Close settings modal").click();
+
+    const matchaTvBg = await page
+      .getByTestId("retro-tv-cabinet")
+      .evaluate((el) => window.getComputedStyle(el).backgroundColor);
+    assert.notEqual(
+      matchaTvBg,
+      lightTvBg,
+      `Expected Retro TV cabinet to update when switching to Matcha Cozy (${matchaTvBg} vs ${lightTvBg})`,
+    );
+
     const lightMetrics = await measureAccountHeaderBoxes(page);
     assert.ok(lightMetrics.overflowX <= 1);
     assert.ok(
-      lightMetrics.boxes.achievements.x < lightMetrics.boxes.pro.x,
-      "Order should stay intact after toggling theme",
+      lightMetrics.boxes.achievements.x < lightMetrics.boxes.leaderboard.x &&
+        lightMetrics.boxes.leaderboard.x < lightMetrics.boxes.pro.x,
+      "Order should stay intact after switching theme and palette",
     );
 
     // Profile modal opens with Level 1 avatar, no excluded rank tagline, and working PNG card download
@@ -136,24 +171,6 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       `Expected PNG share card download, got ${pngDownload.suggestedFilename()}`,
     );
     await page.getByLabel("Close profile modal").click();
-
-    // Settings modal opens from the SETTINGS header tray and switching palette re-themes the Retro TV
-    await page.getByLabel("Open Studio Settings and Themes").click();
-    await page.waitForSelector("text=STUDIO SETTINGS", { timeout: 5000 });
-    await page.waitForSelector("text=STUDIO THEME PALETTE", { timeout: 5000 });
-    await page.waitForSelector("text=Matcha Cozy", { timeout: 5000 });
-    await page.waitForSelector("text=DISPLAY NAME", { timeout: 5000 });
-    await page.getByText("Matcha Cozy").first().click();
-    await page.waitForTimeout(100);
-    await page.getByLabel("Close settings modal").click();
-    const matchaTvBg = await page
-      .getByTestId("retro-tv-cabinet")
-      .evaluate((el) => window.getComputedStyle(el).backgroundColor);
-    assert.notEqual(
-      matchaTvBg,
-      lightTvBg,
-      `Expected Retro TV cabinet to update when switching to Matcha Cozy (${matchaTvBg} vs ${lightTvBg})`,
-    );
 
     // 5-Second Welcome card renders for fresh visitors and can be skipped cleanly
     await page.waitForSelector("text=5-SECOND SETUP", { timeout: 5000 });
@@ -214,8 +231,10 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     // Secondary lazy-loaded arenas hydrate cleanly via React.lazy + Suspense
     await page.getByText("ACHIEVEMENTS").first().click();
     await page.waitForSelector("text=TROPHY HALL", { timeout: 10000 });
-    await page.getByLabel("View Weekly League Leaderboard").click();
-    await page.waitForSelector("text=TOP 3 WEEKLY PROMOTION ZONE", { timeout: 5000 });
+
+    // Dedicated top-level Leaderboard menu button opens Weekly League directly
+    await page.getByLabel("Open Weekly League Leaderboard").click();
+    await page.waitForSelector("text=TOP 3 WEEKLY PROMOTION ZONE", { timeout: 10000 });
     await page.waitForSelector("text=COZY GHOST RIVALS", { timeout: 5000 });
 
     await page.getByText("SPEED BLITZ").first().click();
@@ -287,6 +306,8 @@ test("Mobile viewport (390x844): compact header & bottom thumb nav render with z
       `Expected no horizontal overflow at 390px width, got scrollWidth=${layout.scrollWidth}`,
     );
     assert.ok(layout.bodyText.includes("ACHIEVEMENTS"));
+    assert.ok(layout.bodyText.includes("LEAGUE"));
+    assert.ok(layout.bodyText.includes("SETTINGS"));
     assert.ok(layout.bodyText.includes("GET PRO"));
     assert.deepEqual(pageErrors, []);
   } finally {

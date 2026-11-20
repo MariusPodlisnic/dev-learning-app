@@ -94,6 +94,9 @@ const FlashcardsArena = React.lazy(
 const SyntaxBlitzArena = React.lazy(
   () => import("../components/SyntaxBlitzArena"),
 );
+const WeeklyLeaguePanel = React.lazy(
+  () => import("../components/WeeklyLeaguePanel"),
+);
 
 function ArenaLoadingFallback({
   label,
@@ -422,7 +425,8 @@ export default function HomeScreen() {
       mode === "blitz" ||
       mode === "flashcards" ||
       mode === "algolab" ||
-      mode === "achievements"
+      mode === "achievements" ||
+      mode === "league"
     ) {
       handledDeepLinkRef.current = true;
       const targetMode = mode;
@@ -782,8 +786,10 @@ export default function HomeScreen() {
           : viewMode === "flashcards"
             ? "Flashcards Concept Deck | Devy"
             : viewMode === "algolab"
-            ? "Pro Algorithm Visual Lab | Devy"
-            : "Devy | Interactive Python, Algorithms & System Design";
+              ? "Pro Algorithm Visual Lab | Devy"
+              : viewMode === "league"
+                ? "Weekly League Leaderboard | Devy"
+                : "Devy | Interactive Python, Algorithms & System Design";
 
   const seoDescription =
     viewMode === "studio" && selectedLesson
@@ -794,18 +800,20 @@ export default function HomeScreen() {
           ? "Race the 60-second clock to predict outputs and spot syntax bugs in Devy."
           : viewMode === "algolab"
             ? "Observe Binary Search, Two Pointers, Sliding Window, Sorting, Hash Maps, and BFS step-by-step in the Pro Algorithm Visual Lab."
-            : "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.";
+            : viewMode === "league"
+              ? "Track your weekly XP rank against cozy ghost rivals and climb the Devy Weekly League ladder."
+              : "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.";
 
   const activeBackdropAccent =
     viewMode === "bughunt"
       ? StudioColors.coral
-      : viewMode === "blitz"
+      : viewMode === "blitz" || viewMode === "league"
         ? StudioColors.lime
         : viewMode === "flashcards"
           ? StudioColors.mint
           : viewMode === "algolab"
-          ? StudioColors.violet
-          : TrackThemes[activeTrack]?.stickerBg || StudioColors.yellow;
+            ? StudioColors.violet
+            : TrackThemes[activeTrack]?.stickerBg || StudioColors.yellow;
 
   const backdropVariant =
     viewMode === "studio"
@@ -942,7 +950,8 @@ export default function HomeScreen() {
         viewMode === "blitz" ||
         viewMode === "flashcards" ||
         viewMode === "algolab" ||
-        viewMode === "achievements" ? (
+        viewMode === "achievements" ||
+        viewMode === "league" ? (
         <StudioErrorBoundary
           onReset={() => setViewMode("roadmap")}
           fallbackTitle="Arena interrupted"
@@ -959,7 +968,9 @@ export default function HomeScreen() {
                         ? "Shuffling Flashcards Deck..."
                         : viewMode === "algolab"
                           ? "Loading Algorithm Lab..."
-                          : "Loading Trophy Hall..."
+                          : viewMode === "league"
+                            ? "Loading Weekly League..."
+                            : "Loading Trophy Hall..."
                 }
               />
             }
@@ -1019,6 +1030,20 @@ export default function HomeScreen() {
                 }
                 onBackToMap={() => setViewMode("roadmap")}
               />
+            ) : viewMode === "league" ? (
+              <WeeklyLeaguePanel
+                xpPoints={xpPoints}
+                streakCount={streakCount}
+                sessionUserId={session?.user?.id}
+                userEmail={session?.user?.email}
+                onOpenAuth={() =>
+                  openAuthModal(
+                    "signup",
+                    "Sign in to opt into the live Weekly League leaderboard.",
+                  )
+                }
+                onNavigateMode={(mode) => setViewMode(mode)}
+              />
             ) : (
               <AchievementsHall
                 xpPoints={xpPoints}
@@ -1028,14 +1053,6 @@ export default function HomeScreen() {
                 completedChallenges={completedChallenges}
                 peekedSolutions={peekedSolutions}
                 solvedIncidents={solvedIncidents}
-                sessionUserId={session?.user?.id}
-                userEmail={session?.user?.email}
-                onOpenAuth={() =>
-                  openAuthModal(
-                    "signup",
-                    "Sign in to opt into the live Weekly League leaderboard.",
-                  )
-                }
                 onNavigateMode={(mode) => setViewMode(mode)}
               />
             )}
@@ -1350,6 +1367,7 @@ export default function HomeScreen() {
         }
         onCloseProfile={() => setShowProfileModal(false)}
         showSettingsModal={showSettingsModal}
+        pyodideReady={pyodideReady}
         onOpenSettingsPaywall={() =>
           openPaywall({
             source: "header",

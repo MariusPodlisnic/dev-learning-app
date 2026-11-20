@@ -29,7 +29,6 @@ import {
 import { useTheme, useThemedStyles } from "../constants/themeContext";
 import { ViewMode } from "../types/lesson";
 import {
-  cycleLofiChannel,
   getLofiChannelMeta,
   getLofiRadioState,
   type LofiRadioState,
@@ -38,14 +37,7 @@ import {
 } from "../utils/lofiRadio";
 import {
   hydrateSoundPreference,
-  isHapticsEnabled,
-  isNativeMobilePlatform,
-  isSoundEnabled,
-  playCrtChannelSwitch,
   playKeyClick,
-  setHapticsEnabled,
-  setSoundEnabled,
-  subscribeSoundPreferences,
 } from "../utils/soundEffects";
 import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 
@@ -57,7 +49,7 @@ interface AppHeaderProps {
   isCompactHeader: boolean;
   pyodideReady: boolean;
   themeMode: ThemeMode;
-  onToggleTheme: () => void;
+  onToggleTheme?: () => void;
   devRank: { level: number; title: string; avatarIcon?: StudioIconName };
   streakCount: number;
   isPremium: boolean;
@@ -103,6 +95,8 @@ function getModeAccent(viewMode: ViewMode): {
       return { primary: StudioColors.violet, secondary: StudioColors.pink };
     case "achievements":
       return { primary: StudioColors.yellow, secondary: StudioColors.coral };
+    case "league":
+      return { primary: StudioColors.lime, secondary: StudioColors.yellow };
     case "roadmap":
     default:
       return { primary: StudioColors.yellow, secondary: StudioColors.mint };
@@ -415,50 +409,22 @@ export default function AppHeader({
   const { paletteId } = useTheme();
   const activePalette = getStudioPaletteMeta(paletteId);
   const styles = useThemedStyles(getStyles);
-  const showHapticsToggle = isNativeMobilePlatform();
-  const [sfxOn, setSfxOn] = useState<boolean>(() => isSoundEnabled());
-  const [hapticsOn, setHapticsOn] = useState<boolean>(() =>
-    isHapticsEnabled()
-  );
   const [lofiState, setLofiState] = useState<LofiRadioState>(() =>
-    getLofiRadioState()
+    getLofiRadioState(),
   );
   const lofiMeta = getLofiChannelMeta(lofiState.channel);
 
   useEffect(() => {
-    let active = true;
-    void hydrateSoundPreference().then((hydratedSound) => {
-      if (!active) return;
-      setSfxOn(hydratedSound);
-      setHapticsOn(isHapticsEnabled());
-    });
+    void hydrateSoundPreference();
     const unsubscribeLofi = subscribeLofiRadio(setLofiState);
-    const unsubscribeSound = subscribeSoundPreferences(() => {
-      setSfxOn(isSoundEnabled());
-      setHapticsOn(isHapticsEnabled());
-    });
     return () => {
-      active = false;
       unsubscribeLofi();
-      unsubscribeSound();
     };
   }, []);
 
   function handleSwitchMode(mode: ViewMode) {
     playKeyClick();
     onChangeViewMode(mode);
-  }
-
-  function handleToggleSfx() {
-    const next = !sfxOn;
-    setSfxOn(next);
-    setSoundEnabled(next);
-  }
-
-  function handleToggleHaptics() {
-    const next = !hapticsOn;
-    setHapticsOn(next);
-    setHapticsEnabled(next);
   }
 
   return (
@@ -786,6 +752,56 @@ export default function AppHeader({
               </View>
             </Pressable>
 
+            {/* 2c. Dedicated Weekly League Leaderboard Button */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open Weekly League Leaderboard"
+              style={({ pressed }) => [
+                styles.achievementsTabBtn,
+                themeMode === "light"
+                  ? styles.leaderboardTabBtnCalmLight
+                  : styles.leaderboardTabBtnCalmDark,
+                isCompactHeader && styles.headerActionBoxCompact,
+                viewMode === "league" && styles.leaderboardTabBtnActive,
+                pressed && {
+                  transform: [{ translateX: 1 }, { translateY: 1 }],
+                },
+              ]}
+              onPress={() => handleSwitchMode("league")}
+            >
+              <View style={styles.achievementsBtnRow}>
+                <StudioIcon
+                  name="nav_leaderboard"
+                  size={isCompactHeader ? 16 : 18}
+                />
+                <View style={styles.headerBtnTextStack}>
+                  {!isCompactHeader && (
+                    <Text
+                      style={[
+                        styles.headerMicroBase,
+                        themeMode === "light"
+                          ? styles.leaderboardCalmMicroLight
+                          : styles.leaderboardCalmMicroDark,
+                        viewMode === "league" && styles.headerBtnMicroLabel,
+                      ]}
+                    >
+                      WEEKLY RANK
+                    </Text>
+                  )}
+                  <Text
+                    style={[
+                      styles.headerMainBase,
+                      styles.achievementsTabBtnText,
+                      viewMode === "league" &&
+                        styles.achievementsTabBtnTextActive,
+                    ]}
+                  >
+                    {isCompactHeader ? "LEAGUE" : "LEADERBOARD"}
+                  </Text>
+                </View>
+              </View>
+            </Pressable>
+
             {/* 3. Pro Membership Box (stays in place between Free & Pro) */}
             {isPremium ? (
               <View
@@ -1004,20 +1020,15 @@ export default function AppHeader({
               );
             })()}
 
-            {(!isCompactHeader || lofiState.isPlaying) && (
+            {lofiState.isPlaying && (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={
-                  lofiState.isPlaying
-                    ? `Pause ${lofiMeta.label}`
-                    : `Play ${lofiMeta.label}`
-                }
+                accessibilityLabel={`Pause ${lofiMeta.label}`}
                 style={({ pressed }) => [
                   styles.themeToggleBtn,
-                  lofiState.isPlaying && [
-                    styles.lofiToggleBtnActive,
-                    { borderColor: lofiMeta.accentColor },
-                  ],
+                  styles.lofiToggleBtnActive,
+                  { borderColor: lofiMeta.accentColor },
+                  isCompactHeader && styles.headerActionBoxCompact,
                   pressed && {
                     transform: [{ translateX: 1 }, { translateY: 1 }],
                   },
@@ -1032,115 +1043,64 @@ export default function AppHeader({
                 <Text
                   style={[
                     styles.themeToggleBtnText,
-                    lofiState.isPlaying && { color: lofiMeta.accentColor },
+                    { color: lofiMeta.accentColor },
                   ]}
                 >
-                  {lofiState.isPlaying ? `❚❚ ${lofiMeta.shortLabel}` : "♫ LO-FI"}
+                  ❚❚ {lofiMeta.shortLabel}
                 </Text>
               </Pressable>
             )}
 
-            {!isCompactHeader && lofiState.isPlaying && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Next lo-fi music station"
-                style={({ pressed }) => [
-                  styles.themeToggleBtn,
-                  pressed && {
-                    transform: [{ translateX: 1 }, { translateY: 1 }],
-                  },
-                ]}
-                onPress={() => {
-                  playCrtChannelSwitch();
-                  cycleLofiChannel();
-                }}
-              >
-                <Text style={styles.themeToggleBtnText}>⏭ TRACK</Text>
-              </Pressable>
-            )}
-
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open Studio Settings and Themes"
               style={({ pressed }) => [
-                styles.themeToggleBtn,
-                pressed && {
-                  transform: [{ translateX: 1 }, { translateY: 1 }],
-                },
-              ]}
-              onPress={handleToggleSfx}
-            >
-              <StudioIcon
-                name={sfxOn ? "sound_on" : "sound_off"}
-                size={14}
-              />
-              <Text style={styles.themeToggleBtnText}>
-                {sfxOn ? "SFX" : "MUTE"}
-              </Text>
-            </Pressable>
-
-            {showHapticsToggle ? (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.themeToggleBtn,
-                  pressed && {
-                    transform: [{ translateX: 1 }, { translateY: 1 }],
-                  },
-                ]}
-                onPress={handleToggleHaptics}
-              >
-                <Text style={styles.themeToggleBtnText}>
-                  {hapticsOn ? "HAPTIC" : "NO HAPTIC"}
-                </Text>
-              </Pressable>
-            ) : null}
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.themeToggleBtn,
+                styles.settingsLaunchBtn,
+                themeMode === "light"
+                  ? styles.settingsLaunchBtnLight
+                  : styles.settingsLaunchBtnDark,
+                isCompactHeader && styles.headerActionBoxCompact,
                 pressed && {
                   transform: [{ translateX: 1 }, { translateY: 1 }],
                 },
               ]}
               onPress={() => {
                 playKeyClick();
-                onToggleTheme();
+                if (onOpenSettings) {
+                  onOpenSettings();
+                } else {
+                  onToggleTheme?.();
+                }
               }}
             >
               <StudioIcon
-                name={themeMode === "light" ? "moon" : "sun"}
-                size={14}
+                name="menu_settings"
+                size={isCompactHeader ? 16 : 18}
               />
-              <Text style={styles.themeToggleBtnText}>
-                {themeMode === "light" ? "DARK" : "LIGHT"}
-              </Text>
-            </Pressable>
-
-            {onOpenSettings ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open Studio Settings and Themes"
-                style={({ pressed }) => [
-                  styles.themeToggleBtn,
-                  pressed && {
-                    transform: [{ translateX: 1 }, { translateY: 1 }],
-                  },
-                ]}
-                onPress={() => {
-                  playKeyClick();
-                  onOpenSettings();
-                }}
-              >
-                <StudioIcon name="menu_settings" size={14} />
-                <View
-                  style={[
-                    styles.paletteAccentDot,
-                    { backgroundColor: activePalette.accent },
-                  ]}
-                />
+              <View style={styles.headerBtnTextStack}>
                 {!isCompactHeader && (
-                  <Text style={styles.themeToggleBtnText}>THEMES</Text>
+                  <Text
+                    style={[
+                      styles.headerMicroBase,
+                      themeMode === "light"
+                        ? styles.settingsLaunchMicroLight
+                        : styles.settingsLaunchMicroDark,
+                    ]}
+                  >
+                    THEME · AUDIO
+                  </Text>
                 )}
-              </Pressable>
-            ) : null}
+                <Text style={[styles.headerMainBase, styles.settingsLaunchText]}>
+                  SETTINGS
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.paletteAccentDot,
+                  { backgroundColor: activePalette.accent },
+                ]}
+              />
+            </Pressable>
           </View>
         </View>
       </View>
@@ -1735,6 +1695,73 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     achievementsTabBtnActive: {
       backgroundColor: StudioColors.mint,
       borderColor: StudioColors.ink,
+    },
+    leaderboardTabBtnCalmDark: {
+      backgroundColor: "#252B1D",
+      borderColor: "#7FA63C",
+    },
+    leaderboardTabBtnCalmLight: {
+      backgroundColor: "#ECFCCB",
+      borderColor: StudioColors.ink,
+    },
+    leaderboardCalmMicroDark: {
+      color: "#C4F16E",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    leaderboardCalmMicroLight: {
+      color: "#3F6212",
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    leaderboardTabBtnActive: {
+      backgroundColor: StudioColors.lime,
+      borderColor: StudioColors.ink,
+    },
+    settingsLaunchBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      minHeight: 36,
+      borderRadius: 7,
+      borderWidth: 2,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    settingsLaunchBtnDark: {
+      backgroundColor: StudioColors.surfaceElevated,
+      borderColor: StudioColors.border,
+    },
+    settingsLaunchBtnLight: {
+      backgroundColor: StudioColors.surfaceElevated,
+      borderColor: StudioColors.ink,
+    },
+    settingsLaunchMicroDark: {
+      color: StudioColors.textSecondary,
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    settingsLaunchMicroLight: {
+      color: StudioColors.textSecondary,
+      fontSize: 7.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.45,
+    },
+    settingsLaunchText: {
+      color: StudioColors.textPrimary,
+      fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
     },
     achievementsTabBtnText: {
       color: StudioColors.textPrimary,

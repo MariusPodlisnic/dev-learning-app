@@ -71,7 +71,8 @@ export type ViewMode =
   | "blitz"
   | "flashcards"
   | "algolab"
-  | "achievements";
+  | "achievements"
+  | "league";
 export type ExplainStyle = "analogy" | "guide" | "cheatsheet";
 
 export const STORAGE_DRAFTS_KEY = "devlearn_code_drafts_v2";

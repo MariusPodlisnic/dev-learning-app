@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
   HardShadow,
   HardShadowSm,
@@ -175,7 +175,12 @@ export default function WeeklyLeaguePanel({
   );
 
   return (
-    <View style={styles.wrap}>
+    <ScrollView
+      style={styles.screenScroll}
+      contentContainerStyle={styles.screenContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.wrap}>
       {/* League Tier Header Card */}
       <View style={styles.tierCard}>
         <View
@@ -461,12 +466,25 @@ export default function WeeklyLeaguePanel({
           <Text style={styles.boostBtnText}>⚡ 60S BLITZ</Text>
         </Pressable>
       </View>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const createStyles = (StudioColors: StudioThemeColors) =>
   StyleSheet.create({
+    screenScroll: {
+      flex: 1,
+      backgroundColor: "transparent",
+    },
+    screenContent: {
+      width: "100%",
+      maxWidth: 920,
+      alignSelf: "center",
+      paddingHorizontal: 18,
+      paddingTop: 20,
+      paddingBottom: 92,
+    },
     wrap: {
       gap: 14,
     },

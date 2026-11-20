@@ -71,6 +71,7 @@ interface StudioModalsProps {
   onToggleDevPro?: () => void;
   onCloseProfile: () => void;
   showSettingsModal: boolean;
+  pyodideReady?: boolean;
   onOpenSettingsPaywall?: () => void;
   onCloseSettings: () => void;
   activeCertificate: CertificateData | null;
@@ -127,6 +128,7 @@ export default function StudioModals({
   onToggleDevPro,
   onCloseProfile,
   showSettingsModal,
+  pyodideReady,
   onOpenSettingsPaywall,
   onCloseSettings,
   activeCertificate,
@@ -312,6 +314,7 @@ export default function StudioModals({
           <StudioSettingsModal
             level={devRank.level}
             isPremium={effectiveIsPremium}
+            pyodideReady={pyodideReady}
             onOpenPaywall={onOpenSettingsPaywall}
             onClose={onCloseSettings}
           />

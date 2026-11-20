@@ -12,6 +12,7 @@ export type NavigationIconName =
   | "nav_algolab"
   | "nav_showcase"
   | "nav_achievements"
+  | "nav_leaderboard"
   | "free_preview";
 
 export const NAVIGATION_ICON_INNER_SVG: Record<NavigationIconName, string> = {
@@ -126,6 +127,12 @@ export const NAVIGATION_ICON_INNER_SVG: Record<NavigationIconName, string> = {
     <rect x="9" y="8" width="14" height="6" rx="1.5" fill="#38BDF8" stroke="#111111" stroke-width="1.6"/>
     <line x1="9" y1="18" x2="23" y2="18" stroke="#111111" stroke-width="2.2" stroke-linecap="round"/>
     <line x1="9" y1="22.5" x2="18" y2="22.5" stroke="#111111" stroke-width="2.2" stroke-linecap="round"/>
+  `,
+  nav_leaderboard: `
+    <rect x="3.5" y="16" width="7.5" height="12" rx="2" fill="#38BDF8" stroke="#111111" stroke-width="2"/>
+    <rect x="12.2" y="10" width="7.6" height="18" rx="2" fill="#B8FF3B" stroke="#111111" stroke-width="2"/>
+    <rect x="21" y="19" width="7.5" height="9" rx="2" fill="#FF90E8" stroke="#111111" stroke-width="2"/>
+    <polygon points="16,2.5 17.6,5.6 21,6.1 18.5,8.4 19.1,11.6 16,10 12.9,11.6 13.5,8.4 11,6.1 14.4,5.6" fill="#FFDE59" stroke="#111111" stroke-width="1.4" stroke-linejoin="round"/>
   `,
   nav_achievements: `
     <polygon points="16,4 25,9 25,18 16,28 7,18 7,9" fill="#111111" transform="translate(1.5,1.5)"/>
