@@ -8,6 +8,7 @@ export type NavigationIconName =
   | "nav_studio"
   | "nav_bughunt"
   | "nav_blitz"
+  | "nav_flashcards"
   | "nav_algolab"
   | "nav_showcase"
   | "nav_achievements"
@@ -102,6 +103,15 @@ export const NAVIGATION_ICON_INNER_SVG: Record<NavigationIconName, string> = {
     <circle cx="15" cy="17" r="10.5" fill="#B8FF3B" stroke="#111111" stroke-width="2.2"/>
     <polygon points="16.5,9.5 11,17.5 15.2,17.5 13.5,24.5 20,15.5 15.8,15.5" fill="#FFDE59" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
     <polygon points="24,6 28,9.5 24,12.5" fill="#FF90E8" stroke="#111111" stroke-width="1.4" stroke-linejoin="round"/>
+  `,
+  nav_flashcards: `
+    <rect x="7" y="4" width="19" height="21" rx="3.5" fill="#111111" transform="translate(1.6,1.6) rotate(7 16 14)"/>
+    <rect x="7" y="4" width="19" height="21" rx="3.5" fill="#FF90E8" stroke="#111111" stroke-width="2" transform="rotate(7 16 14)"/>
+    <rect x="4" y="6" width="19" height="21" rx="3.5" fill="#111111" transform="translate(1.4,1.4)"/>
+    <rect x="4" y="6" width="19" height="21" rx="3.5" fill="#6EE7B7" stroke="#111111" stroke-width="2.1"/>
+    <line x1="8" y1="12" x2="19" y2="12" stroke="#111111" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="8" y1="16.5" x2="16.5" y2="16.5" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+    <polygon points="13.5,19.5 14.8,22 17.5,22.4 15.5,24.2 16,26.8 13.5,25.4 11,26.8 11.5,24.2 9.5,22.4 12.2,22" fill="#FFDE59" stroke="#111111" stroke-width="1.3" stroke-linejoin="round"/>
   `,
   nav_algolab: `
     <rect x="4" y="5" width="24" height="22" rx="4" fill="#111111" transform="translate(1.5,1.5)"/>

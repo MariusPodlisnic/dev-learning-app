@@ -58,6 +58,9 @@ const { default: RoadmapWelcomeCard } = loadTsModule(
 const { default: RoadmapRetroTv, RETRO_TV_CHANNELS } = loadTsModule(
   "src/components/RoadmapRetroTv.tsx",
 );
+const { default: FlashcardsArena } = loadTsModule(
+  "src/components/FlashcardsArena.tsx",
+);
 const {
   completeOnboarding,
   resetOnboardingForTesting,
@@ -1073,4 +1076,28 @@ test("RoadmapRetroTv renders Midnight Bubble CRT with VHS slot across all 5 chan
       );
     }
   }
+});
+
+test("FlashcardsArena renders rapid-recall concept deck controls and flip card cleanly", () => {
+  const flashText = visibleText(
+    renderThemed(
+      React.createElement(FlashcardsArena, {
+        isPremium: false,
+        onRequirePro: () => {},
+        onAwardFlashcardXp: () => {},
+        onBackToMap: () => {},
+      }),
+    ),
+  );
+  assert.ok(flashText.includes("Flashcards Deck"));
+  assert.ok(flashText.includes("PYTHON BASICS"));
+  assert.ok(flashText.includes("ALGORITHMS"));
+  assert.ok(flashText.includes("SYSTEM DESIGN"));
+  assert.ok(flashText.includes("CARD 1 OF 8"));
+  assert.ok(flashText.includes("FLIP CARD"));
+
+  const iconHtml = renderThemed(
+    React.createElement(StudioIcon, { name: "nav_flashcards", size: 20 }),
+  );
+  assert.ok(iconHtml.includes("<svg"));
 });

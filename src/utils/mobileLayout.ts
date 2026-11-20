@@ -5,7 +5,7 @@ export const COMPACT_STUDIO_BREAKPOINT = 920;
 
 export type MobileNavTarget =
   | {
-      key: Exclude<ViewMode, "achievements">;
+      key: Exclude<ViewMode, "achievements" | "flashcards">;
       kind: "mode";
       icon: string;
       shortLabel: string;

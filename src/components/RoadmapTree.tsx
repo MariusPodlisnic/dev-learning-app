@@ -106,7 +106,7 @@ interface RoadmapTreeProps {
   streakCount?: number;
   lastActiveDate?: string | null;
   totalSolvedCount?: number;
-  onStartQuickMode?: (mode: "bughunt" | "blitz" | "algolab") => void;
+  onStartQuickMode?: (mode: "bughunt" | "blitz" | "flashcards" | "algolab") => void;
   onSaveStreak?: () => void;
   onOpenAuth?: (mode?: "signup" | "signin", reason?: string) => void;
   onOpenPaywall?: () => void;
@@ -369,6 +369,19 @@ export default function RoadmapTree({
                       }}
                     >
                       <Text style={styles.heroSecondaryBtnText}>🪲 BUG HUNT</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        styles.heroSecondaryBtn,
+                        pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                      ]}
+                      onPress={() => {
+                        playKeyClick();
+                        onStartQuickMode("flashcards");
+                      }}
+                    >
+                      <Text style={styles.heroSecondaryBtnText}>🃏 FLASH DECK</Text>
                     </Pressable>
                   </View>
                 ) : null}

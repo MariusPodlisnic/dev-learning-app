@@ -97,6 +97,8 @@ function getModeAccent(viewMode: ViewMode): {
       return { primary: StudioColors.coral, secondary: StudioColors.yellow };
     case "blitz":
       return { primary: StudioColors.lime, secondary: "#38BDF8" };
+    case "flashcards":
+      return { primary: StudioColors.mint, secondary: StudioColors.pink };
     case "algolab":
       return { primary: StudioColors.violet, secondary: StudioColors.pink };
     case "achievements":
@@ -561,6 +563,26 @@ export default function AppHeader({
                 ]}
               >
                 SPEED BLITZ
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.modeBtn,
+                viewMode === "flashcards" && styles.modeBtnFlashcardsActive,
+                pressed && { transform: [{ translateY: 1 }] },
+              ]}
+              onPress={() => handleSwitchMode("flashcards")}
+            >
+              <StudioIcon name="nav_flashcards" size={18} />
+              <Text
+                style={[
+                  styles.modeBtnText,
+                  viewMode === "flashcards" &&
+                    styles.modeBtnFlashcardsTextActive,
+                ]}
+              >
+                FLASH DECK
               </Text>
             </Pressable>
 
@@ -1366,6 +1388,10 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       backgroundColor: StudioColors.lime,
       borderColor: StudioColors.ink,
     },
+    modeBtnFlashcardsActive: {
+      backgroundColor: StudioColors.mint,
+      borderColor: StudioColors.ink,
+    },
     modeBtnAlgoLabActive: {
       backgroundColor: StudioColors.violet,
       borderColor: StudioColors.ink,
@@ -1385,6 +1411,10 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       fontWeight: "900",
     },
     modeBtnBlitzTextActive: {
+      color: StudioColors.ink,
+      fontWeight: "900",
+    },
+    modeBtnFlashcardsTextActive: {
       color: StudioColors.ink,
       fontWeight: "900",
     },

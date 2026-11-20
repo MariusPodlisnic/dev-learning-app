@@ -218,6 +218,14 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByText("SPEED BLITZ").first().click();
     await page.waitForSelector("text=60s", { timeout: 10000 });
 
+    await page.getByText("FLASH DECK").first().click();
+    await page.waitForSelector("text=Flashcards Deck", { timeout: 10000 });
+    await page.waitForSelector("text=CARD 1 OF 8", { timeout: 5000 });
+    await page.getByLabel("Flip flashcard to reveal answer").click();
+    await page.waitForSelector("text=KEY ANSWER", { timeout: 5000 });
+    await page.getByLabel("Mark card as mastered").click();
+    await page.waitForSelector("text=CARD 2 OF 8", { timeout: 5000 });
+
     await page.getByText("BUG HUNT").first().click();
     await page.waitForSelector("text=BUG HUNT", { timeout: 10000 });
 

@@ -87,6 +87,9 @@ const AlgorithmVisualizerLab = React.lazy(
   () => import("../components/AlgorithmVisualizerLab"),
 );
 const BugHuntArena = React.lazy(() => import("../components/BugHuntArena"));
+const FlashcardsArena = React.lazy(
+  () => import("../components/FlashcardsArena"),
+);
 const SyntaxBlitzArena = React.lazy(
   () => import("../components/SyntaxBlitzArena"),
 );
@@ -413,7 +416,13 @@ export default function HomeScreen() {
       });
       return;
     }
-    if (mode === "bughunt" || mode === "blitz" || mode === "algolab" || mode === "achievements") {
+    if (
+      mode === "bughunt" ||
+      mode === "blitz" ||
+      mode === "flashcards" ||
+      mode === "algolab" ||
+      mode === "achievements"
+    ) {
       handledDeepLinkRef.current = true;
       const targetMode = mode;
       queueMicrotask(() => setViewMode(targetMode));
@@ -661,6 +670,7 @@ export default function HomeScreen() {
     recordActiveDevSession,
     handleAwardBugHuntXp,
     handleAwardBlitzXp,
+    handleAwardFlashcardXp,
     handleClaimChapterBonus,
     handleClaimDailyQuestBonus,
   } = useArenaRewards({
@@ -764,7 +774,9 @@ export default function HomeScreen() {
         ? "Bug Hunt Arena | Devy"
         : viewMode === "blitz"
           ? "60s Syntax Blitz | Devy"
-          : viewMode === "algolab"
+          : viewMode === "flashcards"
+            ? "Flashcards Concept Deck | Devy"
+            : viewMode === "algolab"
             ? "Pro Algorithm Visual Lab | Devy"
             : "Devy | Interactive Python, Algorithms & System Design";
 
@@ -784,7 +796,9 @@ export default function HomeScreen() {
       ? StudioColors.coral
       : viewMode === "blitz"
         ? StudioColors.lime
-        : viewMode === "algolab"
+        : viewMode === "flashcards"
+          ? StudioColors.mint
+          : viewMode === "algolab"
           ? StudioColors.violet
           : TrackThemes[activeTrack]?.stickerBg || StudioColors.yellow;
 
@@ -921,6 +935,7 @@ export default function HomeScreen() {
         />
       ) : viewMode === "bughunt" ||
         viewMode === "blitz" ||
+        viewMode === "flashcards" ||
         viewMode === "algolab" ||
         viewMode === "achievements" ? (
         <StudioErrorBoundary
@@ -935,9 +950,11 @@ export default function HomeScreen() {
                     ? "Loading Bug Hunt Arena..."
                     : viewMode === "blitz"
                       ? "Loading Speed Blitz..."
-                      : viewMode === "algolab"
-                        ? "Loading Algorithm Lab..."
-                        : "Loading Trophy Hall..."
+                      : viewMode === "flashcards"
+                        ? "Shuffling Flashcards Deck..."
+                        : viewMode === "algolab"
+                          ? "Loading Algorithm Lab..."
+                          : "Loading Trophy Hall..."
                 }
               />
             }
@@ -973,6 +990,18 @@ export default function HomeScreen() {
                   })
                 }
                 onAwardBlitzXp={handleAwardBlitzXp}
+              />
+            ) : viewMode === "flashcards" ? (
+              <FlashcardsArena
+                isPremium={effectiveIsPremium}
+                onRequirePro={() =>
+                  openPaywall({
+                    source: "arena",
+                    lessonTitle: "All Pro Flashcard Concept Decks",
+                  })
+                }
+                onAwardFlashcardXp={(earned) => handleAwardFlashcardXp(earned)}
+                onBackToMap={() => setViewMode("roadmap")}
               />
             ) : viewMode === "algolab" ? (
               <AlgorithmVisualizerLab

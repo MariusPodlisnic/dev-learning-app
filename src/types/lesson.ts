@@ -69,6 +69,7 @@ export type ViewMode =
   | "studio"
   | "bughunt"
   | "blitz"
+  | "flashcards"
   | "algolab"
   | "achievements";
 export type ExplainStyle = "analogy" | "guide" | "cheatsheet";
