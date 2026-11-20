@@ -61,6 +61,9 @@ const { default: RoadmapRetroTv, RETRO_TV_CHANNELS } = loadTsModule(
 const { default: FlashcardsArena } = loadTsModule(
   "src/components/FlashcardsArena.tsx",
 );
+const { default: WeeklyLeaguePanel } = loadTsModule(
+  "src/components/WeeklyLeaguePanel.tsx",
+);
 const {
   completeOnboarding,
   resetOnboardingForTesting,
@@ -331,6 +334,7 @@ test("StudioCodeEditor renders editor chrome, quick inserts, trace control, and 
     ),
   );
   assert.ok(editorText.includes("solution.py"));
+  assert.ok(editorText.includes("THOCK"));
   assert.ok(editorText.includes("DRAFT SAVED"));
   assert.ok(editorText.includes("# Comment"));
   assert.ok(!editorText.includes("EVAL"));
@@ -992,6 +996,9 @@ test("StudioSettingsModal renders display mode, all 4 Studio Theme Palettes, lo-
   assert.ok(freeSettingsText.includes("LVL 2"));
   assert.ok(freeSettingsText.includes("LO-FI FOCUS RADIO"));
   assert.ok(freeSettingsText.includes("Sound Effects"));
+  assert.ok(freeSettingsText.includes("Mechanical Keycap Typing"));
+  assert.ok(freeSettingsText.includes("THOCK"));
+  assert.ok(freeSettingsText.includes("CLICK"));
   assert.ok(freeSettingsText.includes("DISPLAY NAME"));
 
   const proSettingsText = visibleText(
@@ -1100,4 +1107,23 @@ test("FlashcardsArena renders rapid-recall concept deck controls and flip card c
     React.createElement(StudioIcon, { name: "nav_flashcards", size: 20 }),
   );
   assert.ok(iconHtml.includes("<svg"));
+});
+
+test("WeeklyLeaguePanel renders tier ladder, Ghost Rivals, promotion zone, and opt-in CTA", () => {
+  const leagueText = visibleText(
+    renderThemed(
+      React.createElement(WeeklyLeaguePanel, {
+        xpPoints: 150,
+        streakCount: 4,
+        sessionUserId: null,
+        onOpenAuth: () => {},
+        onNavigateMode: () => {},
+      }),
+    ),
+  );
+  assert.ok(leagueText.includes("Spark League"));
+  assert.ok(leagueText.includes("TOP 3 WEEKLY PROMOTION ZONE"));
+  assert.ok(leagueText.includes("GHOST"));
+  assert.ok(leagueText.includes("YOU"));
+  assert.ok(leagueText.includes("SIGN IN FOR LIVE BOARD"));
 });

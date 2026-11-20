@@ -21,6 +21,7 @@ import {
   ViewMode,
 } from "../types/lesson";
 import { playKeyClick } from "../utils/soundEffects";
+import WeeklyLeaguePanel from "./WeeklyLeaguePanel";
 
 interface AchievementsHallProps {
   xpPoints: number;
@@ -30,6 +31,10 @@ interface AchievementsHallProps {
   completedChallenges?: Record<string, boolean>;
   peekedSolutions?: Record<string, boolean>;
   solvedIncidents: Record<string, boolean>;
+  sessionUserId?: string | null;
+  userEmail?: string | null;
+  initialHallTab?: "achievements" | "league";
+  onOpenAuth?: () => void;
   onNavigateMode: (mode: ViewMode) => void;
 }
 
@@ -62,9 +67,16 @@ export default function AchievementsHall({
   completedChallenges = {},
   peekedSolutions = {},
   solvedIncidents,
+  sessionUserId = null,
+  userEmail = null,
+  initialHallTab = "achievements",
+  onOpenAuth,
   onNavigateMode,
 }: AchievementsHallProps) {
   const styles = useThemedStyles(createStyles);
+  const [hallTab, setHallTab] = useState<"achievements" | "league">(
+    initialHallTab,
+  );
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
 
   const totalSolvedCount = useMemo(
@@ -648,8 +660,70 @@ export default function AchievementsHall({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Hero Banner & Telemetry Summary */}
-      <View style={styles.heroCard}>
+      {/* Top Hall Switcher: Trophies vs Weekly League */}
+      <View style={styles.hallSwitchBar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View Achievements Trophy Hall"
+          style={({ pressed }) => [
+            styles.hallSwitchBtn,
+            hallTab === "achievements" && styles.hallSwitchBtnActive,
+            pressed && { transform: [{ translateY: 1 }] },
+          ]}
+          onPress={() => {
+            playKeyClick();
+            setHallTab("achievements");
+          }}
+        >
+          <Text
+            style={[
+              styles.hallSwitchText,
+              hallTab === "achievements" && styles.hallSwitchTextActive,
+            ]}
+          >
+            🏆 ACHIEVEMENTS ({unlockedCount}/{achievements.length})
+          </Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View Weekly League Leaderboard"
+          style={({ pressed }) => [
+            styles.hallSwitchBtn,
+            hallTab === "league" && styles.hallSwitchBtnLeagueActive,
+            pressed && { transform: [{ translateY: 1 }] },
+          ]}
+          onPress={() => {
+            playKeyClick();
+            setHallTab("league");
+          }}
+        >
+          <Text
+            style={[
+              styles.hallSwitchText,
+              hallTab === "league" && styles.hallSwitchTextActive,
+            ]}
+          >
+            ⚔️ WEEKLY LEAGUE
+          </Text>
+        </Pressable>
+      </View>
+
+      {hallTab === "league" ? (
+        <View style={styles.leaguePanelWrap}>
+          <WeeklyLeaguePanel
+            xpPoints={xpPoints}
+            streakCount={streakCount}
+            sessionUserId={sessionUserId}
+            userEmail={userEmail}
+            onOpenAuth={onOpenAuth}
+            onNavigateMode={onNavigateMode}
+          />
+        </View>
+      ) : (
+        <>
+          {/* Hero Banner & Telemetry Summary */}
+          <View style={styles.heroCard}>
         <View style={styles.heroTopRibbon} />
         <View style={styles.heroHeaderRow}>
           <View style={styles.heroTitleCol}>
@@ -993,6 +1067,8 @@ export default function AchievementsHall({
           );
         })}
       </View>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -1432,5 +1508,46 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.5,
+  },
+  hallSwitchBar: {
+    width: "100%",
+    maxWidth: 1080,
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 16,
+  },
+  hallSwitchBtn: {
+    flex: 1,
+    backgroundColor: StudioColors.surface,
+    borderWidth: 2,
+    borderColor: StudioColors.border,
+    borderRadius: 11,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  hallSwitchBtnActive: {
+    backgroundColor: StudioColors.yellow,
+    borderColor: StudioColors.ink,
+  },
+  hallSwitchBtnLeagueActive: {
+    backgroundColor: StudioColors.lime,
+    borderColor: StudioColors.ink,
+  },
+  hallSwitchText: {
+    color: StudioColors.textPrimary,
+    fontSize: 11.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.7,
+  },
+  hallSwitchTextActive: {
+    color: StudioColors.ink,
+  },
+  leaguePanelWrap: {
+    width: "100%",
+    maxWidth: 920,
   },
 });

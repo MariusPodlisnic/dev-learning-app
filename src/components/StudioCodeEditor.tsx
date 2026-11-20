@@ -17,6 +17,16 @@ import {
 import { useThemedStyles } from "../constants/themeContext";
 import { Lesson, TestCaseResult } from "../types/lesson";
 import { playKeyClick } from "../utils/soundEffects";
+import {
+  classifyTypingKey,
+  cycleTypingSoundProfile,
+  getTypingSoundProfile,
+  getTypingSoundProfileMeta,
+  hydrateTypingSoundProfile,
+  playMechanicalKeystroke,
+  subscribeTypingSound,
+  type TypingSoundProfile,
+} from "../utils/typingSounds";
 import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 import {
   computeAssertionDiff,
@@ -272,7 +282,16 @@ export default function StudioCodeEditor({
   const [cursorPos, setCursorPos] = useState<number>(0);
   const [hoveredChip, setHoveredChip] = useState<string | null>(null);
   const [hoveredTestIdx, setHoveredTestIdx] = useState<number | null>(null);
+  const [typingProfile, setTypingProfile] = useState<TypingSoundProfile>(() =>
+    getTypingSoundProfile(),
+  );
   const inputRef = useRef<any>(null);
+
+  useEffect(() => {
+    void hydrateTypingSoundProfile();
+    return subscribeTypingSound(setTypingProfile);
+  }, []);
+  const activeTypingMeta = getTypingSoundProfileMeta(typingProfile);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<{ start: number; end: number }>({
     start: 0,
@@ -541,6 +560,26 @@ export default function StudioCodeEditor({
           </View>
           <View style={styles.ideHeaderActions}>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Switch keyboard typing sound (currently ${activeTypingMeta.label})`}
+              style={[
+                styles.copyCodeBtn,
+                typingProfile !== "off" && styles.copyCodeBtnSuccess,
+              ]}
+              onPress={() => {
+                cycleTypingSoundProfile();
+              }}
+            >
+              <Text
+                style={[
+                  styles.copyCodeBtnText,
+                  typingProfile !== "off" && { color: StudioColors.lime },
+                ]}
+              >
+                {activeTypingMeta.chipLabel}
+              </Text>
+            </Pressable>
+            <Pressable
               style={[
                 styles.copyCodeBtn,
                 copiedCode && styles.copyCodeBtnSuccess,
@@ -603,6 +642,7 @@ export default function StudioCodeEditor({
                   pressed && { transform: [{ translateY: 1 }] },
                 ]}
                 onPress={() => {
+                  playMechanicalKeystroke("char");
                   if (item.action === "outdent") {
                     handleIndent("outdent");
                   } else if (item.action === "comment") {
@@ -725,6 +765,17 @@ export default function StudioCodeEditor({
               onKeyPress={(e: any) => {
                 const nativeEv = e?.nativeEvent;
                 if (!nativeEv) return;
+
+                if (
+                  !nativeEv.metaKey &&
+                  !nativeEv.ctrlKey &&
+                  !nativeEv.altKey
+                ) {
+                  const keyKind = classifyTypingKey(nativeEv.key);
+                  if (keyKind) {
+                    playMechanicalKeystroke(keyKind);
+                  }
+                }
 
                 if (
                   nativeEv.key === "Enter" &&

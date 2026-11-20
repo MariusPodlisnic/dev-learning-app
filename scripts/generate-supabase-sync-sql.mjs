@@ -267,6 +267,48 @@ CREATE POLICY "Users delete own curriculum progress"
   FOR DELETE
   USING (auth.uid() = user_id);
 
+-- 3b. Opt-in Weekly League Leaderboard (stores public nickname & weekly XP, never emails)
+CREATE TABLE IF NOT EXISTS public.weekly_league_entries (
+  week_key text NOT NULL,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name text NOT NULL,
+  avatar_level smallint NOT NULL DEFAULT 1,
+  weekly_xp integer NOT NULL DEFAULT 0,
+  streak_count integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (week_key, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_weekly_league_week_xp
+  ON public.weekly_league_entries (week_key, weekly_xp DESC);
+
+ALTER TABLE public.weekly_league_entries ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can read weekly league leaderboard" ON public.weekly_league_entries;
+CREATE POLICY "Anyone can read weekly league leaderboard"
+  ON public.weekly_league_entries
+  FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Users insert own weekly league row" ON public.weekly_league_entries;
+CREATE POLICY "Users insert own weekly league row"
+  ON public.weekly_league_entries
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users update own weekly league row" ON public.weekly_league_entries;
+CREATE POLICY "Users update own weekly league row"
+  ON public.weekly_league_entries
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users delete own weekly league row" ON public.weekly_league_entries;
+CREATE POLICY "Users delete own weekly league row"
+  ON public.weekly_league_entries
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
 -- 4. Tag existing DB rows with canonical slugs
 DO $$
 BEGIN

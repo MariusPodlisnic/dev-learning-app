@@ -27,6 +27,10 @@ import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 import { playKeyClick } from "../utils/soundEffects";
 import {
+  classifyTypingKey,
+  playMechanicalKeystroke,
+} from "../utils/typingSounds";
+import {
   readLocalJson,
   readLocalJsonAsync,
   writeLocalJson,
@@ -754,6 +758,17 @@ export default function BugHuntArena({
               onChangeText={setCode}
               onKeyPress={(e: any) => {
                 const nativeEv = e?.nativeEvent;
+                if (
+                  nativeEv &&
+                  !nativeEv.metaKey &&
+                  !nativeEv.ctrlKey &&
+                  !nativeEv.altKey
+                ) {
+                  const keyKind = classifyTypingKey(nativeEv.key);
+                  if (keyKind) {
+                    playMechanicalKeystroke(keyKind);
+                  }
+                }
                 if (
                   nativeEv &&
                   nativeEv.key === "Enter" &&

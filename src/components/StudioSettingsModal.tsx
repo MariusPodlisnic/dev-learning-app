@@ -41,6 +41,13 @@ import {
   getOnboardingState,
   updateDisplayName,
 } from "../utils/userOnboarding";
+import {
+  getTypingSoundProfile,
+  setTypingSoundProfile,
+  subscribeTypingSound,
+  TYPING_SOUND_PROFILES,
+  type TypingSoundProfile,
+} from "../utils/typingSounds";
 import { StudioIcon, Text } from "./StudioIcon";
 
 interface StudioSettingsModalProps {
@@ -61,6 +68,9 @@ export default function StudioSettingsModal({
 
   const [sfxOn, setSfxOn] = useState<boolean>(() => isSoundEnabled());
   const [hapticsOn, setHapticsOn] = useState<boolean>(() => isHapticsEnabled());
+  const [typingProfile, setTypingProfile] = useState<TypingSoundProfile>(() =>
+    getTypingSoundProfile(),
+  );
   const [lofiState, setLofiState] = useState<LofiRadioState>(() =>
     getLofiRadioState(),
   );
@@ -72,12 +82,14 @@ export default function StudioSettingsModal({
 
   useEffect(() => {
     const unsubLofi = subscribeLofiRadio(setLofiState);
+    const unsubTyping = subscribeTypingSound(setTypingProfile);
     const unsubSound = subscribeSoundPreferences(() => {
       setSfxOn(isSoundEnabled());
       setHapticsOn(isHapticsEnabled());
     });
     return () => {
       unsubLofi();
+      unsubTyping();
       unsubSound();
     };
   }, []);
@@ -419,6 +431,51 @@ export default function StudioSettingsModal({
               </View>
             </Pressable>
           ) : null}
+
+          {/* Mechanical Keycap Typing Sound Selector */}
+          <View style={styles.typingProfileCard}>
+            <View style={styles.settingRowLeft}>
+              <StudioIcon name="keyboard" size={18} />
+              <View style={styles.settingRowText}>
+                <Text style={styles.settingRowTitle}>
+                  Mechanical Keycap Typing
+                </Text>
+                <Text style={styles.settingRowDesc}>
+                  Cozy tactile keystroke acoustics while coding in Studio &amp;
+                  Bug Hunt
+                </Text>
+              </View>
+            </View>
+            <View style={styles.typingProfilesRow}>
+              {TYPING_SOUND_PROFILES.map((prof) => {
+                const active = typingProfile === prof.id;
+                return (
+                  <Pressable
+                    key={prof.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set typing sound to ${prof.label}`}
+                    style={({ pressed }) => [
+                      styles.typingProfileBtn,
+                      active && styles.typingProfileBtnActive,
+                      pressed && { transform: [{ translateY: 1 }] },
+                    ]}
+                    onPress={() => {
+                      setTypingSoundProfile(prof.id, { playPreview: true });
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.typingProfileBtnText,
+                        active && styles.typingProfileBtnTextActive,
+                      ]}
+                    >
+                      {prof.chipLabel}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         {/* 5. Byte-Cat Personalization */}
@@ -836,6 +893,45 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     },
     switchBadgeTextOff: {
       color: StudioColors.textMuted,
+    },
+    typingProfileCard: {
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 10,
+      padding: 12,
+      gap: 10,
+      ...HardShadowSm,
+    },
+    typingProfilesRow: {
+      flexDirection: "row",
+      gap: 6,
+    },
+    typingProfileBtn: {
+      flex: 1,
+      backgroundColor: StudioColors.surface,
+      borderWidth: 1.5,
+      borderColor: StudioColors.borderSubtle,
+      borderRadius: 8,
+      paddingVertical: 7,
+      paddingHorizontal: 6,
+      alignItems: "center",
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    typingProfileBtnActive: {
+      backgroundColor: StudioColors.lime,
+      borderColor: StudioColors.ink,
+      borderWidth: 2,
+    },
+    typingProfileBtnText: {
+      color: StudioColors.textSecondary,
+      fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+    },
+    typingProfileBtnTextActive: {
+      color: StudioColors.ink,
     },
     nameEditRow: {
       flexDirection: "row",

@@ -79,6 +79,7 @@ import {
 import { executeBugPatchVerification } from "../utils/pyodideRunner";
 import type { PythonTraceResult } from "../utils/pythonTrace";
 import { playVictoryFanfare } from "../utils/soundEffects";
+import { recordWeeklyXpSnapshot } from "../utils/weeklyLeague";
 
 const AchievementsHall = React.lazy(
   () => import("../components/AchievementsHall"),
@@ -732,6 +733,10 @@ export default function HomeScreen() {
   const styles = useThemedStyles(getStudioScreenStyles);
   const devRank = getDeveloperRank(xpPoints);
 
+  useEffect(() => {
+    recordWeeklyXpSnapshot(xpPoints);
+  }, [xpPoints]);
+
   const currentLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = currentLessons.filter(
     (l) => completedLessons[l.id],
@@ -1023,6 +1028,14 @@ export default function HomeScreen() {
                 completedChallenges={completedChallenges}
                 peekedSolutions={peekedSolutions}
                 solvedIncidents={solvedIncidents}
+                sessionUserId={session?.user?.id}
+                userEmail={session?.user?.email}
+                onOpenAuth={() =>
+                  openAuthModal(
+                    "signup",
+                    "Sign in to opt into the live Weekly League leaderboard.",
+                  )
+                }
                 onNavigateMode={(mode) => setViewMode(mode)}
               />
             )}

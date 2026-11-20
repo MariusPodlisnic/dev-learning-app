@@ -214,6 +214,9 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     // Secondary lazy-loaded arenas hydrate cleanly via React.lazy + Suspense
     await page.getByText("ACHIEVEMENTS").first().click();
     await page.waitForSelector("text=TROPHY HALL", { timeout: 10000 });
+    await page.getByLabel("View Weekly League Leaderboard").click();
+    await page.waitForSelector("text=TOP 3 WEEKLY PROMOTION ZONE", { timeout: 5000 });
+    await page.waitForSelector("text=COZY GHOST RIVALS", { timeout: 5000 });
 
     await page.getByText("SPEED BLITZ").first().click();
     await page.waitForSelector("text=60s", { timeout: 10000 });
