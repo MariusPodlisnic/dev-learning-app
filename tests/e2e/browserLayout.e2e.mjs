@@ -194,6 +194,32 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.waitForSelector("text=5-SECOND SETUP", { timeout: 5000 });
     await page.getByLabel("Skip welcome setup").click();
 
+    // Byte-Cat Interactive Style Wardrobe: verify all 5 tabs align identically, equip CRT Pixel Glasses & switch mood
+    const styleTabYs = await page.evaluate(() => {
+      const labels = ["WISDOM", "SNACK", "QUIZ", "STYLE", "PERKS"];
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const found = {};
+      let n;
+      while ((n = walker.nextNode())) {
+        const t = (n.nodeValue || "").trim();
+        if (labels.includes(t) && !found[t] && n.parentElement) {
+          found[t] = Math.round(n.parentElement.getBoundingClientRect().y * 10) / 10;
+        }
+      }
+      return found;
+    });
+    const tabYVals = Object.values(styleTabYs);
+    assert.equal(tabYVals.length, 5, `Expected all 5 Byte-Cat tabs, got ${JSON.stringify(styleTabYs)}`);
+    assert.ok(
+      Math.max(...tabYVals) - Math.min(...tabYVals) <= 2,
+      `Expected Byte-Cat tabs to align identically vertically, got ${JSON.stringify(styleTabYs)}`,
+    );
+    await page.getByText("STYLE", { exact: true }).first().click();
+    await page.waitForSelector("text=COZY WARDROBE", { timeout: 5000 });
+    await page.getByLabel("Set Byte-Cat mood to Ship-It Hype").click();
+    await page.getByLabel("Equip CRT Pixel Glasses").click();
+    await page.getByTestId("bytecat-acc-crt_glasses").waitFor({ timeout: 5000 });
+
     // Midnight Bubble Retro TV switches channels smoothly and keeps CH 04/05 animations alive on repeat laps
     await page.waitForSelector("text=CH 01/05", { timeout: 5000 });
     for (let step = 0; step < 8; step += 1) {

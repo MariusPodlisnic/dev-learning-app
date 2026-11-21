@@ -39,6 +39,19 @@ import {
   playVictoryFanfare,
 } from "../utils/soundEffects";
 import {
+  BYTE_CAT_ACCESSORIES,
+  BYTE_CAT_MOODS,
+  type ByteCatAccessoryId,
+  type ByteCatMoodId,
+  type ByteCatWardrobeState,
+  getByteCatMoodMeta,
+  getByteCatWardrobeState,
+  isByteCatAccessoryUnlocked,
+  setByteCatMood,
+  subscribeByteCatWardrobe,
+  toggleByteCatAccessory,
+} from "../utils/byteCatWardrobe";
+import {
   getOnboardingState,
   subscribeOnboarding,
 } from "../utils/userOnboarding";
@@ -74,6 +87,7 @@ interface ByteCatGuideCardProps {
   activeTrackLabel: string;
   activeTrackAccent?: string;
   isPremium?: boolean;
+  totalXp?: number;
   streakCount?: number;
   lastActiveDate?: string | null;
   onOpenPaywall?: () => void;
@@ -86,6 +100,7 @@ export default function ByteCatGuideCard({
   activeTrackLabel,
   activeTrackAccent = StudioColors.yellow,
   isPremium = false,
+  totalXp = 0,
   streakCount = 0,
   lastActiveDate = null,
   onOpenPaywall,
@@ -163,6 +178,9 @@ export default function ByteCatGuideCard({
   const [displayName, setDisplayName] = useState<string>(
     () => getOnboardingState().displayName,
   );
+  const [wardrobe, setWardrobe] = useState<ByteCatWardrobeState>(() =>
+    getByteCatWardrobeState(),
+  );
   const activeLofiMeta = getLofiChannelMeta(lofiState.channel);
 
   useEffect(() => {
@@ -171,9 +189,11 @@ export default function ByteCatGuideCard({
     const unsubOnboarding = subscribeOnboarding((state) => {
       setDisplayName(state.displayName);
     });
+    const unsubWardrobe = subscribeByteCatWardrobe(setWardrobe);
     return () => {
       unsubLofi();
       unsubOnboarding();
+      unsubWardrobe();
     };
   }, []);
 
@@ -991,8 +1011,8 @@ export default function ByteCatGuideCard({
   function handleShuffleActiveMode() {
     playKeyClick();
 
-    if (mode === "wisdom" || mode === "perks") {
-      if (mode === "perks") {
+    if (mode === "wisdom" || mode === "perks" || mode === "style") {
+      if (mode === "perks" || mode === "style") {
         triggerContentTransition();
         setMode("wisdom");
       }
@@ -1041,10 +1061,47 @@ export default function ByteCatGuideCard({
       setWhisperText("🧠 TEST YOUR BRAIN!");
     } else if (nextMode === "snack") {
       setWhisperText("💡 BITE-SIZE CODE!");
+    } else if (nextMode === "style") {
+      setWhisperText("👔 DRESS UP BYTE-CAT!");
     } else if (nextMode === "perks") {
       setWhisperText(`★ PET LVL ${petLevel} PERKS`);
     } else {
       setWhisperText("=^._.^= WISDOM");
+    }
+  }
+
+  function handleSelectMood(moodId: ByteCatMoodId) {
+    playKeyClick();
+    setByteCatMood(moodId);
+    const meta = getByteCatMoodMeta(moodId);
+    triggerPlayfulBounce(false);
+    setWhisperText(meta.whisper);
+    spawnFloatingPopup(`${meta.icon} ${meta.label.toUpperCase()}`);
+  }
+
+  function handleToggleAccessory(accessoryId: ByteCatAccessoryId) {
+    const result = toggleByteCatAccessory(accessoryId, {
+      xpPoints: totalXp,
+      streakCount,
+      isPremium,
+    });
+    if (!result.changed) {
+      playKeyClick();
+      triggerHeadShake();
+      setWhisperText("🔒 EARN XP OR PRO TO UNLOCK!");
+      spawnFloatingPopup("🔒 LOCKED GEAR");
+      return;
+    }
+    const item = BYTE_CAT_ACCESSORIES.find((a) => a.id === accessoryId);
+    if (result.equippedNow) {
+      playSuccessChime();
+      triggerPlayfulBounce(true);
+      setWhisperText(`${item?.icon || "✨"} ${item?.name.toUpperCase()} ON!`);
+      spawnFloatingPopup(`${item?.icon || "✨"} EQUIPPED!`);
+    } else {
+      playKeyClick();
+      triggerPlayfulBounce(false);
+      setWhisperText(`REMOVED ${item?.shortName.toUpperCase() || "GEAR"}`);
     }
   }
 
@@ -1421,6 +1478,8 @@ export default function ByteCatGuideCard({
                   isBlinking={isBlinking}
                   hyperPurrActive={hyperPurrActive}
                   activeKeyStep={activeKeyStep}
+                  equipped={wardrobe.equipped}
+                  mood={wardrobe.mood}
                 />
               </Animated.View>
 
@@ -1523,6 +1582,7 @@ export default function ByteCatGuideCard({
                   { id: "wisdom", label: "💬 WISDOM" },
                   { id: "snack", label: "💡 SNACK" },
                   { id: "quiz", label: "⚡ QUIZ" },
+                  { id: "style", label: "👔 STYLE" },
                   { id: "perks", label: "🐾 PERKS" },
                 ] as const
               ).map((tab) => {
@@ -1789,6 +1849,129 @@ export default function ByteCatGuideCard({
                     Tap an option above to test your instinct!
                   </Text>
                 )}
+              </View>
+            ) : mode === "style" ? (
+              <View style={styles.stylePanel}>
+                <View style={styles.perksHeaderRow}>
+                  <Text style={styles.styleSubHeading}>DESK MOOD</Text>
+                  <Text style={styles.quoteCounterText}>
+                    {[
+                      wardrobe.equipped.head,
+                      wardrobe.equipped.eyewear,
+                      wardrobe.equipped.neck,
+                    ].filter(Boolean).length}{" "}
+                    EQUIPPED
+                  </Text>
+                </View>
+
+                <View style={styles.moodRow}>
+                  {BYTE_CAT_MOODS.map((m) => {
+                    const active = wardrobe.mood === m.id;
+                    return (
+                      <Pressable
+                        key={m.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Set Byte-Cat mood to ${m.label}`}
+                        style={({ pressed }) => [
+                          styles.moodChipBtn,
+                          active && [
+                            styles.moodChipBtnActive,
+                            { backgroundColor: m.accent },
+                          ],
+                          pressed && { transform: [{ translateY: 1 }] },
+                        ]}
+                        onPress={() => handleSelectMood(m.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.moodChipText,
+                            active && styles.moodChipTextActive,
+                          ]}
+                        >
+                          {m.chipLabel}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Text style={styles.styleSubHeading}>
+                  COZY WARDROBE · WEARABLE GEAR
+                </Text>
+                <View style={styles.wardrobeGrid}>
+                  {BYTE_CAT_ACCESSORIES.map((acc) => {
+                    const unlocked = isByteCatAccessoryUnlocked(acc.id, {
+                      xpPoints: totalXp,
+                      streakCount,
+                      isPremium,
+                    });
+                    const isEquipped = wardrobe.equipped[acc.slot] === acc.id;
+                    return (
+                      <Pressable
+                        key={acc.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${isEquipped ? "Unequip" : "Equip"} ${acc.name}${unlocked ? "" : ` (${acc.unlockHint})`}`}
+                        style={({ pressed }) => [
+                          styles.wardrobeItemCard,
+                          isEquipped && [
+                            styles.wardrobeItemCardEquipped,
+                            { borderColor: acc.accent },
+                          ],
+                          !unlocked && styles.wardrobeItemCardLocked,
+                          pressed && unlocked && { transform: [{ translateY: 1 }] },
+                        ]}
+                        onPress={() => handleToggleAccessory(acc.id)}
+                      >
+                        <View
+                          style={[
+                            styles.wardrobeItemIconBox,
+                            {
+                              backgroundColor: isEquipped
+                                ? acc.accent
+                                : colors.bg,
+                            },
+                          ]}
+                        >
+                          <Text style={styles.wardrobeItemIcon}>
+                            {acc.icon}
+                          </Text>
+                        </View>
+                        <View style={styles.wardrobeItemCopy}>
+                          <Text
+                            style={styles.wardrobeItemName}
+                            numberOfLines={1}
+                          >
+                            {acc.shortName}
+                          </Text>
+                          <Text
+                            style={styles.wardrobeItemHint}
+                            numberOfLines={1}
+                          >
+                            {unlocked ? acc.slot.toUpperCase() : acc.unlockHint}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.wardrobeStatusPill,
+                            isEquipped && {
+                              backgroundColor: acc.accent,
+                              borderColor: StudioColors.ink,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.wardrobeStatusPillText,
+                              isEquipped && { color: StudioColors.ink },
+                            ]}
+                          >
+                            {isEquipped ? "ON ✓" : unlocked ? "WEAR" : "🔒"}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
             ) : (
               <View style={styles.perksPanel}>

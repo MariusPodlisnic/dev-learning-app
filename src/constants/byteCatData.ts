@@ -696,7 +696,7 @@ export const CYBER_WHISPERS = [
   "BYTE-OS // OVERDRIVE",
 ];
 
-export type CompanionMode = "wisdom" | "snack" | "quiz" | "perks";
+export type CompanionMode = "wisdom" | "snack" | "quiz" | "style" | "perks";
 export type IdleBreakAction = "sip" | "stretch" | "swat" | "jam" | null;
 
 export const IDLE_BREAK_ORDER: Exclude<IdleBreakAction, null>[] = [

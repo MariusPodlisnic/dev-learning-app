@@ -434,6 +434,7 @@ export default function RoadmapTree({
           activeTrackLabel={currentTrackMeta.label}
           activeTrackAccent={currentTrackMeta.stickerBg}
           isPremium={isPremium}
+          totalXp={totalXp}
           streakCount={streakCount}
           lastActiveDate={lastActiveDate}
           onOpenPaywall={onOpenPaywall}

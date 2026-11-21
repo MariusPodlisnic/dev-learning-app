@@ -6,6 +6,10 @@ import {
   type IdleBreakAction,
   KEYCAP_PALETTE,
 } from "../constants/byteCatData";
+import type {
+  ByteCatEquippedAccessories,
+  ByteCatMoodId,
+} from "../utils/byteCatWardrobe";
 
 const BYTE_CAT_IMAGE = require("../../assets/images/byte-cat.jpg");
 
@@ -176,11 +180,15 @@ export default function CozyCodingByteCatStage({
   isBlinking,
   hyperPurrActive,
   activeKeyStep,
+  equipped = { head: "headphones", eyewear: null, neck: null },
+  mood = "cozy",
 }: {
   idleBreak: IdleBreakAction;
   isBlinking: boolean;
   hyperPurrActive: boolean;
   activeKeyStep: number;
+  equipped?: ByteCatEquippedAccessories;
+  mood?: ByteCatMoodId;
 }) {
   if (Platform.OS !== "web") {
     return (
@@ -211,7 +219,22 @@ export default function CozyCodingByteCatStage({
             ? "jam"
             : isBlinking
               ? "sip"
-              : "happy";
+              : mood === "focused"
+                ? "focused"
+                : mood === "sleepy"
+                  ? "sleepy"
+                  : mood === "hyped"
+                    ? "jam"
+                    : "happy";
+
+  const roomGlowColor =
+    mood === "focused"
+      ? "#38BDF8"
+      : mood === "sleepy"
+        ? "#A78BFA"
+        : mood === "hyped"
+          ? "#A3E635"
+          : "#F59E0B";
 
   const bubbleLabel = effectiveAction
     ? IDLE_BREAK_META[effectiveAction].bubble
@@ -227,8 +250,8 @@ export default function CozyCodingByteCatStage({
       >
         <defs>
           <radialGradient id="bcWarmRoomGlow" cx="58%" cy="48%" r="58%">
-            <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.24" />
-            <stop offset="65%" stopColor="#F97316" stopOpacity="0.09" />
+            <stop offset="0%" stopColor={roomGlowColor} stopOpacity="0.25" />
+            <stop offset="65%" stopColor={roomGlowColor} stopOpacity="0.09" />
             <stop offset="100%" stopColor="#171522" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="bcDeskWood" x1="0" y1="0" x2="0" y2="1">
@@ -550,23 +573,86 @@ export default function CozyCodingByteCatStage({
             stroke="#D6CCB8"
             strokeWidth="2"
           />
+
+          {/* Equipped Neck Accessory: Sakura Knit Scarf */}
+          {equipped.neck === "sakura_scarf" && (
+            <g data-testid="bytecat-acc-sakura_scarf">
+              <rect
+                x="76"
+                y="105"
+                width="88"
+                height="13"
+                rx="6.5"
+                fill="#FF90E8"
+                stroke="#111111"
+                strokeWidth="2.5"
+              />
+              <line
+                x1="92"
+                y1="106"
+                x2="92"
+                y2="117"
+                stroke="#FDF2F8"
+                strokeWidth="3"
+              />
+              <line
+                x1="120"
+                y1="106"
+                x2="120"
+                y2="117"
+                stroke="#FDF2F8"
+                strokeWidth="3"
+              />
+              <line
+                x1="148"
+                y1="106"
+                x2="148"
+                y2="117"
+                stroke="#FDF2F8"
+                strokeWidth="3"
+              />
+              <rect
+                x="130"
+                y="114"
+                width="14"
+                height="18"
+                rx="4"
+                fill="#FF90E8"
+                stroke="#111111"
+                strokeWidth="2.2"
+              />
+              <line
+                x1="132"
+                y1="125"
+                x2="142"
+                y2="125"
+                stroke="#FFDE59"
+                strokeWidth="2.5"
+              />
+            </g>
+          )}
         </g>
 
         <g className="bc-cat-head">
-          <path
-            d="M68 82 A52 50 0 0 1 172 82"
-            fill="none"
-            stroke="#111111"
-            strokeWidth="11"
-            strokeLinecap="round"
-          />
-          <path
-            d="M68 82 A52 50 0 0 1 172 82"
-            fill="none"
-            stroke="#FFDE59"
-            strokeWidth="6.5"
-            strokeLinecap="round"
-          />
+          {/* Studio Headphones Band (shown when Headphones are equipped) */}
+          {equipped.head === "headphones" && (
+            <g data-testid="bytecat-acc-headphones">
+              <path
+                d="M68 82 A52 50 0 0 1 172 82"
+                fill="none"
+                stroke="#111111"
+                strokeWidth="11"
+                strokeLinecap="round"
+              />
+              <path
+                d="M68 82 A52 50 0 0 1 172 82"
+                fill="none"
+                stroke="#FFDE59"
+                strokeWidth="6.5"
+                strokeLinecap="round"
+              />
+            </g>
+          )}
 
           <g className="bc-ear-l">
             <polygon
@@ -599,26 +685,106 @@ export default function CozyCodingByteCatStage({
             stroke="#111111"
             strokeWidth="3"
           />
-          <rect
-            x="57"
-            y="66"
-            width="17"
-            height="34"
-            rx="7.5"
-            fill="#FFDE59"
-            stroke="#111111"
-            strokeWidth="3"
-          />
-          <rect
-            x="166"
-            y="66"
-            width="17"
-            height="34"
-            rx="7.5"
-            fill="#FFDE59"
-            stroke="#111111"
-            strokeWidth="3"
-          />
+
+          {/* Headphones Ear Cups */}
+          {equipped.head === "headphones" && (
+            <g>
+              <rect
+                x="57"
+                y="66"
+                width="17"
+                height="34"
+                rx="7.5"
+                fill="#FFDE59"
+                stroke="#111111"
+                strokeWidth="3"
+              />
+              <rect
+                x="166"
+                y="66"
+                width="17"
+                height="34"
+                rx="7.5"
+                fill="#FFDE59"
+                stroke="#111111"
+                strokeWidth="3"
+              />
+            </g>
+          )}
+
+          {/* Code Wizard Hat */}
+          {equipped.head === "wizard_hat" && (
+            <g data-testid="bytecat-acc-wizard_hat">
+              <ellipse
+                cx="120"
+                cy="49"
+                rx="48"
+                ry="8"
+                fill="#4C1D95"
+                stroke="#111111"
+                strokeWidth="2.8"
+              />
+              <polygon
+                points="90,48 124,10 150,48"
+                fill="#5B21B6"
+                stroke="#111111"
+                strokeWidth="2.8"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M96 44 Q120 48 144 44"
+                fill="none"
+                stroke="#FFDE59"
+                strokeWidth="4.5"
+                strokeLinecap="round"
+              />
+              <text
+                x="120"
+                y="37"
+                textAnchor="middle"
+                fontSize="12"
+                fontWeight="900"
+                fill="#FFDE59"
+              >
+                ★
+              </text>
+            </g>
+          )}
+
+          {/* Cozy Knit Beanie */}
+          {equipped.head === "sakura_beanie" && (
+            <g data-testid="bytecat-acc-sakura_beanie">
+              <circle
+                cx="120"
+                cy="25"
+                r="7.5"
+                fill="#FEF3C7"
+                stroke="#111111"
+                strokeWidth="2.5"
+              />
+              <path
+                d="M84 52 C88 28 152 28 156 52 Z"
+                fill="#FB923C"
+                stroke="#111111"
+                strokeWidth="2.8"
+                strokeLinejoin="round"
+              />
+              <rect
+                x="80"
+                y="45"
+                width="80"
+                height="11"
+                rx="5.5"
+                fill="#FDBA74"
+                stroke="#111111"
+                strokeWidth="2.5"
+              />
+              <line x1="96" y1="46" x2="96" y2="55" stroke="#111111" strokeWidth="1.6" />
+              <line x1="112" y1="46" x2="112" y2="55" stroke="#111111" strokeWidth="1.6" />
+              <line x1="128" y1="46" x2="128" y2="55" stroke="#111111" strokeWidth="1.6" />
+              <line x1="144" y1="46" x2="144" y2="55" stroke="#111111" strokeWidth="1.6" />
+            </g>
+          )}
 
           {/* Dark CRT Screen */}
           <rect
@@ -727,6 +893,51 @@ export default function CozyCodingByteCatStage({
             </g>
           )}
 
+          {activeFace === "focused" && (
+            <g>
+              <rect x="92" y="74" width="15" height="6" rx="2" fill="#38BDF8" />
+              <rect x="133" y="74" width="15" height="6" rx="2" fill="#38BDF8" />
+              <line
+                x1="114"
+                y1="86"
+                x2="126"
+                y2="86"
+                stroke="#38BDF8"
+                strokeWidth="2.8"
+                strokeLinecap="round"
+              />
+            </g>
+          )}
+
+          {activeFace === "sleepy" && (
+            <g>
+              <path
+                d="M92 79 Q99 83 107 79"
+                fill="none"
+                stroke="#C4B5FD"
+                strokeWidth="3.2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M133 79 Q140 83 148 79"
+                fill="none"
+                stroke="#C4B5FD"
+                strokeWidth="3.2"
+                strokeLinecap="round"
+              />
+              <circle cx="120" cy="87" r="2.6" fill="#C4B5FD" />
+              <text
+                x="151"
+                y="67"
+                fontSize="10"
+                fontWeight="900"
+                fill="#C4B5FD"
+              >
+                zZ
+              </text>
+            </g>
+          )}
+
           {activeFace === "jam" && (
             <g>
               <text x="91" y="83" fontSize="14" fontWeight="900" fill="#FFDE59">
@@ -742,6 +953,86 @@ export default function CozyCodingByteCatStage({
                 strokeWidth="3"
                 strokeLinecap="round"
               />
+            </g>
+          )}
+
+          {/* Equipped Eyewear: CRT Pixel Glasses */}
+          {equipped.eyewear === "crt_glasses" && (
+            <g data-testid="bytecat-acc-crt_glasses">
+              <rect
+                x="88"
+                y="69"
+                width="26"
+                height="18"
+                rx="4"
+                fill="rgba(110, 231, 183, 0.2)"
+                stroke="#6EE7B7"
+                strokeWidth="2.6"
+              />
+              <rect
+                x="126"
+                y="69"
+                width="26"
+                height="18"
+                rx="4"
+                fill="rgba(110, 231, 183, 0.2)"
+                stroke="#6EE7B7"
+                strokeWidth="2.6"
+              />
+              <line
+                x1="114"
+                y1="77"
+                x2="126"
+                y2="77"
+                stroke="#6EE7B7"
+                strokeWidth="2.6"
+              />
+              <line
+                x1="93"
+                y1="74"
+                x2="98"
+                y2="72"
+                stroke="#FFFFFF"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <line
+                x1="131"
+                y1="74"
+                x2="136"
+                y2="72"
+                stroke="#FFFFFF"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </g>
+          )}
+
+          {/* Equipped Eyewear: Arcade Star Visor */}
+          {equipped.eyewear === "star_visor" && (
+            <g data-testid="bytecat-acc-star_visor">
+              <rect
+                x="85"
+                y="68"
+                width="70"
+                height="18"
+                rx="7"
+                fill="rgba(163, 230, 53, 0.26)"
+                stroke="#A3E635"
+                strokeWidth="2.6"
+              />
+              <line
+                x1="92"
+                y1="74"
+                x2="112"
+                y2="74"
+                stroke="#FFDE59"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              />
+              <text x="140" y="81" fontSize="11" fontWeight="900" fill="#FFDE59">
+                ✦
+              </text>
             </g>
           )}
         </g>

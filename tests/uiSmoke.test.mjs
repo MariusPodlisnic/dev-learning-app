@@ -931,6 +931,7 @@ test("ByteCat quotes catalog has unique IDs, no duplicate quotes, and ByteCatGui
   assert.ok(cardText.includes(BYTE_CAT_QUOTES[0].author));
   assert.ok(cardText.includes("♪") && cardText.includes("♫"));
   assert.ok(cardText.includes("3D STREAK"));
+  assert.ok(cardText.includes("STYLE"));
   assert.ok(!cardText.includes("#01/50"));
   assert.ok(!cardText.includes("STRATEGIC PAWS"));
 });
