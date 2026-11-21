@@ -74,6 +74,20 @@ export const ARCADE_CARTRIDGES: readonly ArcadeCartridgeMeta[] = [
     highlightTag: "RAPID RECALL",
     xpLabel: "+20–50 XP",
   },
+  {
+    id: "detective",
+    category: "recall",
+    code: "CART-04",
+    title: "Output Detective",
+    shortTitle: "DETECTIVE",
+    tagline:
+      "Read short Python & system traces, predict the exact output without typing, and inspect step-by-step clues.",
+    durationBadge: "2 MIN · 18 CASES",
+    icon: "nav_detective",
+    accent: "#38BDF8",
+    highlightTag: "CODE READING",
+    xpLabel: "+30–85 XP",
+  },
 ] as const;
 
 interface ArcadeHubProps {
@@ -285,12 +299,12 @@ export default function ArcadeHub({
               {
                 id: "sprints" as const,
                 icon: "bolt" as StudioIconName,
-                label: "QUICK SPRINTS (2)",
+                label: `QUICK SPRINTS (${ARCADE_CARTRIDGES.filter((c) => c.category === "sprints").length})`,
               },
               {
                 id: "recall" as const,
                 icon: "nav_flashcards" as StudioIconName,
-                label: "MEMORY & RECALL (1)",
+                label: `MEMORY & RECALL (${ARCADE_CARTRIDGES.filter((c) => c.category === "recall").length})`,
               },
             ] as const
           ).map((tab) => {
@@ -332,7 +346,9 @@ export default function ArcadeHub({
                 ? `${solvedBugCount}/25 INCIDENTS CLEARED`
                 : cart.id === "blitz"
                   ? "PYTHON · ALGO · SYS DESIGN"
-                  : "8-CARD CONCEPT ROUNDS";
+                  : cart.id === "detective"
+                    ? "6-CASE TRACE INVESTIGATIONS"
+                    : "8-CARD CONCEPT ROUNDS";
 
             return (
               <Pressable

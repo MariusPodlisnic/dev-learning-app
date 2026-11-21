@@ -10,6 +10,7 @@ export type NavigationIconName =
   | "nav_bughunt"
   | "nav_blitz"
   | "nav_flashcards"
+  | "nav_detective"
   | "nav_algolab"
   | "nav_showcase"
   | "nav_achievements"
@@ -123,6 +124,15 @@ export const NAVIGATION_ICON_INNER_SVG: Record<NavigationIconName, string> = {
     <line x1="8" y1="12" x2="19" y2="12" stroke="#111111" stroke-width="2.2" stroke-linecap="round"/>
     <line x1="8" y1="16.5" x2="16.5" y2="16.5" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
     <polygon points="13.5,19.5 14.8,22 17.5,22.4 15.5,24.2 16,26.8 13.5,25.4 11,26.8 11.5,24.2 9.5,22.4 12.2,22" fill="#FFDE59" stroke="#111111" stroke-width="1.3" stroke-linejoin="round"/>
+  `,
+  nav_detective: `
+    <line x1="20.5" y1="20.5" x2="27.5" y2="27.5" stroke="#111111" stroke-width="5.2" stroke-linecap="round"/>
+    <line x1="20.5" y1="20.5" x2="27.5" y2="27.5" stroke="#FFDE59" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="14" cy="14" r="9.5" fill="#111111" transform="translate(1.4,1.4)"/>
+    <circle cx="14" cy="14" r="9.5" fill="#38BDF8" stroke="#111111" stroke-width="2.2"/>
+    <circle cx="14" cy="14" r="6" fill="#0F172A" stroke="#111111" stroke-width="1.5"/>
+    <polyline points="11.2,12 13.8,14 11.2,16" fill="none" stroke="#6EE7B7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="15" y1="16" x2="17.8" y2="16" stroke="#FFDE59" stroke-width="1.8" stroke-linecap="round"/>
   `,
   nav_algolab: `
     <rect x="4" y="5" width="24" height="22" rx="4" fill="#111111" transform="translate(1.5,1.5)"/>

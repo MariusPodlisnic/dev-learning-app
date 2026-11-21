@@ -94,6 +94,9 @@ const BugHuntArena = React.lazy(() => import("../components/BugHuntArena"));
 const FlashcardsArena = React.lazy(
   () => import("../components/FlashcardsArena"),
 );
+const OutputDetectiveArena = React.lazy(
+  () => import("../components/OutputDetectiveArena"),
+);
 const SyntaxBlitzArena = React.lazy(
   () => import("../components/SyntaxBlitzArena"),
 );
@@ -428,6 +431,7 @@ export default function HomeScreen() {
       mode === "bughunt" ||
       mode === "blitz" ||
       mode === "flashcards" ||
+      mode === "detective" ||
       mode === "algolab" ||
       mode === "achievements" ||
       mode === "league"
@@ -816,7 +820,9 @@ export default function HomeScreen() {
             ? "60s Syntax Blitz | Devy"
             : viewMode === "flashcards"
               ? "Flashcards Concept Deck | Devy"
-              : viewMode === "algolab"
+              : viewMode === "detective"
+                ? "Output Detective | Devy"
+                : viewMode === "algolab"
                 ? "Pro Algorithm Visual Lab | Devy"
                 : viewMode === "league"
                   ? "Weekly League Leaderboard | Devy"
@@ -846,7 +852,9 @@ export default function HomeScreen() {
           ? StudioColors.lime
           : viewMode === "flashcards"
             ? StudioColors.mint
-            : viewMode === "algolab"
+            : viewMode === "detective"
+              ? "#38BDF8"
+              : viewMode === "algolab"
               ? StudioColors.violet
               : TrackThemes[activeTrack]?.stickerBg || StudioColors.yellow;
 
@@ -985,6 +993,7 @@ export default function HomeScreen() {
         viewMode === "bughunt" ||
         viewMode === "blitz" ||
         viewMode === "flashcards" ||
+        viewMode === "detective" ||
         viewMode === "algolab" ||
         viewMode === "achievements" ||
         viewMode === "league" ? (
@@ -1011,11 +1020,13 @@ export default function HomeScreen() {
                           ? "Loading Speed Blitz..."
                           : viewMode === "flashcards"
                             ? "Shuffling Flashcards Deck..."
-                            : viewMode === "algolab"
-                              ? "Loading Algorithm Lab..."
-                              : viewMode === "league"
-                                ? "Loading Weekly League..."
-                                : "Loading Trophy Hall..."
+                            : viewMode === "detective"
+                              ? "Opening Detective Casebook..."
+                              : viewMode === "algolab"
+                                ? "Loading Algorithm Lab..."
+                                : viewMode === "league"
+                                  ? "Loading Weekly League..."
+                                  : "Loading Trophy Hall..."
                   }
                 />
               }
@@ -1072,6 +1083,18 @@ export default function HomeScreen() {
                 }
                 onAwardFlashcardXp={(earned) => handleAwardFlashcardXp(earned)}
                 onBackToMap={() => setViewMode("roadmap")}
+              />
+            ) : viewMode === "detective" ? (
+              <OutputDetectiveArena
+                isPremium={effectiveIsPremium}
+                onRequirePro={() =>
+                  openPaywall({
+                    source: "arena",
+                    lessonTitle: "All Pro Output Detective Cases",
+                  })
+                }
+                onAwardDetectiveXp={(earned) => handleAwardFlashcardXp(earned)}
+                onBackToArcade={() => setViewMode("arcade")}
               />
             ) : viewMode === "algolab" ? (
               <AlgorithmVisualizerLab

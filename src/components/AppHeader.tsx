@@ -99,6 +99,8 @@ function getModeAccent(viewMode: ViewMode): {
       return { primary: StudioColors.lime, secondary: "#38BDF8" };
     case "flashcards":
       return { primary: StudioColors.mint, secondary: StudioColors.pink };
+    case "detective":
+      return { primary: "#38BDF8", secondary: StudioColors.yellow };
     case "algolab":
       return { primary: StudioColors.violet, secondary: StudioColors.pink };
     case "achievements":

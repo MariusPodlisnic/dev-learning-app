@@ -62,6 +62,9 @@ const { default: RoadmapRetroTv, RETRO_TV_CHANNELS } = loadTsModule(
 const { default: FlashcardsArena } = loadTsModule(
   "src/components/FlashcardsArena.tsx",
 );
+const { default: OutputDetectiveArena } = loadTsModule(
+  "src/components/OutputDetectiveArena.tsx",
+);
 const { default: WeeklyLeaguePanel } = loadTsModule(
   "src/components/WeeklyLeaguePanel.tsx",
 );
@@ -1207,6 +1210,7 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(hubText.includes("Production Bug Hunt"));
   assert.ok(hubText.includes("60s Speed Blitz"));
   assert.ok(hubText.includes("Flashcards Concept Deck"));
+  assert.ok(hubText.includes("Output Detective"));
 
   const subNavText = visibleText(
     renderThemed(
@@ -1220,9 +1224,28 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(subNavText.includes("BUG HUNT"));
   assert.ok(subNavText.includes("SPEED BLITZ"));
   assert.ok(subNavText.includes("FLASH DECK"));
+  assert.ok(subNavText.includes("DETECTIVE"));
+
+  const detectiveText = visibleText(
+    renderThemed(
+      React.createElement(OutputDetectiveArena, {
+        isPremium: false,
+        onRequirePro: () => {},
+        onAwardDetectiveXp: () => {},
+        onBackToArcade: () => {},
+      }),
+    ),
+  );
+  assert.ok(detectiveText.includes("Output Detective"));
+  assert.ok(detectiveText.includes("CASE 1 OF 6"));
+  assert.ok(detectiveText.includes("READ & TRACE"));
 
   const arcadeIconHtml = renderThemed(
     React.createElement(StudioIcon, { name: "nav_arcade", size: 20 }),
   );
   assert.ok(arcadeIconHtml.includes("<svg"));
+  const detectiveIconHtml = renderThemed(
+    React.createElement(StudioIcon, { name: "nav_detective", size: 20 }),
+  );
+  assert.ok(detectiveIconHtml.includes("<svg"));
 });

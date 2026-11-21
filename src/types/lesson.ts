@@ -71,14 +71,20 @@ export type ViewMode =
   | "bughunt"
   | "blitz"
   | "flashcards"
+  | "detective"
   | "algolab"
   | "achievements"
   | "league";
 
-export type ArcadeGameMode = "bughunt" | "blitz" | "flashcards";
+export type ArcadeGameMode = "bughunt" | "blitz" | "flashcards" | "detective";
 
 export function isArcadeGameMode(mode: ViewMode): mode is ArcadeGameMode {
-  return mode === "bughunt" || mode === "blitz" || mode === "flashcards";
+  return (
+    mode === "bughunt" ||
+    mode === "blitz" ||
+    mode === "flashcards" ||
+    mode === "detective"
+  );
 }
 
 export function isArcadeSection(mode: ViewMode): boolean {
