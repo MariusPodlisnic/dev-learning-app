@@ -11,6 +11,7 @@ export type NavigationIconName =
   | "nav_blitz"
   | "nav_flashcards"
   | "nav_detective"
+  | "nav_minibuilds"
   | "nav_algolab"
   | "nav_showcase"
   | "nav_achievements"
@@ -133,6 +134,15 @@ export const NAVIGATION_ICON_INNER_SVG: Record<NavigationIconName, string> = {
     <circle cx="14" cy="14" r="6" fill="#0F172A" stroke="#111111" stroke-width="1.5"/>
     <polyline points="11.2,12 13.8,14 11.2,16" fill="none" stroke="#6EE7B7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     <line x1="15" y1="16" x2="17.8" y2="16" stroke="#FFDE59" stroke-width="1.8" stroke-linecap="round"/>
+  `,
+  nav_minibuilds: `
+    <rect x="4" y="6" width="24" height="20" rx="4.5" fill="#111111" transform="translate(1.5,1.5)"/>
+    <rect x="4" y="6" width="24" height="20" rx="4.5" fill="#C4B5FD" stroke="#111111" stroke-width="2.2"/>
+    <rect x="7.5" y="10" width="9" height="12" rx="2" fill="#181B24" stroke="#111111" stroke-width="1.6"/>
+    <line x1="9.5" y1="14" x2="14.5" y2="14" stroke="#6EE7B7" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="9.5" y1="18" x2="13" y2="18" stroke="#FFDE59" stroke-width="1.8" stroke-linecap="round"/>
+    <rect x="19" y="10" width="5.5" height="5.5" rx="1.5" fill="#FFDE59" stroke="#111111" stroke-width="1.5"/>
+    <rect x="19" y="17" width="5.5" height="5" rx="1.5" fill="#B8FF3B" stroke="#111111" stroke-width="1.5"/>
   `,
   nav_algolab: `
     <rect x="4" y="5" width="24" height="22" rx="4" fill="#111111" transform="translate(1.5,1.5)"/>

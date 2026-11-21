@@ -78,7 +78,10 @@ import {
   isCompactStudioWidth,
   shouldShowBottomThumbNav,
 } from "../utils/mobileLayout";
-import { executeBugPatchVerification } from "../utils/pyodideRunner";
+import {
+  executeBugPatchVerification,
+  executePlaygroundPython,
+} from "../utils/pyodideRunner";
 import type { PythonTraceResult } from "../utils/pythonTrace";
 import { playVictoryFanfare } from "../utils/soundEffects";
 import { subscribePomodoroComplete } from "../utils/pomodoroTimer";
@@ -96,6 +99,9 @@ const FlashcardsArena = React.lazy(
 );
 const OutputDetectiveArena = React.lazy(
   () => import("../components/OutputDetectiveArena"),
+);
+const MiniBuildsArena = React.lazy(
+  () => import("../components/MiniBuildsArena"),
 );
 const SyntaxBlitzArena = React.lazy(
   () => import("../components/SyntaxBlitzArena"),
@@ -432,6 +438,7 @@ export default function HomeScreen() {
       mode === "blitz" ||
       mode === "flashcards" ||
       mode === "detective" ||
+      mode === "minibuilds" ||
       mode === "algolab" ||
       mode === "achievements" ||
       mode === "league"
@@ -822,7 +829,9 @@ export default function HomeScreen() {
               ? "Flashcards Concept Deck | Devy"
               : viewMode === "detective"
                 ? "Output Detective | Devy"
-                : viewMode === "algolab"
+                : viewMode === "minibuilds"
+                  ? "Cozy Mini-Builds | Devy"
+                  : viewMode === "algolab"
                 ? "Pro Algorithm Visual Lab | Devy"
                 : viewMode === "league"
                   ? "Weekly League Leaderboard | Devy"
@@ -854,8 +863,8 @@ export default function HomeScreen() {
             ? StudioColors.mint
             : viewMode === "detective"
               ? "#38BDF8"
-              : viewMode === "algolab"
-              ? StudioColors.violet
+              : viewMode === "minibuilds" || viewMode === "algolab"
+                ? StudioColors.violet
               : TrackThemes[activeTrack]?.stickerBg || StudioColors.yellow;
 
   const backdropVariant =
@@ -994,6 +1003,7 @@ export default function HomeScreen() {
         viewMode === "blitz" ||
         viewMode === "flashcards" ||
         viewMode === "detective" ||
+        viewMode === "minibuilds" ||
         viewMode === "algolab" ||
         viewMode === "achievements" ||
         viewMode === "league" ? (
@@ -1022,11 +1032,13 @@ export default function HomeScreen() {
                             ? "Shuffling Flashcards Deck..."
                             : viewMode === "detective"
                               ? "Opening Detective Casebook..."
-                              : viewMode === "algolab"
-                                ? "Loading Algorithm Lab..."
-                                : viewMode === "league"
-                                  ? "Loading Weekly League..."
-                                  : "Loading Trophy Hall..."
+                              : viewMode === "minibuilds"
+                                ? "Booting Mini-Builds Workbench..."
+                                : viewMode === "algolab"
+                                  ? "Loading Algorithm Lab..."
+                                  : viewMode === "league"
+                                    ? "Loading Weekly League..."
+                                    : "Loading Trophy Hall..."
                   }
                 />
               }
@@ -1095,6 +1107,28 @@ export default function HomeScreen() {
                 }
                 onAwardDetectiveXp={(earned) => handleAwardFlashcardXp(earned)}
                 onBackToArcade={() => setViewMode("arcade")}
+              />
+            ) : viewMode === "minibuilds" ? (
+              <MiniBuildsArena
+                pyodideReady={pyodideReady}
+                isPremium={effectiveIsPremium}
+                onRequirePro={() =>
+                  openPaywall({
+                    source: "arena",
+                    lessonTitle: "Pro Cozy Mini-Builds Sandbox",
+                  })
+                }
+                onRunPython={(script) =>
+                  executePlaygroundPython(pyodideRef.current, script)
+                }
+                onVerifyBuild={(userCode, harness) =>
+                  executeBugPatchVerification(
+                    pyodideRef.current,
+                    userCode,
+                    harness,
+                  )
+                }
+                onAwardBuildXp={(earned) => handleAwardFlashcardXp(earned)}
               />
             ) : viewMode === "algolab" ? (
               <AlgorithmVisualizerLab

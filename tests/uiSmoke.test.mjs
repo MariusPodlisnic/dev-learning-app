@@ -65,6 +65,9 @@ const { default: FlashcardsArena } = loadTsModule(
 const { default: OutputDetectiveArena } = loadTsModule(
   "src/components/OutputDetectiveArena.tsx",
 );
+const { default: MiniBuildsArena } = loadTsModule(
+  "src/components/MiniBuildsArena.tsx",
+);
 const { default: WeeklyLeaguePanel } = loadTsModule(
   "src/components/WeeklyLeaguePanel.tsx",
 );
@@ -1211,6 +1214,7 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(hubText.includes("60s Speed Blitz"));
   assert.ok(hubText.includes("Flashcards Concept Deck"));
   assert.ok(hubText.includes("Output Detective"));
+  assert.ok(hubText.includes("Cozy Mini-Builds"));
 
   const subNavText = visibleText(
     renderThemed(
@@ -1225,6 +1229,7 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(subNavText.includes("SPEED BLITZ"));
   assert.ok(subNavText.includes("FLASH DECK"));
   assert.ok(subNavText.includes("DETECTIVE"));
+  assert.ok(subNavText.includes("MINI-BUILDS"));
 
   const detectiveText = visibleText(
     renderThemed(
@@ -1240,6 +1245,24 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(detectiveText.includes("CASE 1 OF 6"));
   assert.ok(detectiveText.includes("READ & TRACE"));
 
+  const miniBuildsText = visibleText(
+    renderThemed(
+      React.createElement(MiniBuildsArena, {
+        pyodideReady: true,
+        isPremium: false,
+        onRequirePro: () => {},
+        onRunPython: async () => "",
+        onVerifyBuild: async () => ({ allPassed: true, results: [], stdout: "" }),
+        onAwardBuildXp: () => {},
+      }),
+    ),
+  );
+  assert.ok(miniBuildsText.includes("Cozy Mini-Builds"));
+  assert.ok(miniBuildsText.includes("PASSWORD METER"));
+  assert.ok(miniBuildsText.includes("URL SHORTENER"));
+  assert.ok(miniBuildsText.includes("DICE RPG"));
+  assert.ok(miniBuildsText.includes("LIVE PREVIEW WIDGET"));
+
   const arcadeIconHtml = renderThemed(
     React.createElement(StudioIcon, { name: "nav_arcade", size: 20 }),
   );
@@ -1248,4 +1271,8 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
     React.createElement(StudioIcon, { name: "nav_detective", size: 20 }),
   );
   assert.ok(detectiveIconHtml.includes("<svg"));
+  const miniBuildsIconHtml = renderThemed(
+    React.createElement(StudioIcon, { name: "nav_minibuilds", size: 20 }),
+  );
+  assert.ok(miniBuildsIconHtml.includes("<svg"));
 });

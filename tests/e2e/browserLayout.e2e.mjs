@@ -293,7 +293,12 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByLabel("Open Devy Mini-Game Arcade").click();
     await page.waitForSelector("text=Devy Mini-Game Arcade", { timeout: 10000 });
     const arcadeAlign = await page.evaluate(() => {
-      const filterLabels = ["ALL GAMES (4)", "QUICK SPRINTS (2)", "MEMORY & RECALL (2)"];
+      const filterLabels = [
+        "ALL GAMES (5)",
+        "QUICK SPRINTS (2)",
+        "MEMORY & RECALL (2)",
+        "MINI-BUILDS (1)",
+      ];
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       const ys = {};
       let n;
@@ -306,14 +311,21 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       return ys;
     });
     const arcadeYVals = Object.values(arcadeAlign);
-    assert.equal(arcadeYVals.length, 3, `Expected all 3 Arcade filter tabs, got ${JSON.stringify(arcadeAlign)}`);
+    assert.equal(arcadeYVals.length, 4, `Expected all 4 Arcade filter tabs, got ${JSON.stringify(arcadeAlign)}`);
     assert.ok(
       Math.max(...arcadeYVals) - Math.min(...arcadeYVals) <= 2,
       `Expected Arcade filter tab labels to align identically, got ${JSON.stringify(arcadeAlign)}`,
     );
 
-    // Launch Output Detective (CART-04), answer case 1, inspect trace breakdown, advance to case 2
-    await page.getByLabel("Launch Output Detective").click();
+    // Launch Cozy Mini-Builds (CART-05) and verify both free sandboxes switch cleanly
+    await page.getByLabel("Launch Cozy Mini-Builds").click();
+    await page.waitForSelector("text=Password Strength Meter", { timeout: 10000 });
+    await page.waitForSelector("text=LIVE PREVIEW WIDGET", { timeout: 5000 });
+    await page.getByLabel("Select mini-build Mini URL Shortener").click();
+    await page.waitForSelector("text=Mini URL Shortener", { timeout: 5000 });
+
+    // Switch to Output Detective (CART-04), answer case 1, inspect trace breakdown, advance to case 2
+    await page.getByLabel("Switch to Output Detective").click();
     await page.waitForSelector("text=CASE 1 OF 6", { timeout: 10000 });
     await page.getByLabel(/^Predict option A:/).first().click();
     await page.getByLabel("Next detective case").waitFor({ timeout: 5000 });

@@ -15,7 +15,7 @@ import {
 import { playKeyClick } from "../utils/soundEffects";
 import { StudioIcon, type StudioIconName, Text } from "./StudioIcon";
 
-export type ArcadeCategoryId = "all" | "sprints" | "recall";
+export type ArcadeCategoryId = "all" | "sprints" | "recall" | "builds";
 
 export interface ArcadeCartridgeMeta {
   id: ArcadeGameMode;
@@ -87,6 +87,20 @@ export const ARCADE_CARTRIDGES: readonly ArcadeCartridgeMeta[] = [
     accent: "#38BDF8",
     highlightTag: "CODE READING",
     xpLabel: "+30–85 XP",
+  },
+  {
+    id: "minibuilds",
+    category: "builds",
+    code: "CART-05",
+    title: "Cozy Mini-Builds",
+    shortTitle: "MINI-BUILDS",
+    tagline:
+      "Code tiny Python tools—Password Meter, URL Shortener, and Dice RPG—and test them live in an interactive widget.",
+    durationBadge: "5 MIN · LIVE WIDGET",
+    icon: "nav_minibuilds",
+    accent: StudioColors.violet,
+    highlightTag: "BUILD A TOOL",
+    xpLabel: "+60–90 XP",
   },
 ] as const;
 
@@ -306,6 +320,11 @@ export default function ArcadeHub({
                 icon: "nav_flashcards" as StudioIconName,
                 label: `MEMORY & RECALL (${ARCADE_CARTRIDGES.filter((c) => c.category === "recall").length})`,
               },
+              {
+                id: "builds" as const,
+                icon: "toolbox" as StudioIconName,
+                label: `MINI-BUILDS (${ARCADE_CARTRIDGES.filter((c) => c.category === "builds").length})`,
+              },
             ] as const
           ).map((tab) => {
             const active = category === tab.id;
@@ -348,7 +367,9 @@ export default function ArcadeHub({
                   ? "PYTHON · ALGO · SYS DESIGN"
                   : cart.id === "detective"
                     ? "6-CASE TRACE INVESTIGATIONS"
-                    : "8-CARD CONCEPT ROUNDS";
+                    : cart.id === "minibuilds"
+                      ? "3 LIVE PYTHON TOOLS"
+                      : "8-CARD CONCEPT ROUNDS";
 
             return (
               <Pressable
