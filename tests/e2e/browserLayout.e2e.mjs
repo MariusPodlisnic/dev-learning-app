@@ -130,11 +130,29 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.waitForTimeout(100);
     await page.getByLabel("Settings tab: 🎧 AUDIO").click();
     await page.waitForSelector("text=LO-FI FOCUS RADIO", { timeout: 5000 });
+    await page.waitForSelector("text=AMBIENT DESK MIXER", { timeout: 5000 });
+    await page.waitForSelector("text=Soft Rain", { timeout: 5000 });
+    await page.getByText("▶ PLAY RADIO").click();
+    await page.getByLabel("Apply ambient preset 🌧️ Rainy Night").click();
+    await page.waitForSelector("text=❚❚ MUTE MIX (3)", { timeout: 5000 });
     await page.waitForSelector("text=MECHANICAL KEYCAP TYPING", { timeout: 5000 });
     await page.getByLabel("Settings tab: ⚙️ STUDIO").click();
     await page.waitForSelector("text=DEVELOPER DISPLAY NAME", { timeout: 5000 });
     await page.waitForSelector("text=PYTHON ENGINE RUNTIME", { timeout: 5000 });
     await page.getByLabel("Close settings modal").click();
+
+    // When both Lo-Fi + Ambient are playing, header shows ONE unified pause pill and never clips SETTINGS
+    await page.waitForSelector("text=LO-FI + 3 MIX", { timeout: 5000 });
+    const settingsBtnBox = await page
+      .getByLabel("Open Studio Settings and Themes")
+      .boundingBox();
+    assert.ok(settingsBtnBox, "Expected SETTINGS button bounding box");
+    assert.ok(
+      settingsBtnBox.x + settingsBtnBox.width <= 1280,
+      `Expected SETTINGS button not to clip off-screen when audio is playing, got right=${settingsBtnBox.x + settingsBtnBox.width}`,
+    );
+    await page.getByLabel("Pause active studio audio").click();
+    await page.waitForTimeout(100);
 
     const matchaTvBg = await page
       .getByTestId("retro-tv-cabinet")

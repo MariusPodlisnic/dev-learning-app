@@ -1021,6 +1021,12 @@ test("StudioSettingsModal renders organized 3-tab menu (Appearance, Audio, Studi
     ),
   );
   assert.ok(audioText.includes("LO-FI FOCUS RADIO"));
+  assert.ok(audioText.includes("AMBIENT DESK MIXER"));
+  assert.ok(audioText.includes("Soft Rain"));
+  assert.ok(audioText.includes("Cafe Murmur"));
+  assert.ok(audioText.includes("Fireplace"));
+  assert.ok(audioText.includes("CRT Hum"));
+  assert.ok(audioText.includes("Rainy Night"));
   assert.ok(audioText.includes("MECHANICAL KEYCAP TYPING"));
   assert.ok(audioText.includes("THOCK"));
   assert.ok(audioText.includes("CLICK"));

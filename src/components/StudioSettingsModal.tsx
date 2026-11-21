@@ -19,6 +19,18 @@ import {
 } from "../constants/theme";
 import { useTheme, useThemedStyles } from "../constants/themeContext";
 import {
+  AMBIENT_CHANNELS,
+  AMBIENT_PRESETS,
+  AMBIENT_VOLUME_STEPS,
+  type AmbientMixerState,
+  applyAmbientPreset,
+  getAmbientMixerState,
+  setAmbientChannelVolume,
+  subscribeAmbientMixer,
+  toggleAmbientChannel,
+  toggleAmbientMixer,
+} from "../utils/ambientSoundscapes";
+import {
   getLofiChannelMeta,
   getLofiRadioState,
   LOFI_CHANNELS,
@@ -94,6 +106,9 @@ export default function StudioSettingsModal({
   const [lofiState, setLofiState] = useState<LofiRadioState>(() =>
     getLofiRadioState(),
   );
+  const [ambientState, setAmbientState] = useState<AmbientMixerState>(() =>
+    getAmbientMixerState(),
+  );
   const [nameDraft, setNameDraft] = useState<string>(
     () => getOnboardingState().displayName,
   );
@@ -102,6 +117,7 @@ export default function StudioSettingsModal({
 
   useEffect(() => {
     const unsubLofi = subscribeLofiRadio(setLofiState);
+    const unsubAmbient = subscribeAmbientMixer(setAmbientState);
     const unsubTyping = subscribeTypingSound(setTypingProfile);
     const unsubSound = subscribeSoundPreferences(() => {
       setSfxOn(isSoundEnabled());
@@ -109,6 +125,7 @@ export default function StudioSettingsModal({
     });
     return () => {
       unsubLofi();
+      unsubAmbient();
       unsubTyping();
       unsubSound();
     };
@@ -146,7 +163,11 @@ export default function StudioSettingsModal({
             <Text style={styles.title}>STUDIO SETTINGS</Text>
             <Text style={styles.subtitle} numberOfLines={1}>
               {activePalette.name} · {themeMode === "dark" ? "Dark" : "Light"} ·{" "}
-              {sfxOn ? "Audio ON" : "Muted"}
+              {ambientState.isPlaying && ambientState.activeCount > 0
+                ? `${ambientState.activeCount} Ambient ON`
+                : sfxOn
+                  ? "Audio ON"
+                  : "Muted"}
             </Text>
           </View>
         </View>
@@ -430,7 +451,154 @@ export default function StudioSettingsModal({
               })}
             </View>
 
-            {/* 2. Mechanical Keycap Typing */}
+            {/* 2. Ambient Desk Soundscapes Mixer */}
+            <View style={styles.sectionHeadingRow}>
+              <Text style={styles.sectionHeading}>AMBIENT DESK MIXER</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  ambientState.isPlaying
+                    ? "Pause ambient desk soundscapes"
+                    : "Play ambient desk soundscapes"
+                }
+                style={({ pressed }) => [
+                  styles.lofiPlayPill,
+                  ambientState.isPlaying && {
+                    backgroundColor: StudioColors.mint,
+                  },
+                  pressed && { transform: [{ translateY: 1 }] },
+                ]}
+                onPress={() => {
+                  const playing = toggleAmbientMixer();
+                  if (!playing) {
+                    playKeyClick();
+                  }
+                }}
+              >
+                <Text
+                  style={[
+                    styles.lofiPlayPillText,
+                    ambientState.isPlaying && { color: StudioColors.ink },
+                  ]}
+                >
+                  {ambientState.isPlaying
+                    ? `❚❚ MUTE MIX (${ambientState.activeCount})`
+                    : ambientState.activeCount > 0
+                      ? `▶ RESUME MIX (${ambientState.activeCount})`
+                      : "▶ PLAY COZY MIX"}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.ambientPresetsRow}>
+              {AMBIENT_PRESETS.map((preset) => (
+                <Pressable
+                  key={preset.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Apply ambient preset ${preset.label}`}
+                  style={({ pressed }) => [
+                    styles.ambientPresetChip,
+                    pressed && { transform: [{ translateY: 1 }] },
+                  ]}
+                  onPress={() => {
+                    playKeyClick();
+                    applyAmbientPreset(preset.id);
+                  }}
+                >
+                  <Text style={styles.ambientPresetChipText}>
+                    {preset.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.ambientGrid}>
+              {AMBIENT_CHANNELS.map((ch) => {
+                const vol = ambientState.volumes[ch.id] ?? 0;
+                const isActive = ambientState.isPlaying && vol > 0;
+                return (
+                  <View
+                    key={ch.id}
+                    style={[
+                      styles.ambientChannelCard,
+                      isActive && { borderColor: ch.accentColor },
+                    ]}
+                  >
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Toggle ${ch.label} ambient soundscape`}
+                      style={styles.ambientChannelHeader}
+                      onPress={() => {
+                        playKeyClick();
+                        toggleAmbientChannel(ch.id);
+                      }}
+                    >
+                      <View style={styles.ambientChannelTitleGroup}>
+                        <Text style={styles.ambientChannelIcon}>{ch.icon}</Text>
+                        <View style={styles.ambientChannelTextCol}>
+                          <Text style={styles.ambientChannelName}>
+                            {ch.label}
+                          </Text>
+                          <Text
+                            style={styles.ambientChannelSub}
+                            numberOfLines={1}
+                          >
+                            {ch.subtitle}
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        style={[
+                          styles.ambientVolBadge,
+                          isActive && {
+                            backgroundColor: ch.accentColor,
+                            borderColor: StudioColors.ink,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.ambientVolBadgeText,
+                            isActive && { color: StudioColors.ink },
+                          ]}
+                        >
+                          {vol > 0 ? `${vol}%` : "OFF"}
+                        </Text>
+                      </View>
+                    </Pressable>
+
+                    <View style={styles.ambientFaderRow}>
+                      {AMBIENT_VOLUME_STEPS.map((step) => {
+                        const lit = vol >= step;
+                        return (
+                          <Pressable
+                            key={step}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Set ${ch.label} volume to ${step}%`}
+                            style={[
+                              styles.ambientFaderBar,
+                              lit && {
+                                backgroundColor: ch.accentColor,
+                                borderColor: StudioColors.ink,
+                                opacity: isActive ? 1 : 0.55,
+                              },
+                            ]}
+                            onPress={() => {
+                              setAmbientChannelVolume(
+                                ch.id,
+                                vol === step ? 0 : step,
+                              );
+                            }}
+                          />
+                        );
+                      })}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* 3. Mechanical Keycap Typing */}
             <Text style={styles.sectionHeading}>MECHANICAL KEYCAP TYPING</Text>
             <View style={styles.typingProfileCard}>
               <View style={styles.settingRowLeft}>
@@ -1022,6 +1190,106 @@ const createStyles = (StudioColors: StudioThemeColors) =>
       fontSize: 9,
       fontWeight: "700",
       fontFamily: MonoFont,
+    },
+    ambientPresetsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 6,
+      marginBottom: 10,
+    },
+    ambientPresetChip: {
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 7,
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    ambientPresetChipText: {
+      color: StudioColors.textPrimary,
+      fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.3,
+    },
+    ambientGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 16,
+    },
+    ambientChannelCard: {
+      flex: 1,
+      minWidth: 195,
+      backgroundColor: StudioColors.bg,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 10,
+      padding: 10,
+      gap: 8,
+      ...HardShadowSm,
+    },
+    ambientChannelHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    ambientChannelTitleGroup: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+      flex: 1,
+    },
+    ambientChannelIcon: {
+      fontSize: 16,
+    },
+    ambientChannelTextCol: {
+      flex: 1,
+      gap: 1,
+    },
+    ambientChannelName: {
+      color: StudioColors.textPrimary,
+      fontSize: 11.5,
+      fontWeight: "900",
+    },
+    ambientChannelSub: {
+      color: StudioColors.textMuted,
+      fontSize: 9.5,
+      fontWeight: "600",
+    },
+    ambientVolBadge: {
+      backgroundColor: StudioColors.surfaceElevated,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      borderRadius: 5,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      minWidth: 38,
+      alignItems: "center",
+    },
+    ambientVolBadgeText: {
+      color: StudioColors.textMuted,
+      fontSize: 9,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+    },
+    ambientFaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+    },
+    ambientFaderBar: {
+      flex: 1,
+      height: 11,
+      borderRadius: 4,
+      backgroundColor: StudioColors.surfaceElevated,
+      borderWidth: 1.5,
+      borderColor: StudioColors.borderSubtle,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     toggleList: {
       gap: 8,

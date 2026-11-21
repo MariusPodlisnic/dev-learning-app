@@ -29,11 +29,17 @@ import {
 import { useTheme, useThemedStyles } from "../constants/themeContext";
 import { ViewMode } from "../types/lesson";
 import {
+  type AmbientMixerState,
+  getAmbientMixerState,
+  stopAmbientMixer,
+  subscribeAmbientMixer,
+} from "../utils/ambientSoundscapes";
+import {
   getLofiChannelMeta,
   getLofiRadioState,
   type LofiRadioState,
+  stopLofiRadio,
   subscribeLofiRadio,
-  toggleLofiRadio,
 } from "../utils/lofiRadio";
 import {
   hydrateSoundPreference,
@@ -412,13 +418,18 @@ export default function AppHeader({
   const [lofiState, setLofiState] = useState<LofiRadioState>(() =>
     getLofiRadioState(),
   );
+  const [ambientState, setAmbientState] = useState<AmbientMixerState>(() =>
+    getAmbientMixerState(),
+  );
   const lofiMeta = getLofiChannelMeta(lofiState.channel);
 
   useEffect(() => {
     void hydrateSoundPreference();
     const unsubscribeLofi = subscribeLofiRadio(setLofiState);
+    const unsubscribeAmbient = subscribeAmbientMixer(setAmbientState);
     return () => {
       unsubscribeLofi();
+      unsubscribeAmbient();
     };
   }, []);
 
@@ -1020,36 +1031,77 @@ export default function AppHeader({
               );
             })()}
 
-            {lofiState.isPlaying && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Pause ${lofiMeta.label}`}
-                style={({ pressed }) => [
-                  styles.themeToggleBtn,
-                  styles.lofiToggleBtnActive,
-                  { borderColor: lofiMeta.accentColor },
-                  isCompactHeader && styles.headerActionBoxCompact,
-                  pressed && {
-                    transform: [{ translateX: 1 }, { translateY: 1 }],
-                  },
-                ]}
-                onPress={() => {
-                  const playing = toggleLofiRadio();
-                  if (!playing) {
-                    playKeyClick();
-                  }
-                }}
-              >
-                <Text
-                  style={[
-                    styles.themeToggleBtnText,
-                    { color: lofiMeta.accentColor },
+            {(() => {
+              const hasAmbient =
+                ambientState.isPlaying && ambientState.activeCount > 0;
+              const hasAudioPlaying = lofiState.isPlaying || hasAmbient;
+              if (!hasAudioPlaying) return null;
+
+              const audioAccent = lofiState.isPlaying
+                ? lofiMeta.accentColor
+                : StudioColors.mint;
+              const audioMicro =
+                lofiState.isPlaying && hasAmbient
+                  ? `LO-FI + ${ambientState.activeCount} MIX`
+                  : lofiState.isPlaying
+                    ? lofiMeta.shortLabel
+                    : `${ambientState.activeCount} AMBIENT`;
+
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Pause active studio audio"
+                  style={({ pressed }) => [
+                    styles.audioNowPlayingBtn,
+                    {
+                      borderColor:
+                        themeMode === "light" ? StudioColors.ink : audioAccent,
+                    },
+                    isCompactHeader && styles.headerActionBoxCompact,
+                    pressed && {
+                      transform: [{ translateX: 1 }, { translateY: 1 }],
+                    },
                   ]}
+                  onPress={() => {
+                    stopLofiRadio();
+                    stopAmbientMixer();
+                    playKeyClick();
+                  }}
                 >
-                  ❚❚ {lofiMeta.shortLabel}
-                </Text>
-              </Pressable>
-            )}
+                  <View
+                    style={[
+                      styles.pulseDot,
+                      { backgroundColor: audioAccent },
+                    ]}
+                  />
+                  <View style={styles.headerBtnTextStack}>
+                    {!isCompactHeader && (
+                      <Text
+                        style={[
+                          styles.headerMicroBase,
+                          {
+                            color:
+                              themeMode === "light"
+                                ? StudioColors.textSecondary
+                                : audioAccent,
+                          },
+                        ]}
+                      >
+                        {audioMicro}
+                      </Text>
+                    )}
+                    <Text
+                      style={[
+                        styles.headerMainBase,
+                        styles.settingsLaunchText,
+                      ]}
+                    >
+                      {isCompactHeader ? "❚❚ AUDIO" : "❚❚ PAUSE"}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })()}
 
             <Pressable
               accessibilityRole="button"
@@ -1236,6 +1288,7 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       flexDirection: "row",
       alignItems: "center",
       flexWrap: "wrap",
+      maxWidth: "100%",
       gap: 10,
       zIndex: 2,
     },
@@ -1243,6 +1296,7 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       flexDirection: "row",
       alignItems: "center",
       flexWrap: "wrap",
+      maxWidth: "100%",
       gap: 10,
       zIndex: 2,
     },
@@ -1273,6 +1327,7 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     },
     categoryGroupTray: {
       position: "relative",
+      maxWidth: "100%",
       backgroundColor: StudioColors.bg,
       borderWidth: 1.5,
       borderColor: StudioColors.borderSubtle,
@@ -1426,8 +1481,18 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       fontFamily: MonoFont,
       letterSpacing: 0.5,
     },
-    lofiToggleBtnActive: {
-      backgroundColor: "#1B2E2A",
+    audioNowPlayingBtn: {
+      backgroundColor: StudioColors.surfaceElevated,
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      minHeight: 36,
+      borderRadius: 7,
+      borderWidth: 2,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     paletteAccentDot: {
       width: 9,

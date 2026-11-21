@@ -1,3 +1,4 @@
+import { stopAmbientMixer } from "./ambientSoundscapes";
 import { stopLofiRadio } from "./lofiRadio";
 import {
   ensureNativeAudioMode,
@@ -127,6 +128,7 @@ export function setSoundEnabled(next: boolean): void {
     playKeyClick();
   } else {
     stopLofiRadio();
+    stopAmbientMixer();
   }
   notifySoundPrefListeners();
 }
