@@ -4,6 +4,14 @@ import {
   getStudioPaletteMeta,
   type StudioPaletteId,
 } from "../constants/theme";
+import {
+  type ActivityHeatmapMap,
+  buildPixelGardenGrid,
+  DEFAULT_HEATMAP_WEEKS,
+  getActivityHeatmapMap,
+  getGardenTilePalette,
+  mergeStreakBaselineIntoHeatmap,
+} from "./activityHeatmap";
 import { trackFunnelMilestone } from "./attribution";
 import {
   type ByteCatWardrobeState,
@@ -34,6 +42,7 @@ export interface ShareCardPayload {
   accentColor?: string;
   footerUrl?: string;
   byteCatWardrobe?: ByteCatWardrobeState;
+  activityMap?: ActivityHeatmapMap;
 }
 
 export type ShareCardExportOutcome =
@@ -181,7 +190,33 @@ export function buildShareCardSvg(payload: ShareCardPayload): string {
     )
     .join("");
 
-  const subtitleY = headlineLines.length > 1 ? 344 : 292;
+  const subtitleY = headlineLines.length > 1 ? 340 : 292;
+
+  // Build 12-week Cozy Pixel Garden mini-matrix SVG for the trading card
+  const effectiveGardenMap = mergeStreakBaselineIntoHeatmap(
+    payload.activityMap || getActivityHeatmapMap(),
+    payload.streakCount,
+  );
+  const gardenSummary = buildPixelGardenGrid(
+    effectiveGardenMap,
+    DEFAULT_HEATMAP_WEEKS,
+  );
+  const gardenColors = getGardenTilePalette(true, paletteId);
+  const gardenTilesSvg = gardenSummary.weeks
+    .map((week, wIdx) =>
+      week.cells
+        .map((cell, dIdx) => {
+          const x = 696 + wIdx * 7.5;
+          const y = 363 + dIdx * 5.4;
+          const opacity = cell.isFuture ? ' fill-opacity="0.25"' : "";
+          return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="5.8" height="4.2" rx="1.2" fill="${gardenColors[cell.level]}"${opacity} />`;
+        })
+        .join(""),
+    )
+    .join("");
+  const gardenStatCaption = escapeXml(
+    `${gardenSummary.activeDays}D · ${gardenSummary.totalActions} WINS`,
+  );
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
@@ -220,8 +255,14 @@ export function buildShareCardSvg(payload: ShareCardPayload): string {
   <text x="92" y="${subtitleY}" fill="${darkColors.textSecondary}" font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-size="24" font-weight="700">${subtitle}</text>
 
   <!-- Coder Handle Pill -->
-  <rect x="92" y="${subtitleY + 22}" width="390" height="40" rx="10" fill="${darkColors.codeSurface}" stroke="${darkColors.codeBorder}" stroke-width="2" />
-  <text x="112" y="${subtitleY + 48}" fill="${accent}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="16" font-weight="800">@${coderName} · ${rankBadge}</text>
+  <rect x="92" y="360" width="390" height="44" rx="10" fill="${darkColors.codeSurface}" stroke="${darkColors.codeBorder}" stroke-width="2" />
+  <text x="112" y="388" fill="${accent}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="16" font-weight="800">@${coderName} · ${rankBadge}</text>
+
+  <!-- 12-Week Cozy Pixel Garden Mini-Card -->
+  <rect x="496" y="356" width="300" height="50" rx="10" fill="${darkColors.codeSurface}" stroke="${darkColors.codeBorder}" stroke-width="2" />
+  <text x="510" y="376" fill="${darkColors.textPrimary}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="900" letter-spacing="0.8">12W PIXEL GARDEN</text>
+  <text x="510" y="395" fill="${gardenColors[3]}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="900">${gardenStatCaption}</text>
+  ${gardenTilesSvg}
 
   <!-- Right Side: Cozy Retro Byte-Cat Bubble TV Emblem -->
   <g transform="translate(812, 108)">

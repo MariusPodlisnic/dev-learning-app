@@ -174,6 +174,7 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     // Profile modal opens with Level 1 avatar, no excluded rank tagline, and working PNG card download
     await page.getByText("MY PROFILE & STATS").first().click();
     await page.waitForSelector("text=LVL 1", { timeout: 5000 });
+    await page.waitForSelector("text=COZY PIXEL GARDEN · 12 WEEKS", { timeout: 5000 });
     await page.waitForSelector("text=SAVE PNG CARD", { timeout: 5000 });
     const modalText = await page.locator("body").innerText();
     assert.ok(

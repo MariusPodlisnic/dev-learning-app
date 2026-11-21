@@ -1477,6 +1477,7 @@ export default function HomeScreen() {
         onNextLesson={handleNextLesson}
         onCloseSuccess={() => setShowSuccessModal(false)}
         showProfileModal={showProfileModal}
+        lastActiveDate={lastActiveDate}
         effectiveIsPremium={effectiveIsPremium}
         userEmail={session?.user?.email}
         onSelectTrack={handleSwitchTrack}

@@ -741,6 +741,8 @@ test("10-level developer rank system enforces wider XP gaps, caps at Level 10, a
   const profileText = visibleText(profileHtml);
   assert.ok(profileText.includes("LVL 10 · MAX"));
   assert.ok(profileText.includes("MAX LEVEL 10 REACHED"));
+  assert.ok(profileText.includes("COZY PIXEL GARDEN · 12 WEEKS"));
+  assert.ok(profileText.includes("12 ACTIVE DAYS"));
   assert.ok(!profileText.includes("LVL 11"));
 
   for (const xp of [0, 500, 1500, 3000, 5500, 9000, 14000, 21000, 30000, 45000]) {

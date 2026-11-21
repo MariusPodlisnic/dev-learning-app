@@ -63,6 +63,7 @@ interface StudioModalsProps {
   onNextLesson: () => void;
   onCloseSuccess: () => void;
   showProfileModal: boolean;
+  lastActiveDate?: string | null;
   effectiveIsPremium: boolean;
   userEmail?: string;
   onSelectTrack: (trackKey: string) => void;
@@ -120,6 +121,7 @@ export default function StudioModals({
   onNextLesson,
   onCloseSuccess,
   showProfileModal,
+  lastActiveDate,
   effectiveIsPremium,
   userEmail,
   onSelectTrack,
@@ -289,6 +291,7 @@ export default function StudioModals({
           <ProfileStatsModal
             xpPoints={xpPoints}
             streakCount={streakCount}
+            lastActiveDate={lastActiveDate}
             isPremium={effectiveIsPremium}
             userEmail={userEmail}
             lessons={lessons}

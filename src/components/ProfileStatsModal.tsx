@@ -20,6 +20,10 @@ import {
 } from "../constants/theme";
 import { useTheme, useThemedStyles } from "../constants/themeContext";
 import {
+  getActivityHeatmapMap,
+  mergeStreakBaselineIntoHeatmap,
+} from "../utils/activityHeatmap";
+import {
   type ByteCatWardrobeState,
   getByteCatMoodMeta,
   getByteCatWardrobeState,
@@ -33,11 +37,13 @@ import {
   getOnboardingState,
   subscribeOnboarding,
 } from "../utils/userOnboarding";
+import ActivityHeatmapCard from "./ActivityHeatmapCard";
 import { Lesson } from "./RoadmapTree";
 
 interface ProfileStatsModalProps {
   xpPoints: number;
   streakCount: number;
+  lastActiveDate?: string | null;
   isPremium: boolean;
   userEmail?: string;
   lessons: Lesson[];
@@ -190,6 +196,7 @@ export function getDeveloperRank(xp: number): DeveloperRankInfo {
 export default function ProfileStatsModal({
   xpPoints,
   streakCount,
+  lastActiveDate = null,
   isPremium,
   userEmail,
   lessons,
@@ -285,6 +292,11 @@ export default function ProfileStatsModal({
         paletteId,
         accentColor: rank.accent,
         footerUrl: url,
+        activityMap: mergeStreakBaselineIntoHeatmap(
+          getActivityHeatmapMap(),
+          streakCount,
+          lastActiveDate,
+        ),
       },
       fallbackTitle: `Devy Rank: ${rank.title}`,
       fallbackMessage: message,
@@ -481,6 +493,12 @@ export default function ProfileStatsModal({
             </View>
           )}
         </View>
+
+        {/* Cozy Pixel Garden — 12-Week Activity Heatmap */}
+        <ActivityHeatmapCard
+          streakCount={streakCount}
+          lastActiveDate={lastActiveDate}
+        />
 
         <View style={styles.shareActionsRow}>
           <Pressable

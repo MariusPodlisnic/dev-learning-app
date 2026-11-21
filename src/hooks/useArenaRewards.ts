@@ -8,6 +8,7 @@ import {
   computeStreakUpdate,
   type StreakMilestone,
 } from "../constants/streaks";
+import { recordCodingActivity } from "../utils/activityHeatmap";
 import { trackFunnelMilestone } from "../utils/attribution";
 import {
   claimDailyQuestBonus,
@@ -74,6 +75,7 @@ export function useArenaRewards({
     newStreak: number;
     newLastActiveDate: string;
   } {
+    recordCodingActivity(1);
     const streakUpdate = computeStreakUpdate({
       currentStreak: streakCount,
       lastActiveDate,

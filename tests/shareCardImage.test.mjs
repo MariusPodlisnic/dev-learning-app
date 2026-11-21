@@ -79,6 +79,7 @@ test("buildShareCardSvg produces valid 1200x630 themed SVGs across all 3 variant
     assert.ok(svg.includes("@Marius"));
     assert.ok(svg.includes("9 DAYS"));
     assert.ok(svg.includes("1,850 XP"));
+    assert.ok(svg.includes("12W PIXEL GARDEN"));
     assert.ok(svg.includes("devy.app/?lesson=exp-alg-01"));
     svgsByPalette.add(svg);
   }
