@@ -220,6 +220,14 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByLabel("Equip CRT Pixel Glasses").click();
     await page.getByTestId("bytecat-acc-crt_glasses").waitFor({ timeout: 5000 });
 
+    // Pomodoro Cozy Focus Timer: switch to 15m sprint, start, pause, and reset cleanly
+    await page.getByLabel("Select 15m Sprint timer").click();
+    await page.waitForSelector("text=15:00", { timeout: 5000 });
+    await page.getByLabel("Start Pomodoro focus timer").click();
+    await page.getByLabel("Pause Pomodoro focus timer").waitFor({ timeout: 5000 });
+    await page.getByLabel("Pause Pomodoro focus timer").click();
+    await page.getByLabel("Select 25m Focus timer").click();
+
     // Midnight Bubble Retro TV switches channels smoothly and keeps CH 04/05 animations alive on repeat laps
     await page.waitForSelector("text=CH 01/05", { timeout: 5000 });
     for (let step = 0; step < 8; step += 1) {

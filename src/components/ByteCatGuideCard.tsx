@@ -52,6 +52,18 @@ import {
   toggleByteCatAccessory,
 } from "../utils/byteCatWardrobe";
 import {
+  formatPomodoroClock,
+  getPomodoroPresetMeta,
+  getPomodoroState,
+  POMODORO_PRESETS,
+  type PomodoroState,
+  resetPomodoro,
+  selectPomodoroPreset,
+  subscribePomodoro,
+  subscribePomodoroComplete,
+  togglePomodoro,
+} from "../utils/pomodoroTimer";
+import {
   getOnboardingState,
   subscribeOnboarding,
 } from "../utils/userOnboarding";
@@ -181,7 +193,11 @@ export default function ByteCatGuideCard({
   const [wardrobe, setWardrobe] = useState<ByteCatWardrobeState>(() =>
     getByteCatWardrobeState(),
   );
+  const [pomodoro, setPomodoro] = useState<PomodoroState>(() =>
+    getPomodoroState(),
+  );
   const activeLofiMeta = getLofiChannelMeta(lofiState.channel);
+  const activePomoMeta = getPomodoroPresetMeta(pomodoro.presetId);
 
   useEffect(() => {
     void hydrateLofiChannelPreference();
@@ -190,10 +206,12 @@ export default function ByteCatGuideCard({
       setDisplayName(state.displayName);
     });
     const unsubWardrobe = subscribeByteCatWardrobe(setWardrobe);
+    const unsubPomo = subscribePomodoro(setPomodoro);
     return () => {
       unsubLofi();
       unsubOnboarding();
       unsubWardrobe();
+      unsubPomo();
     };
   }, []);
 
@@ -393,6 +411,19 @@ export default function ByteCatGuideCard({
     },
     [],
   );
+
+  // Trigger cozy Byte-Cat tea break reaction when a Pomodoro focus block finishes
+  useEffect(() => {
+    return subscribePomodoroComplete((event) => {
+      if (event.rewardXp > 0) {
+        triggerIdleBreak("sip");
+        setWhisperText(`☕ TEA BREAK! +${event.rewardXp} XP`);
+      } else {
+        triggerIdleBreak("stretch");
+        setWhisperText("⚡ BREAK DONE · LET'S CODE!");
+      }
+    });
+  }, [triggerIdleBreak]);
 
   // Automatic 10-second loop cycling Coffee Sip -> Big Stretch -> Bug Swat -> Eureka Jam
   useEffect(() => {
@@ -2084,6 +2115,128 @@ export default function ByteCatGuideCard({
                   ]}
                 />
               </View>
+            </View>
+          </View>
+
+          {/* Cozy Pomodoro Focus Timer Strip */}
+          <View style={styles.focusTimerBar}>
+            <View style={styles.focusTimerLeft}>
+              <View
+                style={[
+                  styles.focusClockPill,
+                  pomodoro.isRunning && {
+                    borderColor: activePomoMeta.accent,
+                  },
+                ]}
+              >
+                <Text style={styles.focusClockText}>
+                  {activePomoMeta.isBreak ? "☕" : "⏱️"}{" "}
+                  {formatPomodoroClock(pomodoro.remainingSeconds)}
+                </Text>
+              </View>
+
+              <View style={styles.focusPresetsRow}>
+                {POMODORO_PRESETS.map((preset) => {
+                  const selected = pomodoro.presetId === preset.id;
+                  return (
+                    <Pressable
+                      key={preset.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Select ${preset.label} timer`}
+                      style={({ pressed }) => [
+                        styles.focusPresetChip,
+                        selected && [
+                          styles.focusPresetChipActive,
+                          { backgroundColor: preset.accent },
+                        ],
+                        pressed && { transform: [{ translateY: 1 }] },
+                      ]}
+                      onPress={() => {
+                        playKeyClick();
+                        selectPomodoroPreset(preset.id);
+                        setWhisperText(
+                          preset.isBreak
+                            ? "☕ 5M TEA BREAK READY"
+                            : `⏱️ ${preset.label.toUpperCase()} READY`,
+                        );
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.focusPresetChipText,
+                          selected && styles.focusPresetChipTextActive,
+                        ]}
+                      >
+                        {preset.shortLabel}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.focusTimerRight}>
+              <Text style={styles.focusRewardHint}>
+                {pomodoro.completedToday > 0
+                  ? `✓ ${pomodoro.completedToday} TODAY`
+                  : activePomoMeta.rewardXp > 0
+                    ? `+${activePomoMeta.rewardXp} XP`
+                    : "REST & STRETCH"}
+              </Text>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  pomodoro.isRunning
+                    ? "Pause Pomodoro focus timer"
+                    : "Start Pomodoro focus timer"
+                }
+                style={({ pressed }) => [
+                  styles.focusToggleBtn,
+                  { backgroundColor: activePomoMeta.accent },
+                  pressed && { transform: [{ translateY: 1 }] },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  const next = togglePomodoro();
+                  if (next.isRunning) {
+                    triggerPlayfulBounce(false);
+                    setWhisperText(
+                      activePomoMeta.isBreak
+                        ? "☕ SIPPING TEA WITH YOU"
+                        : `⏱️ ${activePomoMeta.label.toUpperCase()} STARTED!`,
+                    );
+                    spawnFloatingPopup(
+                      activePomoMeta.isBreak ? "☕ BREAK ON" : "⏱️ FOCUS ON",
+                    );
+                  } else {
+                    setWhisperText("❚❚ TIMER PAUSED");
+                  }
+                }}
+              >
+                <Text style={styles.focusToggleBtnText}>
+                  {pomodoro.isRunning
+                    ? "❚❚ PAUSE"
+                    : activePomoMeta.isBreak
+                      ? "▶ TEA BREAK"
+                      : "▶ FOCUS"}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Reset Pomodoro focus timer"
+                style={({ pressed }) => [
+                  styles.focusResetBtn,
+                  pressed && { transform: [{ translateY: 1 }] },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  resetPomodoro();
+                }}
+              >
+                <Text style={styles.focusResetBtnText}>↻</Text>
+              </Pressable>
             </View>
           </View>
         </View>

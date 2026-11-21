@@ -343,6 +343,7 @@ test("StudioCodeEditor renders editor chrome, quick inserts, trace control, and 
     ),
   );
   assert.ok(editorText.includes("solution.py"));
+  assert.ok(editorText.includes("25:00"));
   assert.ok(editorText.includes("THOCK"));
   assert.ok(editorText.includes("DRAFT SAVED"));
   assert.ok(editorText.includes("# Comment"));
@@ -932,6 +933,8 @@ test("ByteCat quotes catalog has unique IDs, no duplicate quotes, and ByteCatGui
   assert.ok(cardText.includes("♪") && cardText.includes("♫"));
   assert.ok(cardText.includes("3D STREAK"));
   assert.ok(cardText.includes("STYLE"));
+  assert.ok(cardText.includes("25:00"));
+  assert.ok(cardText.includes("5m TEA"));
   assert.ok(!cardText.includes("#01/50"));
   assert.ok(!cardText.includes("STRATEGIC PAWS"));
 });

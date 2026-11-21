@@ -190,6 +190,28 @@ export function useArenaRewards({
     }
   }
 
+  async function handleAwardFocusXp(xpEarned: number) {
+    if (xpEarned <= 0) return;
+    const { newXp, newStreak, newLastActiveDate } =
+      recordActiveDevSession(xpEarned);
+    const nextSnapshot: CloudProgressState = {
+      ...latestGuestStateRef.current,
+      xpPoints: newXp,
+      streakCount: newStreak,
+      lastActiveDate: newLastActiveDate,
+      updatedAt: new Date().toISOString(),
+    };
+    latestGuestStateRef.current = nextSnapshot;
+
+    if (session) {
+      await pushCloudProgressState({
+        userId: session.user.id,
+        userEmail: session.user.email,
+        state: nextSnapshot,
+      });
+    }
+  }
+
   async function handleClaimChapterBonus(chapterKey: string, bonusXp: number) {
     if (claimedChapters[chapterKey]) return;
     playVictoryFanfare();
@@ -262,6 +284,7 @@ export function useArenaRewards({
     handleAwardBugHuntXp,
     handleAwardBlitzXp,
     handleAwardFlashcardXp,
+    handleAwardFocusXp,
     handleClaimChapterBonus,
     handleClaimDailyQuestBonus,
   };

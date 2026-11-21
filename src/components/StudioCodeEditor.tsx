@@ -18,6 +18,14 @@ import { useThemedStyles } from "../constants/themeContext";
 import { Lesson, TestCaseResult } from "../types/lesson";
 import { playKeyClick } from "../utils/soundEffects";
 import {
+  formatPomodoroClock,
+  getPomodoroPresetMeta,
+  getPomodoroState,
+  type PomodoroState,
+  subscribePomodoro,
+  togglePomodoro,
+} from "../utils/pomodoroTimer";
+import {
   classifyTypingKey,
   cycleTypingSoundProfile,
   getTypingSoundProfile,
@@ -285,13 +293,22 @@ export default function StudioCodeEditor({
   const [typingProfile, setTypingProfile] = useState<TypingSoundProfile>(() =>
     getTypingSoundProfile(),
   );
+  const [pomodoro, setPomodoro] = useState<PomodoroState>(() =>
+    getPomodoroState(),
+  );
   const inputRef = useRef<any>(null);
 
   useEffect(() => {
     void hydrateTypingSoundProfile();
-    return subscribeTypingSound(setTypingProfile);
+    const unsubTyping = subscribeTypingSound(setTypingProfile);
+    const unsubPomo = subscribePomodoro(setPomodoro);
+    return () => {
+      unsubTyping();
+      unsubPomo();
+    };
   }, []);
   const activeTypingMeta = getTypingSoundProfileMeta(typingProfile);
+  const activePomoMeta = getPomodoroPresetMeta(pomodoro.presetId);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<{ start: number; end: number }>({
     start: 0,
@@ -559,6 +576,37 @@ export default function StudioCodeEditor({
             )}
           </View>
           <View style={styles.ideHeaderActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                pomodoro.isRunning
+                  ? `Pause ${activePomoMeta.label} timer`
+                  : `Start ${activePomoMeta.label} timer`
+              }
+              style={[
+                styles.copyCodeBtn,
+                pomodoro.isRunning && [
+                  styles.copyCodeBtnSuccess,
+                  { borderColor: activePomoMeta.accent },
+                ],
+              ]}
+              onPress={() => {
+                playKeyClick();
+                togglePomodoro();
+              }}
+            >
+              <Text
+                style={[
+                  styles.copyCodeBtnText,
+                  pomodoro.isRunning && { color: activePomoMeta.accent },
+                ]}
+              >
+                {pomodoro.isRunning
+                  ? `❚❚ ${formatPomodoroClock(pomodoro.remainingSeconds)}`
+                  : `⏱️ ${formatPomodoroClock(pomodoro.remainingSeconds)}`}
+              </Text>
+            </Pressable>
+
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Switch keyboard typing sound (currently ${activeTypingMeta.label})`}

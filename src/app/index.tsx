@@ -79,6 +79,7 @@ import {
 import { executeBugPatchVerification } from "../utils/pyodideRunner";
 import type { PythonTraceResult } from "../utils/pythonTrace";
 import { playVictoryFanfare } from "../utils/soundEffects";
+import { subscribePomodoroComplete } from "../utils/pomodoroTimer";
 import { recordWeeklyXpSnapshot } from "../utils/weeklyLeague";
 
 const AchievementsHall = React.lazy(
@@ -676,6 +677,7 @@ export default function HomeScreen() {
     handleAwardBugHuntXp,
     handleAwardBlitzXp,
     handleAwardFlashcardXp,
+    handleAwardFocusXp,
     handleClaimChapterBonus,
     handleClaimDailyQuestBonus,
   } = useArenaRewards({
@@ -736,6 +738,30 @@ export default function HomeScreen() {
 
   const styles = useThemedStyles(getStudioScreenStyles);
   const devRank = getDeveloperRank(xpPoints);
+
+  const focusAwardRef = useRef(handleAwardFocusXp);
+  useEffect(() => {
+    focusAwardRef.current = handleAwardFocusXp;
+  });
+
+  useEffect(() => {
+    return subscribePomodoroComplete((event) => {
+      if (event.rewardXp > 0) {
+        void focusAwardRef.current(event.rewardXp);
+        setSyncNotice(
+          `Focus block complete! +${event.rewardXp} XP · Byte-Cat queued a 5m tea break`,
+        );
+      } else {
+        setSyncNotice("Tea break finished! Ready for your next cozy coding block");
+      }
+      if (syncNoticeTimerRef.current) {
+        clearTimeout(syncNoticeTimerRef.current);
+      }
+      syncNoticeTimerRef.current = setTimeout(() => {
+        setSyncNotice(null);
+      }, 5000);
+    });
+  }, []);
 
   useEffect(() => {
     recordWeeklyXpSnapshot(xpPoints);
