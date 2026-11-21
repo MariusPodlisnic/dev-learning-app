@@ -9,6 +9,7 @@ const { renderToStaticMarkup } = require("react-dom/server");
 
 const { ThemeProvider } = loadTsModule("src/constants/themeContext.tsx");
 const { default: MobileThumbNav } = loadTsModule("src/components/MobileThumbNav.tsx");
+const { default: ArcadeHub, ArcadeSubNavBar } = loadTsModule("src/components/ArcadeHub.tsx");
 const { default: AppHeader } = loadTsModule("src/components/AppHeader.tsx");
 const { default: BlitzMistakeReviewCard } = loadTsModule(
   "src/components/BlitzMistakeReviewCard.tsx",
@@ -98,7 +99,7 @@ function visibleText(html) {
     .trim();
 }
 
-test("MobileThumbNav renders all 6 destinations and marks the active mode", () => {
+test("MobileThumbNav renders all 5 destinations and marks Arcade active for mini-game modes", () => {
   const freeHtml = renderThemed(
     React.createElement(MobileThumbNav, {
       viewMode: "blitz",
@@ -108,12 +109,12 @@ test("MobileThumbNav renders all 6 destinations and marks the active mode", () =
   );
   const freeText = visibleText(freeHtml);
 
-  for (const label of ["Map", "Studio", "Bugs", "Blitz", "Lab", "Docs"]) {
+  for (const label of ["Map", "Studio", "Arcade", "Lab", "Docs"]) {
     assert.ok(freeText.includes(label), `Missing MobileThumbNav label: ${label}`);
   }
   assert.ok(
-    freeHtml.includes('aria-label="Speed Blitz" role="button" aria-selected="true"'),
-    "Active Speed Blitz tab should carry aria-selected=true",
+    freeHtml.includes('aria-label="Cozy Arcade Hub" role="button" aria-selected="true"'),
+    "Arcade tab should carry aria-selected=true when inside a mini-game like Speed Blitz",
   );
 
   const proHtml = renderThemed(
@@ -157,7 +158,13 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
   );
   const desktopText = visibleText(desktopHtml);
   assert.ok(desktopText.includes("SKILL MAP"));
-  assert.ok(desktopText.includes("SPEED BLITZ"));
+  assert.ok(desktopText.includes("CODE STUDIO"));
+  assert.ok(desktopText.includes("ARCADE"));
+  assert.ok(desktopText.includes("ALGO LAB"));
+  assert.ok(
+    !desktopText.includes("SPEED BLITZ") && !desktopText.includes("FLASH DECK"),
+    "Mini-games should live inside the dedicated Arcade Hub rather than cluttering the top menu",
+  );
   assert.ok(desktopText.includes("LEADERBOARD"));
   assert.ok(desktopText.includes("UPGRADE TO PRO"));
   assert.ok(desktopText.includes("ACCOUNT & RANK"));
@@ -188,7 +195,7 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
   );
   const headerSvgs = proHeaderHtml.match(/<svg[\s\S]*?<\/svg>/g) || [];
   assert.ok(
-    new Set(headerSvgs).size >= 11,
+    new Set(headerSvgs).size >= 9,
     "Desktop header should render unique custom SVGs for Devy, menu buttons, Account & Rank, Leaderboard, Pro Member, and Settings",
   );
 
@@ -1179,4 +1186,43 @@ test("WeeklyLeaguePanel renders tier ladder, Ghost Rivals, promotion zone, and o
     React.createElement(StudioIcon, { name: "nav_leaderboard", size: 20 }),
   );
   assert.ok(leaderboardIconHtml.includes("<svg"));
+});
+
+test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick switcher", () => {
+  const hubText = visibleText(
+    renderThemed(
+      React.createElement(ArcadeHub, {
+        xpPoints: 450,
+        streakCount: 5,
+        solvedIncidents: { "bug-1": true, "bug-2": true },
+        isPremium: false,
+        onLaunchGame: () => {},
+        onBackToMap: () => {},
+      }),
+    ),
+  );
+  assert.ok(hubText.includes("Devy Mini-Game Arcade"));
+  assert.ok(hubText.includes("2/25 BUGS SQUASHED"));
+  assert.ok(hubText.includes("PLAY RANDOM"));
+  assert.ok(hubText.includes("Production Bug Hunt"));
+  assert.ok(hubText.includes("60s Speed Blitz"));
+  assert.ok(hubText.includes("Flashcards Concept Deck"));
+
+  const subNavText = visibleText(
+    renderThemed(
+      React.createElement(ArcadeSubNavBar, {
+        activeMode: "blitz",
+        onSelectMode: () => {},
+      }),
+    ),
+  );
+  assert.ok(subNavText.includes("ARCADE LOBBY"));
+  assert.ok(subNavText.includes("BUG HUNT"));
+  assert.ok(subNavText.includes("SPEED BLITZ"));
+  assert.ok(subNavText.includes("FLASH DECK"));
+
+  const arcadeIconHtml = renderThemed(
+    React.createElement(StudioIcon, { name: "nav_arcade", size: 20 }),
+  );
+  assert.ok(arcadeIconHtml.includes("<svg"));
 });

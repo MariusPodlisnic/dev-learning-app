@@ -289,10 +289,32 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.waitForSelector("text=TOP 3 WEEKLY PROMOTION ZONE", { timeout: 10000 });
     await page.waitForSelector("text=COZY GHOST RIVALS", { timeout: 5000 });
 
-    await page.getByText("SPEED BLITZ").first().click();
+    // Dedicated Cozy Arcade Hub organizes all mini-games cleanly with 1-tap cartridge switching
+    await page.getByLabel("Open Devy Mini-Game Arcade").click();
+    await page.waitForSelector("text=Devy Mini-Game Arcade", { timeout: 10000 });
+    const arcadeAlign = await page.evaluate(() => {
+      const filterLabels = ["ALL GAMES (3)", "QUICK SPRINTS (2)", "MEMORY & RECALL (1)"];
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const ys = {};
+      let n;
+      while ((n = walker.nextNode())) {
+        const t = (n.nodeValue || "").trim();
+        if (filterLabels.includes(t) && !ys[t] && n.parentElement) {
+          ys[t] = Math.round(n.parentElement.getBoundingClientRect().y * 10) / 10;
+        }
+      }
+      return ys;
+    });
+    const arcadeYVals = Object.values(arcadeAlign);
+    assert.equal(arcadeYVals.length, 3, `Expected all 3 Arcade filter tabs, got ${JSON.stringify(arcadeAlign)}`);
+    assert.ok(
+      Math.max(...arcadeYVals) - Math.min(...arcadeYVals) <= 2,
+      `Expected Arcade filter tab labels to align identically, got ${JSON.stringify(arcadeAlign)}`,
+    );
+    await page.getByLabel("Launch 60s Speed Blitz").click();
     await page.waitForSelector("text=60s", { timeout: 10000 });
 
-    await page.getByText("FLASH DECK").first().click();
+    await page.getByLabel("Switch to Flashcards Concept Deck").click();
     await page.waitForSelector("text=Flashcards Deck", { timeout: 10000 });
     await page.waitForSelector("text=CARD 1 OF 8", { timeout: 5000 });
     await page.getByLabel("Flip flashcard to reveal answer").click();
@@ -300,8 +322,10 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByLabel("Mark card as mastered").click();
     await page.waitForSelector("text=CARD 2 OF 8", { timeout: 5000 });
 
-    await page.getByText("BUG HUNT").first().click();
+    await page.getByLabel("Switch to Production Bug Hunt").click();
     await page.waitForSelector("text=BUG HUNT", { timeout: 10000 });
+    await page.getByLabel("Back to Cozy Arcade Lobby").click();
+    await page.waitForSelector("text=Devy Mini-Game Arcade", { timeout: 5000 });
 
     // Entering Code Studio from Skill Map works cleanly
     await page.getByText("SKILL MAP").first().click();

@@ -27,7 +27,7 @@ import {
   ThemeMode,
 } from "../constants/theme";
 import { useTheme, useThemedStyles } from "../constants/themeContext";
-import { ViewMode } from "../types/lesson";
+import { isArcadeSection, ViewMode } from "../types/lesson";
 import {
   type AmbientMixerState,
   getAmbientMixerState,
@@ -91,6 +91,8 @@ function getModeAccent(viewMode: ViewMode): {
   switch (viewMode) {
     case "studio":
       return { primary: "#38BDF8", secondary: StudioColors.mint };
+    case "arcade":
+      return { primary: StudioColors.pink, secondary: StudioColors.yellow };
     case "bughunt":
       return { primary: StudioColors.coral, secondary: StudioColors.yellow };
     case "blitz":
@@ -506,60 +508,23 @@ export default function AppHeader({
             </Pressable>
 
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open Devy Mini-Game Arcade"
               style={({ pressed }) => [
                 styles.modeBtn,
-                viewMode === "bughunt" && styles.modeBtnBugHuntActive,
+                isArcadeSection(viewMode) && styles.modeBtnArcadeActive,
                 pressed && { transform: [{ translateY: 1 }] },
               ]}
-              onPress={() => handleSwitchMode("bughunt")}
+              onPress={() => handleSwitchMode("arcade")}
             >
-              <StudioIcon name="nav_bughunt" size={18} />
+              <StudioIcon name="nav_arcade" size={18} />
               <Text
                 style={[
                   styles.modeBtnText,
-                  viewMode === "bughunt" && styles.modeBtnBugHuntTextActive,
+                  isArcadeSection(viewMode) && styles.modeBtnArcadeTextActive,
                 ]}
               >
-                BUG HUNT
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.modeBtn,
-                viewMode === "blitz" && styles.modeBtnBlitzActive,
-                pressed && { transform: [{ translateY: 1 }] },
-              ]}
-              onPress={() => handleSwitchMode("blitz")}
-            >
-              <StudioIcon name="nav_blitz" size={18} />
-              <Text
-                style={[
-                  styles.modeBtnText,
-                  viewMode === "blitz" && styles.modeBtnBlitzTextActive,
-                ]}
-              >
-                SPEED BLITZ
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.modeBtn,
-                viewMode === "flashcards" && styles.modeBtnFlashcardsActive,
-                pressed && { transform: [{ translateY: 1 }] },
-              ]}
-              onPress={() => handleSwitchMode("flashcards")}
-            >
-              <StudioIcon name="nav_flashcards" size={18} />
-              <Text
-                style={[
-                  styles.modeBtnText,
-                  viewMode === "flashcards" &&
-                    styles.modeBtnFlashcardsTextActive,
-                ]}
-              >
-                FLASH DECK
+                ARCADE
               </Text>
             </Pressable>
 
@@ -1395,16 +1360,8 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       backgroundColor: StudioColors.yellow,
       borderColor: StudioColors.ink,
     },
-    modeBtnBugHuntActive: {
-      backgroundColor: StudioColors.coral,
-      borderColor: StudioColors.ink,
-    },
-    modeBtnBlitzActive: {
-      backgroundColor: StudioColors.lime,
-      borderColor: StudioColors.ink,
-    },
-    modeBtnFlashcardsActive: {
-      backgroundColor: StudioColors.mint,
+    modeBtnArcadeActive: {
+      backgroundColor: StudioColors.pink,
       borderColor: StudioColors.ink,
     },
     modeBtnAlgoLabActive: {
@@ -1421,15 +1378,7 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       letterSpacing: 0.5,
     },
     modeBtnTextActive: { color: StudioColors.ink },
-    modeBtnBugHuntTextActive: {
-      color: StudioColors.ink,
-      fontWeight: "900",
-    },
-    modeBtnBlitzTextActive: {
-      color: StudioColors.ink,
-      fontWeight: "900",
-    },
-    modeBtnFlashcardsTextActive: {
+    modeBtnArcadeTextActive: {
       color: StudioColors.ink,
       fontWeight: "900",
     },

@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
+import ArcadeHub, { ArcadeSubNavBar } from "../components/ArcadeHub";
 import AppHeader from "../components/AppHeader";
 import { type AuthModalMode } from "../components/Auth";
 import { renderHighlightedPython } from "../components/FormattedText";
@@ -57,6 +58,7 @@ import { useLessonExecution } from "../hooks/useLessonExecution";
 import { useStudioSync } from "../hooks/useStudioSync";
 import {
   ExplainStyle,
+  isArcadeGameMode,
   isLessonLockedForUser,
   isProTrackPreviewLesson,
   Lesson,
@@ -422,6 +424,7 @@ export default function HomeScreen() {
       return;
     }
     if (
+      mode === "arcade" ||
       mode === "bughunt" ||
       mode === "blitz" ||
       mode === "flashcards" ||
@@ -805,41 +808,47 @@ export default function HomeScreen() {
   const seoTitle =
     viewMode === "studio" && selectedLesson
       ? `${selectedLesson.title} | Devy`
-      : viewMode === "bughunt"
-        ? "Bug Hunt Arena | Devy"
-        : viewMode === "blitz"
-          ? "60s Syntax Blitz | Devy"
-          : viewMode === "flashcards"
-            ? "Flashcards Concept Deck | Devy"
-            : viewMode === "algolab"
-              ? "Pro Algorithm Visual Lab | Devy"
-              : viewMode === "league"
-                ? "Weekly League Leaderboard | Devy"
-                : "Devy | Interactive Python, Algorithms & System Design";
+      : viewMode === "arcade"
+        ? "Cozy Coding Arcade | Devy"
+        : viewMode === "bughunt"
+          ? "Bug Hunt Arena | Devy"
+          : viewMode === "blitz"
+            ? "60s Syntax Blitz | Devy"
+            : viewMode === "flashcards"
+              ? "Flashcards Concept Deck | Devy"
+              : viewMode === "algolab"
+                ? "Pro Algorithm Visual Lab | Devy"
+                : viewMode === "league"
+                  ? "Weekly League Leaderboard | Devy"
+                  : "Devy | Interactive Python, Algorithms & System Design";
 
   const seoDescription =
     viewMode === "studio" && selectedLesson
       ? `${selectedLesson.description} Practice interactively in the live Devy studio.`
-      : viewMode === "bughunt"
-        ? "Spot and fix broken Python and algorithm snippets in the Devy Bug Hunt Arena."
-        : viewMode === "blitz"
-          ? "Race the 60-second clock to predict outputs and spot syntax bugs in Devy."
-          : viewMode === "algolab"
-            ? "Observe Binary Search, Two Pointers, Sliding Window, Sorting, Hash Maps, and BFS step-by-step in the Pro Algorithm Visual Lab."
-            : viewMode === "league"
-              ? "Track your weekly XP rank against cozy ghost rivals and climb the Devy Weekly League ladder."
-              : "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.";
+      : viewMode === "arcade"
+        ? "Play bite-sized Python & algorithm mini-games including Bug Hunt, 60s Speed Blitz, and Flashcards Deck in the Devy Cozy Arcade."
+        : viewMode === "bughunt"
+          ? "Spot and fix broken Python and algorithm snippets in the Devy Bug Hunt Arena."
+          : viewMode === "blitz"
+            ? "Race the 60-second clock to predict outputs and spot syntax bugs in Devy."
+            : viewMode === "algolab"
+              ? "Observe Binary Search, Two Pointers, Sliding Window, Sorting, Hash Maps, and BFS step-by-step in the Pro Algorithm Visual Lab."
+              : viewMode === "league"
+                ? "Track your weekly XP rank against cozy ghost rivals and climb the Devy Weekly League ladder."
+                : "Master Python Foundations, Algorithmic Mastery, and System Architecture with interactive playgrounds, playable mini-apps, Bug Hunt, and 60s Syntax Blitz.";
 
   const activeBackdropAccent =
-    viewMode === "bughunt"
-      ? StudioColors.coral
-      : viewMode === "blitz" || viewMode === "league"
-        ? StudioColors.lime
-        : viewMode === "flashcards"
-          ? StudioColors.mint
-          : viewMode === "algolab"
-            ? StudioColors.violet
-            : TrackThemes[activeTrack]?.stickerBg || StudioColors.yellow;
+    viewMode === "arcade"
+      ? StudioColors.pink
+      : viewMode === "bughunt"
+        ? StudioColors.coral
+        : viewMode === "blitz" || viewMode === "league"
+          ? StudioColors.lime
+          : viewMode === "flashcards"
+            ? StudioColors.mint
+            : viewMode === "algolab"
+              ? StudioColors.violet
+              : TrackThemes[activeTrack]?.stickerBg || StudioColors.yellow;
 
   const backdropVariant =
     viewMode === "studio"
@@ -972,36 +981,55 @@ export default function HomeScreen() {
             openChapterCertificate(trackKey, chapter)
           }
         />
-      ) : viewMode === "bughunt" ||
+      ) : viewMode === "arcade" ||
+        viewMode === "bughunt" ||
         viewMode === "blitz" ||
         viewMode === "flashcards" ||
         viewMode === "algolab" ||
         viewMode === "achievements" ||
         viewMode === "league" ? (
-        <StudioErrorBoundary
-          onReset={() => setViewMode("roadmap")}
-          fallbackTitle="Arena interrupted"
-        >
-          <Suspense
-            fallback={
-              <ArenaLoadingFallback
-                label={
-                  viewMode === "bughunt"
-                    ? "Loading Bug Hunt Arena..."
-                    : viewMode === "blitz"
-                      ? "Loading Speed Blitz..."
-                      : viewMode === "flashcards"
-                        ? "Shuffling Flashcards Deck..."
-                        : viewMode === "algolab"
-                          ? "Loading Algorithm Lab..."
-                          : viewMode === "league"
-                            ? "Loading Weekly League..."
-                            : "Loading Trophy Hall..."
-                }
-              />
-            }
+        <View style={{ flex: 1 }}>
+          {isArcadeGameMode(viewMode) && (
+            <ArcadeSubNavBar
+              activeMode={viewMode}
+              onSelectMode={(next) => setViewMode(next)}
+            />
+          )}
+          <StudioErrorBoundary
+            onReset={() => setViewMode("roadmap")}
+            fallbackTitle="Arena interrupted"
           >
-            {viewMode === "bughunt" ? (
+            <Suspense
+              fallback={
+                <ArenaLoadingFallback
+                  label={
+                    viewMode === "arcade"
+                      ? "Loading Cozy Arcade..."
+                      : viewMode === "bughunt"
+                        ? "Loading Bug Hunt Arena..."
+                        : viewMode === "blitz"
+                          ? "Loading Speed Blitz..."
+                          : viewMode === "flashcards"
+                            ? "Shuffling Flashcards Deck..."
+                            : viewMode === "algolab"
+                              ? "Loading Algorithm Lab..."
+                              : viewMode === "league"
+                                ? "Loading Weekly League..."
+                                : "Loading Trophy Hall..."
+                  }
+                />
+              }
+            >
+              {viewMode === "arcade" ? (
+                <ArcadeHub
+                  xpPoints={xpPoints}
+                  streakCount={streakCount}
+                  solvedIncidents={solvedIncidents}
+                  isPremium={effectiveIsPremium}
+                  onLaunchGame={(game) => setViewMode(game)}
+                  onBackToMap={() => setViewMode("roadmap")}
+                />
+              ) : viewMode === "bughunt" ? (
               <BugHuntArena
                 pyodideReady={pyodideReady}
                 isPremium={effectiveIsPremium}
@@ -1084,6 +1112,7 @@ export default function HomeScreen() {
             )}
           </Suspense>
         </StudioErrorBoundary>
+        </View>
       ) : (
         <View style={styles.content}>
           <StudioSidebar

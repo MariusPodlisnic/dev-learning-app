@@ -11,7 +11,7 @@ import {
   StudioThemeColors,
 } from "../constants/theme";
 import { useThemedStyles } from "../constants/themeContext";
-import { ViewMode } from "../types/lesson";
+import { isArcadeSection, ViewMode } from "../types/lesson";
 import { MOBILE_NAV_ITEMS } from "../utils/mobileLayout";
 import { playKeyClick } from "../utils/soundEffects";
 
@@ -25,11 +25,10 @@ function getActiveFillStyle(
   key: ViewMode,
   styles: ReturnType<typeof createStyles>,
 ) {
+  if (isArcadeSection(key)) {
+    return styles.tabItemActivePink;
+  }
   switch (key) {
-    case "bughunt":
-      return styles.tabItemActiveCoral;
-    case "blitz":
-      return styles.tabItemActiveLime;
     case "algolab":
       return styles.tabItemActiveViolet;
     case "studio":
@@ -48,10 +47,8 @@ function getMobileNavIcon(
       return "nav_skillmap";
     case "studio":
       return "nav_studio";
-    case "bughunt":
-      return "nav_bughunt";
-    case "blitz":
-      return "nav_blitz";
+    case "arcade":
+      return "nav_arcade";
     case "algolab":
       return isPremium ? "nav_algolab" : "lock";
     case "explore":
@@ -78,7 +75,11 @@ export default function MobileThumbNav({
       accessibilityRole="tablist"
     >
       {MOBILE_NAV_ITEMS.map((item) => {
-        const isActive = item.kind === "mode" && viewMode === item.key;
+        const isActive =
+          item.kind === "mode" &&
+          (item.key === "arcade"
+            ? isArcadeSection(viewMode)
+            : viewMode === item.key);
         const iconName = getMobileNavIcon(item.key, isPremium);
 
         return (
@@ -153,13 +154,8 @@ const createStyles = (StudioColors: StudioThemeColors) =>
       borderColor: StudioColors.ink,
       ...HardShadowSm,
     },
-    tabItemActiveCoral: {
-      backgroundColor: StudioColors.coral,
-      borderColor: StudioColors.ink,
-      ...HardShadowSm,
-    },
-    tabItemActiveLime: {
-      backgroundColor: StudioColors.lime,
+    tabItemActivePink: {
+      backgroundColor: StudioColors.pink,
       borderColor: StudioColors.ink,
       ...HardShadowSm,
     },

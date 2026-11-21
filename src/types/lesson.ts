@@ -67,12 +67,23 @@ export interface Lesson {
 export type ViewMode =
   | "roadmap"
   | "studio"
+  | "arcade"
   | "bughunt"
   | "blitz"
   | "flashcards"
   | "algolab"
   | "achievements"
   | "league";
+
+export type ArcadeGameMode = "bughunt" | "blitz" | "flashcards";
+
+export function isArcadeGameMode(mode: ViewMode): mode is ArcadeGameMode {
+  return mode === "bughunt" || mode === "blitz" || mode === "flashcards";
+}
+
+export function isArcadeSection(mode: ViewMode): boolean {
+  return mode === "arcade" || isArcadeGameMode(mode);
+}
 export type ExplainStyle = "analogy" | "guide" | "cheatsheet";
 
 export const STORAGE_DRAFTS_KEY = "devlearn_code_drafts_v2";

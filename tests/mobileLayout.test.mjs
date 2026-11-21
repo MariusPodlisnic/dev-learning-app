@@ -43,7 +43,8 @@ test("keyboard avoiding behavior maps iOS padding, Android height, and web undef
 });
 
 test("MOBILE_NAV_ITEMS covers all primary mobile destinations without duplicates", () => {
-  assert.equal(MOBILE_NAV_ITEMS.length, 6);
+  assert.equal(MOBILE_NAV_ITEMS.length, 5);
   const keys = MOBILE_NAV_ITEMS.map((item) => item.key);
   assert.equal(new Set(keys).size, keys.length);
+  assert.ok(keys.includes("arcade"));
 });

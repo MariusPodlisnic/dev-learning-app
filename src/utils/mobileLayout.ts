@@ -1,11 +1,9 @@
-import type { ViewMode } from "../types/lesson";
-
 export const COMPACT_HEADER_BREAKPOINT = 720;
 export const COMPACT_STUDIO_BREAKPOINT = 920;
 
 export type MobileNavTarget =
   | {
-      key: Exclude<ViewMode, "achievements" | "flashcards" | "league">;
+      key: "roadmap" | "studio" | "arcade" | "algolab";
       kind: "mode";
       icon: string;
       shortLabel: string;
@@ -36,18 +34,11 @@ export const MOBILE_NAV_ITEMS: readonly MobileNavTarget[] = [
     accessibilityLabel: "Code Studio",
   },
   {
-    key: "bughunt",
+    key: "arcade",
     kind: "mode",
-    icon: "🪲",
-    shortLabel: "Bugs",
-    accessibilityLabel: "Bug Hunt Arena",
-  },
-  {
-    key: "blitz",
-    kind: "mode",
-    icon: "⚡",
-    shortLabel: "Blitz",
-    accessibilityLabel: "Speed Blitz",
+    icon: "🕹️",
+    shortLabel: "Arcade",
+    accessibilityLabel: "Cozy Arcade Hub",
   },
   {
     key: "algolab",

@@ -6,6 +6,7 @@ export type NavigationIconName =
   | "pro_member"
   | "nav_skillmap"
   | "nav_studio"
+  | "nav_arcade"
   | "nav_bughunt"
   | "nav_blitz"
   | "nav_flashcards"
@@ -85,6 +86,15 @@ export const NAVIGATION_ICON_INNER_SVG: Record<NavigationIconName, string> = {
     <line x1="8" y1="16.5" x2="17" y2="16.5" stroke="#B8FF3B" stroke-width="2.4" stroke-linecap="round"/>
     <line x1="8" y1="21.5" x2="14" y2="21.5" stroke="#FFDE59" stroke-width="2.4" stroke-linecap="round"/>
     <polygon points="20,15 26,18.5 20,22" fill="#B8FF3B" stroke="#111111" stroke-width="1.4" stroke-linejoin="round"/>
+  `,
+  nav_arcade: `
+    <rect x="3.5" y="9" width="25" height="17" rx="7" fill="#111111" transform="translate(1.5,1.5)"/>
+    <rect x="3.5" y="9" width="25" height="17" rx="7" fill="#FF90E8" stroke="#111111" stroke-width="2.2"/>
+    <line x1="10.5" y1="14" x2="10.5" y2="21" stroke="#111111" stroke-width="2.8" stroke-linecap="round"/>
+    <line x1="7" y1="17.5" x2="14" y2="17.5" stroke="#111111" stroke-width="2.8" stroke-linecap="round"/>
+    <circle cx="20.5" cy="15.5" r="2.2" fill="#FFDE59" stroke="#111111" stroke-width="1.5"/>
+    <circle cx="23.5" cy="19.5" r="2.2" fill="#B8FF3B" stroke="#111111" stroke-width="1.5"/>
+    <path d="M16 9 V5.5 H19" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   `,
   nav_bughunt: `
     <circle cx="16" cy="16" r="11" fill="#111111" transform="translate(1.5,1.5)"/>
