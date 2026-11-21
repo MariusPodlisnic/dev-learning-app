@@ -103,6 +103,9 @@ const OutputDetectiveArena = React.lazy(
 const MiniBuildsArena = React.lazy(
   () => import("../components/MiniBuildsArena"),
 );
+const PythonScratchpad = React.lazy(
+  () => import("../components/PythonScratchpad"),
+);
 const SyntaxBlitzArena = React.lazy(
   () => import("../components/SyntaxBlitzArena"),
 );
@@ -1004,6 +1007,7 @@ export default function HomeScreen() {
         viewMode === "flashcards" ||
         viewMode === "detective" ||
         viewMode === "minibuilds" ||
+        viewMode === "playground" ||
         viewMode === "algolab" ||
         viewMode === "achievements" ||
         viewMode === "league" ? (
@@ -1034,11 +1038,13 @@ export default function HomeScreen() {
                               ? "Opening Detective Casebook..."
                               : viewMode === "minibuilds"
                                 ? "Booting Mini-Builds Workbench..."
-                                : viewMode === "algolab"
-                                  ? "Loading Algorithm Lab..."
-                                  : viewMode === "league"
-                                    ? "Loading Weekly League..."
-                                    : "Loading Trophy Hall..."
+                                : viewMode === "playground"
+                                  ? "Opening playground.py..."
+                                  : viewMode === "algolab"
+                                    ? "Loading Algorithm Lab..."
+                                    : viewMode === "league"
+                                      ? "Loading Weekly League..."
+                                      : "Loading Trophy Hall..."
                   }
                 />
               }
@@ -1129,6 +1135,13 @@ export default function HomeScreen() {
                   )
                 }
                 onAwardBuildXp={(earned) => handleAwardFlashcardXp(earned)}
+              />
+            ) : viewMode === "playground" ? (
+              <PythonScratchpad
+                pyodideReady={pyodideReady}
+                onRunPython={(script) =>
+                  executePlaygroundPython(pyodideRef.current, script)
+                }
               />
             ) : viewMode === "algolab" ? (
               <AlgorithmVisualizerLab

@@ -294,10 +294,10 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.waitForSelector("text=Devy Mini-Game Arcade", { timeout: 10000 });
     const arcadeAlign = await page.evaluate(() => {
       const filterLabels = [
-        "ALL GAMES (5)",
+        "ALL GAMES (6)",
         "QUICK SPRINTS (2)",
         "MEMORY & RECALL (2)",
-        "MINI-BUILDS (1)",
+        "SANDBOX & BUILDS (2)",
       ];
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       const ys = {};
@@ -324,6 +324,15 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByLabel("Select mini-build Mini URL Shortener").click();
     await page.waitForSelector("text=Mini URL Shortener", { timeout: 5000 });
 
+    // Switch to Python Playground (CART-06) directly via ArcadeSubNavBar and test template + saved snippet flow
+    await page.getByLabel("Switch to Python Playground").click();
+    await page.waitForSelector("text=PLAYGROUND.PY · FREE PYTHON 3.11 SCRATCHPAD", { timeout: 10000 });
+    await page.waitForSelector("text=RUN PLAYGROUND", { timeout: 5000 });
+    await page.getByLabel("Load ASCII Byte-Cat template").click();
+    await page.getByLabel("Snippet name input").fill("ByteCat Banner");
+    await page.getByLabel("Save current playground snippet").click();
+    await page.waitForSelector("text=ByteCat Banner", { timeout: 5000 });
+
     // Switch to Output Detective (CART-04), answer case 1, inspect trace breakdown, advance to case 2
     await page.getByLabel("Switch to Output Detective").click();
     await page.waitForSelector("text=CASE 1 OF 6", { timeout: 10000 });
@@ -348,7 +357,7 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByLabel("Back to Cozy Arcade Lobby").click();
     await page.waitForSelector("text=Devy Mini-Game Arcade", { timeout: 5000 });
 
-    // Entering Code Studio from Skill Map works cleanly
+    // Entering Code Studio from Skill Map works cleanly (lesson-focused without scratchpad tab clutter)
     await page.getByText("SKILL MAP").first().click();
     await page.waitForSelector("text=CHOOSE YOUR LEARNING PATH", { timeout: 5000 });
     await page.getByText("CODE STUDIO").first().click();

@@ -13,6 +13,7 @@ import { useThemedStyles } from "../constants/themeContext";
 import { Lesson, TestCaseResult } from "../types/lesson";
 import type { PythonTraceResult } from "../utils/pythonTrace";
 import { playKeyClick } from "../utils/soundEffects";
+import BigORacerPanel from "./BigORacerPanel";
 import SystemDesignLabPanel from "./SystemDesignLabPanel";
 
 interface TraceItem {
@@ -104,12 +105,13 @@ export default function VisualLessonPanel({
 
   const hasTraceData = Array.isArray(data) && data.length > 0;
   const isSystemDesign = lesson?.track === "system_design";
+  const isAlgorithms = lesson?.track === "algorithms";
   const [modeOverride, setModeOverride] = useState<{
-    mode: "concept" | "live" | "arch";
+    mode: "concept" | "live" | "arch" | "bigo";
     traceRef: PythonTraceResult | null;
   } | null>(null);
 
-  const visualMode: "concept" | "live" | "arch" =
+  const visualMode: "concept" | "live" | "arch" | "bigo" =
     isTracing
       ? "live"
       : modeOverride && modeOverride.traceRef === liveTraceResult
@@ -118,9 +120,11 @@ export default function VisualLessonPanel({
           ? "live"
           : isSystemDesign
             ? "arch"
-            : !hasTraceData
-              ? "live"
-              : "concept";
+            : isAlgorithms
+              ? "bigo"
+              : !hasTraceData
+                ? "live"
+                : "concept";
 
   useEffect(() => {
     if (visualMode === "concept") {
@@ -201,8 +205,31 @@ export default function VisualLessonPanel({
     ) : null;
 
   const modeSwitcherBar =
-    onRunLiveTrace || isSystemDesign ? (
+    onRunLiveTrace || isSystemDesign || isAlgorithms ? (
       <View style={styles.visualModeBar}>
+        {isAlgorithms && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open Big-O Performance Racer"
+            style={[
+              styles.visualModeBtn,
+              visualMode === "bigo" && styles.visualModeBtnActive,
+            ]}
+            onPress={() => {
+              playKeyClick();
+              setModeOverride({ mode: "bigo", traceRef: liveTraceResult });
+            }}
+          >
+            <Text
+              style={[
+                styles.visualModeBtnText,
+                visualMode === "bigo" && styles.visualModeBtnTextActive,
+              ]}
+            >
+              ⚡ BIG-O RACER
+            </Text>
+          </Pressable>
+        )}
         {isSystemDesign && (
           <Pressable
             style={[
@@ -268,6 +295,16 @@ export default function VisualLessonPanel({
         )}
       </View>
     ) : null;
+
+  if (visualMode === "bigo" && isAlgorithms && lesson) {
+    return (
+      <View>
+        {modeSwitcherBar}
+        <BigORacerPanel lesson={lesson} userCode={userCode} />
+        {runtimeTraceCard}
+      </View>
+    );
+  }
 
   if (visualMode === "arch" && isSystemDesign && lesson) {
     return (

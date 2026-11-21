@@ -102,6 +102,20 @@ export const ARCADE_CARTRIDGES: readonly ArcadeCartridgeMeta[] = [
     highlightTag: "BUILD A TOOL",
     xpLabel: "+60–90 XP",
   },
+  {
+    id: "playground",
+    category: "builds",
+    code: "CART-06",
+    title: "Python Playground",
+    shortTitle: "PLAYGROUND",
+    tagline:
+      "Experiment freely in a full-screen Python 3.11 scratchpad with 5 starter templates, instant output, and saved snippets.",
+    durationBadge: "FREE PLAY · PY 3.11",
+    icon: "terminal",
+    accent: StudioColors.yellow,
+    highlightTag: "FREE SANDBOX",
+    xpLabel: "SANDBOX",
+  },
 ] as const;
 
 interface ArcadeHubProps {
@@ -233,8 +247,8 @@ export default function ArcadeHub({
                 </View>
               </View>
               <Text style={styles.heroDesc}>
-                Pick a cartridge for fast 1–4 minute XP sprints, daily bug hunts,
-                and zero-pressure concept drills.
+                Pick a cartridge for fast XP sprints, daily bug hunts, concept
+                drills, mini-builds, or a free Python 3.11 playground.
               </Text>
 
               <View style={styles.telemetryRow}>
@@ -323,7 +337,7 @@ export default function ArcadeHub({
               {
                 id: "builds" as const,
                 icon: "toolbox" as StudioIconName,
-                label: `MINI-BUILDS (${ARCADE_CARTRIDGES.filter((c) => c.category === "builds").length})`,
+                label: `SANDBOX & BUILDS (${ARCADE_CARTRIDGES.filter((c) => c.category === "builds").length})`,
               },
             ] as const
           ).map((tab) => {
@@ -369,7 +383,9 @@ export default function ArcadeHub({
                     ? "6-CASE TRACE INVESTIGATIONS"
                     : cart.id === "minibuilds"
                       ? "3 LIVE PYTHON TOOLS"
-                      : "8-CARD CONCEPT ROUNDS";
+                      : cart.id === "playground"
+                        ? "5 TEMPLATES · SAVED SNIPPETS"
+                        : "8-CARD CONCEPT ROUNDS";
 
             return (
               <Pressable

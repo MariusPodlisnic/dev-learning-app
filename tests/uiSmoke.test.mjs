@@ -68,6 +68,9 @@ const { default: OutputDetectiveArena } = loadTsModule(
 const { default: MiniBuildsArena } = loadTsModule(
   "src/components/MiniBuildsArena.tsx",
 );
+const { default: PythonScratchpad } = loadTsModule(
+  "src/components/PythonScratchpad.tsx",
+);
 const { default: WeeklyLeaguePanel } = loadTsModule(
   "src/components/WeeklyLeaguePanel.tsx",
 );
@@ -667,6 +670,23 @@ test("RoadmapReviewCard and SystemDesignLabPanel render spaced review and archit
     ),
   );
   assert.ok(panelWithLabText.includes("ARCH LAB"));
+
+  const algoLesson = lessons.find((l) => l.track === "algorithms");
+  assert.ok(algoLesson);
+  const panelWithBigOText = visibleText(
+    renderThemed(
+      React.createElement(VisualLessonPanel, {
+        type: "hashmap",
+        data: [],
+        lesson: algoLesson,
+        userCode: "for i in nums:\n    for j in nums:\n        pass",
+      }),
+    ),
+  );
+  assert.ok(panelWithBigOText.includes("BIG-O RACER"));
+  assert.ok(panelWithBigOText.includes("BIG-O PERFORMANCE RACER"));
+  assert.ok(panelWithBigOText.includes("YOUR DRAFT: ~O(n²)"));
+  assert.ok(panelWithBigOText.includes("START COMPLEXITY RACE"));
 });
 
 test("10-level developer rank system enforces wider XP gaps, caps at Level 10, and renders unique profile avatars", () => {
@@ -1215,6 +1235,8 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(hubText.includes("Flashcards Concept Deck"));
   assert.ok(hubText.includes("Output Detective"));
   assert.ok(hubText.includes("Cozy Mini-Builds"));
+  assert.ok(hubText.includes("Python Playground"));
+  assert.ok(hubText.includes("SANDBOX & BUILDS (2)"));
 
   const subNavText = visibleText(
     renderThemed(
@@ -1230,6 +1252,7 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(subNavText.includes("FLASH DECK"));
   assert.ok(subNavText.includes("DETECTIVE"));
   assert.ok(subNavText.includes("MINI-BUILDS"));
+  assert.ok(subNavText.includes("PLAYGROUND"));
 
   const detectiveText = visibleText(
     renderThemed(
@@ -1275,4 +1298,19 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
     React.createElement(StudioIcon, { name: "nav_minibuilds", size: 20 }),
   );
   assert.ok(miniBuildsIconHtml.includes("<svg"));
+
+  const scratchpadText = visibleText(
+    renderThemed(
+      React.createElement(PythonScratchpad, {
+        pyodideReady: true,
+        onRunPython: async () => "ok",
+      }),
+    ),
+  );
+  assert.ok(scratchpadText.includes("PLAYGROUND.PY"));
+  assert.ok(scratchpadText.includes("ASCII CAT"));
+  assert.ok(scratchpadText.includes("DICE SIM"));
+  assert.ok(scratchpadText.includes("ALGO BENCH"));
+  assert.ok(scratchpadText.includes("RUN PLAYGROUND"));
+  assert.ok(scratchpadText.includes("SAVED SNIPPETS"));
 });
