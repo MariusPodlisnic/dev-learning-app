@@ -39,6 +39,7 @@ export default function RoadmapDailyQuestCard({
   const [quest, setQuest] = useState<DailyQuestState>(
     () => initialQuestState ?? getDailyQuestState(),
   );
+  const [expandedWhenClaimed, setExpandedWhenClaimed] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialQuestState) return;
@@ -59,8 +60,16 @@ export default function RoadmapDailyQuestCard({
     }
   }
 
+  const isCompactClaimed = quest.claimed && !expandedWhenClaimed;
+
   return (
-    <View style={[styles.card, quest.claimed && styles.cardClaimed]}>
+    <View
+      style={[
+        styles.card,
+        quest.claimed && styles.cardClaimed,
+        isCompactClaimed && styles.cardCompactClaimed,
+      ]}
+    >
       <View
         style={[
           styles.topAccent,
@@ -69,7 +78,12 @@ export default function RoadmapDailyQuestCard({
         ]}
       />
 
-      <View style={styles.headerRow}>
+      <View
+        style={[
+          styles.headerRow,
+          isCompactClaimed && styles.headerRowCompact,
+        ]}
+      >
         <View style={styles.headerLeft}>
           <View
             style={[
@@ -84,59 +98,84 @@ export default function RoadmapDailyQuestCard({
                 : `TODAY'S 5-MIN QUEST · ${completedCount}/${totalCount}`}
             </Text>
           </View>
-          <View style={styles.miniMeterTrack}>
-            <View
-              style={[
-                styles.miniMeterFill,
-                {
-                  width: `${pct}%`,
-                  backgroundColor: allDone
-                    ? StudioColors.lime
-                    : StudioColors.yellow,
-                },
-              ]}
-            />
-          </View>
+          {!isCompactClaimed && (
+            <View style={styles.miniMeterTrack}>
+              <View
+                style={[
+                  styles.miniMeterFill,
+                  {
+                    width: `${pct}%`,
+                    backgroundColor: allDone
+                      ? StudioColors.lime
+                      : StudioColors.yellow,
+                  },
+                ]}
+              />
+            </View>
+          )}
         </View>
 
-        {canClaim ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Claim ${DAILY_QUEST_BONUS_XP} bonus XP`}
-            style={({ pressed }) => [
-              styles.claimBtn,
-              pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-            ]}
-            onPress={() => {
-              onClaimBonus?.();
-            }}
-          >
-            <StudioIcon name="gift" size={14} />
-            <Text style={styles.claimBtnText}>
-              CLAIM +{DAILY_QUEST_BONUS_XP} XP
-            </Text>
-          </Pressable>
-        ) : (
-          <View
-            style={[
-              styles.rewardPill,
-              quest.claimed && styles.rewardPillClaimed,
-            ]}
-          >
-            <Text
+        <View style={styles.headerRightGroup}>
+          {canClaim ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Claim ${DAILY_QUEST_BONUS_XP} bonus XP`}
+              style={({ pressed }) => [
+                styles.claimBtn,
+                pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+              ]}
+              onPress={() => {
+                onClaimBonus?.();
+              }}
+            >
+              <StudioIcon name="gift" size={14} />
+              <Text style={styles.claimBtnText}>
+                CLAIM +{DAILY_QUEST_BONUS_XP} XP
+              </Text>
+            </Pressable>
+          ) : (
+            <View
               style={[
-                styles.rewardPillText,
-                quest.claimed && styles.rewardPillTextClaimed,
+                styles.rewardPill,
+                quest.claimed && styles.rewardPillClaimed,
               ]}
             >
-              {quest.claimed
-                ? `+${DAILY_QUEST_BONUS_XP} XP CLAIMED ✓`
-                : `REWARD: +${DAILY_QUEST_BONUS_XP} XP`}
-            </Text>
-          </View>
-        )}
+              <Text
+                style={[
+                  styles.rewardPillText,
+                  quest.claimed && styles.rewardPillTextClaimed,
+                ]}
+              >
+                {quest.claimed
+                  ? `+${DAILY_QUEST_BONUS_XP} XP CLAIMED ✓`
+                  : `REWARD: +${DAILY_QUEST_BONUS_XP} XP`}
+              </Text>
+            </View>
+          )}
+
+          {quest.claimed && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                expandedWhenClaimed
+                  ? "Collapse completed daily quest steps"
+                  : "Expand completed daily quest steps"
+              }
+              style={styles.collapseToggleBtn}
+              onPress={() => {
+                playKeyClick();
+                setExpandedWhenClaimed((prev) => !prev);
+              }}
+            >
+              <Text style={styles.collapseToggleText}>
+                {expandedWhenClaimed ? "HIDE ▴" : "STEPS ▾"}
+              </Text>
+            </Pressable>
+          )}
+        </View>
       </View>
 
+      {!isCompactClaimed && (
       <View style={styles.stepsRow}>
         {DAILY_QUEST_STEPS.map((step) => {
           const isDone = Boolean(quest.steps[step.id]);
@@ -188,6 +227,7 @@ export default function RoadmapDailyQuestCard({
           );
         })}
       </View>
+      )}
     </View>
   );
 }
@@ -207,6 +247,9 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     cardClaimed: {
       borderColor: StudioColors.cardDoneBorder,
     },
+    cardCompactClaimed: {
+      marginBottom: 10,
+    },
     topAccent: {
       height: 4,
       width: "100%",
@@ -222,11 +265,37 @@ const createStyles = (StudioColors: StudioThemeColors) =>
       paddingTop: 10,
       paddingBottom: 8,
     },
+    headerRowCompact: {
+      paddingVertical: 8,
+    },
     headerLeft: {
       flexDirection: "row",
       alignItems: "center",
       flexWrap: "wrap",
       gap: 8,
+    },
+    headerRightGroup: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    collapseToggleBtn: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      backgroundColor: StudioColors.surfaceElevated,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    collapseToggleText: {
+      color: StudioColors.textSecondary,
+      fontSize: 9,
+      lineHeight: 12,
+      includeFontPadding: false,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
     },
     questBadge: {
       flexDirection: "row",

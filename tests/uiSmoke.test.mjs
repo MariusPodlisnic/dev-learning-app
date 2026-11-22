@@ -1024,6 +1024,11 @@ test("RoadmapDailyQuestCard renders 3-step daily quest, claim button at 3/3, and
   );
   assert.ok(claimedText.includes("DAILY QUEST CLEARED"));
   assert.ok(claimedText.includes("+75 XP CLAIMED"));
+  assert.ok(claimedText.includes("STEPS"));
+  assert.ok(
+    !claimedText.includes("Squash 1 Bug"),
+    "Claimed daily quest should auto-collapse the 3-step tile row until expanded",
+  );
 });
 
 test("StudioSettingsModal renders organized 3-tab menu (Appearance, Audio, Studio)", () => {

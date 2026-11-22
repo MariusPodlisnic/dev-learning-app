@@ -1127,12 +1127,13 @@ export default function AppHeader({
               />
             </Pressable>
 
-            {!isCompactHeader && onOpenCommandPalette && (
+            {onOpenCommandPalette && (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Open Quick Command Palette"
                 style={({ pressed }) => [
                   styles.cmdKeycapBtn,
+                  isCompactHeader && styles.cmdKeycapBtnCompact,
                   themeMode === "light"
                     ? styles.settingsLaunchBtnLight
                     : styles.settingsLaunchBtnDark,
@@ -1145,8 +1146,8 @@ export default function AppHeader({
                   onOpenCommandPalette();
                 }}
               >
-                <StudioIcon name="search" size={14} />
-                <Text style={styles.cmdKeycapText}>⌘K</Text>
+                <StudioIcon name="search" size={isCompactHeader ? 15 : 14} />
+                {!isCompactHeader && <Text style={styles.cmdKeycapText}>⌘K</Text>}
               </Pressable>
             )}
           </View>
@@ -1820,6 +1821,11 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       gap: 5,
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    cmdKeycapBtnCompact: {
+      paddingHorizontal: 8,
+      minHeight: 32,
+      minWidth: 34,
     },
     cmdKeycapText: {
       color: StudioColors.textPrimary,

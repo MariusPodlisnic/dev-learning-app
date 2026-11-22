@@ -143,12 +143,7 @@ export default function RoadmapReviewCard<T extends ReviewableLesson>({
             </Text>
           </Pressable>
         </View>
-      ) : (
-        <Text style={styles.emptyCaughtUpText}>
-          Your solved modules are locked into memory right now. Modules where
-          you peeked or needed multiple attempts return automatically in 24h.
-        </Text>
-      )}
+      ) : null}
 
       {dueItems.length > 1 ? (
         <View style={styles.queueChipsRow}>

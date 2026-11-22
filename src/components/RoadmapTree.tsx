@@ -13,7 +13,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Text } from "./StudioIcon";
+import { StudioIcon, Text } from "./StudioIcon";
 import {
   ChapterTierMeta,
   getChapterForTrackLesson,
@@ -106,7 +106,8 @@ interface RoadmapTreeProps {
   streakCount?: number;
   lastActiveDate?: string | null;
   totalSolvedCount?: number;
-  onStartQuickMode?: (mode: "bughunt" | "blitz" | "flashcards" | "algolab") => void;
+  resumeLesson?: Lesson | null;
+  onStartQuickMode?: (mode: "arcade" | "bughunt" | "blitz" | "flashcards" | "algolab") => void;
   onSaveStreak?: () => void;
   onOpenAuth?: (mode?: "signup" | "signin", reason?: string) => void;
   onOpenPaywall?: () => void;
@@ -132,6 +133,7 @@ export default function RoadmapTree({
   streakCount = 0,
   lastActiveDate = null,
   totalSolvedCount = 0,
+  resumeLesson = null,
   onStartQuickMode,
   onOpenPaywall,
   onOpenChapterCertificate,
@@ -227,6 +229,16 @@ export default function RoadmapTree({
     trackLessons.find((l) => !completedLessons[l.id]) ||
     trackLessons[0];
 
+  const heroTargetLesson =
+    resumeLesson &&
+    resumeLesson.track === activeTrack &&
+    !completedLessons[resumeLesson.id] &&
+    !isLessonLockedForUser(resumeLesson, isPremium)
+      ? resumeLesson
+      : nextUpLesson;
+  const isResumingDraft =
+    Boolean(resumeLesson) && heroTargetLesson?.id === resumeLesson?.id;
+
   const isBrandNewHero = totalXp === 0 && totalSolvedCount === 0 && completedCount === 0;
 
   const dueReviewItems = buildDueReviewQueue({
@@ -320,70 +332,55 @@ export default function RoadmapTree({
             <Text style={styles.mainHeading}>{currentTrackMeta.label}</Text>
             <Text style={styles.subHeading}>{currentTrackMeta.subtitle}</Text>
 
-            {nextUpLesson ? (
+            {heroTargetLesson ? (
               <View style={styles.heroActionRow}>
                 <Pressable
                   accessibilityRole="button"
+                  accessibilityLabel={
+                    isResumingDraft
+                      ? `Resume draft lesson ${heroTargetLesson.title}`
+                      : `Continue learning ${heroTargetLesson.title}`
+                  }
                   style={({ pressed }) => [
                     styles.heroPrimaryBtn,
                     pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
                   ]}
                   onPress={() => {
                     playKeyClick();
-                    onSelectLesson(nextUpLesson);
+                    onSelectLesson(heroTargetLesson);
                   }}
                 >
+                  <StudioIcon name="bolt" size={14} />
                   <Text style={styles.heroPrimaryBtnText} numberOfLines={1}>
-                    {isBrandNewHero
-                      ? "▶ START LESSON 01 (+50 XP) →"
-                      : completedCount === trackLessons.length && trackLessons.length > 0
-                        ? "↻ REPLAY TRACK →"
-                        : `▶ CONTINUE: ${nextUpLesson.title} →`}
+                    {isResumingDraft
+                      ? `RESUME DRAFT: ${heroTargetLesson.title} →`
+                      : isBrandNewHero
+                        ? "START LESSON 01 (+50 XP) →"
+                        : completedCount === trackLessons.length &&
+                            trackLessons.length > 0
+                          ? "REPLAY TRACK →"
+                          : `CONTINUE: ${heroTargetLesson.title} →`}
                   </Text>
                 </Pressable>
 
                 {onStartQuickMode ? (
-                  <View style={styles.heroQuickModesRow}>
-                    <Pressable
-                      accessibilityRole="button"
-                      style={({ pressed }) => [
-                        styles.heroSecondaryBtn,
-                        pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-                      ]}
-                      onPress={() => {
-                        playKeyClick();
-                        onStartQuickMode("blitz");
-                      }}
-                    >
-                      <Text style={styles.heroSecondaryBtnText}>⚡ 60S BLITZ</Text>
-                    </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      style={({ pressed }) => [
-                        styles.heroSecondaryBtn,
-                        pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-                      ]}
-                      onPress={() => {
-                        playKeyClick();
-                        onStartQuickMode("bughunt");
-                      }}
-                    >
-                      <Text style={styles.heroSecondaryBtnText}>🪲 BUG HUNT</Text>
-                    </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      style={({ pressed }) => [
-                        styles.heroSecondaryBtn,
-                        pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-                      ]}
-                      onPress={() => {
-                        playKeyClick();
-                        onStartQuickMode("flashcards");
-                      }}
-                    >
-                      <Text style={styles.heroSecondaryBtnText}>🃏 FLASH DECK</Text>
-                    </Pressable>
-                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Open Devy Mini-Game Arcade"
+                    style={({ pressed }) => [
+                      styles.heroSecondaryBtn,
+                      pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+                    ]}
+                    onPress={() => {
+                      playKeyClick();
+                      onStartQuickMode("arcade");
+                    }}
+                  >
+                    <StudioIcon name="nav_arcade" size={15} />
+                    <Text style={styles.heroSecondaryBtnText}>
+                      ARCADE (6 GAMES) →
+                    </Text>
+                  </Pressable>
                 ) : null}
               </View>
             ) : null}

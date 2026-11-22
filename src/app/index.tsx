@@ -1056,6 +1056,7 @@ export default function HomeScreen() {
           streakCount={streakCount}
           lastActiveDate={lastActiveDate}
           totalSolvedCount={totalSolvedCount}
+          resumeLesson={hasSavedDraft && selectedLesson ? selectedLesson : null}
           onStartQuickMode={(mode) => setViewMode(mode)}
           onSaveStreak={() => {
             const upNext = currentLessons.find(
