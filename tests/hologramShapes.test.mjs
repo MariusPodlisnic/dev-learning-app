@@ -3,10 +3,17 @@ import test from "node:test";
 import { loadTsModule } from "./helpers/loadTs.mjs";
 
 const {
+  computeIdleDisperseEnvelope,
+  createIdleDisperseState,
   getHologramShapeData,
   getHologramShapeMeta,
   HOLOGRAM_PALETTES,
   HOLOGRAM_SHAPES_META,
+  IDLE_DISPERSE_DURATION_SEC,
+  IDLE_DISPERSE_MAX_SEC,
+  IDLE_DISPERSE_MIN_SEC,
+  pickNextIdleDisperseDelay,
+  stepIdleDisperseState,
 } = loadTsModule("src/utils/hologramShapes.ts");
 
 test("hologramShapes generates valid bounded 3D point clouds for all 5 sculptures and 4 palettes", () => {
@@ -45,4 +52,53 @@ test("hologramShapes generates valid bounded 3D point clouds for all 5 sculpture
     assert.equal(pal.bright.length, 3);
     assert.equal(pal.accent.length, 3);
   }
+});
+
+test("idle particle dispersion triggers every 10-15s untouched, blooms smoothly, and recalls on touch", () => {
+  for (let i = 0; i < 12; i += 1) {
+    const delay = pickNextIdleDisperseDelay(i);
+    assert.ok(
+      delay >= IDLE_DISPERSE_MIN_SEC && delay <= IDLE_DISPERSE_MAX_SEC,
+      `Expected idle delay in [10, 15], got ${delay}`,
+    );
+  }
+
+  assert.equal(computeIdleDisperseEnvelope(0), 0);
+  assert.equal(computeIdleDisperseEnvelope(1), 0);
+  assert.ok(computeIdleDisperseEnvelope(0.48) > 0.98);
+  assert.ok(computeIdleDisperseEnvelope(0.2) > 0.3 && computeIdleDisperseEnvelope(0.2) < 0.95);
+  assert.ok(computeIdleDisperseEnvelope(0.8) > 0.05 && computeIdleDisperseEnvelope(0.8) < 0.6);
+
+  const st = createIdleDisperseState();
+  const initialDelay = st.nextDelaySec;
+  // Still quiet just before the idle delay threshold
+  assert.equal(stepIdleDisperseState(st, initialDelay - 0.5, false), 0);
+  assert.equal(st.active, false);
+
+  // Cross threshold -> enters active dispersion cycle
+  stepIdleDisperseState(st, 0.6, false);
+  assert.equal(st.active, true);
+
+  // Mid-cycle reaches full stardust bloom
+  const peak = stepIdleDisperseState(st, IDLE_DISPERSE_DURATION_SEC * 0.48, false);
+  assert.ok(peak > 0.95, `Expected full bloom near midpoint, got ${peak}`);
+
+  // Completes smoothly back to 0 and schedules next 10-15s cycle
+  const ended = stepIdleDisperseState(st, IDLE_DISPERSE_DURATION_SEC * 0.6, false);
+  assert.equal(ended, 0);
+  assert.equal(st.active, false);
+  assert.equal(st.cycleIndex, 1);
+  assert.ok(st.nextDelaySec >= 10 && st.nextDelaySec <= 15);
+
+  // Interaction mid-bloom swiftly recalls particles back to 0 and resets idle timer
+  stepIdleDisperseState(st, st.nextDelaySec + 0.1, false);
+  stepIdleDisperseState(st, IDLE_DISPERSE_DURATION_SEC * 0.3, false);
+  assert.equal(st.active, true);
+  let val = 1;
+  for (let frame = 0; frame < 40; frame += 1) {
+    val = stepIdleDisperseState(st, 0.05, true);
+  }
+  assert.equal(val, 0);
+  assert.equal(st.active, false);
+  assert.equal(st.idleElapsedSec, 0);
 });

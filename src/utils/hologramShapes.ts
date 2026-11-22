@@ -882,3 +882,111 @@ export function getHologramShapeData(
   shapeCache.set(cacheKey, data);
   return data;
 }
+
+export const IDLE_DISPERSE_MIN_SEC = 10;
+export const IDLE_DISPERSE_MAX_SEC = 15;
+export const IDLE_DISPERSE_DURATION_SEC = 4.2;
+
+const IDLE_DISPERSE_INTERVALS_SEC = [
+  11.5, 13.8, 10.6, 14.4, 12.2, 11.0, 14.1, 12.9,
+] as const;
+
+export interface IdleDisperseState {
+  idleElapsedSec: number;
+  nextDelaySec: number;
+  cycleIndex: number;
+  active: boolean;
+  progress: number;
+}
+
+export function pickNextIdleDisperseDelay(cycleIndex: number): number {
+  const safeIdx =
+    ((Math.floor(cycleIndex) % IDLE_DISPERSE_INTERVALS_SEC.length) +
+      IDLE_DISPERSE_INTERVALS_SEC.length) %
+    IDLE_DISPERSE_INTERVALS_SEC.length;
+  return IDLE_DISPERSE_INTERVALS_SEC[safeIdx];
+}
+
+export function createIdleDisperseState(): IdleDisperseState {
+  return {
+    idleElapsedSec: 0,
+    nextDelaySec: pickNextIdleDisperseDelay(0),
+    cycleIndex: 0,
+    active: false,
+    progress: 0,
+  };
+}
+
+/**
+ * Smooth 0 -> 1 -> 0 envelope for the idle particle bloom & reassembly cycle:
+ * - 0.00..0.40: graceful cubic ease-out expansion into stardust
+ * - 0.40..0.56: gentle hovering peak suspension
+ * - 0.56..1.00: silky quintic magnetic reassembly back to the crisp sculpture
+ */
+export function computeIdleDisperseEnvelope(progress: number): number {
+  const u = Math.max(0, Math.min(1, progress));
+  if (u <= 0 || u >= 1) return 0;
+
+  if (u < 0.4) {
+    const x = u / 0.4;
+    const easeOut = 1 - Math.pow(1 - x, 3);
+    const smooth = x * x * (3 - 2 * x);
+    return 0.55 * easeOut + 0.45 * smooth;
+  }
+
+  if (u <= 0.56) {
+    const mid = (u - 0.48) / 0.08;
+    return 1 - 0.03 * mid * mid;
+  }
+
+  const r = (u - 0.56) / 0.44;
+  const quintic = r * r * r * (r * (r * 6 - 15) + 10);
+  return 1 - quintic;
+}
+
+export function stepIdleDisperseState(
+  state: IdleDisperseState,
+  dtSec: number,
+  isInteracting: boolean,
+): number {
+  const dt = Math.max(0, dtSec);
+  if (isInteracting) {
+    state.idleElapsedSec = 0;
+    if (state.active) {
+      if (state.progress <= 0.5) {
+        state.progress = Math.max(0, state.progress - dt * 1.45);
+        if (state.progress <= 0) state.active = false;
+      } else {
+        state.progress = Math.min(1, state.progress + dt * 1.45);
+        if (state.progress >= 1) {
+          state.active = false;
+          state.progress = 0;
+        }
+      }
+      return state.active ? computeIdleDisperseEnvelope(state.progress) : 0;
+    }
+    return 0;
+  }
+
+  if (!state.active) {
+    state.idleElapsedSec += dt;
+    if (state.idleElapsedSec >= state.nextDelaySec) {
+      state.active = true;
+      state.progress = 0;
+      state.idleElapsedSec = 0;
+    }
+    return 0;
+  }
+
+  state.progress += dt / IDLE_DISPERSE_DURATION_SEC;
+  if (state.progress >= 1) {
+    state.active = false;
+    state.progress = 0;
+    state.idleElapsedSec = 0;
+    state.cycleIndex += 1;
+    state.nextDelaySec = pickNextIdleDisperseDelay(state.cycleIndex);
+    return 0;
+  }
+
+  return computeIdleDisperseEnvelope(state.progress);
+}

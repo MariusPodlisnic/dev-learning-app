@@ -7,12 +7,15 @@ import {
 } from "../constants/theme";
 import { useTheme, useThemedStyles } from "../constants/themeContext";
 import {
+  createIdleDisperseState,
   getHologramShapeData,
   getHologramShapeMeta,
   HOLOGRAM_PALETTES,
   HOLOGRAM_PARTICLE_COUNT,
+  stepIdleDisperseState,
   type HologramShapeData,
   type HologramShapeId,
+  type IdleDisperseState,
 } from "../utils/hologramShapes";
 import { StudioIcon, Text } from "./StudioIcon";
 
@@ -31,6 +34,7 @@ const VS_SOURCE = `
   attribute float aSeed;
 
   uniform float uMorph;
+  uniform float uDisperse;
   uniform float uTime;
   uniform float uRotX;
   uniform float uRotY;
@@ -51,25 +55,60 @@ const VS_SOURCE = `
     pos.xz = mat2(ca, -sa, sa, ca) * pos.xz;
     pos.y += 0.011 * sin(uTime * 1.5 + aSeed * 6.283);
 
+    float disperseBoost = 0.0;
+    if (uDisperse > 0.0005) {
+      float radialDist = length(pos);
+      float stagger = clamp(aSeed * 0.28 + (1.0 - clamp(radialDist, 0.0, 1.0)) * 0.14, 0.0, 0.42);
+      float localSpread = clamp((uDisperse - stagger * 0.35) / (1.0 - stagger * 0.35), 0.0, 1.0);
+      localSpread = localSpread * localSpread * (3.0 - 2.0 * localSpread);
+
+      float theta = aSeed * 62.831853 + pos.y * 2.1;
+      float phi = acos(clamp(fract(aSeed * 19.371) * 2.0 - 1.0, -0.999, 0.999));
+      vec3 randDir = vec3(
+        sin(phi) * cos(theta),
+        cos(phi) * 0.78,
+        sin(phi) * sin(theta)
+      );
+
+      vec3 outwardDir = radialDist > 0.002 ? (pos / radialDist) : randDir;
+      vec3 driftDir = normalize(mix(outwardDir, randDir, 0.58));
+      float spreadRadius = (0.42 + 0.88 * fract(aSeed * 7.13)) * localSpread;
+
+      float vortexAngle = localSpread * (1.15 + 1.35 * aSeed) * (aSeed > 0.5 ? 1.0 : -1.0);
+      float vc = cos(vortexAngle);
+      float vs = sin(vortexAngle);
+
+      vec3 curlDrift = vec3(
+        sin(uTime * 1.9 + aSeed * 18.0 + pos.y * 3.0),
+        cos(uTime * 1.6 + aSeed * 23.0 + pos.x * 3.0) * 0.75,
+        sin(uTime * 1.7 + aSeed * 15.0 + pos.z * 3.0)
+      ) * (0.11 * localSpread);
+
+      pos += driftDir * spreadRadius + curlDrift;
+      pos.xz = mat2(vc, -vs, vs, vc) * pos.xz;
+      disperseBoost = localSpread;
+    }
+
     float cy = cos(uRotY), sy = sin(uRotY);
     float cx = cos(uRotX), sx = sin(uRotX);
     vec3 p1 = vec3(pos.x * cy - pos.z * sy, pos.y, pos.x * sy + pos.z * cy);
     vec3 p2 = vec3(p1.x, p1.y * cx - p1.z * sx, p1.y * sx + p1.z * cx);
 
     float camZ = 2.52;
-    float zDist = camZ - p2.z;
+    float zDist = max(0.95, camZ - p2.z);
     float fov = 2.02 * min(1.0, uAspect);
     vec2 proj = vec2((p2.x * fov) / (zDist * uAspect), (p2.y * fov) / zDist);
     gl_Position = vec4(proj, (p2.z / 3.0) * -0.5, 1.0);
 
     float depthNorm = clamp((p2.z + 1.15) / 2.3, 0.0, 1.0);
     float wave = 0.5 + 0.5 * sin(pos.x * 3.8 + pos.y * 3.2 + pos.z * 3.0 - uTime * 2.4 + aSeed * 1.4);
-    vPulse = pow(wave, 5.5);
+    float twinkle = 0.5 + 0.5 * sin(uTime * 7.5 + aSeed * 41.0);
+    vPulse = clamp(pow(wave, 5.5) + disperseBoost * (0.32 + 0.42 * twinkle), 0.0, 1.15);
     vLum = mix(aLumA, aLumB, t);
     vAcc = mix(aAccA, aAccB, t);
     vDepth = depthNorm;
 
-    float baseSize = mix(1.35, 3.05, depthNorm) * (0.74 + vLum * 0.48 + vPulse * 0.34 + vAcc * 0.16);
+    float baseSize = mix(1.35, 3.05, depthNorm) * (0.74 + vLum * 0.48 + vPulse * 0.34 + vAcc * 0.16) * mix(1.0, 1.16, disperseBoost);
     gl_PointSize = baseSize * uPointScale;
   }
 `;
@@ -156,6 +195,7 @@ export default function HomeHologramStage({
     rotX: number;
     velY: number;
     velX: number;
+    idleDisperse: IdleDisperseState;
     uploadPair?: (from: HologramShapeData, to: HologramShapeData) => void;
   }>({
     currentShape: activeShape,
@@ -166,6 +206,7 @@ export default function HomeHologramStage({
     rotX: 0.24,
     velY: 0,
     velX: 0,
+    idleDisperse: createIdleDisperseState(),
   });
 
   useEffect(() => {
@@ -178,6 +219,7 @@ export default function HomeHologramStage({
     state.currentShape = state.targetShape;
     state.targetShape = activeShape;
     state.morphProgress = 0;
+    state.idleDisperse.idleElapsedSec = 0;
     if (state.uploadPair) {
       state.uploadPair(
         getHologramShapeData(state.currentShape),
@@ -286,6 +328,7 @@ export default function HomeHologramStage({
 
         uLocs = {
           uMorph: gl.getUniformLocation(glProgram, "uMorph"),
+          uDisperse: gl.getUniformLocation(glProgram, "uDisperse"),
           uTime: gl.getUniformLocation(glProgram, "uTime"),
           uRotX: gl.getUniformLocation(glProgram, "uRotX"),
           uRotY: gl.getUniformLocation(glProgram, "uRotY"),
@@ -381,6 +424,11 @@ export default function HomeHologramStage({
       if (st.morphProgress < 1) {
         st.morphProgress = Math.min(1, st.morphProgress + dt * 1.45);
       }
+      const disperseAmount = stepIdleDisperseState(
+        st.idleDisperse,
+        dt,
+        isDragging || st.morphProgress < 0.99,
+      );
       if (!isDragging) {
         st.rotY += st.velY + dt * 0.32;
         st.rotX = Math.max(-1.05, Math.min(1.05, st.rotX + st.velX));
@@ -396,6 +444,7 @@ export default function HomeHologramStage({
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.uniform1f(uLocs.uMorph, st.morphProgress);
+        gl.uniform1f(uLocs.uDisperse, disperseAmount);
         gl.uniform1f(uLocs.uTime, tSec);
         gl.uniform1f(uLocs.uRotX, st.rotX);
         gl.uniform1f(uLocs.uRotY, st.rotY);
@@ -419,14 +468,27 @@ export default function HomeHologramStage({
         const halfH = glCanvas.height * 0.5;
         const scale = Math.min(glCanvas.width, glCanvas.height) * 0.8;
         for (let k = 0; k < HOLOGRAM_PARTICLE_COUNT; k += 5) {
-          const x = fromData.positions[k * 3] * (1 - m) + toData.positions[k * 3] * m;
-          const y = fromData.positions[k * 3 + 1] * (1 - m) + toData.positions[k * 3 + 1] * m;
-          const z = fromData.positions[k * 3 + 2] * (1 - m) + toData.positions[k * 3 + 2] * m;
+          let x = fromData.positions[k * 3] * (1 - m) + toData.positions[k * 3] * m;
+          let y = fromData.positions[k * 3 + 1] * (1 - m) + toData.positions[k * 3 + 1] * m;
+          let z = fromData.positions[k * 3 + 2] * (1 - m) + toData.positions[k * 3 + 2] * m;
+          if (disperseAmount > 0.001) {
+            const seed = (k * 0.6180339887) % 1;
+            const ang = seed * 62.83 + y * 2.1;
+            const spread = (0.42 + 0.78 * ((k * 0.381966) % 1)) * disperseAmount;
+            const vx = x + Math.cos(ang) * spread;
+            const vz = z + Math.sin(ang) * spread;
+            const swirlAng = disperseAmount * (1.1 + seed * 1.2) * (seed > 0.5 ? 1 : -1);
+            const sc = Math.cos(swirlAng);
+            const ss = Math.sin(swirlAng);
+            x = vx * sc - vz * ss;
+            z = vx * ss + vz * sc;
+            y += Math.sin(seed * 19.3 + tSec * 1.6) * spread * 0.65;
+          }
           const p1x = x * cy - z * sy;
           const p1z = x * sy + z * cy;
           const p2y = y * cx - p1z * sx;
           const p2z = y * sx + p1z * cx;
-          const zDist = 2.52 - p2z;
+          const zDist = Math.max(0.95, 2.52 - p2z);
           const sx2 = halfW + (p1x / zDist) * scale;
           const sy2 = halfH - (p2y / zDist) * scale;
           const depth = Math.max(0.15, Math.min(1, (p2z + 1.1) / 2.2));
