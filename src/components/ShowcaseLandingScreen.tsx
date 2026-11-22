@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   Platform,
   Pressable,
@@ -133,8 +133,23 @@ const PRO_TRACK_POINTS = [
   },
 ] as const;
 
-export default function ShowcaseLandingScreen() {
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+const EMPTY_SUBSCRIBE = () => () => {};
+
+interface ShowcaseLandingScreenProps {
+  onEnterHome?: () => void;
+}
+
+export default function ShowcaseLandingScreen({
+  onEnterHome,
+}: ShowcaseLandingScreenProps = {}) {
+  const isMounted = useSyncExternalStore(
+    EMPTY_SUBSCRIBE,
+    () => true,
+    () => false,
+  );
+  const { width: rawWindowWidth, height: rawWindowHeight } = useWindowDimensions();
+  const windowWidth = isMounted && rawWindowWidth > 0 ? rawWindowWidth : 1280;
+  const windowHeight = isMounted && rawWindowHeight > 0 ? rawWindowHeight : 800;
   const isCompact = windowWidth > 0 && windowWidth < 860;
   const isPhone = windowWidth > 0 && windowWidth < 560;
 
@@ -160,7 +175,11 @@ export default function ShowcaseLandingScreen() {
     playKeyClick();
     setIsWarping(true);
     warpTimerRef.current = setTimeout(() => {
-      router.push("/");
+      if (onEnterHome) {
+        onEnterHome();
+      } else {
+        router.push("/?home=1");
+      }
     }, 420);
   }
 
@@ -592,7 +611,6 @@ export default function ShowcaseLandingScreen() {
           style={[
             styles.floatingDock,
             isPhone && styles.floatingDockPhone,
-            Platform.OS === "web" ? ({ backdropFilter: "blur(18px)" } as any) : null,
           ]}
         >
           {!isPhone ? <Text style={styles.dockLogo}>D.</Text> : null}
@@ -1273,7 +1291,7 @@ const styles = StyleSheet.create({
     gap: 6,
     padding: 6,
     borderRadius: 16,
-    backgroundColor: "rgba(13, 10, 26, 0.92)",
+    backgroundColor: "rgba(13, 10, 26, 0.96)",
     borderWidth: 2,
     borderColor: StudioColors.ink,
     ...HardShadow,

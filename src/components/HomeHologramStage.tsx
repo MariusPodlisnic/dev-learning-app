@@ -63,11 +63,12 @@ const VS_SOURCE = `
       localSpread = localSpread * localSpread * (3.0 - 2.0 * localSpread);
 
       float theta = aSeed * 62.831853 + pos.y * 2.1;
-      float phi = acos(clamp(fract(aSeed * 19.371) * 2.0 - 1.0, -0.999, 0.999));
+      float zCos = fract(aSeed * 19.371) * 1.98 - 0.99;
+      float sinPhi = sqrt(max(0.0, 1.0 - zCos * zCos));
       vec3 randDir = vec3(
-        sin(phi) * cos(theta),
-        cos(phi) * 0.78,
-        sin(phi) * sin(theta)
+        sinPhi * cos(theta),
+        zCos * 0.78,
+        sinPhi * sin(theta)
       );
 
       vec3 outwardDir = radialDist > 0.002 ? (pos / radialDist) : randDir;
@@ -245,7 +246,9 @@ export default function HomeHologramStage({
     const glyphCtx = glyphCanvas.getContext("2d");
     const gl = glCanvas.getContext("webgl", {
       alpha: true,
-      antialias: true,
+      antialias: false,
+      depth: false,
+      stencil: false,
       powerPreference: "high-performance",
     });
     const fallback2D = gl ? null : glCanvas.getContext("2d");

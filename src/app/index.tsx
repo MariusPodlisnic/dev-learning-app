@@ -34,6 +34,7 @@ import {
 } from "../components/PaywallModal";
 import { getDeveloperRank } from "../components/ProfileStatsModal";
 import RoadmapTree from "../components/RoadmapTree";
+import ShowcaseLandingScreen from "../components/ShowcaseLandingScreen";
 import StudioCodeEditor from "../components/StudioCodeEditor";
 import StudioErrorBoundary from "../components/StudioErrorBoundary";
 import StudioFocusBackground from "../components/StudioFocusBackground";
@@ -335,6 +336,7 @@ export default function HomeScreen() {
       }
     },
     onPasswordRecovery: () => {
+      setShowShowcase(false);
       setAuthDefaultMode("update_password");
       setAuthPromptReason(undefined);
       setShowAuthModal(true);
@@ -353,6 +355,8 @@ export default function HomeScreen() {
     onPyodideReady: () => setPyodideReady(true),
   });
   const searchParams = useLocalSearchParams<{
+    home?: string;
+    code?: string;
     lesson?: string;
     mode?: string;
     track?: string;
@@ -364,6 +368,30 @@ export default function HomeScreen() {
     utm_term?: string;
     ref?: string;
   }>();
+
+  const hasShowcaseBypass = Boolean(
+    searchParams.home === "1" ||
+      searchParams.lesson ||
+      searchParams.mode ||
+      searchParams.track ||
+      searchParams.paywall ||
+      searchParams.code,
+  );
+  const [showShowcase, setShowShowcase] = useState<boolean>(!hasShowcaseBypass);
+
+  useEffect(() => {
+    const hash =
+      Platform.OS === "web" && typeof window !== "undefined"
+        ? window.location.hash || ""
+        : "";
+    const hasAuthHash =
+      hash.includes("access_token=") ||
+      hash.includes("type=recovery") ||
+      hash.includes("error=");
+    if (hasShowcaseBypass || hasAuthHash) {
+      queueMicrotask(() => setShowShowcase(false));
+    }
+  }, [hasShowcaseBypass]);
 
   function getStageDraftKey(lessonObj: Lesson, stageIdx: number): string {
     if (stageIdx <= 0) return lessonObj.id;
@@ -960,6 +988,29 @@ export default function HomeScreen() {
       : viewMode === "roadmap"
         ? "roadmap"
         : "arena";
+
+  if (showShowcase) {
+    return (
+      <>
+        <Head>
+          <title>{seoTitle}</title>
+          <meta name="description" content={seoDescription} />
+          <meta property="og:title" content={seoTitle} />
+          <meta property="og:description" content={seoDescription} />
+          <meta property="og:image" content="/og-preview.jpg" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={seoTitle} />
+          <meta name="twitter:description" content={seoDescription} />
+        </Head>
+        <ShowcaseLandingScreen
+          onEnterHome={() => {
+            setViewMode("home");
+            setShowShowcase(false);
+          }}
+        />
+      </>
+    );
+  }
 
   return (
     <SafeAreaView

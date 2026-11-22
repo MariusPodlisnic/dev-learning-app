@@ -67,6 +67,14 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
 
   try {
     const { page, pageErrors } = session;
+    // Root URL (/) lands on the Lo-Fi Arcade Orbit Showcase first, then teleports to HOME on Begin Your Adventure
+    await page.waitForSelector("text=Begin Your Adventure", { timeout: 10000 });
+    const landingOverflowX = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    assert.ok(landingOverflowX <= 1, `Expected no overflow on default Showcase landing, got ${landingOverflowX}`);
+    await page.getByLabel("Begin Your Adventure", { exact: true }).click();
+
     await page.waitForSelector("text=ACCOUNT & RANK", { timeout: 10000 });
     await page.waitForSelector("text=UPGRADE TO PRO", { timeout: 10000 });
 
@@ -444,6 +452,11 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
 
   try {
     const { page, pageErrors } = session;
+    // Root URL (/) opens the Lo-Fi Arcade Orbit Showcase first with zero horizontal overflow at 390px
+    await page.waitForSelector("text=Begin Your Adventure", { timeout: 10000 });
+    await assertZeroMobileOverflow(page, "Default Showcase Landing");
+    await page.getByLabel("Begin Your Adventure", { exact: true }).click();
+
     await page.waitForSelector("text=GET PRO", { timeout: 10000 });
     await page.waitForSelector("text=PROFILE ↗", { timeout: 5000 });
 
