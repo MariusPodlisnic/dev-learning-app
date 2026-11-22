@@ -1,5 +1,18 @@
 import { supabase } from "../../lib/supabase";
 import { Lesson } from "../types/lesson";
+import {
+  type ActivityHeatmapMap,
+  mergeActivityMaps,
+} from "./activityHeatmap";
+import {
+  type ArcadeRecordsState,
+  mergeArcadeRecords,
+} from "./arcadeRecords";
+import type { ByteCatWardrobeState } from "./byteCatWardrobe";
+import {
+  mergeScratchpadSnippets,
+  type SavedScratchpadSnippet,
+} from "./scratchpadSnippets";
 import type { ReviewScheduleEntry } from "./spacedRepetition";
 
 export interface CloudProgressState {
@@ -20,6 +33,11 @@ export interface CloudProgressState {
   themeMode?: "light" | "dark";
   codeDrafts: Record<string, string>;
   draftsVersion?: number;
+  byteCatWardrobe?: ByteCatWardrobeState;
+  activityHeatmap?: ActivityHeatmapMap;
+  scratchpadSnippets?: SavedScratchpadSnippet[];
+  arcadeRecords?: ArcadeRecordsState;
+  completedMiniBuilds?: Record<string, boolean>;
   updatedAt: string;
 }
 
@@ -400,6 +418,26 @@ export function mergeCloudAndLocalState(
     localState.reviewSchedule,
   );
 
+  const mergedActivityHeatmap = mergeActivityMaps(
+    c.activityHeatmap,
+    localState.activityHeatmap,
+  );
+  const mergedArcadeRecords = mergeArcadeRecords(
+    c.arcadeRecords,
+    localState.arcadeRecords,
+  );
+  const mergedCompletedMiniBuilds = mergeBoolMaps(
+    c.completedMiniBuilds,
+    localState.completedMiniBuilds,
+  );
+  const mergedScratchpadSnippets = mergeScratchpadSnippets(
+    c.scratchpadSnippets,
+    localState.scratchpadSnippets,
+  );
+  const mergedByteCatWardrobe = localIsNewer
+    ? localState.byteCatWardrobe || c.byteCatWardrobe
+    : c.byteCatWardrobe || localState.byteCatWardrobe;
+
   const merged: CloudProgressState = {
     completedLessons: mergedCompletedLessons,
     completedChallenges: mergedCompletedChallenges,
@@ -424,6 +462,11 @@ export function mergeCloudAndLocalState(
       : c.themeMode || localState.themeMode,
     codeDrafts: mergedDrafts,
     draftsVersion: 2,
+    byteCatWardrobe: mergedByteCatWardrobe,
+    activityHeatmap: mergedActivityHeatmap,
+    scratchpadSnippets: mergedScratchpadSnippets,
+    arcadeRecords: mergedArcadeRecords,
+    completedMiniBuilds: mergedCompletedMiniBuilds,
     updatedAt: new Date().toISOString(),
   };
 
@@ -432,6 +475,29 @@ export function mergeCloudAndLocalState(
   const cloudStageKeys = { ...relStages, ...(c.completedChallenges || {}) };
   const cloudBugKeys = { ...relIncidents, ...(c.solvedIncidents || {}) };
   const cloudChapKeys = { ...relChapters, ...(c.claimedChapters || {}) };
+  const cloudHeatmap = c.activityHeatmap || {};
+  const cloudMiniBuilds = c.completedMiniBuilds || {};
+  const cloudSnippetIds = new Set((c.scratchpadSnippets || []).map((s) => s.id));
+  const cloudArcade = c.arcadeRecords;
+
+  const hasNewCozyLocalData =
+    Object.entries(localState.activityHeatmap || {}).some(
+      ([k, v]) => v > (cloudHeatmap[k] || 0),
+    ) ||
+    Object.keys(localState.completedMiniBuilds || {}).some(
+      (k) => localState.completedMiniBuilds?.[k] && !cloudMiniBuilds[k],
+    ) ||
+    (localState.scratchpadSnippets || []).some((s) => !cloudSnippetIds.has(s.id)) ||
+    Boolean(
+      localState.arcadeRecords &&
+        (!cloudArcade ||
+          localState.arcadeRecords.blitzBestHits > (cloudArcade.blitzBestHits || 0) ||
+          localState.arcadeRecords.blitzBestXp > (cloudArcade.blitzBestXp || 0) ||
+          localState.arcadeRecords.flashcardsMasteredTotal >
+            (cloudArcade.flashcardsMasteredTotal || 0) ||
+          localState.arcadeRecords.detectiveCasesSolvedTotal >
+            (cloudArcade.detectiveCasesSolvedTotal || 0)),
+    );
 
   const hasNewLocalItems =
     Object.keys(localState.completedLessons).some((k) => localState.completedLessons[k] && !cloudLessonKeys[k]) ||
@@ -440,6 +506,7 @@ export function mergeCloudAndLocalState(
     Object.keys(localState.claimedChapters).some((k) => localState.claimedChapters[k] && !cloudChapKeys[k]) ||
     mergedXp > cloudXp ||
     mergedStreak > (typeof c.streakCount === "number" ? c.streakCount : 0) ||
+    hasNewCozyLocalData ||
     !cloudDraftsMigrated ||
     !c.updatedAt;
 

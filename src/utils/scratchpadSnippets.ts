@@ -159,6 +159,60 @@ export function readSavedSnippets(): SavedScratchpadSnippet[] {
   );
 }
 
+type SnippetsListener = (snippets: SavedScratchpadSnippet[]) => void;
+const snippetListeners = new Set<SnippetsListener>();
+
+function emitSnippets(next: SavedScratchpadSnippet[]): void {
+  snippetListeners.forEach((fn) => fn(next));
+}
+
+export function subscribeScratchpadSnippets(
+  listener: SnippetsListener,
+): () => void {
+  snippetListeners.add(listener);
+  return () => {
+    snippetListeners.delete(listener);
+  };
+}
+
+export function mergeScratchpadSnippets(
+  a?: SavedScratchpadSnippet[] | null,
+  b?: SavedScratchpadSnippet[] | null,
+): SavedScratchpadSnippet[] {
+  const byId = new Map<string, SavedScratchpadSnippet>();
+  for (const list of [a, b]) {
+    if (!Array.isArray(list)) continue;
+    for (const s of list) {
+      if (!s || typeof s.id !== "string" || typeof s.title !== "string" || typeof s.code !== "string") {
+        continue;
+      }
+      const prev = byId.get(s.id);
+      const prevTs = prev ? Date.parse(prev.updatedAt || "") || 0 : -1;
+      const nextTs = Date.parse(s.updatedAt || "") || 0;
+      if (!prev || nextTs >= prevTs) {
+        byId.set(s.id, {
+          id: s.id,
+          title: s.title.slice(0, 32),
+          code: s.code,
+          updatedAt: s.updatedAt || new Date().toISOString(),
+        });
+      }
+    }
+  }
+  return Array.from(byId.values())
+    .sort((x, y) => (Date.parse(y.updatedAt) || 0) - (Date.parse(x.updatedAt) || 0))
+    .slice(0, MAX_SAVED_SNIPPETS);
+}
+
+export function replaceScratchpadSnippetsFromCloud(
+  incoming?: SavedScratchpadSnippet[] | null,
+): SavedScratchpadSnippet[] {
+  const merged = mergeScratchpadSnippets(readSavedSnippets(), incoming);
+  writeLocalJson(STORAGE_SCRATCHPAD_SNIPPETS_KEY, merged);
+  emitSnippets(merged);
+  return merged;
+}
+
 export function saveScratchpadSnippet(params: {
   title: string;
   code: string;
@@ -184,16 +238,19 @@ export function saveScratchpadSnippet(params: {
       : prev;
   const next = [entry, ...withoutDup].slice(0, MAX_SAVED_SNIPPETS);
   writeLocalJson(STORAGE_SCRATCHPAD_SNIPPETS_KEY, next);
+  emitSnippets(next);
   return next;
 }
 
 export function deleteScratchpadSnippet(id: string): SavedScratchpadSnippet[] {
   const next = readSavedSnippets().filter((s) => s.id !== id);
   writeLocalJson(STORAGE_SCRATCHPAD_SNIPPETS_KEY, next);
+  emitSnippets(next);
   return next;
 }
 
 export function resetScratchpadForTesting(): void {
   writeLocalJson(STORAGE_SCRATCHPAD_DRAFT_KEY, null);
   writeLocalJson(STORAGE_SCRATCHPAD_SNIPPETS_KEY, []);
+  emitSnippets([]);
 }

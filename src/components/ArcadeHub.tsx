@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
   HardShadow,
@@ -12,6 +12,17 @@ import {
   type ArcadeGameMode,
   type ViewMode,
 } from "../types/lesson";
+import {
+  type ArcadeRecordsState,
+  getArcadeRecordsState,
+  getBlitzRankFromHits,
+  subscribeArcadeRecords,
+} from "../utils/arcadeRecords";
+import { readCompletedMiniBuilds } from "../utils/miniBuilds";
+import {
+  readSavedSnippets,
+  subscribeScratchpadSnippets,
+} from "../utils/scratchpadSnippets";
 import { playKeyClick } from "../utils/soundEffects";
 import { StudioIcon, type StudioIconName, Text } from "./StudioIcon";
 
@@ -202,6 +213,27 @@ export default function ArcadeHub({
 }: ArcadeHubProps) {
   const styles = useThemedStyles(createStyles);
   const [category, setCategory] = useState<ArcadeCategoryId>("all");
+  const [arcadeRecords, setArcadeRecords] = useState<ArcadeRecordsState>(() =>
+    getArcadeRecordsState(),
+  );
+  const [savedSnippetCount, setSavedSnippetCount] = useState<number>(
+    () => readSavedSnippets().length,
+  );
+  const shippedMiniBuildsCount = useMemo(
+    () => Object.values(readCompletedMiniBuilds()).filter(Boolean).length,
+    [],
+  );
+
+  useEffect(() => {
+    const unsubRecords = subscribeArcadeRecords(setArcadeRecords);
+    const unsubSnippets = subscribeScratchpadSnippets((list) =>
+      setSavedSnippetCount(list.length),
+    );
+    return () => {
+      unsubRecords();
+      unsubSnippets();
+    };
+  }, []);
 
   const solvedBugCount = useMemo(
     () => Object.values(solvedIncidents || {}).filter(Boolean).length,
@@ -378,14 +410,26 @@ export default function ArcadeHub({
               cart.id === "bughunt"
                 ? `${solvedBugCount}/25 INCIDENTS CLEARED`
                 : cart.id === "blitz"
-                  ? "PYTHON · ALGO · SYS DESIGN"
+                  ? arcadeRecords.blitzBestHits > 0
+                    ? `BEST: ${arcadeRecords.blitzBestHits} HITS · ${getBlitzRankFromHits(arcadeRecords.blitzBestHits)}`
+                    : arcadeRecords.blitzBestXp > 0
+                      ? `BEST RUN: ${arcadeRecords.blitzBestXp} XP`
+                      : "PYTHON · ALGO · SYS DESIGN"
                   : cart.id === "detective"
-                    ? "6-CASE TRACE INVESTIGATIONS"
+                    ? arcadeRecords.detectiveCasesSolvedTotal > 0
+                      ? `BEST ${arcadeRecords.detectiveBestScore}/6 · ${arcadeRecords.detectiveCasesSolvedTotal} SOLVED`
+                      : "6-CASE TRACE INVESTIGATIONS"
                     : cart.id === "minibuilds"
-                      ? "3 LIVE PYTHON TOOLS"
+                      ? shippedMiniBuildsCount > 0
+                        ? `${shippedMiniBuildsCount}/3 TOOLS SHIPPED ✓`
+                        : "3 LIVE PYTHON TOOLS"
                       : cart.id === "playground"
-                        ? "5 TEMPLATES · SAVED SNIPPETS"
-                        : "8-CARD CONCEPT ROUNDS";
+                        ? savedSnippetCount > 0
+                          ? `${savedSnippetCount} SAVED ${savedSnippetCount === 1 ? "SNIPPET" : "SNIPPETS"} · 5 TEMPLATES`
+                          : "5 TEMPLATES · SAVED SNIPPETS"
+                        : arcadeRecords.flashcardsMasteredTotal > 0
+                          ? `${arcadeRecords.flashcardsMasteredTotal} MASTERED · ${arcadeRecords.flashcardsRoundsCleared} ${arcadeRecords.flashcardsRoundsCleared === 1 ? "ROUND" : "ROUNDS"}`
+                          : "8-CARD CONCEPT ROUNDS";
 
             return (
               <Pressable

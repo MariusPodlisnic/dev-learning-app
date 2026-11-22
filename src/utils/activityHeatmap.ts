@@ -186,6 +186,28 @@ export function recordCodingActivity(
   return updated;
 }
 
+export function mergeActivityMaps(
+  a?: ActivityHeatmapMap | null,
+  b?: ActivityHeatmapMap | null,
+): ActivityHeatmapMap {
+  const sa = sanitizeActivityMap(a);
+  const sb = sanitizeActivityMap(b);
+  const merged: ActivityHeatmapMap = { ...sa };
+  for (const [k, v] of Object.entries(sb)) {
+    merged[k] = Math.max(merged[k] || 0, v);
+  }
+  return pruneOldEntries(merged);
+}
+
+export function replaceActivityHeatmapFromCloud(
+  incoming?: ActivityHeatmapMap | null,
+): ActivityHeatmapMap {
+  const merged = mergeActivityMaps(getActivityHeatmapMap(), incoming);
+  writeLocalJson(STORAGE_ACTIVITY_HEATMAP_KEY, merged);
+  emit(merged);
+  return merged;
+}
+
 export function clearActivityHeatmapForTests(): void {
   writeLocalJson(STORAGE_ACTIVITY_HEATMAP_KEY, {});
   emit({});

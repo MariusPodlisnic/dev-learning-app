@@ -339,6 +339,16 @@ export function getEquippedAccessoryList(
     .filter((item): item is ByteCatAccessoryMeta => Boolean(item));
 }
 
+export function replaceByteCatWardrobeFromCloud(
+  incoming?: Partial<ByteCatWardrobeState> | null,
+): ByteCatWardrobeState {
+  if (!incoming) return cloneState();
+  currentState = sanitizeWardrobeState(incoming);
+  persistState();
+  notifyListeners();
+  return cloneState();
+}
+
 export function resetByteCatWardrobeForTesting(): void {
   currentState = createDefaultState();
   persistState();

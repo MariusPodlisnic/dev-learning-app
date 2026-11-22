@@ -15,7 +15,36 @@ import {
   STORAGE_STATE_KEY,
   writeLocalJson,
 } from "../types/lesson";
+import {
+  getActivityHeatmapMap,
+  replaceActivityHeatmapFromCloud,
+  STORAGE_ACTIVITY_HEATMAP_KEY,
+  subscribeActivityHeatmap,
+} from "../utils/activityHeatmap";
+import {
+  getArcadeRecordsState,
+  replaceArcadeRecordsFromCloud,
+  STORAGE_ARCADE_RECORDS_KEY,
+  subscribeArcadeRecords,
+} from "../utils/arcadeRecords";
+import {
+  getByteCatWardrobeState,
+  replaceByteCatWardrobeFromCloud,
+  STORAGE_BYTECAT_WARDROBE_KEY,
+  subscribeByteCatWardrobe,
+} from "../utils/byteCatWardrobe";
+import {
+  readCompletedMiniBuilds,
+  STORAGE_MINIBUILDS_DONE_KEY,
+} from "../utils/miniBuilds";
 import { loadPyodideScript } from "../utils/pyodideRunner";
+import {
+  readSavedSnippets,
+  replaceScratchpadSnippetsFromCloud,
+  STORAGE_SCRATCHPAD_DRAFT_KEY,
+  STORAGE_SCRATCHPAD_SNIPPETS_KEY,
+  subscribeScratchpadSnippets,
+} from "../utils/scratchpadSnippets";
 import {
   hydrateSoundPreference,
   STORAGE_SOUND_KEY,
@@ -106,6 +135,17 @@ export function useStudioSync({
   const cloudSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydratedRef = useRef<boolean>(false);
   const cloudSyncCompletedRef = useRef<boolean>(false);
+  const suppressCozyPushRef = useRef<boolean>(false);
+
+  function readLocalCozyState() {
+    return {
+      byteCatWardrobe: getByteCatWardrobeState(),
+      activityHeatmap: getActivityHeatmapMap(),
+      scratchpadSnippets: readSavedSnippets(),
+      arcadeRecords: getArcadeRecordsState(),
+      completedMiniBuilds: readCompletedMiniBuilds(),
+    };
+  }
   const latestGuestStateRef = useRef<CloudProgressState>({
     xpPoints: 0,
     streakCount: 0,
@@ -177,6 +217,30 @@ export function useStudioSync({
     codeDraftsRef.current = snapshot.codeDrafts || {};
     writeLocalJson(STORAGE_DRAFTS_KEY, codeDraftsRef.current);
 
+    suppressCozyPushRef.current = true;
+    try {
+      if (snapshot.byteCatWardrobe) {
+        replaceByteCatWardrobeFromCloud(snapshot.byteCatWardrobe);
+      }
+      if (snapshot.activityHeatmap) {
+        replaceActivityHeatmapFromCloud(snapshot.activityHeatmap);
+      }
+      if (snapshot.scratchpadSnippets) {
+        replaceScratchpadSnippetsFromCloud(snapshot.scratchpadSnippets);
+      }
+      if (snapshot.arcadeRecords) {
+        replaceArcadeRecordsFromCloud(snapshot.arcadeRecords);
+      }
+      if (snapshot.completedMiniBuilds) {
+        writeLocalJson(STORAGE_MINIBUILDS_DONE_KEY, {
+          ...readCompletedMiniBuilds(),
+          ...snapshot.completedMiniBuilds,
+        });
+      }
+    } finally {
+      suppressCozyPushRef.current = false;
+    }
+
     if (snapshot.activeTrack && TrackThemes[snapshot.activeTrack]) {
       setActiveTrack(snapshot.activeTrack);
     }
@@ -192,11 +256,16 @@ export function useStudioSync({
     }
     const uid = session.user.id;
     const email = session.user.email;
+    const enrichedSnapshot: CloudProgressState = {
+      ...snapshot,
+      ...readLocalCozyState(),
+    };
+    latestGuestStateRef.current = enrichedSnapshot;
     cloudSyncTimerRef.current = setTimeout(() => {
       void pushCloudProgressState({
         userId: uid,
         userEmail: email,
-        state: snapshot,
+        state: enrichedSnapshot,
       });
     }, 1200);
   }
@@ -342,6 +411,7 @@ export function useStudioSync({
       themeMode,
       codeDrafts: codeDraftsRef.current,
       draftsVersion: 2,
+      ...readLocalCozyState(),
       updatedAt: new Date().toISOString(),
     };
   }, [
@@ -415,6 +485,12 @@ export function useStudioSync({
         STORAGE_CLOUD_NUDGE_DISMISSED_KEY,
         STORAGE_ATTRIBUTION_KEY,
         STORAGE_SOUND_KEY,
+        STORAGE_BYTECAT_WARDROBE_KEY,
+        STORAGE_ACTIVITY_HEATMAP_KEY,
+        STORAGE_SCRATCHPAD_DRAFT_KEY,
+        STORAGE_SCRATCHPAD_SNIPPETS_KEY,
+        STORAGE_ARCADE_RECORDS_KEY,
+        STORAGE_MINIBUILDS_DONE_KEY,
       ]);
       await hydrateSoundPreference();
       if (cancelled) return;
@@ -521,6 +597,7 @@ export function useStudioSync({
         themeMode: initialTheme,
         codeDrafts: savedDrafts,
         draftsVersion: 2,
+        ...readLocalCozyState(),
         updatedAt: (savedState as any).updatedAt || "",
       };
       hydratedRef.current = true;
@@ -577,6 +654,34 @@ export function useStudioSync({
       authListener.subscription.unsubscribe();
     };
   }, [pyodideRef]);
+
+  // Auto-sync cozy state (Byte-Cat outfit, Pixel Garden, Playground snippets & Arcade records)
+  const cozySyncRef = useRef(scheduleBackgroundCloudSync);
+  useEffect(() => {
+    cozySyncRef.current = scheduleBackgroundCloudSync;
+  });
+
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (!uid) return;
+    const triggerCozyPush = () => {
+      if (!hydratedRef.current || suppressCozyPushRef.current) return;
+      cozySyncRef.current({
+        ...latestGuestStateRef.current,
+        updatedAt: new Date().toISOString(),
+      });
+    };
+    const unsubWardrobe = subscribeByteCatWardrobe(triggerCozyPush);
+    const unsubHeatmap = subscribeActivityHeatmap(triggerCozyPush);
+    const unsubSnippets = subscribeScratchpadSnippets(triggerCozyPush);
+    const unsubRecords = subscribeArcadeRecords(triggerCozyPush);
+    return () => {
+      unsubWardrobe();
+      unsubHeatmap();
+      unsubSnippets();
+      unsubRecords();
+    };
+  }, [session?.user?.id]);
 
   return {
     lessons,

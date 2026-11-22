@@ -158,3 +158,86 @@ test("buildFullRelationalItems emits lesson, stage, bug_incident, and chapter re
   assert.equal(byKey.get("bug_incident:bug-01")?.completed, true);
   assert.equal(byKey.get("chapter:python_basics:1")?.completed, true);
 });
+
+test("mergeCloudAndLocalState monotonically syncs Byte-Cat wardrobe, Pixel Garden, Playground snippets, and Arcade records", () => {
+  const cloud = {
+    xpPoints: 300,
+    streakCount: 4,
+    draftsVersion: 2,
+    byteCatWardrobe: {
+      equipped: { head: "headphones", eyewear: null, neck: null },
+      mood: "chill",
+    },
+    activityHeatmap: { "2026-11-20": 2, "2026-11-21": 1 },
+    scratchpadSnippets: [
+      {
+        id: "snip-1",
+        title: "Cloud Fib",
+        code: "print(1)",
+        updatedAt: "2026-11-20T10:00:00.000Z",
+      },
+    ],
+    arcadeRecords: {
+      blitzBestHits: 10,
+      blitzBestXp: 160,
+      flashcardsMasteredTotal: 8,
+      flashcardsRoundsCleared: 1,
+      detectiveBestScore: 5,
+      detectiveCasesSolvedTotal: 5,
+    },
+    completedMiniBuilds: { password_meter: true },
+    updatedAt: "2026-11-21T08:00:00.000Z",
+  };
+
+  const local = makeBaseState({
+    xpPoints: 300,
+    streakCount: 4,
+    byteCatWardrobe: {
+      equipped: { head: "wizard_hat", eyewear: "crt_glasses", neck: null },
+      mood: "focused",
+    },
+    activityHeatmap: { "2026-11-21": 5, "2026-11-22": 3 },
+    scratchpadSnippets: [
+      {
+        id: "snip-2",
+        title: "Local Dice",
+        code: "print(6)",
+        updatedAt: "2026-11-22T09:00:00.000Z",
+      },
+    ],
+    arcadeRecords: {
+      blitzBestHits: 14,
+      blitzBestXp: 140,
+      flashcardsMasteredTotal: 6,
+      flashcardsRoundsCleared: 2,
+      detectiveBestScore: 6,
+      detectiveCasesSolvedTotal: 9,
+    },
+    completedMiniBuilds: { url_shortener: true },
+    updatedAt: "2026-11-22T10:00:00.000Z",
+  });
+
+  const { merged, needsCloudBackfill } = mergeCloudAndLocalState(
+    cloud,
+    local,
+    {},
+    [],
+  );
+
+  assert.equal(needsCloudBackfill, true);
+  assert.equal(merged.byteCatWardrobe?.equipped.head, "wizard_hat");
+  assert.equal(merged.byteCatWardrobe?.mood, "focused");
+  assert.equal(merged.activityHeatmap?.["2026-11-20"], 2);
+  assert.equal(merged.activityHeatmap?.["2026-11-21"], 5);
+  assert.equal(merged.activityHeatmap?.["2026-11-22"], 3);
+  assert.equal(merged.scratchpadSnippets?.length, 2);
+  assert.equal(merged.scratchpadSnippets?.[0].id, "snip-2");
+  assert.equal(merged.arcadeRecords?.blitzBestHits, 14);
+  assert.equal(merged.arcadeRecords?.blitzBestXp, 160);
+  assert.equal(merged.arcadeRecords?.flashcardsMasteredTotal, 8);
+  assert.equal(merged.arcadeRecords?.flashcardsRoundsCleared, 2);
+  assert.equal(merged.arcadeRecords?.detectiveBestScore, 6);
+  assert.equal(merged.arcadeRecords?.detectiveCasesSolvedTotal, 9);
+  assert.equal(merged.completedMiniBuilds?.password_meter, true);
+  assert.equal(merged.completedMiniBuilds?.url_shortener, true);
+});

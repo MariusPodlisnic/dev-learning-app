@@ -21,6 +21,7 @@ import {
   TrackThemes,
 } from "../constants/theme";
 import { useThemedStyles } from "../constants/themeContext";
+import { recordFlashcardsRound } from "../utils/arcadeRecords";
 import {
   buildFlashcardSessionDeck,
   computeFlashcardRoundReward,
@@ -272,6 +273,7 @@ export default function FlashcardsArena({
           });
           setLastXpAwarded(xpEarned);
           setRoundComplete(true);
+          recordFlashcardsRound(nextGotIt);
           if (xpEarned > 0) {
             playVictoryFanfare();
             onAwardFlashcardXp(xpEarned, nextGotIt);

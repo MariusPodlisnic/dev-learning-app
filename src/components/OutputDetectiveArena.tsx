@@ -8,6 +8,7 @@ import {
   StudioThemeColors,
 } from "../constants/theme";
 import { useThemedStyles } from "../constants/themeContext";
+import { recordDetectiveRound } from "../utils/arcadeRecords";
 import {
   buildDetectiveSession,
   computeDetectiveXp,
@@ -118,6 +119,7 @@ export default function OutputDetectiveArena({
     });
     setAwardedXp(earned);
     setIsSummary(true);
+    recordDetectiveRound(correctCount);
     if (earned > 0) {
       playVictoryFanfare();
       onAwardDetectiveXp(earned);

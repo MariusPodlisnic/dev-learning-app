@@ -15,6 +15,7 @@ import {
   type BlitzDeckKey,
 } from "../constants/curriculumData/syntaxBlitzCards";
 import { createSyntaxBlitzStyles } from "./syntaxBlitzStyles";
+import { recordBlitzRun } from "../utils/arcadeRecords";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import {
   readLocalJson,
@@ -346,6 +347,9 @@ export default function SyntaxBlitzArena({
     playVictoryFanfare();
     if (finalXp > 0) {
       onAwardBlitzXp(finalXp);
+    }
+    if (correctCount > 0 || finalXp > 0) {
+      recordBlitzRun(correctCount, finalXp);
     }
     if (finalXp > roundTargetBestRef.current && finalXp > 0) {
       setNewBestAchieved(true);
