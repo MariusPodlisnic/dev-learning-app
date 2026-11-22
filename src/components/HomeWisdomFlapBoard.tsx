@@ -9,9 +9,9 @@ import {
   View,
 } from "react-native";
 import {
-  BYTE_CAT_QUOTES,
-  type ByteCatQuote,
-} from "../constants/byteCatData";
+  WISDOM_QUOTES,
+  type WisdomQuote,
+} from "../constants/wisdomQuotes";
 import {
   HardShadow,
   HardShadowSm,
@@ -54,12 +54,12 @@ export default function HomeWisdomFlapBoard() {
           const validFavs = saved.favoriteIds.filter(
             (id): id is number =>
               typeof id === "number" &&
-              BYTE_CAT_QUOTES.some((q) => q.id === id),
+              WISDOM_QUOTES.some((q) => q.id === id),
           );
           setFavoriteIds(validFavs);
         }
         if (typeof saved.lastQuoteId === "number") {
-          const foundIdx = BYTE_CAT_QUOTES.findIndex(
+          const foundIdx = WISDOM_QUOTES.findIndex(
             (q) => q.id === saved.lastQuoteId,
           );
           if (foundIdx >= 0) setQuoteIndex(foundIdx);
@@ -79,15 +79,15 @@ export default function HomeWisdomFlapBoard() {
     });
   }, []);
 
-  const activePool: ByteCatQuote[] = useMemo(() => {
-    if (!savedOnly) return BYTE_CAT_QUOTES;
+  const activePool: WisdomQuote[] = useMemo(() => {
+    if (!savedOnly) return WISDOM_QUOTES;
     const favSet = new Set(favoriteIds);
-    const filtered = BYTE_CAT_QUOTES.filter((q) => favSet.has(q.id));
-    return filtered.length > 0 ? filtered : BYTE_CAT_QUOTES;
+    const filtered = WISDOM_QUOTES.filter((q) => favSet.has(q.id));
+    return filtered.length > 0 ? filtered : WISDOM_QUOTES;
   }, [favoriteIds, savedOnly]);
 
-  const currentQuote: ByteCatQuote =
-    BYTE_CAT_QUOTES[quoteIndex % BYTE_CAT_QUOTES.length] || BYTE_CAT_QUOTES[0];
+  const currentQuote: WisdomQuote =
+    WISDOM_QUOTES[quoteIndex % WISDOM_QUOTES.length] || WISDOM_QUOTES[0];
   const isFavorited = favoriteIds.includes(currentQuote.id);
 
   const runClackFlip = useCallback(
@@ -128,7 +128,7 @@ export default function HomeWisdomFlapBoard() {
       if (swapTimerRef.current) clearTimeout(swapTimerRef.current);
       swapTimerRef.current = setTimeout(() => {
         setQuoteIndex(nextGlobalIndex);
-        const nextQuote = BYTE_CAT_QUOTES[nextGlobalIndex];
+        const nextQuote = WISDOM_QUOTES[nextGlobalIndex];
         if (nextQuote) {
           persistPrefs(favoriteIds, nextQuote.id);
         }
@@ -143,7 +143,7 @@ export default function HomeWisdomFlapBoard() {
     const nextPoolIdx =
       (baseIdx + delta + activePool.length) % activePool.length;
     const nextQuote = activePool[nextPoolIdx];
-    const nextGlobalIdx = BYTE_CAT_QUOTES.findIndex(
+    const nextGlobalIdx = WISDOM_QUOTES.findIndex(
       (q) => q.id === nextQuote.id,
     );
     if (nextGlobalIdx >= 0) runClackFlip(nextGlobalIdx);
@@ -153,7 +153,7 @@ export default function HomeWisdomFlapBoard() {
     if (activePool.length <= 1) return;
     const candidates = activePool.filter((q) => q.id !== currentQuote.id);
     const pick = candidates[Math.floor(Math.random() * candidates.length)];
-    const nextGlobalIdx = BYTE_CAT_QUOTES.findIndex((q) => q.id === pick.id);
+    const nextGlobalIdx = WISDOM_QUOTES.findIndex((q) => q.id === pick.id);
     if (nextGlobalIdx >= 0) runClackFlip(nextGlobalIdx);
   }
 
@@ -180,7 +180,7 @@ export default function HomeWisdomFlapBoard() {
     const nextSavedOnly = !savedOnly;
     setSavedOnly(nextSavedOnly);
     if (nextSavedOnly && !favoriteIds.includes(currentQuote.id)) {
-      const firstFavIdx = BYTE_CAT_QUOTES.findIndex((q) =>
+      const firstFavIdx = WISDOM_QUOTES.findIndex((q) =>
         favoriteIds.includes(q.id),
       );
       if (firstFavIdx >= 0) runClackFlip(firstFavIdx);
@@ -188,7 +188,7 @@ export default function HomeWisdomFlapBoard() {
   }
 
   const entryLabel = `ENTRY ${String(quoteIndex + 1).padStart(2, "0")}/${String(
-    BYTE_CAT_QUOTES.length,
+    WISDOM_QUOTES.length,
   ).padStart(2, "0")}`;
 
   return (

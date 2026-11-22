@@ -54,7 +54,7 @@ export const RETRO_TV_CHANNELS: readonly ChannelMeta[] = [
     id: 2,
     num: "03",
     accent: "#C4B5FD",
-    charmIcon: "crt_ch_bytecat",
+    charmIcon: "devlearn_logo",
     charmBg: "rgba(196, 181, 253, 0.18)",
     charmBorder: "rgba(196, 181, 253, 0.54)",
   },
@@ -438,7 +438,7 @@ export default function RoadmapRetroTv({
     channel === 1
       ? "TELEMETRY.SH"
       : channel === 2
-        ? "BYTE_CAT.EXE"
+        ? "DEVY_OS.EXE"
         : channel === 3
           ? "LOFI_MIXER.SYS"
           : channel === 4
@@ -478,7 +478,7 @@ export default function RoadmapRetroTv({
   return (
     <Animated.View style={outerAnimStyle}>
       <View style={styles.tvWrap}>
-        {/* Twin Byte-Cat Ear Antennas */}
+        {/* Twin Retro Ear Antennas */}
         <View style={styles.antennasRow} pointerEvents="none">
           <Animated.View
             style={[
@@ -682,15 +682,15 @@ export default function RoadmapRetroTv({
                     ]}
                   >
                     <Text style={styles.codeLineViolet}>
-                      {"  /\\_/\\   BYTE-CAT v2.0"}
+                      {"  [ >_ ]  DEVY OS v2.0"}
                     </Text>
                     <Text style={styles.codeLineLime}>
                       {completedCount > 0
-                        ? ' ( ★_★ )  "PURR-FECT!"'
-                        : ' ( ^._.^ ) "LET\'S CODE!"'}
+                        ? '  STATUS: "SHIPPING!"'
+                        : '  STATUS: "LET\'S CODE!"'}
                     </Text>
                     <Text style={styles.codeLineYellow}>
-                      {"  { _ }   [TAP TV ↻]"}
+                      {"  KERNEL: [TAP TV ↻]"}
                     </Text>
                   </Animated.View>
                 )}

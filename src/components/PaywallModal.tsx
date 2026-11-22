@@ -22,7 +22,7 @@ import { playKeyClick } from "../utils/soundEffects";
 export type PaywallPlanId = "monthly" | "annual" | "lifetime";
 
 export interface PaywallTriggerContext {
-  source: "lesson" | "solution" | "arena" | "companion" | "header";
+  source: "lesson" | "solution" | "arena" | "header";
   lessonId?: string;
   lessonTitle?: string;
   track?: string;
@@ -122,9 +122,6 @@ export default function PaywallModal({
     }
     if (triggerContext.source === "arena") {
       return `⚔️ UNLOCK ARENA: ${triggerContext.lessonTitle}`;
-    }
-    if (triggerContext.source === "companion") {
-      return `🐾 UNLOCK PRO PET: ${triggerContext.lessonTitle}`;
     }
     return `🔒 UNLOCK LAB: ${triggerContext.lessonTitle}`;
   })();

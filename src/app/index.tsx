@@ -809,7 +809,7 @@ export default function HomeScreen() {
       if (event.rewardXp > 0) {
         void focusAwardRef.current(event.rewardXp);
         setSyncNotice(
-          `Focus block complete! +${event.rewardXp} XP · Byte-Cat queued a 5m tea break`,
+          `Focus block complete! +${event.rewardXp} XP · 5m tea break queued`,
         );
       } else {
         setSyncNotice("Tea break finished! Ready for your next cozy coding block");
@@ -1113,12 +1113,6 @@ export default function HomeScreen() {
           onSelectLesson={handleSelectLesson}
           onNavigateMode={(mode) => setViewMode(mode)}
           onClaimDailyQuestBonus={handleClaimDailyQuestBonus}
-          onOpenPaywall={() =>
-            openPaywall({
-              source: "companion",
-              lessonTitle: "Byte-Cat Treats & Level Perks",
-            })
-          }
         />
       ) : viewMode === "roadmap" ? (
         <RoadmapTree
@@ -1152,12 +1146,6 @@ export default function HomeScreen() {
             }
           }}
           onOpenAuth={openAuthModal}
-          onOpenPaywall={() =>
-            openPaywall({
-              source: "companion",
-              lessonTitle: "Byte-Cat Treats & Level Perks",
-            })
-          }
           onOpenTrackCertificate={(trackKey) => openTrackCertificate(trackKey)}
           onOpenChapterCertificate={(trackKey, chapter) =>
             openChapterCertificate(trackKey, chapter)

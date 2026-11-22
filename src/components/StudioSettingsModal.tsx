@@ -739,16 +739,16 @@ export default function StudioSettingsModal({
           </View>
         ) : (
           <View style={styles.tabSection}>
-            {/* 1. Byte-Cat & Leaderboard Display Name */}
+            {/* 1. Developer & Leaderboard Display Name */}
             <Text style={styles.sectionHeading}>DEVELOPER DISPLAY NAME</Text>
             <View style={styles.studioInfoCard}>
               <Text style={styles.settingRowDesc}>
-                Used by Byte-Cat greetings, PNG share cards, and the opt-in
+                Used across your Home greeting, PNG share cards, and the opt-in
                 Weekly League leaderboard.
               </Text>
               <View style={styles.nameEditRow}>
                 <TextInput
-                  accessibilityLabel="Display name for Byte-Cat"
+                  accessibilityLabel="Developer display name"
                   style={styles.nameEditInput}
                   value={nameDraft}
                   onChangeText={(txt) => {

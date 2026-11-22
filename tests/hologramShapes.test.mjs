@@ -16,8 +16,8 @@ const {
   stepIdleDisperseState,
 } = loadTsModule("src/utils/hologramShapes.ts");
 
-test("hologramShapes generates valid bounded 3D point clouds for all 5 sculptures and 4 palettes", () => {
-  assert.equal(HOLOGRAM_SHAPES_META.length, 5);
+test("hologramShapes generates valid bounded 3D point clouds for all 4 sculptures and 4 palettes", () => {
+  assert.equal(HOLOGRAM_SHAPES_META.length, 4);
   assert.equal(HOLOGRAM_SHAPES_META[0].id, "cyber_desk");
 
   const testCount = 800;

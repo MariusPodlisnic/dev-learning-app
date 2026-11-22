@@ -113,17 +113,10 @@ test("buildShareCardSvg produces valid 1200x630 themed SVGs across all 3 variant
     streakCount: 14,
     metric3Label: "SOLVED",
     metric3Value: "24/64",
-    byteCatWardrobe: {
-      equipped: {
-        head: "wizard_hat",
-        eyewear: "crt_glasses",
-        neck: "sakura_scarf",
-      },
-      mood: "hyped",
-    },
   });
   assert.ok(profileSvg.includes("DEVELOPER CARD"));
   assert.ok(profileSvg.includes("24/64"));
-  assert.ok(profileSvg.includes("( ★_★ )"));
-  assert.ok(profileSvg.includes("WIZARD HAT"));
+  assert.ok(profileSvg.includes("[ &gt;_ DEVY ]"));
+  assert.ok(profileSvg.includes("RANK LVL 5"));
+  assert.ok(profileSvg.includes("DEVY STUDIO"));
 });

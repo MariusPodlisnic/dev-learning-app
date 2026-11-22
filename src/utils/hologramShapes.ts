@@ -4,7 +4,6 @@ export const HOLOGRAM_PARTICLE_COUNT = 16000;
 
 export type HologramShapeId =
   | "cyber_desk"
-  | "bytecat_hero"
   | "code_orrery"
   | "gamepad"
   | "neural_crown";
@@ -28,12 +27,6 @@ export const HOLOGRAM_SHAPES_META: readonly HologramShapeMeta[] = [
     shortLabel: "DESK",
     title: "HOLOGRAPHIC RETRO CRT DESK",
     subtitle: "Bubble CRT · holographic code · mechanical keyboard · coffee",
-  },
-  {
-    id: "bytecat_hero",
-    shortLabel: "BYTE-CAT",
-    title: "BYTE-CAT AT THE KEYBOARD",
-    subtitle: "Cozy studio headphones · glowing CRT visor · mechanical keys",
   },
   {
     id: "code_orrery",
@@ -352,160 +345,6 @@ function generateCyberDesk(count: number): HologramShapeData {
         const ang = rand() * Math.PI * 2;
         pushPt(Math.cos(ang) * 1.05, -0.44, Math.sin(ang) * 0.78 + 0.08, 0.6, 0.3);
       }
-    }
-  }
-
-  return { positions, luminance, accentMix };
-}
-
-function generateByteCatHero(count: number): HologramShapeData {
-  const rand = createRng(7070);
-  const positions = new Float32Array(count * 3);
-  const luminance = new Float32Array(count);
-  const accentMix = new Float32Array(count);
-  let i = 0;
-
-  const pushPt = (x: number, y: number, z: number, lum: number, acc: number) => {
-    if (i >= count) return;
-    positions[i * 3] = x;
-    positions[i * 3 + 1] = y;
-    positions[i * 3 + 2] = z;
-    luminance[i] = lum;
-    accentMix[i] = acc;
-    i += 1;
-  };
-
-  // A. Byte-Cat Rounded Head + Cozy Hoodie Shoulders (~44%)
-  const bodyTarget = Math.floor(count * 0.44);
-  while (i < bodyTarget) {
-    if (rand() < 0.72) {
-      const u = rand() * Math.PI * 2;
-      const v = Math.acos(2 * rand() - 1);
-      const nx = Math.sin(v) * Math.cos(u);
-      const ny = Math.cos(v);
-      const nz = Math.sin(v) * Math.sin(u);
-      const cheek = 1.0 + 0.12 * Math.exp(-((ny + 0.2) * (ny + 0.2)) / 0.16);
-      const x = nx * 0.56 * cheek;
-      const y = 0.28 + ny * 0.46;
-      let z = -0.14 + nz * 0.48;
-      if (z > 0.22 && Math.abs(x) < 0.38 && y > 0.08 && y < 0.5) {
-        z = 0.22 + (z - 0.22) * 0.25;
-      }
-      pushPt(x, y, z, 0.38 + Math.max(0, nz) * 0.38, 0.0);
-    } else {
-      const u = rand() * Math.PI * 2;
-      const h = rand();
-      const r = 0.34 + h * 0.22;
-      pushPt(
-        Math.cos(u) * r * 1.15,
-        -0.16 - h * 0.34,
-        -0.14 + Math.sin(u) * r * 0.72,
-        0.32 + (1 - h) * 0.35,
-        0.08,
-      );
-    }
-  }
-
-  // B. Pointed Cat Ears + Golden Over-Ear Studio Headphones (~20%)
-  const gearTarget = i + Math.floor(count * 0.2);
-  while (i < gearTarget) {
-    const p = rand();
-    if (p < 0.38) {
-      const side = rand() < 0.5 ? -1 : 1;
-      const h = Math.pow(rand(), 0.74);
-      const a = rand() * Math.PI * 2;
-      const r = (1 - h) * 0.17;
-      pushPt(
-        side * (0.34 + h * 0.1) + Math.cos(a) * r,
-        0.64 + h * 0.32,
-        -0.1 + Math.sin(a) * r * 0.7,
-        0.75 + h * 0.22,
-        Math.sin(a) > 0.3 ? 0.95 : 0.1,
-      );
-    } else if (p < 0.68) {
-      const theta = (rand() - 0.5) * Math.PI * 1.06;
-      const ta = rand() * Math.PI * 2;
-      const R = 0.67;
-      const tr = 0.055;
-      pushPt(
-        Math.sin(theta) * (R + Math.cos(ta) * tr),
-        0.28 + Math.cos(theta) * (R + Math.cos(ta) * tr),
-        -0.14 + Math.sin(ta) * tr * 1.4,
-        0.95,
-        0.95,
-      );
-    } else {
-      const side = rand() < 0.5 ? -1 : 1;
-      const a = rand() * Math.PI * 2;
-      const rad = Math.sqrt(rand());
-      pushPt(
-        side * (0.62 + (rand() - 0.5) * 0.15),
-        0.26 + Math.cos(a) * 0.2 * rad,
-        -0.14 + Math.sin(a) * 0.2 * rad,
-        rad > 0.75 ? 1.0 : 0.65,
-        0.95,
-      );
-    }
-  }
-
-  // C. Glowing CRT Visor Eyes (^ ^), Smile (ω), and Typing Paws (~14%)
-  const faceTarget = i + Math.floor(count * 0.14);
-  while (i < faceTarget) {
-    const p = rand();
-    if (p < 0.45) {
-      const side = rand() < 0.5 ? -1 : 1;
-      const t = rand() * Math.PI;
-      pushPt(
-        side * 0.16 + Math.cos(t) * 0.085,
-        0.3 + Math.sin(t) * 0.08,
-        0.32,
-        1.0,
-        0.96,
-      );
-    } else if (p < 0.65) {
-      const side = rand() < 0.5 ? -1 : 1;
-      const t = rand() * Math.PI;
-      pushPt(
-        side * 0.048 + Math.cos(t) * 0.048,
-        0.19 - Math.sin(t) * 0.045,
-        0.32,
-        1.0,
-        0.96,
-      );
-    } else {
-      const side = rand() < 0.5 ? -1 : 1;
-      const u = rand() * Math.PI * 2;
-      const v = Math.acos(2 * rand() - 1);
-      pushPt(
-        side * 0.28 + Math.sin(v) * Math.cos(u) * 0.12,
-        -0.34 + Math.cos(v) * 0.07,
-        0.38 + Math.sin(v) * Math.sin(u) * 0.13,
-        0.85,
-        0.15,
-      );
-    }
-  }
-
-  // D. Floating Glowing Mechanical Keyboard + Lo-Fi Aura Ring (~22%)
-  while (i < count) {
-    if (rand() < 0.78) {
-      const row = Math.floor(rand() * 4);
-      const col = Math.floor(rand() * 12);
-      const kx = -0.66 + col * 0.12 + (rand() - 0.5) * 0.08;
-      const kz = 0.24 + row * 0.11 + (rand() - 0.5) * 0.07;
-      const ky = -0.48 - row * 0.025 + rand() * 0.03;
-      const glow = (col + row) % 4 === 0;
-      pushPt(kx, ky, kz, glow ? 1.0 : 0.62, glow ? 0.95 : 0.12);
-    } else {
-      const ang = rand() * Math.PI * 2;
-      const r = 0.86 + (rand() - 0.5) * 0.08;
-      pushPt(
-        Math.cos(ang) * r,
-        0.16 + Math.sin(ang * 2) * 0.18,
-        Math.sin(ang) * r * 0.75 - 0.08,
-        0.75,
-        0.85,
-      );
     }
   }
 
@@ -861,9 +700,6 @@ export function getHologramShapeData(
 
   let data: HologramShapeData;
   switch (id) {
-    case "bytecat_hero":
-      data = generateByteCatHero(count);
-      break;
     case "code_orrery":
       data = generateCodeOrrery(count);
       break;

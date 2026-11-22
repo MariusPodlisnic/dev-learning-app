@@ -23,13 +23,6 @@ import {
   getActivityHeatmapMap,
   mergeStreakBaselineIntoHeatmap,
 } from "../utils/activityHeatmap";
-import {
-  type ByteCatWardrobeState,
-  getByteCatMoodMeta,
-  getByteCatWardrobeState,
-  getEquippedAccessoryList,
-  subscribeByteCatWardrobe,
-} from "../utils/byteCatWardrobe";
 import { exportShareCardPng } from "../utils/shareCardImage";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick } from "../utils/soundEffects";
@@ -215,22 +208,12 @@ export default function ProfileStatsModal({
   const [displayName, setDisplayName] = useState<string>(
     () => getOnboardingState().displayName,
   );
-  const [wardrobe, setWardrobe] = useState<ByteCatWardrobeState>(() =>
-    getByteCatWardrobeState(),
-  );
 
   useEffect(() => {
-    const unsubOnboarding = subscribeOnboarding((state) => {
+    return subscribeOnboarding((state) => {
       setDisplayName(state.displayName);
     });
-    const unsubWardrobe = subscribeByteCatWardrobe(setWardrobe);
-    return () => {
-      unsubOnboarding();
-      unsubWardrobe();
-    };
   }, []);
-  const byteCatMoodMeta = getByteCatMoodMeta(wardrobe.mood);
-  const byteCatGear = getEquippedAccessoryList(wardrobe);
   const rank = getDeveloperRank(xpPoints);
   const totalLessons = lessons.length;
   const totalCompleted = lessons.filter((l) => completedLessons[l.id]).length;
@@ -246,7 +229,7 @@ export default function ProfileStatsModal({
   function buildProfileShareData() {
     const url = buildChallengeUrl({ ref: "profile_card" });
     const message = [
-      `🐾 Devy Developer Card`,
+      `💻 Devy Developer Card`,
       `🏅 Level ${rank.level}: ${rank.title}`,
       `⚡ ${xpPoints} XP · 🔥 ${streakCount}d streak · ✓ ${totalCompleted}/${totalLessons} modules solved`,
       `Join me on Devy 👉 ${url}`,
@@ -461,37 +444,6 @@ export default function ProfileStatsModal({
             </Text>
             <Text style={styles.statLabel}>SOLVED</Text>
           </View>
-        </View>
-
-        {/* Byte-Cat Companion Outfit Strip */}
-        <View style={styles.companionStrip}>
-          <Text style={styles.companionStripLabel}>🐾 BYTE-CAT</Text>
-          <View
-            style={[
-              styles.companionPill,
-              {
-                backgroundColor: byteCatMoodMeta.accent,
-                borderColor: StudioColors.ink,
-              },
-            ]}
-          >
-            <Text style={styles.companionPillTextInk}>
-              {byteCatMoodMeta.chipLabel}
-            </Text>
-          </View>
-          {byteCatGear.length > 0 ? (
-            byteCatGear.map((acc) => (
-              <View key={acc.id} style={styles.companionGearPill}>
-                <Text style={styles.companionGearPillText}>
-                  {acc.icon} {acc.shortName}
-                </Text>
-              </View>
-            ))
-          ) : (
-            <View style={styles.companionGearPill}>
-              <Text style={styles.companionGearPillText}>Classic Look</Text>
-            </View>
-          )}
         </View>
 
         {/* Cozy Pixel Garden — 12-Week Activity Heatmap */}
@@ -965,54 +917,6 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     flexDirection: "row",
     gap: 8,
     marginBottom: 16,
-  },
-  companionStrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 6,
-    backgroundColor: StudioColors.bg,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginBottom: 12,
-    ...HardShadowSm,
-  },
-  companionStripLabel: {
-    color: StudioColors.textMuted,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-    letterSpacing: 0.7,
-    marginRight: 2,
-  },
-  companionPill: {
-    borderWidth: 1.5,
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-  },
-  companionPillTextInk: {
-    color: StudioColors.ink,
-    fontSize: 9,
-    fontWeight: "900",
-    fontFamily: MonoFont,
-  },
-  companionGearPill: {
-    backgroundColor: StudioColors.surfaceElevated,
-    borderWidth: 1.5,
-    borderColor: StudioColors.border,
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-  },
-  companionGearPillText: {
-    color: StudioColors.textPrimary,
-    fontSize: 9.5,
-    fontWeight: "800",
-    fontFamily: MonoFont,
   },
   pngCardBtn: {
     flex: 1,

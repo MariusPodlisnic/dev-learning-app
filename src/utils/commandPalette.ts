@@ -235,7 +235,7 @@ export function buildCommandPaletteItems(
       title: ctx.pomodoroRunning
         ? `Pause Focus Timer (${ctx.pomodoroClockLabel})`
         : `Start Cozy Focus Timer (${ctx.pomodoroClockLabel})`,
-      subtitle: "25m Pomodoro block with +25 XP bonus & Byte-Cat tea break",
+      subtitle: "25m Pomodoro block with +25 XP bonus & 5m tea break",
       keywords: ["pomodoro", "timer", "focus", "tea", "break", "clock"],
       icon: "timer",
       badge: ctx.pomodoroRunning ? "LIVE" : "FOCUS",

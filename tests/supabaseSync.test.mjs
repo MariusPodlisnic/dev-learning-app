@@ -159,15 +159,11 @@ test("buildFullRelationalItems emits lesson, stage, bug_incident, and chapter re
   assert.equal(byKey.get("chapter:python_basics:1")?.completed, true);
 });
 
-test("mergeCloudAndLocalState monotonically syncs Byte-Cat wardrobe, Pixel Garden, Playground snippets, and Arcade records", () => {
+test("mergeCloudAndLocalState monotonically syncs Pixel Garden, Playground snippets, and Arcade records", () => {
   const cloud = {
     xpPoints: 300,
     streakCount: 4,
     draftsVersion: 2,
-    byteCatWardrobe: {
-      equipped: { head: "headphones", eyewear: null, neck: null },
-      mood: "chill",
-    },
     activityHeatmap: { "2026-11-20": 2, "2026-11-21": 1 },
     scratchpadSnippets: [
       {
@@ -192,10 +188,6 @@ test("mergeCloudAndLocalState monotonically syncs Byte-Cat wardrobe, Pixel Garde
   const local = makeBaseState({
     xpPoints: 300,
     streakCount: 4,
-    byteCatWardrobe: {
-      equipped: { head: "wizard_hat", eyewear: "crt_glasses", neck: null },
-      mood: "focused",
-    },
     activityHeatmap: { "2026-11-21": 5, "2026-11-22": 3 },
     scratchpadSnippets: [
       {
@@ -225,8 +217,6 @@ test("mergeCloudAndLocalState monotonically syncs Byte-Cat wardrobe, Pixel Garde
   );
 
   assert.equal(needsCloudBackfill, true);
-  assert.equal(merged.byteCatWardrobe?.equipped.head, "wizard_hat");
-  assert.equal(merged.byteCatWardrobe?.mood, "focused");
   assert.equal(merged.activityHeatmap?.["2026-11-20"], 2);
   assert.equal(merged.activityHeatmap?.["2026-11-21"], 5);
   assert.equal(merged.activityHeatmap?.["2026-11-22"], 3);

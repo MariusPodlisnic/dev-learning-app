@@ -1,7 +1,6 @@
 export type CrtChannelIconName =
   | "crt_ch_kernel"
   | "crt_ch_telemetry"
-  | "crt_ch_bytecat"
   | "crt_ch_lofi"
   | "crt_ch_brew";
 
@@ -28,14 +27,6 @@ export const CRT_CHANNEL_INNER_SVG: Record<CrtChannelIconName, string> = {
     <rect x="14.3" y="11.5" width="3.4" height="10.3" rx="1" fill="#6EE7B7"/>
     <rect x="19.8" y="8.8" width="3.4" height="13" rx="1" fill="#B8FF3B"/>
     <circle cx="21.5" cy="6.8" r="1.8" fill="#FFDE59" stroke="#111111" stroke-width="1"/>
-  `,
-  crt_ch_bytecat: `
-    <path d="M6 12 L8.5 5 L13.5 9.5 H18.5 L23.5 5 L26 12 V23 C26 25.5 23.8 27 21 27 H11 C8.2 27 6 25.5 6 23 Z" fill="#111111" transform="translate(1.4,1.4)"/>
-    <path d="M6 12 L8.5 5 L13.5 9.5 H18.5 L23.5 5 L26 12 V23 C26 25.5 23.8 27 21 27 H11 C8.2 27 6 25.5 6 23 Z" fill="#C4B5FD" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
-    <rect x="9.5" y="13" width="13" height="9.5" rx="2.5" fill="#1A1A1E" stroke="#111111" stroke-width="1.4"/>
-    <path d="M11.8 17.5 Q13.2 15.6 14.5 17.5" fill="none" stroke="#B8FF3B" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M17.5 17.5 Q18.8 15.6 20.2 17.5" fill="none" stroke="#B8FF3B" stroke-width="1.8" stroke-linecap="round"/>
-    <polygon points="15,19.4 17,19.4 16,20.8" fill="#FF90E8"/>
   `,
   crt_ch_lofi: `
     <rect x="4" y="8.5" width="24" height="16" rx="3.5" fill="#111111" transform="translate(1.4,1.4)"/>

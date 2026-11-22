@@ -86,8 +86,7 @@ export type CoreStudioIconName =
   | "practice_2"
   | "practice_3"
   | "practice_4"
-  | "daily_quest"
-  | "wardrobe";
+  | "daily_quest";
 
 export type StudioIconName =
   | CoreStudioIconName
@@ -534,11 +533,6 @@ const CORE_ICON_INNER_SVG: Record<CoreStudioIconName, string> = {
     <line x1="10" y1="17" x2="17" y2="17" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
     <polygon points="23,15.5 24.8,19.4 29,20 25.9,22.8 26.7,27 23,24.9 19.3,27 20.1,22.8 17,20 21.2,19.4" fill="#B8FF3B" stroke="#111111" stroke-width="1.7" stroke-linejoin="round"/>
   `,
-  wardrobe: `
-    <path d="M9 7 L12 6 L16 10 L20 6 L23 7 L28 12 L24.5 16.5 L22 14.5 V26.5 H10 V14.5 L7.5 16.5 L4 12 Z" fill="#111111" transform="translate(1.6,1.6)"/>
-    <path d="M9 7 L12 6 L16 10 L20 6 L23 7 L28 12 L24.5 16.5 L22 14.5 V26.5 H10 V14.5 L7.5 16.5 L4 12 Z" fill="#C4B5FD" stroke="#111111" stroke-width="2.1" stroke-linejoin="round"/>
-    <polygon points="16,13.5 17.5,16.8 21,17.2 18.4,19.5 19.1,22.8 16,21.1 12.9,22.8 13.6,19.5 11,17.2 14.5,16.8" fill="#FFDE59" stroke="#111111" stroke-width="1.5" stroke-linejoin="round"/>
-  `,
 };
 
 const STUDIO_ICON_INNER_SVG: Record<StudioIconName, string> = {
@@ -634,7 +628,6 @@ export const EMOJI_TO_STUDIO_ICON: Record<string, StudioIconName> = {
   "🟥": "cross_box",
   "🟨": "yellow_box",
   "🧬": "algo",
-  "👔": "wardrobe",
 };
 
 const SORTED_EMOJI_KEYS = Object.keys(EMOJI_TO_STUDIO_ICON).sort(

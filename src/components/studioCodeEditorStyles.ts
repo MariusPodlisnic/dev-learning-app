@@ -723,7 +723,7 @@ export const getStudioCodeEditorStyles = (StudioColors: StudioThemeColors) =>
     consoleOutputWrap: {
       gap: 10,
     },
-    byteCatErrorCard: {
+    debugErrorCard: {
       backgroundColor: "#1E2231",
       borderRadius: 10,
       borderWidth: 1.5,
@@ -731,47 +731,47 @@ export const getStudioCodeEditorStyles = (StudioColors: StudioThemeColors) =>
       padding: 11,
       gap: 6,
     },
-    byteCatErrorHeader: {
+    debugErrorHeader: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       flexWrap: "wrap",
       gap: 6,
     },
-    byteCatErrorBadge: {
+    debugErrorBadge: {
       backgroundColor: StudioColors.yellow,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 5,
     },
-    byteCatErrorBadgeText: {
+    debugErrorBadgeText: {
       color: StudioColors.ink,
       fontSize: 9.5,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.5,
     },
-    byteCatLinePill: {
+    debugLinePill: {
       backgroundColor: StudioColors.coral,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 5,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
-    byteCatLinePillText: {
+    debugLinePillText: {
       color: StudioColors.ink,
       fontSize: 9,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.5,
     },
-    byteCatErrorWhat: {
+    debugErrorWhat: {
       color: "#F8FAFC",
       fontSize: 12,
       fontWeight: "700",
       lineHeight: 17,
     },
-    byteCatFixRow: {
+    debugFixRow: {
       backgroundColor: "rgba(163, 230, 53, 0.12)",
       borderRadius: 7,
       borderWidth: 1,
@@ -780,14 +780,14 @@ export const getStudioCodeEditorStyles = (StudioColors: StudioThemeColors) =>
       paddingVertical: 6,
       gap: 2,
     },
-    byteCatFixLabel: {
+    debugFixLabel: {
       color: StudioColors.lime,
       fontSize: 9.5,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.5,
     },
-    byteCatFixText: {
+    debugFixText: {
       color: "#E2E8F0",
       fontSize: 11.5,
       fontWeight: "600",

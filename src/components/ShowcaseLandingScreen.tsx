@@ -66,14 +66,14 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
     shape: "code_orrery",
   },
   {
-    id: "feat-bytecat",
+    id: "feat-lofi",
     icon: "devlearn_logo",
     accent: "#B8FF3B",
     tag: "COZY FLOW STATE",
-    title: "Byte-Cat & Lo-Fi Desk",
+    title: "Lo-Fi Dev Loft & Focus",
     description:
-      "Code alongside an unlockable Byte-Cat wardrobe, Pomodoro sprint timer, mechanical keycap acoustics, Lo-Fi radio, and 4 studio themes.",
-    shape: "bytecat_hero",
+      "Code inside a living 2.5D isometric desk loft with a Pomodoro sprint timer, mechanical keycap acoustics, Lo-Fi radio, and 4 studio themes.",
+    shape: "cyber_desk",
   },
   {
     id: "feat-garden",
@@ -83,7 +83,7 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
     title: "Spaced Review & Pixel Garden",
     description:
       "Lock concepts into long-term memory with automatic spaced review queues, Weekly Leagues, PNG developer cards, and track diplomas.",
-    shape: "cyber_desk",
+    shape: "neural_crown",
   },
 ] as const;
 
@@ -94,7 +94,7 @@ const FREE_TRACK_POINTS = [
   },
   {
     lead: "Browser Python 3.11 IDE:",
-    detail: "Instant execution, unit tests, and Byte-Cat learning guides",
+    detail: "Instant execution, unit tests, and beginner debug helpers",
   },
   {
     lead: "Cozy Arcade Access:",
@@ -128,8 +128,8 @@ const PRO_TRACK_POINTS = [
     detail: "All 25 production Bug Hunt incidents + Algo & Systems Blitz decks",
   },
   {
-    lead: "Verified Diplomas & Pro Cosmetics:",
-    detail: "Track Certificates, Solution Diffs, Pro Themes & Byte-Cat wardrobe",
+    lead: "Verified Diplomas & Pro Themes:",
+    detail: "Track Certificates, Solution Diffs, and 4 Studio Palettes",
   },
 ] as const;
 
@@ -578,7 +578,7 @@ export default function ShowcaseLandingScreen({
                 Teleport straight to your interactive coding desk.
               </Text>
               <Text style={styles.footerSub}>
-                Zero downloads. Instant Python 3.11, Byte-Cat, and all 3 skill tracks.
+                Zero downloads. Instant Python 3.11, Lo-Fi Focus Studio, and all 3 skill tracks.
               </Text>
             </View>
             <Pressable

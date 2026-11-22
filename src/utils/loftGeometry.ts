@@ -5,7 +5,7 @@ export type LoftHighlightZone =
   | "studio"
   | "arcade"
   | "algolab"
-  | "bytecat"
+  | "cat"
   | null;
 
 export interface IsoMetrics {

@@ -28,12 +28,6 @@ import {
   subscribeArcadeRecords,
 } from "../utils/arcadeRecords";
 import {
-  getByteCatWardrobeState,
-  replaceByteCatWardrobeFromCloud,
-  STORAGE_BYTECAT_WARDROBE_KEY,
-  subscribeByteCatWardrobe,
-} from "../utils/byteCatWardrobe";
-import {
   readCompletedMiniBuilds,
   STORAGE_MINIBUILDS_DONE_KEY,
 } from "../utils/miniBuilds";
@@ -139,7 +133,6 @@ export function useStudioSync({
 
   function readLocalCozyState() {
     return {
-      byteCatWardrobe: getByteCatWardrobeState(),
       activityHeatmap: getActivityHeatmapMap(),
       scratchpadSnippets: readSavedSnippets(),
       arcadeRecords: getArcadeRecordsState(),
@@ -219,9 +212,6 @@ export function useStudioSync({
 
     suppressCozyPushRef.current = true;
     try {
-      if (snapshot.byteCatWardrobe) {
-        replaceByteCatWardrobeFromCloud(snapshot.byteCatWardrobe);
-      }
       if (snapshot.activityHeatmap) {
         replaceActivityHeatmapFromCloud(snapshot.activityHeatmap);
       }
@@ -485,7 +475,6 @@ export function useStudioSync({
         STORAGE_CLOUD_NUDGE_DISMISSED_KEY,
         STORAGE_ATTRIBUTION_KEY,
         STORAGE_SOUND_KEY,
-        STORAGE_BYTECAT_WARDROBE_KEY,
         STORAGE_ACTIVITY_HEATMAP_KEY,
         STORAGE_SCRATCHPAD_DRAFT_KEY,
         STORAGE_SCRATCHPAD_SNIPPETS_KEY,
@@ -655,7 +644,7 @@ export function useStudioSync({
     };
   }, [pyodideRef]);
 
-  // Auto-sync cozy state (Byte-Cat outfit, Pixel Garden, Playground snippets & Arcade records)
+  // Auto-sync cozy state (Pixel Garden, Playground snippets & Arcade records)
   const cozySyncRef = useRef(scheduleBackgroundCloudSync);
   useEffect(() => {
     cozySyncRef.current = scheduleBackgroundCloudSync;
@@ -671,12 +660,10 @@ export function useStudioSync({
         updatedAt: new Date().toISOString(),
       });
     };
-    const unsubWardrobe = subscribeByteCatWardrobe(triggerCozyPush);
     const unsubHeatmap = subscribeActivityHeatmap(triggerCozyPush);
     const unsubSnippets = subscribeScratchpadSnippets(triggerCozyPush);
     const unsubRecords = subscribeArcadeRecords(triggerCozyPush);
     return () => {
-      unsubWardrobe();
       unsubHeatmap();
       unsubSnippets();
       unsubRecords();

@@ -8,7 +8,6 @@ import {
   type ArcadeRecordsState,
   mergeArcadeRecords,
 } from "./arcadeRecords";
-import type { ByteCatWardrobeState } from "./byteCatWardrobe";
 import {
   mergeScratchpadSnippets,
   type SavedScratchpadSnippet,
@@ -33,7 +32,6 @@ export interface CloudProgressState {
   themeMode?: "light" | "dark";
   codeDrafts: Record<string, string>;
   draftsVersion?: number;
-  byteCatWardrobe?: ByteCatWardrobeState;
   activityHeatmap?: ActivityHeatmapMap;
   scratchpadSnippets?: SavedScratchpadSnippet[];
   arcadeRecords?: ArcadeRecordsState;
@@ -434,9 +432,6 @@ export function mergeCloudAndLocalState(
     c.scratchpadSnippets,
     localState.scratchpadSnippets,
   );
-  const mergedByteCatWardrobe = localIsNewer
-    ? localState.byteCatWardrobe || c.byteCatWardrobe
-    : c.byteCatWardrobe || localState.byteCatWardrobe;
 
   const merged: CloudProgressState = {
     completedLessons: mergedCompletedLessons,
@@ -462,7 +457,6 @@ export function mergeCloudAndLocalState(
       : c.themeMode || localState.themeMode,
     codeDrafts: mergedDrafts,
     draftsVersion: 2,
-    byteCatWardrobe: mergedByteCatWardrobe,
     activityHeatmap: mergedActivityHeatmap,
     scratchpadSnippets: mergedScratchpadSnippets,
     arcadeRecords: mergedArcadeRecords,

@@ -436,7 +436,7 @@ export default function HomeLoftStage({
         st.catHappy = 2.0;
         playSuccessChime();
         spawnParticles(pt.x, pt.y - 12, "heart", 6, pal.accentPink);
-        st.showToast("BYTE-CAT PURRS HAPPILY (^ ω ^)");
+        st.showToast("LOFT CAT PURRS HAPPILY (^ ω ^)");
       } else if (hit === "bonsai") {
         playKeyClick();
         spawnParticles(pt.x, pt.y - 12, "spark", 6, pal.bonsaiBlossom);
@@ -1510,7 +1510,7 @@ export default function HomeLoftStage({
         { x: trunkTop.x - 36, y: trunkBase.y + 24 },
       ];
 
-      // 9. COZY WOVEN FLOOR RUG + PLUSH CUSHION + LIVING BYTE-CAT (z = 0!)
+      // 9. COZY WOVEN FLOOR RUG + PLUSH CUSHION + LOFT CAT (z = 0!)
       drawIsoQuad(
         ctx,
         m,
@@ -1539,7 +1539,7 @@ export default function HomeLoftStage({
         1.5,
       );
 
-      // Plush Cushion resting squarely on the rug + Living Byte-Cat!
+      // Plush Cushion resting squarely on the rug + Cozy Loft Cat!
       const catPt = projectIso(m, 0.43, 0.74, 0.025);
       const catScale = Math.max(0.75, Math.min(1.08, m.halfW / 245));
       ctx.save();
@@ -1563,7 +1563,7 @@ export default function HomeLoftStage({
       ctx.quadraticCurveTo(31, 4 + Math.sin(t * 2.8) * 6, 28, -10 + Math.cos(t * 2.8) * 4);
       ctx.stroke();
 
-      // Byte-Cat body
+      // Loft cat body
       ctx.fillStyle = "#2A2F46";
       ctx.strokeStyle = "#090B10";
       ctx.lineWidth = 2.1;
@@ -1618,7 +1618,7 @@ export default function HomeLoftStage({
       ctx.fillStyle = "#090D16";
       drawRoundedRect(ctx, -12, -5.5, 24, 11, 5);
       ctx.fill();
-      const catDelighted = st.catHappy > 0 || st.activeZone === "bytecat";
+      const catDelighted = st.catHappy > 0 || st.activeZone === "cat";
       const blinking = Math.sin(t * 0.85) > 0.965;
       ctx.fillStyle = pal.accent;
       ctx.strokeStyle = pal.accent;
@@ -1799,8 +1799,8 @@ export default function HomeLoftStage({
           ? "RETRO ARCADE CABINET"
           : activeZone === "algolab"
             ? "ALGORITHM WHITEBOARD"
-            : activeZone === "bytecat"
-              ? "BYTE-CAT LOUNGE"
+            : activeZone === "cat"
+              ? "COZY LOUNGE CUSHION"
               : "LIVING LO-FI DEV LOFT";
 
   return (
@@ -1819,7 +1819,7 @@ export default function HomeLoftStage({
             </View>
             <Text style={styles.nativeTitle}>{zoneLabel}</Text>
             <Text style={styles.nativeSub}>
-              Cozy desk · Byte-Cat · Lo-Fi studio
+              Cozy desk · Lo-Fi coding studio
             </Text>
           </View>
         )}
@@ -1837,7 +1837,7 @@ export default function HomeLoftStage({
         {Platform.OS === "web" && !toastMsg ? (
           <View pointerEvents="none" style={styles.bottomHintHud}>
             <Text style={styles.bottomHintText}>
-              CLICK LAMP · WINDOW RAIN · MUG · PET BYTE-CAT
+              CLICK LAMP · WINDOW RAIN · MUG · PET CAT
             </Text>
           </View>
         ) : null}

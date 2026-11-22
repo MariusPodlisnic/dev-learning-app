@@ -385,7 +385,7 @@ test("StudioCodeEditor renders editor chrome, quick inserts, trace control, and 
   assert.ok(editorText.includes("OFF BY ONE"));
   assert.ok(editorText.includes("YOUR OUTPUT · MISMATCH"));
   assert.ok(
-    !editorText.includes("BYTE-CAT CLUE"),
+    !editorText.includes("STUDIO HINT"),
     "Stuck clue should stay hidden until 2+ failed attempts",
   );
 
@@ -428,7 +428,7 @@ test("StudioCodeEditor renders editor chrome, quick inserts, trace control, and 
       }),
     ),
   );
-  assert.ok(stuckEditorText.includes("BYTE-CAT CLUE · TRY #2"));
+  assert.ok(stuckEditorText.includes("STUDIO HINT · TRY #2"));
   assert.ok(stuckEditorText.includes("Return 42 directly instead of 41."));
 });
 
@@ -990,13 +990,13 @@ test("Auth renders password reset, OAuth providers, recovery update, and top-rig
   assert.ok(recoveryText.includes("Update Password"));
 });
 
-test("ByteCat quotes catalog has unique IDs, no duplicate quotes, and ByteCatGuideCard renders quote without top badge/counter strip", () => {
-  const { BYTE_CAT_QUOTES } = loadTsModule("src/constants/byteCatData.ts");
-  assert.equal(BYTE_CAT_QUOTES.length, 50);
+test("Wisdom quotes catalog has 50 unique entries and HomeWisdomFlapBoard renders cleanly", () => {
+  const { WISDOM_QUOTES } = loadTsModule("src/constants/wisdomQuotes.ts");
+  assert.equal(WISDOM_QUOTES.length, 50);
 
   const ids = new Set();
   const normalizedQuotes = new Set();
-  for (const item of BYTE_CAT_QUOTES) {
+  for (const item of WISDOM_QUOTES) {
     assert.ok(item.id > 0 && !ids.has(item.id), `Duplicate or invalid id: ${item.id}`);
     ids.add(item.id);
     const norm = item.quote.trim().toLowerCase();
@@ -1007,30 +1007,12 @@ test("ByteCat quotes catalog has unique IDs, no duplicate quotes, and ByteCatGui
     assert.match(item.accentBg, /^#[0-9A-Fa-f]{6}$/, `Invalid accentBg on quote ${item.id}`);
   }
 
-  const { getTodayDateKey } = loadTsModule("src/constants/streaks.ts");
-  const { default: ByteCatGuideCard } = loadTsModule("src/components/ByteCatGuideCard.tsx");
-  const todayKey = getTodayDateKey();
-  const cardText = visibleText(
-    renderThemed(
-      React.createElement(ByteCatGuideCard, {
-        completedCount: 3,
-        totalCount: 20,
-        activeTrack: "python_basics",
-        activeTrackLabel: "PYTHON BASICS",
-        streakCount: 3,
-        lastActiveDate: todayKey,
-      }),
-    ),
+  const boardText = visibleText(
+    renderThemed(React.createElement(HomeWisdomFlapBoard)),
   );
-  assert.ok(cardText.includes(BYTE_CAT_QUOTES[0].quote));
-  assert.ok(cardText.includes(BYTE_CAT_QUOTES[0].author));
-  assert.ok(cardText.includes("♪") && cardText.includes("♫"));
-  assert.ok(cardText.includes("3D STREAK"));
-  assert.ok(cardText.includes("STYLE"));
-  assert.ok(cardText.includes("25:00"));
-  assert.ok(cardText.includes("5m TEA"));
-  assert.ok(!cardText.includes("#01/50"));
-  assert.ok(!cardText.includes("STRATEGIC PAWS"));
+  assert.ok(boardText.includes(WISDOM_QUOTES[0].quote.toUpperCase()));
+  assert.ok(boardText.includes(WISDOM_QUOTES[0].author.toUpperCase()));
+  assert.ok(boardText.includes("ENTRY 01/50"));
 });
 
 test("RoadmapDailyQuestCard renders 3-step daily quest, claim button at 3/3, and claimed state", () => {
@@ -1161,7 +1143,7 @@ test("StudioSettingsModal renders organized 3-tab menu (Appearance, Audio, Studi
   assert.ok(proSettingsText.includes("ALL UNLOCKED ★"));
 });
 
-test("RoadmapWelcomeCard renders 5-second setup with 3 goals and ByteCatGuideCard personalizes greeting", () => {
+test("RoadmapWelcomeCard renders 5-second setup with 3 goals and HomeMenuScreen personalizes greeting", () => {
   resetOnboardingForTesting();
   const welcomeText = visibleText(
     renderThemed(
@@ -1178,22 +1160,25 @@ test("RoadmapWelcomeCard renders 5-second setup with 3 goals and ByteCatGuideCar
   assert.ok(welcomeText.includes("START TOTAL BEGINNER"));
 
   completeOnboarding({ displayName: "Alex", goalTrack: "python_basics" });
-  const { default: ByteCatGuideCard } = loadTsModule(
-    "src/components/ByteCatGuideCard.tsx",
-  );
-  const personalizedByteCat = visibleText(
+  const personalizedHome = visibleText(
     renderThemed(
-      React.createElement(ByteCatGuideCard, {
-        completedCount: 0,
-        totalCount: 20,
+      React.createElement(HomeMenuScreen, {
+        lessons: [],
+        completedLessons: {},
+        isPremium: false,
         activeTrack: "python_basics",
-        activeTrackLabel: "Python Basics",
+        totalXp: 0,
+        streakCount: 0,
+        totalSolvedCount: 0,
+        onSelectTrack: () => {},
+        onSelectLesson: () => {},
+        onNavigateMode: () => {},
       }),
     ),
   );
   assert.ok(
-    personalizedByteCat.includes("Alex"),
-    "ByteCatGuideCard should greet the user by their personalized display name",
+    personalizedHome.includes("WELCOME BACK, ALEX"),
+    "HomeMenuScreen should greet the user by their personalized display name",
   );
   resetOnboardingForTesting();
 });
@@ -1203,7 +1188,7 @@ test("RoadmapRetroTv renders Midnight Bubble CRT with VHS slot across all 5 chan
   const expectedSnippets = [
     "PYTHON_KERNEL.PY",
     "TELEMETRY.SH",
-    "BYTE_CAT.EXE",
+    "DEVY_OS.EXE",
     "LOFI_MIXER.SYS",
     "COZY_BREW.MD",
   ];
@@ -1374,7 +1359,7 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
     ),
   );
   assert.ok(scratchpadText.includes("PLAYGROUND.PY"));
-  assert.ok(scratchpadText.includes("ASCII CAT"));
+  assert.ok(scratchpadText.includes("ASCII BOX"));
   assert.ok(scratchpadText.includes("DICE SIM"));
   assert.ok(scratchpadText.includes("ALGO BENCH"));
   assert.ok(scratchpadText.includes("RUN PLAYGROUND"));
@@ -1414,7 +1399,7 @@ test("CommandPaletteModal renders quick switcher groups, search box, and keyboar
   assert.ok(paletteText.includes("NAVIGATE"));
 });
 
-test("HomeMenuScreen renders 3D CRT Desk centerpiece, 4 portals, Byte-Cat, and Daily Quest cleanly", () => {
+test("HomeMenuScreen renders 2.5D Dev Loft centerpiece, 4 portals, Daily Wisdom Board, and Daily Quest cleanly", () => {
   const homeHtml = renderThemed(
     React.createElement(HomeMenuScreen, {
       lessons: [

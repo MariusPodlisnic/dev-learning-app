@@ -98,7 +98,6 @@ interface RoadmapTreeProps {
   onStartQuickMode?: (mode: "arcade" | "bughunt" | "blitz" | "flashcards" | "algolab") => void;
   onSaveStreak?: () => void;
   onOpenAuth?: (mode?: "signup" | "signin", reason?: string) => void;
-  onOpenPaywall?: () => void;
   onOpenTrackCertificate?: (trackKey: string) => void;
   onOpenChapterCertificate?: (trackKey: string, chapter: ChapterTierMeta) => void;
 }

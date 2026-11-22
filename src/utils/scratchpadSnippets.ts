@@ -37,26 +37,25 @@ export const SCRATCHPAD_TEMPLATES: readonly ScratchpadTemplate[] = [
 
 snacks = ["matcha", "espresso", "ramen", "cookies"]
 for idx, item in enumerate(snacks, start=1):
-    print(f"0{idx}. Fueling Byte-Cat with {item}!")
+    print(f"0{idx}. Fueling the coding session with {item}!")
 
 print("Total snacks ready:", len(snacks))`,
   },
   {
     id: "ascii_art",
-    title: "ASCII Byte-Cat",
-    shortLabel: "ASCII CAT",
-    description: "Generate a cozy framed ASCII Byte-Cat banner.",
-    code: `def byte_cat_banner(message: str) -> str:
+    title: "ASCII Banner",
+    shortLabel: "ASCII BOX",
+    description: "Generate a cozy framed ASCII terminal banner.",
+    code: `def studio_banner(message: str) -> str:
     border = "+" + "-" * (len(message) + 4) + "+"
-    cat = [
-        "  /\\\\_/\\\\  ",
-        " ( ^.^ )  " + border,
-        f"  > ^ <   |  {message}  |",
+    box = [
+        "  [ >_ ]  " + border,
+        f"  DEVY    |  {message}  |",
         "          " + border,
     ]
-    return "\\n".join(cat)
+    return "\\n".join(box)
 
-print(byte_cat_banner("SHIP CLEAN PYTHON TODAY!"))`,
+print(studio_banner("SHIP CLEAN PYTHON TODAY!"))`,
   },
   {
     id: "dice_sim",

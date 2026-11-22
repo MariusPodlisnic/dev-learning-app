@@ -181,7 +181,7 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       `Expected Retro TV cabinet to update when switching to Matcha Cozy (${matchaTvBg} vs ${lightTvBg})`,
     );
 
-    // Return to HOME Main Menu for Welcome, Byte-Cat Style, and Pomodoro checks
+    // Return to HOME Main Menu for Welcome, Daily Wisdom Board, and Loft checks
     await page.getByLabel("Open Devy Home Menu").click();
     await page.getByTestId("home-loft-stage").waitFor({ timeout: 5000 });
 
@@ -328,10 +328,10 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByLabel("Switch to Python Playground").click();
     await page.waitForSelector("text=PLAYGROUND.PY · FREE PYTHON 3.11 SCRATCHPAD", { timeout: 10000 });
     await page.waitForSelector("text=RUN PLAYGROUND", { timeout: 5000 });
-    await page.getByLabel("Load ASCII Byte-Cat template").click();
-    await page.getByLabel("Snippet name input").fill("ByteCat Banner");
+    await page.getByLabel("Load ASCII Banner template").click();
+    await page.getByLabel("Snippet name input").fill("Studio Banner");
     await page.getByLabel("Save current playground snippet").click();
-    await page.waitForSelector("text=ByteCat Banner", { timeout: 5000 });
+    await page.waitForSelector("text=Studio Banner", { timeout: 5000 });
 
     // Switch to Output Detective (CART-04), answer case 1, inspect trace breakdown, advance to case 2
     await page.getByLabel("Switch to Output Detective").click();

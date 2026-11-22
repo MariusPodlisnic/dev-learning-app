@@ -1141,32 +1141,32 @@ export default function StudioCodeEditor({
                   const beginnerHint = translatePythonError(output, totalLines);
                   if (!beginnerHint) return null;
                   return (
-                    <View style={styles.byteCatErrorCard}>
-                      <View style={styles.byteCatErrorHeader}>
-                        <View style={styles.byteCatErrorBadge}>
-                          <Text style={styles.byteCatErrorBadgeText}>
-                            🐾 BYTE-CAT DEBUG HELPER · {beginnerHint.badge}
+                    <View style={styles.debugErrorCard}>
+                      <View style={styles.debugErrorHeader}>
+                        <View style={styles.debugErrorBadge}>
+                          <Text style={styles.debugErrorBadgeText}>
+                            💡 STUDIO DEBUG HELPER · {beginnerHint.badge}
                           </Text>
                         </View>
                         {beginnerHint.lineNumber !== null && (
                           <Pressable
-                            style={styles.byteCatLinePill}
+                            style={styles.debugLinePill}
                             onPress={() =>
                               jumpToLine(beginnerHint.lineNumber!)
                             }
                           >
-                            <Text style={styles.byteCatLinePillText}>
+                            <Text style={styles.debugLinePillText}>
                               JUMP TO LINE {beginnerHint.lineNumber} →
                             </Text>
                           </Pressable>
                         )}
                       </View>
-                      <Text style={styles.byteCatErrorWhat}>
+                      <Text style={styles.debugErrorWhat}>
                         {beginnerHint.whatHappened}
                       </Text>
-                      <View style={styles.byteCatFixRow}>
-                        <Text style={styles.byteCatFixLabel}>💡 HOW TO FIX:</Text>
-                        <Text style={styles.byteCatFixText}>
+                      <View style={styles.debugFixRow}>
+                        <Text style={styles.debugFixLabel}>💡 HOW TO FIX:</Text>
+                        <Text style={styles.debugFixText}>
                           {beginnerHint.howToFix}
                         </Text>
                       </View>
@@ -1269,14 +1269,14 @@ export default function StudioCodeEditor({
                 <View style={styles.stuckClueStrip}>
                   <View style={styles.stuckClueLeft}>
                     <Text style={styles.stuckClueBadge}>
-                      BYTE-CAT CLUE · TRY #{failedAttemptCount}
+                      STUDIO HINT · TRY #{failedAttemptCount}
                     </Text>
                     <Text style={styles.stuckClueText}>{activeStuckClue}</Text>
                   </View>
                   {activeClueHints.length > 1 && (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel="Next Byte-Cat clue"
+                      accessibilityLabel="Next studio hint"
                       style={styles.stuckClueNextBtn}
                       onPress={() => {
                         playKeyClick();

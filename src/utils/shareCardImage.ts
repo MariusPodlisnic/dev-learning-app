@@ -13,12 +13,6 @@ import {
   mergeStreakBaselineIntoHeatmap,
 } from "./activityHeatmap";
 import { trackFunnelMilestone } from "./attribution";
-import {
-  type ByteCatWardrobeState,
-  getByteCatMoodMeta,
-  getByteCatWardrobeState,
-  getEquippedAccessoryList,
-} from "./byteCatWardrobe";
 import { shareOrCopyText } from "./shareUtils";
 
 export type ShareCardVariant =
@@ -41,7 +35,6 @@ export interface ShareCardPayload {
   paletteId?: StudioPaletteId;
   accentColor?: string;
   footerUrl?: string;
-  byteCatWardrobe?: ByteCatWardrobeState;
   activityMap?: ActivityHeatmapMap;
 }
 
@@ -149,39 +142,13 @@ export function buildShareCardSvg(payload: ShareCardPayload): string {
         ? "DEVELOPER CARD"
         : "MISSION CLEARED";
 
-  const wardrobe = payload.byteCatWardrobe || getByteCatWardrobeState();
-  const moodMeta = getByteCatMoodMeta(wardrobe.mood);
-  const equippedGear = getEquippedAccessoryList(wardrobe);
-  const crtFaceText = escapeXml(moodMeta.crtFace);
-  const crtAccessoryCaption = escapeXml(
-    equippedGear.length > 0
-      ? equippedGear
-          .map((g) => g.shortName.toUpperCase())
-          .join(" · ")
-          .slice(0, 26)
-      : "PURR-FECT CODE!",
+  const crtStatusCaption = escapeXml(
+    payload.variant === "streak_milestone"
+      ? "STREAK LOCKED IN"
+      : payload.variant === "profile_card"
+        ? `RANK LVL ${payload.rankLevel}`
+        : "TESTS GREEN 100%",
   );
-
-  const crtHeadSvg =
-    wardrobe.equipped.head === "wizard_hat"
-      ? `<polygon points="118,92 139,70 160,92" fill="#5B21B6" stroke="#FFDE59" stroke-width="2" />`
-      : wardrobe.equipped.head === "sakura_beanie"
-        ? `<path d="M116 93 C120 77 158 77 162 93 Z" fill="#FB923C" stroke="#111111" stroke-width="2" /><circle cx="139" cy="76" r="4" fill="#FEF3C7" />`
-        : wardrobe.equipped.head === "headphones"
-          ? `<path d="M108 118 A31 28 0 0 1 170 118" fill="none" stroke="#FFDE59" stroke-width="3.5" stroke-linecap="round" />`
-          : "";
-
-  const crtEyewearSvg =
-    wardrobe.equipped.eyewear === "crt_glasses"
-      ? `<rect x="108" y="126" width="24" height="16" rx="3" fill="rgba(110,231,183,0.18)" stroke="#6EE7B7" stroke-width="2" /><rect x="146" y="126" width="24" height="16" rx="3" fill="rgba(110,231,183,0.18)" stroke="#6EE7B7" stroke-width="2" /><line x1="132" y1="134" x2="146" y2="134" stroke="#6EE7B7" stroke-width="2" />`
-      : wardrobe.equipped.eyewear === "star_visor"
-        ? `<rect x="104" y="126" width="70" height="16" rx="6" fill="rgba(163,230,53,0.22)" stroke="#A3E635" stroke-width="2" />`
-        : "";
-
-  const crtScarfSvg =
-    wardrobe.equipped.neck === "sakura_scarf"
-      ? `<rect x="96" y="152" width="86" height="8" rx="4" fill="#FF90E8" stroke="#111111" stroke-width="1.5" />`
-      : "";
 
   const headlineSvg = headlineLines
     .map(
@@ -264,13 +231,13 @@ export function buildShareCardSvg(payload: ShareCardPayload): string {
   <text x="510" y="395" fill="${gardenColors[3]}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="900">${gardenStatCaption}</text>
   ${gardenTilesSvg}
 
-  <!-- Right Side: Cozy Retro Byte-Cat Bubble TV Emblem -->
+  <!-- Right Side: Retro Devy CRT Terminal Emblem -->
   <g transform="translate(812, 108)">
-    <!-- Twin Cat-Ear Antennas -->
-    <path d="M58 24 L46 0 L84 18 Z" fill="${darkColors.surfaceHover}" stroke="#111111" stroke-width="3" stroke-linejoin="round" />
-    <path d="M60 19 L54 7 L73 16 Z" fill="${accent}" />
-    <path d="M222 24 L234 0 L196 18 Z" fill="${darkColors.surfaceHover}" stroke="#111111" stroke-width="3" stroke-linejoin="round" />
-    <path d="M220 19 L226 7 L207 16 Z" fill="#FF90E8" />
+    <!-- Twin Retro Signal Antennas -->
+    <line x1="88" y1="22" x2="64" y2="2" stroke="${darkColors.border}" stroke-width="4" stroke-linecap="round" />
+    <circle cx="64" cy="2" r="5" fill="${accent}" stroke="#111111" stroke-width="2" />
+    <line x1="190" y1="22" x2="214" y2="2" stroke="${darkColors.border}" stroke-width="4" stroke-linecap="round" />
+    <circle cx="214" cy="2" r="5" fill="#FF90E8" stroke="#111111" stroke-width="2" />
 
     <!-- TV Shadow & Shell -->
     <rect x="10" y="26" width="270" height="236" rx="28" fill="#000000" />
@@ -281,13 +248,10 @@ export function buildShareCardSvg(payload: ShareCardPayload): string {
     <rect x="34" y="48" width="210" height="20" rx="6" fill="${darkColors.codeSurface}" />
     <text x="46" y="62" fill="${accent}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="11" font-weight="900">● ${variantTag}</text>
 
-    <!-- Cute Pixel Byte-Cat Face inside CRT (with equipped Wardrobe & Mood) -->
-    ${crtHeadSvg}
-    <text x="139" y="114" text-anchor="middle" fill="#C4B5FD" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="22" font-weight="900">/\\_/\\</text>
-    <text x="139" y="144" text-anchor="middle" fill="${accent}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="22" font-weight="900">${crtFaceText}</text>
-    ${crtEyewearSvg}
-    ${crtScarfSvg}
-    <text x="139" y="176" text-anchor="middle" fill="#FFDE59" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="800">${crtAccessoryCaption}</text>
+    <!-- Crisp Retro Terminal Code Emblem -->
+    <text x="139" y="114" text-anchor="middle" fill="#C4B5FD" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="16" font-weight="900">&gt;&gt;&gt; python3.11</text>
+    <text x="139" y="146" text-anchor="middle" fill="${accent}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="24" font-weight="900">[ &gt;_ DEVY ]</text>
+    <text x="139" y="176" text-anchor="middle" fill="#FFDE59" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12" font-weight="800">${crtStatusCaption}</text>
 
     <!-- Bottom VHS Slot -->
     <rect x="24" y="204" width="166" height="32" rx="8" fill="${darkColors.codeBg}" stroke="${darkColors.codeBorder}" stroke-width="2.5" />
@@ -316,7 +280,7 @@ export function buildShareCardSvg(payload: ShareCardPayload): string {
   <text x="804" y="486" fill="#111111" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="30" font-weight="900">${metric3Value}</text>
 
   <!-- Footer Strip -->
-  <text x="92" y="553" fill="${darkColors.textMuted}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="15" font-weight="800">PYTHON · ALGORITHMS · SYSTEM DESIGN · BYTE-CAT APPROVED</text>
+  <text x="92" y="553" fill="${darkColors.textMuted}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="15" font-weight="800">PYTHON · ALGORITHMS · SYSTEM DESIGN · DEVY STUDIO</text>
   <text x="1100" y="553" text-anchor="end" fill="${accent}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="15" font-weight="900">${footerUrl}</text>
 </svg>`;
 }

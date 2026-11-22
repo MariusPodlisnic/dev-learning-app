@@ -70,13 +70,13 @@ export default function RoadmapWelcomeCard({
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <View style={styles.kickerPill}>
-              <StudioIcon name="crt_ch_bytecat" size={15} />
+              <StudioIcon name="devlearn_logo" size={15} />
               <Text style={styles.kickerText}>5-SECOND SETUP</Text>
             </View>
             <Text style={styles.title}>
               {previewName
                 ? `Welcome, ${previewName}! Pick your coding goal`
-                : "Personalize Byte-Cat & pick your goal"}
+                : "Personalize your studio & pick your goal"}
             </Text>
           </View>
 
@@ -95,7 +95,7 @@ export default function RoadmapWelcomeCard({
 
         {/* Step 1: Optional display name */}
         <View style={styles.nameRow}>
-          <Text style={styles.fieldLabel}>WHAT SHOULD BYTE-CAT CALL YOU?</Text>
+          <Text style={styles.fieldLabel}>WHAT SHOULD WE CALL YOU?</Text>
           <TextInput
             accessibilityLabel="Your name or developer handle"
             style={styles.nameInput}

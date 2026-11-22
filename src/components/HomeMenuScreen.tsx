@@ -66,7 +66,6 @@ interface HomeMenuScreenProps {
   onSelectLesson: (lesson: Lesson) => void;
   onNavigateMode: (mode: ViewMode) => void;
   onClaimDailyQuestBonus?: () => void;
-  onOpenPaywall?: () => void;
 }
 
 interface PortalCardMeta {
@@ -274,7 +273,7 @@ export default function HomeMenuScreen({
 
             <Text style={styles.heroSubtitle}>
               Live Python 3.11 in your browser, visual algorithm labs, retro
-              coding mini-games, and Byte-Cat at your desk.
+              coding mini-games, and your cozy interactive Lo-Fi desk loft.
             </Text>
 
             {/* Primary + Secondary Hero Actions */}
@@ -452,11 +451,11 @@ export default function HomeMenuScreen({
           onFilterDue={() => onNavigateMode("roadmap")}
         />
 
-        {/* Vintage Mechanical Split-Flap Daily Wisdom Board (Hovering perks up Byte-Cat in the Loft!) */}
+        {/* Vintage Mechanical Split-Flap Daily Wisdom Board (Hovering perks up the loft cat!) */}
         <View
           onPointerEnter={
             Platform.OS === "web"
-              ? () => setActiveZone("bytecat")
+              ? () => setActiveZone("cat")
               : undefined
           }
           onPointerLeave={

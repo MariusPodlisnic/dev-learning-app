@@ -137,7 +137,7 @@ export default function CertificateModal({
             <Text style={styles.signatureValue}>{certificate.issuedDate}</Text>
           </View>
           <View style={styles.stampBadge}>
-            <Text style={styles.stampText}>🐾 BYTE-CAT VERIFIED</Text>
+            <Text style={styles.stampText}>✓ DEVY VERIFIED</Text>
           </View>
         </View>
       </View>
