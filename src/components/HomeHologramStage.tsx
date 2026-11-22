@@ -56,7 +56,7 @@ const VS_SOURCE = `
     pos.y += 0.011 * sin(uTime * 1.5 + aSeed * 6.283);
 
     float disperseBoost = 0.0;
-    if (uDisperse > 0.0005) {
+    if (uDisperse > 0.00001) {
       float radialDist = length(pos);
       float stagger = clamp(aSeed * 0.28 + (1.0 - clamp(radialDist, 0.0, 1.0)) * 0.14, 0.0, 0.42);
       float localSpread = clamp((uDisperse - stagger * 0.35) / (1.0 - stagger * 0.35), 0.0, 1.0);

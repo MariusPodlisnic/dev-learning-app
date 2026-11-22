@@ -64,7 +64,7 @@ const VS_SOURCE = `
     pos.y += 0.011 * sin(uTime * 1.4 + aSeed * 6.283);
 
     float spreadAmt = max(uDisperse, uWarp);
-    if (spreadAmt > 0.001) {
+    if (spreadAmt > 0.00001) {
       float r = aScatter.w * spreadAmt + uWarp * 2.3;
       float va = spreadAmt * (1.15 + aSeed * 1.25) * (aSeed > 0.5 ? 1.0 : -1.0);
       float vc = cos(va);

@@ -918,30 +918,14 @@ export function createIdleDisperseState(): IdleDisperseState {
 }
 
 /**
- * Smooth 0 -> 1 -> 0 envelope for the idle particle bloom & reassembly cycle:
- * - 0.00..0.40: graceful cubic ease-out expansion into stardust
- * - 0.40..0.56: gentle hovering peak suspension
- * - 0.56..1.00: silky quintic magnetic reassembly back to the crisp sculpture
+ * Smooth C-infinity 0 -> 1 -> 0 envelope for the idle particle bloom & reassembly cycle.
+ * Uses a single analytic sine-power bell curve (zero piecewise seams or velocity kinks)
+ * so particles lift off, float weightlessly at apex, and reassemble in one continuous breath.
  */
 export function computeIdleDisperseEnvelope(progress: number): number {
   const u = Math.max(0, Math.min(1, progress));
   if (u <= 0 || u >= 1) return 0;
-
-  if (u < 0.4) {
-    const x = u / 0.4;
-    const easeOut = 1 - Math.pow(1 - x, 3);
-    const smooth = x * x * (3 - 2 * x);
-    return 0.55 * easeOut + 0.45 * smooth;
-  }
-
-  if (u <= 0.56) {
-    const mid = (u - 0.48) / 0.08;
-    return 1 - 0.03 * mid * mid;
-  }
-
-  const r = (u - 0.56) / 0.44;
-  const quintic = r * r * r * (r * (r * 6 - 15) + 10);
-  return 1 - quintic;
+  return Math.pow(Math.sin(Math.PI * u), 1.65);
 }
 
 export function stepIdleDisperseState(

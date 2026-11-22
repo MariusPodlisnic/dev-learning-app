@@ -69,6 +69,23 @@ test("idle particle dispersion triggers every 10-15s untouched, blooms smoothly,
   assert.ok(computeIdleDisperseEnvelope(0.2) > 0.3 && computeIdleDisperseEnvelope(0.2) < 0.95);
   assert.ok(computeIdleDisperseEnvelope(0.8) > 0.05 && computeIdleDisperseEnvelope(0.8) < 0.6);
 
+  // Verify C-infinity continuity & strict monotonicity (no piecewise dips/jumps/pauses)
+  let prev = 0;
+  for (let step = 1; step <= 200; step += 1) {
+    const u = step / 200;
+    const val = computeIdleDisperseEnvelope(u);
+    assert.ok(
+      Math.abs(val - prev) < 0.03,
+      `Discontinuity detected at u=${u}: prev=${prev}, val=${val}`,
+    );
+    if (u <= 0.5) {
+      assert.ok(val >= prev, `Expected strictly rising spread at u=${u}: prev=${prev}, val=${val}`);
+    } else {
+      assert.ok(val <= prev, `Expected strictly falling return at u=${u}: prev=${prev}, val=${val}`);
+    }
+    prev = val;
+  }
+
   const st = createIdleDisperseState();
   const initialDelay = st.nextDelaySec;
   // Still quiet just before the idle delay threshold
