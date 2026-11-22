@@ -1,0 +1,26 @@
+{
+  "name": "Devy — Cozy Interactive Coding Studio",
+  "short_name": "Devy",
+  "description": "Learn Python, Algorithms & System Design with live browser execution, retro Arcade mini-games, and Byte-Cat.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#111217",
+  "theme_color": "#111217",
+  "categories": ["education", "developer tools", "games"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

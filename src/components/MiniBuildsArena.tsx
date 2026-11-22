@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import {
@@ -70,6 +71,8 @@ export default function MiniBuildsArena({
   onAwardBuildXp,
 }: MiniBuildsArenaProps) {
   const styles = useThemedStyles(createStyles);
+  const { width: windowWidth } = useWindowDimensions();
+  const isNarrow = windowWidth > 0 && windowWidth < 780;
 
   const [activeId, setActiveId] = useState<MiniBuildId>("password_meter");
   const [completedMap, setCompletedMap] = useState<Record<string, boolean>>(() =>
@@ -304,9 +307,19 @@ export default function MiniBuildsArena({
         </View>
 
         {/* Split Workbench: Code Editor + Live Powered Preview Widget */}
-        <View style={styles.workbenchGrid}>
+        <View
+          style={[
+            styles.workbenchGrid,
+            isNarrow && styles.workbenchGridNarrow,
+          ]}
+        >
           {/* Left Pane: Blueprint & Python Code */}
-          <View style={styles.editorCard}>
+          <View
+            style={[
+              styles.editorCard,
+              isNarrow && styles.narrowPaneCard,
+            ]}
+          >
             <View style={styles.sectionHeaderRow}>
               <View style={styles.sectionTitleGroup}>
                 <View
@@ -502,7 +515,12 @@ export default function MiniBuildsArena({
           </View>
 
           {/* Right Pane: Live Powered Mini-App Widget */}
-          <View style={styles.widgetCard}>
+          <View
+            style={[
+              styles.widgetCard,
+              isNarrow && styles.narrowPaneCard,
+            ]}
+          >
             <View
               style={[
                 styles.widgetTopStrip,
@@ -795,6 +813,8 @@ const createStyles = (StudioColors: StudioThemeColors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: 11,
+      flexShrink: 1,
+      maxWidth: "100%",
     },
     headerIconBadge: {
       width: 42,
@@ -809,6 +829,8 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     },
     headerTextCol: {
       gap: 2,
+      flexShrink: 1,
+      minWidth: 0,
     },
     eyebrow: {
       color: StudioColors.textMuted,
@@ -896,6 +918,17 @@ const createStyles = (StudioColors: StudioThemeColors) =>
       flexWrap: "wrap",
       gap: 14,
       alignItems: "flex-start",
+      width: "100%",
+    },
+    workbenchGridNarrow: {
+      flexDirection: "column",
+      flexWrap: "nowrap",
+    },
+    narrowPaneCard: {
+      flex: 0,
+      width: "100%",
+      minWidth: 0,
+      maxWidth: "100%",
     },
     editorCard: {
       flex: 1.35,

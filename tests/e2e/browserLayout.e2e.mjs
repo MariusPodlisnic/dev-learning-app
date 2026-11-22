@@ -398,32 +398,92 @@ test("Showcase route (/explore) renders cleanly without horizontal overflow or r
   }
 });
 
-test("Mobile viewport (390x844): compact header & bottom thumb nav render with zero horizontal overflow", async () => {
+test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel Garden, and Arcade screens render with zero horizontal overflow", async () => {
   const session = await openAppInBrowser({
     viewport: { width: 390, height: 844 },
     pathName: "/",
   });
+
+  async function assertZeroMobileOverflow(page, screenName) {
+    const dims = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    assert.ok(
+      dims.scrollWidth <= dims.innerWidth + 1,
+      `Expected no horizontal overflow on ${screenName} at 390px, got scrollWidth=${dims.scrollWidth} (innerWidth=${dims.innerWidth})`,
+    );
+  }
 
   try {
     const { page, pageErrors } = session;
     await page.waitForSelector("text=GET PRO", { timeout: 10000 });
     await page.waitForSelector("text=PROFILE ↗", { timeout: 5000 });
 
-    const layout = await page.evaluate(() => ({
-      scrollWidth: document.documentElement.scrollWidth,
-      innerWidth: window.innerWidth,
-      bodyText: document.body.innerText,
-    }));
+    // Verify installable PWA manifest link & valid JSON payload
+    const manifestInfo = await page.evaluate(async () => {
+      const link = document.querySelector('link[rel="manifest"]');
+      const href = link ? link.getAttribute("href") : null;
+      if (!href) return { href: null, ok: false };
+      const resp = await fetch(href);
+      const data = resp.ok ? await resp.json() : null;
+      return {
+        href,
+        ok: resp.ok,
+        display: data?.display,
+        iconsCount: Array.isArray(data?.icons) ? data.icons.length : 0,
+      };
+    });
+    assert.equal(manifestInfo.href, "/manifest.json");
+    assert.equal(manifestInfo.ok, true);
+    assert.equal(manifestInfo.display, "standalone");
+    assert.ok(manifestInfo.iconsCount >= 2);
 
-    assert.ok(
-      layout.scrollWidth <= layout.innerWidth + 1,
-      `Expected no horizontal overflow at 390px width, got scrollWidth=${layout.scrollWidth}`,
-    );
-    assert.ok(layout.bodyText.includes("ACHIEVEMENTS"));
-    assert.ok(layout.bodyText.includes("LEAGUE"));
-    assert.ok(layout.bodyText.includes("SETTINGS"));
-    assert.ok(layout.bodyText.includes("GET PRO"));
-    assert.deepEqual(pageErrors, []);
+    const bodyText = await page.evaluate(() => document.body.innerText);
+    assert.ok(bodyText.includes("ACHIEVEMENTS"));
+    assert.ok(bodyText.includes("LEAGUE"));
+    assert.ok(bodyText.includes("SETTINGS"));
+    assert.ok(bodyText.includes("GET PRO"));
+    await assertZeroMobileOverflow(page, "Skill Map");
+
+    // Mobile Quick-Jump button opens Command Palette cleanly without overflow
+    await page.getByLabel("Open Quick Command Palette").click();
+    await page.getByLabel("Quick command palette search").waitFor({ timeout: 5000 });
+    await assertZeroMobileOverflow(page, "Command Palette Modal");
+    await page.getByLabel("Close command palette", { exact: true }).click();
+
+    // Profile modal + 12-Week Cozy Pixel Garden fit cleanly inside 390px phone viewport
+    await page.getByText("PROFILE ↗").first().click();
+    await page.waitForSelector("text=COZY PIXEL GARDEN · 12 WEEKS", { timeout: 5000 });
+    await assertZeroMobileOverflow(page, "Profile & Pixel Garden");
+    await page.getByLabel("Close profile modal").click();
+
+    // Mobile bottom thumb nav -> Arcade Hub + Mini-Builds + Output Detective + Playground
+    await page.getByLabel("Cozy Arcade Hub").click();
+    await page.waitForSelector("text=Devy Mini-Game Arcade", { timeout: 10000 });
+    await assertZeroMobileOverflow(page, "Arcade Hub");
+
+    await page.getByLabel("Launch Cozy Mini-Builds").click();
+    await page.waitForSelector("text=Password Strength Meter", { timeout: 10000 });
+    await assertZeroMobileOverflow(page, "Cozy Mini-Builds");
+
+    await page.getByLabel("Switch to Output Detective").click();
+    await page.waitForSelector("text=CASE 1 OF 6", { timeout: 10000 });
+    await assertZeroMobileOverflow(page, "Output Detective");
+
+    await page.getByLabel("Switch to Python Playground").click();
+    await page.waitForSelector("text=PLAYGROUND.PY · FREE PYTHON 3.11 SCRATCHPAD", { timeout: 10000 });
+    await assertZeroMobileOverflow(page, "Python Playground");
+
+    // Mobile bottom thumb nav -> Code Studio fits cleanly at 390px
+    await page.getByLabel("Code Studio").click();
+    await page.waitForSelector("text=CODE EDITOR", { timeout: 10000 });
+    await assertZeroMobileOverflow(page, "Code Studio (Lesson Pane)");
+    await page.getByText("CODE EDITOR").first().click();
+    await page.waitForSelector("text=SUBMIT CODE", { timeout: 5000 });
+    await assertZeroMobileOverflow(page, "Code Studio (Editor Pane)");
+
+    assert.deepEqual(pageErrors, [], `Unexpected mobile page errors: ${pageErrors.join("; ")}`);
   } finally {
     await session.close();
   }

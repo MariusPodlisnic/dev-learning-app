@@ -865,6 +865,7 @@ const createStyles = (StudioColors: StudioThemeColors) =>
       alignItems: "center",
       justifyContent: "space-between",
       flexWrap: "wrap",
+      maxWidth: "100%",
       gap: 8,
       paddingHorizontal: 16,
       paddingVertical: 8,
@@ -893,6 +894,7 @@ const createStyles = (StudioColors: StudioThemeColors) =>
       flexDirection: "row",
       alignItems: "center",
       flexWrap: "wrap",
+      maxWidth: "100%",
       gap: 6,
     },
     subNavPill: {

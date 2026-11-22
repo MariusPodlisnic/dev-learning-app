@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import {
@@ -60,6 +61,8 @@ export default function PythonScratchpad({
   onRunPython,
 }: PythonScratchpadProps) {
   const styles = useThemedStyles(createStyles);
+  const { width: windowWidth } = useWindowDimensions();
+  const isNarrow = windowWidth > 0 && windowWidth < 780;
 
   const [code, setCode] = useState<string>(() => readScratchpadDraft());
   const [activeTemplateId, setActiveTemplateId] =
@@ -202,9 +205,19 @@ export default function PythonScratchpad({
         </View>
 
         {/* Split Grid: Free Editor + Output & Saved Snippets */}
-        <View style={styles.splitGrid}>
+        <View
+          style={[
+            styles.splitGrid,
+            isNarrow && styles.splitGridNarrow,
+          ]}
+        >
           {/* Left: Interactive Code Editor */}
-          <View style={styles.editorCard}>
+          <View
+            style={[
+              styles.editorCard,
+              isNarrow && styles.narrowPaneCard,
+            ]}
+          >
             <View style={styles.ideHeader}>
               <View style={styles.ideLeft}>
                 <View style={styles.dotsRow}>
@@ -329,7 +342,12 @@ export default function PythonScratchpad({
           </View>
 
           {/* Right: Live Console + Saved Snippets */}
-          <View style={styles.rightColumn}>
+          <View
+            style={[
+              styles.rightColumn,
+              isNarrow && styles.narrowPaneCard,
+            ]}
+          >
             {/* Output Console */}
             <View style={styles.consoleCard}>
               <View style={styles.consoleHeader}>
@@ -531,6 +549,17 @@ const createStyles = (StudioColors: StudioThemeColors) =>
       flexWrap: "wrap",
       gap: 12,
       alignItems: "flex-start",
+      width: "100%",
+    },
+    splitGridNarrow: {
+      flexDirection: "column",
+      flexWrap: "nowrap",
+    },
+    narrowPaneCard: {
+      flex: 0,
+      width: "100%",
+      minWidth: 0,
+      maxWidth: "100%",
     },
     editorCard: {
       flex: 1.4,

@@ -26,7 +26,8 @@
       "name": "Devy",
       "shortName": "Devy",
       "description": "Interactive Python, Algorithms & System Design coding arcade with live browser execution.",
-      "themeColor": "#F4F0E6"
+      "themeColor": "#111217",
+      "backgroundColor": "#111217"
     },
     "plugins": [
       "expo-router",
