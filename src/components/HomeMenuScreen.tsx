@@ -42,8 +42,8 @@ import {
   subscribeOnboarding,
   type UserOnboardingState,
 } from "../utils/userOnboarding";
-import ByteCatGuideCard from "./ByteCatGuideCard";
 import HomeLoftStage from "./HomeLoftStage";
+import HomeWisdomFlapBoard from "./HomeWisdomFlapBoard";
 import RoadmapDailyQuestCard from "./RoadmapDailyQuestCard";
 import RoadmapReviewCard from "./RoadmapReviewCard";
 import RoadmapWelcomeCard from "./RoadmapWelcomeCard";
@@ -90,14 +90,12 @@ export default function HomeMenuScreen({
   activeTrack,
   totalXp,
   streakCount,
-  lastActiveDate = null,
   totalSolvedCount,
   resumeLesson = null,
   onSelectTrack,
   onSelectLesson,
   onNavigateMode,
   onClaimDailyQuestBonus,
-  onOpenPaywall,
 }: HomeMenuScreenProps) {
   const styles = useThemedStyles(createStyles);
   const { width: windowWidth } = useWindowDimensions();
@@ -127,10 +125,6 @@ export default function HomeMenuScreen({
   const trackLessons = useMemo(
     () => lessons.filter((l) => l.track === activeTrack),
     [activeTrack, lessons],
-  );
-  const trackCompletedCount = useMemo(
-    () => trackLessons.filter((l) => completedLessons[l.id]).length,
-    [completedLessons, trackLessons],
   );
 
   const nextUpLesson = useMemo(() => {
@@ -458,7 +452,7 @@ export default function HomeMenuScreen({
           onFilterDue={() => onNavigateMode("roadmap")}
         />
 
-        {/* Cozy Byte-Cat Desk Companion (Hovering perks up Byte-Cat in the Loft!) */}
+        {/* Vintage Mechanical Split-Flap Daily Wisdom Board (Hovering perks up Byte-Cat in the Loft!) */}
         <View
           onPointerEnter={
             Platform.OS === "web"
@@ -471,18 +465,7 @@ export default function HomeMenuScreen({
               : undefined
           }
         >
-          <ByteCatGuideCard
-            completedCount={trackCompletedCount}
-            totalCount={trackLessons.length}
-            activeTrack={activeTrack}
-            activeTrackLabel={currentTrackMeta.label}
-            activeTrackAccent={currentTrackMeta.stickerBg}
-            isPremium={isPremium}
-            totalXp={totalXp}
-            streakCount={streakCount}
-            lastActiveDate={lastActiveDate}
-            onOpenPaywall={onOpenPaywall}
-          />
+          <HomeWisdomFlapBoard />
         </View>
 
         {/* Minimal Footer Strip with Curriculum Showcase Link */}
