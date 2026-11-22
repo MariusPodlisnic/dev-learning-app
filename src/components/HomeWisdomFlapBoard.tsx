@@ -25,39 +25,11 @@ import { playKeyClick, playSuccessChime } from "../utils/soundEffects";
 import { Text } from "./StudioIcon";
 
 const STORAGE_QUOTE_PREFS_KEY = "devlearn_bytecat_quote_prefs_v1";
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
 interface SavedQuotePrefs {
   favoriteIds?: number[];
   lastQuoteId?: number;
-}
-
-/**
- * Splits a quote cleanly along word boundaries into individual mechanical
- * split-flap display rows so every line sits inside its own recessed slat
- * and no divider ever cuts through text characters.
- */
-export function splitQuoteIntoFlapLines(
-  quote: string,
-  maxCharsPerLine = 52,
-): string[] {
-  const cleaned = `“${quote.trim()}”`;
-  const limit = Math.max(18, maxCharsPerLine);
-  const words = cleaned.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [""];
-
-  const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length <= limit || !current) {
-      current = candidate;
-    } else {
-      lines.push(current);
-      current = word;
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
 }
 
 export default function HomeWisdomFlapBoard() {
@@ -69,13 +41,8 @@ export default function HomeWisdomFlapBoard() {
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [savedOnly, setSavedOnly] = useState<boolean>(false);
 
-  // Per-row flip animations (supports up to 4 mechanical slat rows smoothly)
-  const [flapScales] = useState<Animated.Value[]>(() => [
-    new Animated.Value(1),
-    new Animated.Value(1),
-    new Animated.Value(1),
-    new Animated.Value(1),
-  ]);
+  const [flapScale] = useState<Animated.Value>(() => new Animated.Value(1));
+  const [flapOpacity] = useState<Animated.Value>(() => new Animated.Value(1));
   const swapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -123,38 +90,40 @@ export default function HomeWisdomFlapBoard() {
     BYTE_CAT_QUOTES[quoteIndex % BYTE_CAT_QUOTES.length] || BYTE_CAT_QUOTES[0];
   const isFavorited = favoriteIds.includes(currentQuote.id);
 
-  const displayLines = useMemo(
-    () =>
-      splitQuoteIntoFlapLines(
-        currentQuote.quote.toUpperCase(),
-        isPhone ? 28 : 54,
-      ),
-    [currentQuote.quote, isPhone],
-  );
-
   const runClackFlip = useCallback(
     (nextGlobalIndex: number) => {
       playKeyClick();
+      flapScale.stopAnimation();
+      flapOpacity.stopAnimation();
 
-      // Staggered mechanical collapse -> swap text -> snap open
-      flapScales.forEach((animVal, rowIdx) => {
-        animVal.stopAnimation();
+      Animated.parallel([
         Animated.sequence([
-          Animated.delay(rowIdx * 36),
-          Animated.timing(animVal, {
-            toValue: 0.14,
-            duration: 95,
+          Animated.timing(flapScale, {
+            toValue: 0.16,
+            duration: 90,
             easing: Easing.in(Easing.quad),
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
-          Animated.timing(animVal, {
+          Animated.timing(flapScale, {
             toValue: 1,
-            duration: 135,
+            duration: 140,
             easing: Easing.out(Easing.back(1.1)),
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
-        ]).start();
-      });
+        ]),
+        Animated.sequence([
+          Animated.timing(flapOpacity, {
+            toValue: 0.55,
+            duration: 90,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+          Animated.timing(flapOpacity, {
+            toValue: 1,
+            duration: 130,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+        ]),
+      ]).start();
 
       if (swapTimerRef.current) clearTimeout(swapTimerRef.current);
       swapTimerRef.current = setTimeout(() => {
@@ -163,9 +132,9 @@ export default function HomeWisdomFlapBoard() {
         if (nextQuote) {
           persistPrefs(favoriteIds, nextQuote.id);
         }
-      }, 95);
+      }, 90);
     },
-    [favoriteIds, flapScales, persistPrefs],
+    [favoriteIds, flapOpacity, flapScale, persistPrefs],
   );
 
   function handleStep(delta: 1 | -1) {
@@ -326,37 +295,28 @@ export default function HomeWisdomFlapBoard() {
         </View>
       </View>
 
-      {/* Recessed Mechanical Display Housing — Individual Slats Per Line (Never Cuts Text!) */}
+      {/* Unified Recessed Mechanical Display Panel (Clean single flow, zero mid-text cuts!) */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Flip to next developer wisdom quote"
         style={styles.displayHousing}
         onPress={() => handleStep(1)}
       >
-        <View style={styles.slatsStack}>
-          {displayLines.map((lineText, rowIdx) => {
-            const animScale =
-              flapScales[Math.min(rowIdx, flapScales.length - 1)];
-            return (
-              <Animated.View
-                key={`slat-${rowIdx}`}
-                style={[
-                  styles.slatRow,
-                  { transform: [{ scaleY: animScale }] },
-                ]}
-              >
-                {/* Mechanical left/right hinge pins sitting neatly outside the lettering */}
-                <View pointerEvents="none" style={styles.hingePinLeft} />
-                <Text
-                  style={[styles.slatText, isPhone && styles.slatTextPhone]}
-                >
-                  {lineText}
-                </Text>
-                <View pointerEvents="none" style={styles.hingePinRight} />
-              </Animated.View>
-            );
-          })}
-        </View>
+        <Animated.View
+          style={[
+            styles.displayPlate,
+            {
+              opacity: flapOpacity,
+              transform: [{ scaleY: flapScale }],
+            },
+          ]}
+        >
+          <View pointerEvents="none" style={styles.hingePinLeft} />
+          <Text style={[styles.quoteText, isPhone && styles.quoteTextPhone]}>
+            “{currentQuote.quote.toUpperCase()}”
+          </Text>
+          <View pointerEvents="none" style={styles.hingePinRight} />
+        </Animated.View>
       </Pressable>
 
       {/* Bottom Bevel: Author Plate + Mood Badge */}
@@ -482,63 +442,62 @@ const createStyles = (colors: StudioThemeColors) =>
     },
     displayHousing: {
       width: "100%",
-      backgroundColor: "#080A10",
+      backgroundColor: "#07090E",
       borderWidth: 2.5,
       borderColor: StudioColors.ink,
-      borderRadius: 13,
-      padding: 10,
+      borderRadius: 14,
+      padding: 8,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
-    slatsStack: {
-      gap: 6,
-    },
-    slatRow: {
+    displayPlate: {
       position: "relative",
       width: "100%",
-      minHeight: 42,
-      backgroundColor: "#141824",
+      minHeight: 74,
+      backgroundColor: "#121622",
       borderWidth: 1.5,
-      borderColor: "#242B3E",
-      borderRadius: 7,
-      paddingHorizontal: 18,
-      paddingVertical: 9,
+      borderColor: "#232A3E",
+      borderBottomWidth: 3,
+      borderBottomColor: "#090B10",
+      borderRadius: 9,
+      paddingHorizontal: 24,
+      paddingVertical: 18,
       justifyContent: "center",
     },
     hingePinLeft: {
       position: "absolute",
-      left: 5,
+      left: 7,
       top: "50%",
-      marginTop: -4,
-      width: 4,
-      height: 8,
+      marginTop: -6,
+      width: 5,
+      height: 12,
       borderRadius: 2,
-      backgroundColor: "#090B10",
+      backgroundColor: "#080A10",
       borderWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.14)",
+      borderColor: "rgba(255, 255, 255, 0.15)",
     },
     hingePinRight: {
       position: "absolute",
-      right: 5,
+      right: 7,
       top: "50%",
-      marginTop: -4,
-      width: 4,
-      height: 8,
+      marginTop: -6,
+      width: 5,
+      height: 12,
       borderRadius: 2,
-      backgroundColor: "#090B10",
+      backgroundColor: "#080A10",
       borderWidth: 1,
-      borderColor: "rgba(255, 255, 255, 0.14)",
+      borderColor: "rgba(255, 255, 255, 0.15)",
     },
-    slatText: {
+    quoteText: {
       color: "#FAF6EB",
-      fontSize: 16.5,
-      lineHeight: 22,
+      fontSize: 18,
+      lineHeight: 27,
       fontWeight: "900",
       fontFamily: MonoFont,
-      letterSpacing: 0.5,
+      letterSpacing: 0.45,
     },
-    slatTextPhone: {
-      fontSize: 13.5,
-      lineHeight: 19,
+    quoteTextPhone: {
+      fontSize: 14.5,
+      lineHeight: 22,
       letterSpacing: 0.25,
     },
     bottomRow: {

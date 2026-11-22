@@ -77,10 +77,9 @@ const { default: CommandPaletteModal } = loadTsModule(
 const { default: HomeMenuScreen } = loadTsModule(
   "src/components/HomeMenuScreen.tsx",
 );
-const {
-  default: HomeWisdomFlapBoard,
-  splitQuoteIntoFlapLines,
-} = loadTsModule("src/components/HomeWisdomFlapBoard.tsx");
+const { default: HomeWisdomFlapBoard } = loadTsModule(
+  "src/components/HomeWisdomFlapBoard.tsx",
+);
 const { default: ShowcaseLandingScreen } = loadTsModule(
   "src/components/ShowcaseLandingScreen.tsx",
 );
@@ -1451,24 +1450,12 @@ test("HomeMenuScreen renders 3D CRT Desk centerpiece, 4 portals, Byte-Cat, and D
   assert.ok(homeText.includes("CURRICULUM SHOWCASE"));
 });
 
-test("HomeWisdomFlapBoard wraps multi-line quotes into separate mechanical slats without mid-text cuts", () => {
-  const shortLines = splitQuoteIntoFlapLines("Talk is cheap. Show me the code.", 54);
-  assert.equal(shortLines.length, 1);
-
-  const multiLines = splitQuoteIntoFlapLines(
-    "Every master programmer was once a beginner who refused to quit on a syntax error.",
-    48,
-  );
-  assert.ok(multiLines.length >= 2, `Expected multi-line slats, got ${JSON.stringify(multiLines)}`);
-  for (const line of multiLines) {
-    assert.ok(line.length <= 48, `Expected line <= 48 chars, got "${line}" (${line.length})`);
-  }
-
+test("HomeWisdomFlapBoard renders unified mechanical display plate without splitting quote boxes", () => {
   const flapText = visibleText(
     renderThemed(React.createElement(HomeWisdomFlapBoard)),
   );
   assert.ok(flapText.includes("DEVY LOFT · DAILY WISDOM BOARD"));
-  assert.ok(flapText.includes("FIRST, SOLVE THE PROBLEM"));
+  assert.ok(flapText.includes("FIRST, SOLVE THE PROBLEM. THEN, WRITE THE CODE."));
   assert.ok(flapText.includes("NEXT →"));
   assert.ok(flapText.includes("☆ SAVE"));
 });
