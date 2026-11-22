@@ -394,7 +394,7 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
   }
 });
 
-test("Showcase route (/explore) renders cleanly without horizontal overflow or runtime errors", async () => {
+test("Showcase route (/explore) renders Lo-Fi Arcade Orbit showcase cleanly and teleports to Home on Begin Your Adventure", async () => {
   const session = await openAppInBrowser({
     viewport: { width: 1280, height: 800 },
     pathName: "/explore",
@@ -402,11 +402,23 @@ test("Showcase route (/explore) renders cleanly without horizontal overflow or r
 
   try {
     const { page, pageErrors } = session;
-    await page.waitForSelector("text=Devy", { timeout: 10000 });
+    await page.waitForSelector("text=Begin Your Adventure", { timeout: 10000 });
+    await page.waitForSelector("text=Live Python 3.11 Studio", { timeout: 5000 });
+    await page.waitForSelector("text=FREE TRACK", { timeout: 5000 });
+    await page.waitForSelector("text=DEVY PRO", { timeout: 5000 });
+
+    const bodyText = await page.locator("body").innerText();
+    assert.equal(bodyText.includes("01 // KEY FEATURES"), false);
+    assert.equal(bodyText.includes("02 // FREE & PRO TRACKS"), false);
+
     const overflowX = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     assert.ok(overflowX <= 1, `Expected no overflow on /explore, got ${overflowX}`);
+
+    // Clicking Begin Your Adventure warps and teleports directly to HOME
+    await page.getByLabel("Begin Your Adventure", { exact: true }).click();
+    await page.getByTestId("home-hologram-stage").waitFor({ timeout: 10000 });
     assert.deepEqual(pageErrors, []);
   } finally {
     await session.close();

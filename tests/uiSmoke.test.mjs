@@ -77,6 +77,9 @@ const { default: CommandPaletteModal } = loadTsModule(
 const { default: HomeMenuScreen } = loadTsModule(
   "src/components/HomeMenuScreen.tsx",
 );
+const { default: ShowcaseLandingScreen } = loadTsModule(
+  "src/components/ShowcaseLandingScreen.tsx",
+);
 const { default: WeeklyLeaguePanel } = loadTsModule(
   "src/components/WeeklyLeaguePanel.tsx",
 );
@@ -1444,4 +1447,19 @@ test("HomeMenuScreen renders 3D CRT Desk centerpiece, 4 portals, Byte-Cat, and D
   assert.ok(homeText.includes("Mini-Game Arcade"));
   assert.ok(homeText.includes("Algorithm Lab"));
   assert.ok(homeText.includes("CURRICULUM SHOWCASE"));
+});
+
+test("ShowcaseLandingScreen renders Lo-Fi Arcade Orbit hero, features, and Free vs Pro without numbered section kickers", () => {
+  const showcaseText = visibleText(
+    renderThemed(React.createElement(ShowcaseLandingScreen)),
+  );
+  assert.ok(showcaseText.includes("Code Like It"));
+  assert.ok(showcaseText.includes("Begin Your Adventure"));
+  assert.ok(showcaseText.includes("Live Python 3.11 Studio"));
+  assert.ok(showcaseText.includes("Visual Algorithm Lab"));
+  assert.ok(showcaseText.includes("Cozy Mini-Game Arcade"));
+  assert.ok(showcaseText.includes("FREE TRACK"));
+  assert.ok(showcaseText.includes("DEVY PRO"));
+  assert.equal(showcaseText.includes("01 // KEY FEATURES"), false);
+  assert.equal(showcaseText.includes("02 // FREE & PRO TRACKS"), false);
 });
