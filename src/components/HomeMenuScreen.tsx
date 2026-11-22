@@ -28,7 +28,7 @@ import {
   getBlitzRankFromHits,
   subscribeArcadeRecords,
 } from "../utils/arcadeRecords";
-import type { HologramShapeId } from "../utils/hologramShapes";
+import type { LoftHighlightZone } from "../utils/loftGeometry";
 import { playKeyClick } from "../utils/soundEffects";
 import {
   buildDueReviewQueue,
@@ -43,7 +43,7 @@ import {
   type UserOnboardingState,
 } from "../utils/userOnboarding";
 import ByteCatGuideCard from "./ByteCatGuideCard";
-import HomeHologramStage from "./HomeHologramStage";
+import HomeLoftStage from "./HomeLoftStage";
 import RoadmapDailyQuestCard from "./RoadmapDailyQuestCard";
 import RoadmapReviewCard from "./RoadmapReviewCard";
 import RoadmapWelcomeCard from "./RoadmapWelcomeCard";
@@ -76,7 +76,7 @@ interface PortalCardMeta {
   stat: string;
   icon: StudioIconName;
   accent: string;
-  hologramShape: HologramShapeId;
+  loftZone: Exclude<LoftHighlightZone, null>;
   targetMode: ViewMode;
 }
 
@@ -104,7 +104,7 @@ export default function HomeMenuScreen({
   const isNarrow = windowWidth > 0 && windowWidth < 860;
   const isPhone = windowWidth > 0 && windowWidth < 560;
 
-  const [activeShape, setActiveShape] = useState<HologramShapeId>("cyber_desk");
+  const [activeZone, setActiveZone] = useState<LoftHighlightZone>(null);
   const [onboardingState, setOnboardingState] = useState<UserOnboardingState>(
     () => getOnboardingState(),
   );
@@ -191,7 +191,7 @@ export default function HomeMenuScreen({
         stat: `${totalSolvedCount}/${lessons.length || 64} MODULES SOLVED`,
         icon: "nav_skillmap",
         accent: StudioColors.yellow,
-        hologramShape: "code_orrery",
+        loftZone: "roadmap",
         targetMode: "roadmap",
       },
       {
@@ -201,7 +201,7 @@ export default function HomeMenuScreen({
         stat: heroLesson ? heroLesson.title.toUpperCase() : "INTERACTIVE WORKSPACE",
         icon: "nav_studio",
         accent: "#38BDF8",
-        hologramShape: "cyber_desk",
+        loftZone: "studio",
         targetMode: "studio",
       },
       {
@@ -214,7 +214,7 @@ export default function HomeMenuScreen({
             : `${solvedBugCount}/25 BUGS · PLAYGROUND & BUILDS`,
         icon: "nav_arcade",
         accent: StudioColors.pink,
-        hologramShape: "gamepad",
+        loftZone: "arcade",
         targetMode: "arcade",
       },
       {
@@ -224,7 +224,7 @@ export default function HomeMenuScreen({
         stat: "VISUAL SORT · GRAPH · HEAP · DP",
         icon: isPremium ? "nav_algolab" : "lock",
         accent: StudioColors.violet,
-        hologramShape: "neural_crown",
+        loftZone: "algolab",
         targetMode: "algolab",
       },
     ],
@@ -297,7 +297,8 @@ export default function HomeMenuScreen({
                     styles.primaryCtaBtn,
                     pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
                   ]}
-                  onHoverIn={() => setActiveShape("cyber_desk")}
+                  onHoverIn={() => setActiveZone("studio")}
+                  onHoverOut={() => setActiveZone(null)}
                   onPress={() => {
                     playKeyClick();
                     onSelectLesson(heroLesson);
@@ -321,7 +322,8 @@ export default function HomeMenuScreen({
                   styles.secondaryCtaBtn,
                   pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
                 ]}
-                onHoverIn={() => setActiveShape("code_orrery")}
+                onHoverIn={() => setActiveZone("roadmap")}
+                onHoverOut={() => setActiveZone(null)}
                 onPress={() => {
                   playKeyClick();
                   onNavigateMode("roadmap");
@@ -355,21 +357,22 @@ export default function HomeMenuScreen({
             </View>
           </View>
 
-          {/* Right: Interactive 3D Rotating WebGL Particle Centerpiece */}
+          {/* Right: Interactive Living Isometric Lo-Fi Dev Loft */}
           <View
             style={[
               styles.heroStageCol,
               isNarrow && styles.narrowFullWidth,
             ]}
           >
-            <HomeHologramStage
-              activeShape={activeShape}
+            <HomeLoftStage
+              activeZone={activeZone}
+              streakCount={streakCount}
               compact={isPhone}
             />
           </View>
         </View>
 
-        {/* 4 HOVER-TO-MORPH DESTINATION PORTALS */}
+        {/* 4 ZONE-LINKED DESTINATION PORTALS */}
         <View style={styles.portalsGrid}>
           {portals.map((portal) => (
             <Pressable
@@ -381,7 +384,8 @@ export default function HomeMenuScreen({
                 isPhone && styles.portalCardPhone,
                 pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
               ]}
-              onHoverIn={() => setActiveShape(portal.hologramShape)}
+              onHoverIn={() => setActiveZone(portal.loftZone)}
+              onHoverOut={() => setActiveZone(null)}
               onPress={() => {
                 playKeyClick();
                 onNavigateMode(portal.targetMode);
@@ -454,11 +458,16 @@ export default function HomeMenuScreen({
           onFilterDue={() => onNavigateMode("roadmap")}
         />
 
-        {/* Cozy Byte-Cat Desk Companion (Hovering morphs the 3D hologram to Byte-Cat!) */}
+        {/* Cozy Byte-Cat Desk Companion (Hovering perks up Byte-Cat in the Loft!) */}
         <View
           onPointerEnter={
             Platform.OS === "web"
-              ? () => setActiveShape("bytecat_hero")
+              ? () => setActiveZone("bytecat")
+              : undefined
+          }
+          onPointerLeave={
+            Platform.OS === "web"
+              ? () => setActiveZone(null)
               : undefined
           }
         >

@@ -69,9 +69,9 @@ export function buildCommandPaletteItems(
     {
       id: "nav-home",
       group: "NAVIGATION",
-      title: "Home Menu & 3D Desk",
-      subtitle: "Main studio dashboard with interactive 3D CRT desk & portals",
-      keywords: ["home", "main", "menu", "desk", "3d", "start", "lobby"],
+      title: "Home Menu & Dev Loft",
+      subtitle: "Main studio dashboard with interactive isometric Lo-Fi loft & portals",
+      keywords: ["home", "main", "menu", "loft", "desk", "room", "start", "lobby"],
       icon: "nav_home",
       badge: "HOME",
       featured: true,

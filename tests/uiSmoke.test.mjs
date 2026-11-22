@@ -1439,10 +1439,7 @@ test("HomeMenuScreen renders 3D CRT Desk centerpiece, 4 portals, Byte-Cat, and D
     }),
   );
   const homeText = visibleText(homeHtml);
-  assert.ok(homeHtml.includes("3D hologram: HOLOGRAPHIC RETRO CRT DESK"));
-  assert.equal(homeText.includes("SPIN: ON"), false);
-  assert.equal(homeText.includes("RESET"), false);
-  assert.equal(homeText.includes("ORRERY"), false);
+  assert.ok(homeHtml.includes("Interactive studio loft: LIVING LO-FI DEV LOFT"));
   assert.ok(homeText.includes("OPEN SKILL MAP"));
   assert.ok(homeText.includes("Mini-Game Arcade"));
   assert.ok(homeText.includes("Algorithm Lab"));

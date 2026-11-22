@@ -114,13 +114,13 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     assert.ok(metrics.boxes.leaderboard.x < metrics.boxes.pro.x);
     assert.ok(metrics.boxes.pro.x < metrics.boxes.save.x);
 
-    // Default landing screen is the new HOME Main Menu with the clean, always-spinning 3D Holographic Retro CRT Desk
-    await page.getByLabel("3D hologram: HOLOGRAPHIC RETRO CRT DESK").waitFor({ timeout: 10000 });
+    // HOME Main Menu showcases the interactive Living Lo-Fi Dev Loft & portal-linked room highlights
+    await page.getByLabel("Interactive studio loft: LIVING LO-FI DEV LOFT").waitFor({ timeout: 10000 });
     await page.waitForSelector("text=OPEN SKILL MAP", { timeout: 5000 });
     await page.getByLabel("Open Mini-Game Arcade", { exact: true }).hover();
-    await page.getByLabel("3D hologram: RETRO ARCADE PAD").waitFor({ timeout: 5000 });
+    await page.getByLabel("Interactive studio loft: RETRO ARCADE CABINET").waitFor({ timeout: 5000 });
     await page.getByLabel("Open Code Studio", { exact: true }).hover();
-    await page.getByLabel("3D hologram: HOLOGRAPHIC RETRO CRT DESK").waitFor({ timeout: 5000 });
+    await page.getByLabel("Interactive studio loft: CODE STUDIO DESK").waitFor({ timeout: 5000 });
 
     // Switch to Skill Map to verify dedicated Roadmap Tree + Retro TV dark/light mode response
     await page.getByText("SKILL MAP").first().click();
@@ -183,7 +183,7 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
 
     // Return to HOME Main Menu for Welcome, Byte-Cat Style, and Pomodoro checks
     await page.getByLabel("Open Devy Home Menu").click();
-    await page.getByTestId("home-hologram-stage").waitFor({ timeout: 5000 });
+    await page.getByTestId("home-loft-stage").waitFor({ timeout: 5000 });
 
     const lightMetrics = await measureAccountHeaderBoxes(page);
     assert.ok(lightMetrics.overflowX <= 1);
@@ -426,7 +426,7 @@ test("Showcase route (/explore) renders Lo-Fi Arcade Orbit showcase cleanly and 
 
     // Clicking Begin Your Adventure warps and teleports directly to HOME
     await page.getByLabel("Begin Your Adventure", { exact: true }).click();
-    await page.getByTestId("home-hologram-stage").waitFor({ timeout: 10000 });
+    await page.getByTestId("home-loft-stage").waitFor({ timeout: 10000 });
     assert.deepEqual(pageErrors, []);
   } finally {
     await session.close();
@@ -484,7 +484,7 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
     assert.ok(bodyText.includes("LEAGUE"));
     assert.ok(bodyText.includes("SETTINGS"));
     assert.ok(bodyText.includes("GET PRO"));
-    await page.getByTestId("home-hologram-stage").waitFor({ timeout: 5000 });
+    await page.getByTestId("home-loft-stage").waitFor({ timeout: 5000 });
     await assertZeroMobileOverflow(page, "Home Main Menu");
 
     // Mobile bottom thumb nav -> Dedicated Skill Map fits cleanly at 390px
@@ -492,7 +492,7 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
     await page.waitForSelector("text=CHOOSE YOUR LEARNING PATH", { timeout: 5000 });
     await assertZeroMobileOverflow(page, "Skill Map");
     await page.getByLabel("Home Menu", { exact: true }).click();
-    await page.getByTestId("home-hologram-stage").waitFor({ timeout: 5000 });
+    await page.getByTestId("home-loft-stage").waitFor({ timeout: 5000 });
 
     // Mobile Quick-Jump button opens Command Palette cleanly without overflow
     await page.getByLabel("Open Quick Command Palette").click();
