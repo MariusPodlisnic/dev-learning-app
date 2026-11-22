@@ -9,12 +9,10 @@ import { useTheme, useThemedStyles } from "../constants/themeContext";
 import {
   getAmbientMixerState,
   subscribeAmbientMixer,
-  toggleAmbientChannel,
 } from "../utils/ambientSoundscapes";
 import {
   getLofiRadioState,
   subscribeLofiRadio,
-  toggleLofiRadio,
 } from "../utils/lofiRadio";
 import {
   computeIsoMetrics,
@@ -242,7 +240,6 @@ export default function HomeLoftStage({
       lamp: Point2D[];
       mug: Point2D[];
       cat: Point2D[];
-      radio: Point2D[];
       arcade: Point2D[];
       bonsai: Point2D[];
     };
@@ -268,7 +265,6 @@ export default function HomeLoftStage({
       lamp: [],
       mug: [],
       cat: [],
-      radio: [],
       arcade: [],
       bonsai: [],
     },
@@ -387,7 +383,6 @@ export default function HomeLoftStage({
       // Front-most interactive props checked first
       const order: (keyof typeof hz)[] = [
         "cat",
-        "radio",
         "mug",
         "lamp",
         "bonsai",
@@ -430,10 +425,6 @@ export default function HomeLoftStage({
         st.showToast(st.lampOn ? "DESK LAMP: WARM GLOW ON" : "DESK LAMP: DIMMED");
       } else if (hit === "window") {
         st.rainOn = !st.rainOn;
-        const mix = getAmbientMixerState();
-        if ((st.rainOn && mix.volumes.rain === 0) || (!st.rainOn && mix.volumes.rain > 0)) {
-          toggleAmbientChannel("rain");
-        }
         playKeyClick();
         st.showToast(st.rainOn ? "COZY WINDOW RAIN: ON" : "CLEAR STARRY SKY");
       } else if (hit === "mug") {
@@ -446,16 +437,6 @@ export default function HomeLoftStage({
         playSuccessChime();
         spawnParticles(pt.x, pt.y - 12, "heart", 6, pal.accentPink);
         st.showToast("BYTE-CAT PURRS HAPPILY (^ ω ^)");
-      } else if (hit === "radio") {
-        const playing = toggleLofiRadio();
-        st.lofiPlaying = playing;
-        playKeyClick();
-        if (playing) {
-          spawnParticles(pt.x, pt.y - 14, "note", 4, pal.accent);
-          st.showToast("LO-FI TURNTABLE: SPINNING");
-        } else {
-          st.showToast("LO-FI TURNTABLE: PAUSED");
-        }
       } else if (hit === "bonsai") {
         playKeyClick();
         spawnParticles(pt.x, pt.y - 12, "spark", 6, pal.bonsaiBlossom);
@@ -1733,7 +1714,7 @@ export default function HomeLoftStage({
       ctx.arc(ledPt.x, ledPt.y, 2.6, 0, Math.PI * 2);
       ctx.fill();
 
-      // Spawn cozy floating music notes while Lo-Fi Radio is spinning!
+      // Spawn cozy floating music notes while Lo-Fi Radio is enabled in Settings
       if (st.lofiPlaying) {
         st.noteCooldown -= dt;
         if (st.noteCooldown <= 0) {
@@ -1741,13 +1722,6 @@ export default function HomeLoftStage({
           spawnParticles(discPt.x, discPt.y - 6, "note", 1, pal.accent);
         }
       }
-
-      st.hitZones.radio = [
-        { x: discPt.x - 28, y: discPt.y - 18 },
-        { x: discPt.x + 28, y: discPt.y - 18 },
-        { x: discPt.x + 28, y: discPt.y + 28 },
-        { x: discPt.x - 28, y: discPt.y + 28 },
-      ];
 
       // 11. WARM DESK LAMP LIGHT CONE OVERLAY (When Lamp ON)
       if (st.lampOn) {
@@ -1863,7 +1837,7 @@ export default function HomeLoftStage({
         {Platform.OS === "web" && !toastMsg ? (
           <View pointerEvents="none" style={styles.bottomHintHud}>
             <Text style={styles.bottomHintText}>
-              CLICK LAMP · WINDOW RAIN · TURNTABLE · MUG · PET BYTE-CAT
+              CLICK LAMP · WINDOW RAIN · MUG · PET BYTE-CAT
             </Text>
           </View>
         ) : null}
