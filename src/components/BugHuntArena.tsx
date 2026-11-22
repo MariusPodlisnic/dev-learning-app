@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   Platform,
@@ -23,6 +23,7 @@ import {
   BUG_INCIDENTS,
   type BugIncident,
 } from "../constants/curriculumData/bugHuntIncidents";
+import { computePythonAutoEdit } from "../utils/editorHelpers";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 import { playKeyClick } from "../utils/soundEffects";
@@ -98,6 +99,11 @@ export default function BugHuntArena({
   const [reviewIds, setReviewIds] = useState<string[]>(() =>
     readLocalJson<string[]>(BUGHUNT_REVIEW_KEY, []),
   );
+  const editorRef = useRef<any>(null);
+  const selectionRef = useRef<{ start: number; end: number }>({
+    start: 0,
+    end: 0,
+  });
   const currentIncident =
     activeMissionIdx !== null ? BUG_INCIDENTS[activeMissionIdx] : null;
   const activeTimeLimitSec = currentIncident
@@ -753,29 +759,56 @@ export default function BugHuntArena({
             </View>
 
             <TextInput
+              ref={editorRef}
               style={[styles.codeEditor, { minHeight: lineCount * 21 + 32 }]}
               value={code}
               onChangeText={setCode}
+              onSelectionChange={(e) => {
+                selectionRef.current = e.nativeEvent.selection;
+              }}
               onKeyPress={(e: any) => {
                 const nativeEv = e?.nativeEvent;
-                if (
-                  nativeEv &&
-                  !nativeEv.metaKey &&
-                  !nativeEv.ctrlKey &&
-                  !nativeEv.altKey
-                ) {
+                if (!nativeEv) return;
+                const metaOrCtrl = Boolean(nativeEv.metaKey || nativeEv.ctrlKey);
+                if (!metaOrCtrl && !nativeEv.altKey) {
                   const keyKind = classifyTypingKey(nativeEv.key);
                   if (keyKind) {
                     playMechanicalKeystroke(keyKind);
                   }
                 }
-                if (
-                  nativeEv &&
-                  nativeEv.key === "Enter" &&
-                  (nativeEv.metaKey || nativeEv.ctrlKey)
-                ) {
+                if (nativeEv.key === "Enter" && metaOrCtrl) {
                   e.preventDefault?.();
                   handleDeployHotfix();
+                  return;
+                }
+                if (Platform.OS === "web") {
+                  const autoEdit = computePythonAutoEdit({
+                    code,
+                    selectionStart: selectionRef.current.start,
+                    selectionEnd: selectionRef.current.end,
+                    key: nativeEv.key || "",
+                    shiftKey: Boolean(nativeEv.shiftKey),
+                    metaOrCtrlKey: metaOrCtrl,
+                    altKey: Boolean(nativeEv.altKey),
+                  });
+                  if (autoEdit) {
+                    e.preventDefault?.();
+                    selectionRef.current = {
+                      start: autoEdit.selectionStart,
+                      end: autoEdit.selectionEnd,
+                    };
+                    if (autoEdit.code !== code) {
+                      setCode(autoEdit.code);
+                    }
+                    setTimeout(() => {
+                      try {
+                        editorRef.current?.setSelectionRange?.(
+                          autoEdit.selectionStart,
+                          autoEdit.selectionEnd,
+                        );
+                      } catch {}
+                    }, 0);
+                  }
                 }
               }}
               multiline

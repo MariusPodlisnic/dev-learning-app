@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -15,6 +15,7 @@ import {
   StudioThemeColors,
 } from "../constants/theme";
 import { useThemedStyles } from "../constants/themeContext";
+import { computePythonAutoEdit } from "../utils/editorHelpers";
 import {
   deleteScratchpadSnippet,
   readSavedSnippets,
@@ -74,6 +75,11 @@ export default function PythonScratchpad({
   const [typingProfile, setTypingProfile] = useState<TypingSoundProfile>(() =>
     getTypingSoundProfile(),
   );
+  const editorRef = useRef<any>(null);
+  const selectionRef = useRef<{ start: number; end: number }>({
+    start: 0,
+    end: 0,
+  });
 
   useEffect(() => {
     return subscribeTypingSound(setTypingProfile);
@@ -242,18 +248,55 @@ export default function PythonScratchpad({
             </View>
 
             <TextInput
+              ref={editorRef}
               accessibilityLabel="Python playground scratchpad editor"
               value={code}
               onChangeText={handleCodeChange}
-              onKeyPress={(e) => {
-                const nativeEvt = e.nativeEvent as any;
+              onSelectionChange={(e) => {
+                selectionRef.current = e.nativeEvent.selection;
+              }}
+              onKeyPress={(e: any) => {
+                const nativeEvt = e?.nativeEvent;
                 const key = nativeEvt?.key || "";
-                if ((nativeEvt?.metaKey || nativeEvt?.ctrlKey) && key === "Enter") {
+                const metaOrCtrl = Boolean(nativeEvt?.metaKey || nativeEvt?.ctrlKey);
+                if (metaOrCtrl && key === "Enter") {
+                  e.preventDefault?.();
                   void handleRunCode();
                   return;
                 }
-                const kind = classifyTypingKey(key);
-                if (kind) playMechanicalKeystroke(kind);
+                if (!metaOrCtrl && !nativeEvt?.altKey) {
+                  const kind = classifyTypingKey(key);
+                  if (kind) playMechanicalKeystroke(kind);
+                }
+                if (Platform.OS === "web") {
+                  const autoEdit = computePythonAutoEdit({
+                    code,
+                    selectionStart: selectionRef.current.start,
+                    selectionEnd: selectionRef.current.end,
+                    key,
+                    shiftKey: Boolean(nativeEvt?.shiftKey),
+                    metaOrCtrlKey: metaOrCtrl,
+                    altKey: Boolean(nativeEvt?.altKey),
+                  });
+                  if (autoEdit) {
+                    e.preventDefault?.();
+                    selectionRef.current = {
+                      start: autoEdit.selectionStart,
+                      end: autoEdit.selectionEnd,
+                    };
+                    if (autoEdit.code !== code) {
+                      handleCodeChange(autoEdit.code);
+                    }
+                    setTimeout(() => {
+                      try {
+                        editorRef.current?.setSelectionRange?.(
+                          autoEdit.selectionStart,
+                          autoEdit.selectionEnd,
+                        );
+                      } catch {}
+                    }, 0);
+                  }
+                }
               }}
               multiline
               autoCapitalize="none"

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -16,6 +16,7 @@ import {
 } from "../constants/theme";
 import { useThemedStyles } from "../constants/themeContext";
 import { TestCaseResult } from "../types/lesson";
+import { computePythonAutoEdit } from "../utils/editorHelpers";
 import {
   buildMiniBuildWidgetScript,
   getMiniBuildProject,
@@ -99,6 +100,11 @@ export default function MiniBuildsArena({
     summary: string;
     results: TestCaseResult[];
   } | null>(null);
+  const editorRef = useRef<any>(null);
+  const selectionRef = useRef<{ start: number; end: number }>({
+    start: 0,
+    end: 0,
+  });
 
   const project = getMiniBuildProject(activeId);
   const activeCode = codeByProject[activeId];
@@ -364,14 +370,66 @@ export default function MiniBuildsArena({
               </View>
 
               <TextInput
+                ref={editorRef}
                 accessibilityLabel={`${project.title} Python editor`}
                 value={activeCode}
                 onChangeText={(next) =>
                   setCodeByProject((prev) => ({ ...prev, [activeId]: next }))
                 }
-                onKeyPress={(e) => {
-                  const kind = classifyTypingKey(e.nativeEvent?.key || "");
-                  if (kind) playMechanicalKeystroke(kind);
+                onSelectionChange={(e) => {
+                  selectionRef.current = e.nativeEvent.selection;
+                }}
+                onKeyPress={(e: any) => {
+                  const nativeEvt = e?.nativeEvent;
+                  const key = nativeEvt?.key || "";
+                  const metaOrCtrl = Boolean(
+                    nativeEvt?.metaKey || nativeEvt?.ctrlKey,
+                  );
+                  if (metaOrCtrl && key === "Enter") {
+                    e.preventDefault?.();
+                    if (nativeEvt?.shiftKey) {
+                      void handleVerifyAndShip();
+                    } else {
+                      void handleRunLiveWidget();
+                    }
+                    return;
+                  }
+                  if (!metaOrCtrl && !nativeEvt?.altKey) {
+                    const kind = classifyTypingKey(key);
+                    if (kind) playMechanicalKeystroke(kind);
+                  }
+                  if (Platform.OS === "web") {
+                    const autoEdit = computePythonAutoEdit({
+                      code: activeCode,
+                      selectionStart: selectionRef.current.start,
+                      selectionEnd: selectionRef.current.end,
+                      key,
+                      shiftKey: Boolean(nativeEvt?.shiftKey),
+                      metaOrCtrlKey: metaOrCtrl,
+                      altKey: Boolean(nativeEvt?.altKey),
+                    });
+                    if (autoEdit) {
+                      e.preventDefault?.();
+                      selectionRef.current = {
+                        start: autoEdit.selectionStart,
+                        end: autoEdit.selectionEnd,
+                      };
+                      if (autoEdit.code !== activeCode) {
+                        setCodeByProject((prev) => ({
+                          ...prev,
+                          [activeId]: autoEdit.code,
+                        }));
+                      }
+                      setTimeout(() => {
+                        try {
+                          editorRef.current?.setSelectionRange?.(
+                            autoEdit.selectionStart,
+                            autoEdit.selectionEnd,
+                          );
+                        } catch {}
+                      }, 0);
+                    }
+                  }
                 }}
                 multiline
                 autoCapitalize="none"

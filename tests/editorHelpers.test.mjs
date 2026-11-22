@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   computeAssertionDiff,
+  computePythonAutoEdit,
   computeSmartEnter,
   diagnoseFailedTest,
   extractErrorLineNumber,
@@ -155,4 +156,68 @@ test("diagnoseFailedTest surfaces conceptual debugging hints for common failure 
     actual: "healthy",
   });
   assert.equal(casingDiag?.badge, "LETTER CASING MISMATCH");
+});
+
+test("computePythonAutoEdit handles auto-pairs, selection wrapping, pair backspace, Tab, Smart Enter, and Cmd+/", () => {
+  const pairRes = computePythonAutoEdit({
+    code: "print",
+    selectionStart: 5,
+    selectionEnd: 5,
+    key: "(",
+  });
+  assert.equal(pairRes?.code, "print()");
+  assert.equal(pairRes?.selectionStart, 6);
+
+  const wrapRes = computePythonAutoEdit({
+    code: "hello",
+    selectionStart: 0,
+    selectionEnd: 5,
+    key: '"',
+  });
+  assert.equal(wrapRes?.code, '"hello"');
+  assert.equal(wrapRes?.selectionStart, 1);
+  assert.equal(wrapRes?.selectionEnd, 6);
+
+  const skipRes = computePythonAutoEdit({
+    code: "print()",
+    selectionStart: 6,
+    selectionEnd: 6,
+    key: ")",
+  });
+  assert.equal(skipRes?.code, "print()");
+  assert.equal(skipRes?.selectionStart, 7);
+
+  const bsRes = computePythonAutoEdit({
+    code: "print()",
+    selectionStart: 6,
+    selectionEnd: 6,
+    key: "Backspace",
+  });
+  assert.equal(bsRes?.code, "print");
+  assert.equal(bsRes?.selectionStart, 5);
+
+  const apostropheRes = computePythonAutoEdit({
+    code: "don",
+    selectionStart: 3,
+    selectionEnd: 3,
+    key: "'",
+  });
+  assert.equal(apostropheRes, null);
+
+  const tabRes = computePythonAutoEdit({
+    code: "x = 1",
+    selectionStart: 0,
+    selectionEnd: 0,
+    key: "Tab",
+  });
+  assert.equal(tabRes?.code, "    x = 1");
+
+  const commentRes = computePythonAutoEdit({
+    code: "x = 1",
+    selectionStart: 0,
+    selectionEnd: 5,
+    key: "/",
+    metaOrCtrlKey: true,
+  });
+  assert.equal(commentRes?.code, "# x = 1");
 });

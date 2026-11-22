@@ -209,6 +209,8 @@ interface StudioCodeEditorProps {
   testResults: TestCaseResult[] | null;
   selectedTestIndex: number;
   onSelectTestIndex: (idx: number) => void;
+  failedAttemptCount?: number;
+  lessonHints?: string[];
 }
 
 function HoverLiftButton({
@@ -281,12 +283,15 @@ export default function StudioCodeEditor({
   testResults,
   selectedTestIndex,
   onSelectTestIndex,
+  failedAttemptCount = 0,
+  lessonHints = [],
 }: StudioCodeEditorProps) {
   const styles = useThemedStyles(getStudioCodeEditorStyles);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
   const [copiedOutput, setCopiedOutput] = useState<boolean>(false);
   const [confirmReset, setConfirmReset] = useState<boolean>(false);
   const [consoleExpanded, setConsoleExpanded] = useState<boolean>(false);
+  const [clueOffset, setClueOffset] = useState<number>(0);
   const [cursorPos, setCursorPos] = useState<number>(0);
   const [hoveredChip, setHoveredChip] = useState<string | null>(null);
   const [hoveredTestIdx, setHoveredTestIdx] = useState<number | null>(null);
@@ -379,6 +384,19 @@ export default function StudioCodeEditor({
     /(Error|Traceback|Exception|✕)/i.test(output);
   const errorLineNumber = hasOutputError
     ? extractErrorLineNumber(output, totalLines)
+    : null;
+  const activeClueHints =
+    lessonHints.length > 0 ? lessonHints : selectedLesson.hints || [];
+  const shouldShowStuckClue =
+    failedAttemptCount >= 2 &&
+    !allChecksPassed &&
+    activeClueHints.length > 0;
+  const activeClueIndex = shouldShowStuckClue
+    ? (Math.max(0, failedAttemptCount - 2) + clueOffset) %
+      activeClueHints.length
+    : 0;
+  const activeStuckClue = shouldShowStuckClue
+    ? activeClueHints[activeClueIndex]
     : null;
 
   function applySelectionResult(result: EditorSelectionResult) {
@@ -1246,6 +1264,32 @@ export default function StudioCodeEditor({
                     : `→ ${testResults.filter((t) => t.passed).length} OF ${testResults.length} CHECKS PASSED — INSPECT BELOW`}
                 </Text>
               </View>
+
+              {activeStuckClue ? (
+                <View style={styles.stuckClueStrip}>
+                  <View style={styles.stuckClueLeft}>
+                    <Text style={styles.stuckClueBadge}>
+                      BYTE-CAT CLUE · TRY #{failedAttemptCount}
+                    </Text>
+                    <Text style={styles.stuckClueText}>{activeStuckClue}</Text>
+                  </View>
+                  {activeClueHints.length > 1 && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Next Byte-Cat clue"
+                      style={styles.stuckClueNextBtn}
+                      onPress={() => {
+                        playKeyClick();
+                        setClueOffset((prev) => prev + 1);
+                      }}
+                    >
+                      <Text style={styles.stuckClueNextText}>
+                        CLUE {activeClueIndex + 1}/{activeClueHints.length} →
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+              ) : null}
 
               <View style={styles.testCasePills}>
                 {testResults.map((tr, idx) => (

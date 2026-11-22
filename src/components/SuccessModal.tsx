@@ -24,6 +24,8 @@ interface SuccessModalProps {
   lessonId?: string;
   lessonTitle: string;
   keyTakeaway?: string;
+  patternBadge?: string;
+  complexities?: { time?: string; space?: string };
   nextLessonTitle?: string;
   hasNextLesson: boolean;
   challengeStepLabel?: string;
@@ -45,6 +47,8 @@ export default function SuccessModal({
   lessonId,
   lessonTitle,
   keyTakeaway,
+  patternBadge,
+  complexities,
   nextLessonTitle,
   hasNextLesson,
   challengeStepLabel,
@@ -189,7 +193,7 @@ export default function SuccessModal({
         </View>
       </View>
 
-      {/* Key Engineering Takeaway */}
+      {/* Key Engineering Takeaway + Mental Model Pattern Pills */}
       {keyTakeaway ? (
         <View style={styles.takeawayCard}>
           <View style={styles.takeawayBadgeRow}>
@@ -198,6 +202,27 @@ export default function SuccessModal({
                 💡 KEY ENGINEERING TAKEAWAY
               </Text>
             </View>
+            {patternBadge ? (
+              <View style={styles.patternPill}>
+                <Text style={styles.patternPillText}>
+                  {patternBadge.toUpperCase()}
+                </Text>
+              </View>
+            ) : null}
+            {complexities?.time ? (
+              <View style={styles.complexityPill}>
+                <Text style={styles.complexityPillText}>
+                  TIME {complexities.time}
+                </Text>
+              </View>
+            ) : null}
+            {complexities?.space ? (
+              <View style={styles.complexityPill}>
+                <Text style={styles.complexityPillText}>
+                  SPACE {complexities.space}
+                </Text>
+              </View>
+            ) : null}
           </View>
           <Text style={styles.takeawayText} numberOfLines={3}>
             {keyTakeaway}
@@ -537,6 +562,8 @@ const createStyles = (StudioColors: StudioThemeColors) =>
   takeawayBadgeRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
   },
   takeawaySticker: {
     backgroundColor: StudioColors.yellow,
@@ -552,6 +579,36 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     fontWeight: "900",
     fontFamily: MonoFont,
     letterSpacing: 0.6,
+  },
+  patternPill: {
+    backgroundColor: StudioColors.mint,
+    borderWidth: 1,
+    borderColor: StudioColors.ink,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  patternPillText: {
+    color: StudioColors.ink,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  complexityPill: {
+    backgroundColor: StudioColors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: StudioColors.border,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  complexityPillText: {
+    color: StudioColors.textPrimary,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.4,
   },
   takeawayText: {
     color: StudioColors.textPrimary,

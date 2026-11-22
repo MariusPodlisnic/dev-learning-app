@@ -232,6 +232,9 @@ export default function HomeScreen() {
   const usedSolutionInAttemptRef = useRef<boolean>(false);
   const usedScaffoldInAttemptRef = useRef<boolean>(false);
   const failedAttemptsByLessonRef = useRef<Record<string, number>>({});
+  const [failedAttemptsByLesson, setFailedAttemptsByLesson] = useState<
+    Record<string, number>
+  >({});
   const [activeChallengeIdx, setActiveChallengeIdx] = useState<number>(0);
   const [activeStreakMilestone, setActiveStreakMilestone] =
     useState<StreakMilestone | null>(null);
@@ -747,6 +750,9 @@ export default function HomeScreen() {
       usedSolutionInAttemptRef,
       usedScaffoldInAttemptRef,
       failedAttemptsByLessonRef,
+      onFailedAttemptsChange: (lessonId, count) => {
+        setFailedAttemptsByLesson((prev) => ({ ...prev, [lessonId]: count }));
+      },
       completedLessons,
       setCompletedLessons,
       completedChallenges,
@@ -1491,6 +1497,19 @@ export default function HomeScreen() {
                     testResults={testResults}
                     selectedTestIndex={selectedTestIndex}
                     onSelectTestIndex={setSelectedTestIndex}
+                    failedAttemptCount={
+                      failedAttemptsByLesson[selectedLesson.id] || 0
+                    }
+                    lessonHints={
+                      activeChallengeIdx > 0 &&
+                      selectedLesson.practiceChallenges?.[
+                        activeChallengeIdx - 1
+                      ]?.hints
+                        ? selectedLesson.practiceChallenges[
+                            activeChallengeIdx - 1
+                          ].hints
+                        : selectedLesson.hints
+                    }
                   />
                 )}
               </View>

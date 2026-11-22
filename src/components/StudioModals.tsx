@@ -234,6 +234,8 @@ export default function StudioModals({
             keyTakeaway={
               lessonEnrichment?.realWorldUse || selectedLesson?.description
             }
+            patternBadge={selectedLesson?.category}
+            complexities={selectedLesson?.complexities}
             nextLessonTitle={
               selectedLesson?.practiceChallenges &&
               activeChallengeIdx < selectedLesson.practiceChallenges.length

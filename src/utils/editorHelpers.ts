@@ -246,6 +246,124 @@ export function computeSmartEnter(
   };
 }
 
+const PYTHON_AUTO_PAIRS: Record<string, string> = {
+  "(": ")",
+  "[": "]",
+  "{": "}",
+  '"': '"',
+  "'": "'",
+};
+
+const PYTHON_CLOSING_CHARS = new Set([")", "]", "}", '"', "'"]);
+
+export interface PythonAutoEditInput {
+  code: string;
+  selectionStart: number;
+  selectionEnd: number;
+  key: string;
+  shiftKey?: boolean;
+  metaOrCtrlKey?: boolean;
+  altKey?: boolean;
+}
+
+/**
+ * Unified Python editor key-edit helper for Playground, Mini-Builds, and Bug Hunt:
+ * handles Tab/Shift+Tab indent, Cmd/Ctrl+/ comments, Smart Enter auto-indent,
+ * auto-closing brackets/quotes, closing-char skip-over, and pair backspace.
+ */
+export function computePythonAutoEdit(
+  input: PythonAutoEditInput,
+): EditorSelectionResult | null {
+  const {
+    code,
+    selectionStart,
+    selectionEnd,
+    key,
+    shiftKey = false,
+    metaOrCtrlKey = false,
+    altKey = false,
+  } = input;
+
+  if (altKey) return null;
+
+  const start = clampOffset(selectionStart, code.length);
+  const end = Math.max(start, clampOffset(selectionEnd, code.length));
+
+  if (key === "/" && metaOrCtrlKey) {
+    return toggleLineComment(code, start, end);
+  }
+
+  if (metaOrCtrlKey) return null;
+
+  if (key === "Tab") {
+    return indentSelection(code, start, end, shiftKey ? "outdent" : "indent");
+  }
+
+  if (key === "Enter" && !shiftKey) {
+    const enterRes = computeSmartEnter(code, start, end);
+    if (enterRes.handled) {
+      return {
+        code: enterRes.code,
+        selectionStart: enterRes.cursorPos,
+        selectionEnd: enterRes.cursorPos,
+      };
+    }
+    return null;
+  }
+
+  // Closing-char skip-over when typing the matching closer right before it
+  if (
+    start === end &&
+    PYTHON_CLOSING_CHARS.has(key) &&
+    code[start] === key
+  ) {
+    return {
+      code,
+      selectionStart: start + 1,
+      selectionEnd: start + 1,
+    };
+  }
+
+  // Auto-closing pair insertion (or wrapping a selected span!)
+  if (PYTHON_AUTO_PAIRS[key]) {
+    const closer = PYTHON_AUTO_PAIRS[key];
+    if (start < end) {
+      const wrapped = key + code.slice(start, end) + closer;
+      return {
+        code: code.slice(0, start) + wrapped + code.slice(end),
+        selectionStart: start + 1,
+        selectionEnd: end + 1,
+      };
+    }
+    // Avoid auto-pairing a quote immediately after an identifier/number (e.g. don't)
+    const prevChar = start > 0 ? code[start - 1] : "";
+    if ((key === "'" || key === '"') && /[A-Za-z0-9_]/.test(prevChar)) {
+      return null;
+    }
+    return {
+      code: code.slice(0, start) + key + closer + code.slice(end),
+      selectionStart: start + 1,
+      selectionEnd: start + 1,
+    };
+  }
+
+  // Pair backspace: deleting `(` in `()` removes both
+  if (
+    key === "Backspace" &&
+    start === end &&
+    start > 0 &&
+    PYTHON_AUTO_PAIRS[code[start - 1]] === code[start]
+  ) {
+    return {
+      code: code.slice(0, start - 1) + code.slice(start + 1),
+      selectionStart: start - 1,
+      selectionEnd: start - 1,
+    };
+  }
+
+  return null;
+}
+
 /**
  * Diagnoses where and why an actual test output differs from expected output.
  */

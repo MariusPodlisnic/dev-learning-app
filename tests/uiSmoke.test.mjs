@@ -374,6 +374,52 @@ test("StudioCodeEditor renders editor chrome, quick inserts, trace control, and 
   assert.ok(editorText.includes("FIRST DIFFERENCE"));
   assert.ok(editorText.includes("OFF BY ONE"));
   assert.ok(editorText.includes("YOUR OUTPUT · MISMATCH"));
+  assert.ok(
+    !editorText.includes("BYTE-CAT CLUE"),
+    "Stuck clue should stay hidden until 2+ failed attempts",
+  );
+
+  const stuckEditorText = visibleText(
+    renderThemed(
+      React.createElement(StudioCodeEditor, {
+        selectedLesson: {
+          id: "test-1",
+          track: "python_basics",
+          lesson_order: 1,
+          title: "Test Module",
+          description: "Test description",
+          initial_code: "def solve():\n    pass",
+          is_free: true,
+        },
+        code: "def solve():\n    return 41",
+        onChangeCode: () => {},
+        hasSavedDraft: true,
+        pyodideReady: true,
+        isExecuting: false,
+        onRunPlaygroundOnly: () => {},
+        onRunPythonCode: () => {},
+        bottomTab: "tests",
+        onChangeBottomTab: () => {},
+        output: "",
+        onClearOutput: () => {},
+        testResults: [
+          {
+            id: 1,
+            input: "solve()",
+            expected: "42",
+            actual: "41",
+            passed: false,
+          },
+        ],
+        selectedTestIndex: 0,
+        onSelectTestIndex: () => {},
+        failedAttemptCount: 2,
+        lessonHints: ["Return 42 directly instead of 41."],
+      }),
+    ),
+  );
+  assert.ok(stuckEditorText.includes("BYTE-CAT CLUE · TRY #2"));
+  assert.ok(stuckEditorText.includes("Return 42 directly instead of 41."));
 });
 
 test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) and limits Concept Check to Full Guide", () => {

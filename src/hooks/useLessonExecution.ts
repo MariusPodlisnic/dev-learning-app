@@ -47,6 +47,7 @@ export interface UseLessonExecutionOptions {
   usedSolutionInAttemptRef: MutableRefObject<boolean>;
   usedScaffoldInAttemptRef: MutableRefObject<boolean>;
   failedAttemptsByLessonRef: MutableRefObject<Record<string, number>>;
+  onFailedAttemptsChange?: (lessonId: string, count: number) => void;
   completedLessons: Record<string, boolean>;
   setCompletedLessons: Dispatch<SetStateAction<Record<string, boolean>>>;
   completedChallenges: Record<string, boolean>;
@@ -91,6 +92,7 @@ export function useLessonExecution({
   usedSolutionInAttemptRef,
   usedScaffoldInAttemptRef,
   failedAttemptsByLessonRef,
+  onFailedAttemptsChange,
   completedLessons,
   setCompletedLessons,
   completedChallenges,
@@ -189,8 +191,10 @@ export function useLessonExecution({
       setOutput(outcome.consoleOutput);
 
       if (!outcome.allPassed && selectedLesson) {
-        failedAttemptsByLessonRef.current[selectedLesson.id] =
+        const nextFails =
           (failedAttemptsByLessonRef.current[selectedLesson.id] || 0) + 1;
+        failedAttemptsByLessonRef.current[selectedLesson.id] = nextFails;
+        onFailedAttemptsChange?.(selectedLesson.id, nextFails);
       }
 
       if (outcome.allPassed && selectedLesson) {
@@ -215,6 +219,7 @@ export function useLessonExecution({
               ? "retries"
               : "clean";
         failedAttemptsByLessonRef.current[selectedLesson.id] = 0;
+        onFailedAttemptsChange?.(selectedLesson.id, 0);
 
         const existingReviewEntry = reviewSchedule[selectedLesson.id];
         const todayKey = getIsoDateKey();
