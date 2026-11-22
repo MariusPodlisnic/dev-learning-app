@@ -13,8 +13,10 @@ import {
   Lesson,
 } from "../types/lesson";
 import { LessonEnrichment } from "../constants/curriculum";
+import { type CommandAction } from "../utils/commandPalette";
 import Auth, { type AuthModalMode } from "./Auth";
 import CertificateModal from "./CertificateModal";
+import CommandPaletteModal from "./CommandPaletteModal";
 import PaywallModal, {
   PaywallPlanId,
   PaywallTriggerContext,
@@ -75,6 +77,9 @@ interface StudioModalsProps {
   pyodideReady?: boolean;
   onOpenSettingsPaywall?: () => void;
   onCloseSettings: () => void;
+  showCommandPalette: boolean;
+  onExecuteCommand: (action: CommandAction) => void;
+  onCloseCommandPalette: () => void;
   activeCertificate: CertificateData | null;
   onCloseCertificate: () => void;
   activeStreakMilestone: StreakMilestone | null;
@@ -133,6 +138,9 @@ export default function StudioModals({
   pyodideReady,
   onOpenSettingsPaywall,
   onCloseSettings,
+  showCommandPalette,
+  onExecuteCommand,
+  onCloseCommandPalette,
   activeCertificate,
   onCloseCertificate,
   activeStreakMilestone,
@@ -320,6 +328,24 @@ export default function StudioModals({
             pyodideReady={pyodideReady}
             onOpenPaywall={onOpenSettingsPaywall}
             onClose={onCloseSettings}
+          />
+        </View>
+      )}
+
+      {showCommandPalette && (
+        <View style={styles.modalOverlay}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close command palette backdrop"
+            style={StyleSheet.absoluteFill}
+            onPress={onCloseCommandPalette}
+          />
+          <CommandPaletteModal
+            lessons={lessons}
+            completedLessons={completedLessons}
+            isPremium={effectiveIsPremium}
+            onExecuteAction={onExecuteCommand}
+            onClose={onCloseCommandPalette}
           />
         </View>
       )}

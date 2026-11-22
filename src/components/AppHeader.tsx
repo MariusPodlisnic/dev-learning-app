@@ -62,6 +62,7 @@ interface AppHeaderProps {
   session: Session | null;
   onOpenProfile: () => void;
   onOpenSettings?: () => void;
+  onOpenCommandPalette?: () => void;
   onOpenPaywall: () => void;
   onOpenAuth: () => void;
   onSignOut: () => void;
@@ -416,6 +417,7 @@ export default function AppHeader({
   session,
   onOpenProfile,
   onOpenSettings,
+  onOpenCommandPalette,
   onOpenPaywall,
   onOpenAuth,
   onSignOut,
@@ -1124,6 +1126,29 @@ export default function AppHeader({
                 ]}
               />
             </Pressable>
+
+            {!isCompactHeader && onOpenCommandPalette && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open Quick Command Palette"
+                style={({ pressed }) => [
+                  styles.cmdKeycapBtn,
+                  themeMode === "light"
+                    ? styles.settingsLaunchBtnLight
+                    : styles.settingsLaunchBtnDark,
+                  pressed && {
+                    transform: [{ translateX: 1 }, { translateY: 1 }],
+                  },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  onOpenCommandPalette();
+                }}
+              >
+                <StudioIcon name="search" size={14} />
+                <Text style={styles.cmdKeycapText}>⌘K</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </View>
@@ -1779,6 +1804,28 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     settingsLaunchText: {
       color: StudioColors.textPrimary,
       fontSize: 9.5,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.4,
+    },
+    cmdKeycapBtn: {
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      minHeight: 36,
+      borderRadius: 7,
+      borderWidth: 2,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 5,
+      ...HardShadowSm,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    cmdKeycapText: {
+      color: StudioColors.textPrimary,
+      fontSize: 10,
+      lineHeight: 13,
+      includeFontPadding: false,
       fontWeight: "900",
       fontFamily: MonoFont,
       letterSpacing: 0.4,

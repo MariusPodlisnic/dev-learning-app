@@ -366,6 +366,13 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.waitForSelector("text=TEST RUN", { timeout: 5000 });
     await page.waitForSelector("text=TRACE", { timeout: 5000 });
 
+    // Keyboard Command Palette opens with Ctrl+K, filters commands, and jumps cleanly to Playground
+    await page.keyboard.press("Control+k");
+    await page.getByLabel("Quick command palette search").waitFor({ timeout: 5000 });
+    await page.getByLabel("Quick command palette search").fill("playground");
+    await page.getByLabel("Run command: Python Playground (playground.py)").click();
+    await page.waitForSelector("text=PLAYGROUND.PY · FREE PYTHON 3.11 SCRATCHPAD", { timeout: 5000 });
+
     assert.deepEqual(pageErrors, [], `Unexpected page errors: ${pageErrors.join("; ")}`);
   } finally {
     await session.close();

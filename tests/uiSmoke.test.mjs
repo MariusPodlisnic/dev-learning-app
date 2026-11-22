@@ -71,6 +71,9 @@ const { default: MiniBuildsArena } = loadTsModule(
 const { default: PythonScratchpad } = loadTsModule(
   "src/components/PythonScratchpad.tsx",
 );
+const { default: CommandPaletteModal } = loadTsModule(
+  "src/components/CommandPaletteModal.tsx",
+);
 const { default: WeeklyLeaguePanel } = loadTsModule(
   "src/components/WeeklyLeaguePanel.tsx",
 );
@@ -1315,4 +1318,37 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(scratchpadText.includes("ALGO BENCH"));
   assert.ok(scratchpadText.includes("RUN PLAYGROUND"));
   assert.ok(scratchpadText.includes("SAVED SNIPPETS"));
+});
+
+test("CommandPaletteModal renders quick switcher groups, search box, and keyboard hints", () => {
+  const paletteText = visibleText(
+    renderThemed(
+      React.createElement(CommandPaletteModal, {
+        lessons: [
+          {
+            id: "py-01",
+            title: "Variables & Data Types",
+            track: "python_basics",
+            category: "Foundations",
+            description: "Store values cleanly.",
+            content: "",
+            initial_code: "",
+            expected_output: "",
+            is_free: true,
+            lesson_order: 1,
+          },
+        ],
+        completedLessons: {},
+        isPremium: false,
+        onExecuteAction: () => {},
+        onClose: () => {},
+      }),
+    ),
+  );
+  assert.ok(paletteText.includes("NAVIGATION"));
+  assert.ok(paletteText.includes("ARCADE"));
+  assert.ok(paletteText.includes("AUDIO & FOCUS"));
+  assert.ok(paletteText.includes("Python Playground"));
+  assert.ok(paletteText.includes("Variables & Data Types"));
+  assert.ok(paletteText.includes("NAVIGATE"));
 });

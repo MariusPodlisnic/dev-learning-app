@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import Head from "expo-router/head";
 import type { Metadata } from "expo-router/server";
 import React, {
@@ -49,6 +49,7 @@ import {
 import { getLessonEnrichment } from "../constants/curriculum";
 import { StreakMilestone } from "../constants/streaks";
 import {
+  isStudioPaletteUnlocked,
   StudioColors,
   TrackThemes,
 } from "../constants/theme";
@@ -67,11 +68,14 @@ import {
   ViewMode,
   writeLocalJson,
 } from "../types/lesson";
+import { applyAmbientPreset } from "../utils/ambientSoundscapes";
 import {
   captureLandingAttribution,
   trackFunnelMilestone,
 } from "../utils/attribution";
 import { buildCloudSyncFeedback } from "../utils/authHelpers";
+import { type CommandAction } from "../utils/commandPalette";
+import { toggleLofiRadio } from "../utils/lofiRadio";
 import {
   getKeyboardAvoidingBehavior,
   isCompactHeaderWidth,
@@ -84,7 +88,10 @@ import {
 } from "../utils/pyodideRunner";
 import type { PythonTraceResult } from "../utils/pythonTrace";
 import { playVictoryFanfare } from "../utils/soundEffects";
-import { subscribePomodoroComplete } from "../utils/pomodoroTimer";
+import {
+  subscribePomodoroComplete,
+  togglePomodoro,
+} from "../utils/pomodoroTimer";
 import { recordWeeklyXpSnapshot } from "../utils/weeklyLeague";
 
 const AchievementsHall = React.lazy(
@@ -229,7 +236,7 @@ export default function HomeScreen() {
   const [activeStreakMilestone, setActiveStreakMilestone] =
     useState<StreakMilestone | null>(null);
 
-  const { themeMode, setThemeMode, toggleTheme } = useTheme();
+  const { themeMode, setThemeMode, toggleTheme, setPaletteId } = useTheme();
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authDefaultMode, setAuthDefaultMode] =
     useState<AuthModalMode>("signin");
@@ -253,6 +260,7 @@ export default function HomeScreen() {
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [showCommandPalette, setShowCommandPalette] = useState<boolean>(false);
   const [activeCertificate, setActiveCertificate] =
     useState<CertificateData | null>(null);
   const [upgrading, setUpgrading] = useState<boolean>(false);
@@ -784,6 +792,75 @@ export default function HomeScreen() {
     recordWeeklyXpSnapshot(xpPoints);
   }, [xpPoints]);
 
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+        return;
+      }
+      if (event.key === "Escape") {
+        setShowCommandPalette((prev) => (prev ? false : prev));
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  function handleExecuteCommandAction(action: CommandAction) {
+    switch (action.type) {
+      case "view_mode":
+        setViewMode(action.mode);
+        return;
+      case "route":
+        router.push(action.href);
+        return;
+      case "lesson": {
+        const target = lessons.find((l) => l.id === action.lessonId);
+        if (target) {
+          handleSelectLesson(target);
+        }
+        return;
+      }
+      case "toggle_theme":
+        toggleTheme();
+        return;
+      case "set_palette": {
+        if (
+          isStudioPaletteUnlocked(
+            action.paletteId,
+            devRank.level,
+            effectiveIsPremium,
+          )
+        ) {
+          setPaletteId(action.paletteId);
+        } else {
+          openPaywall({
+            source: "header",
+            lessonTitle: "All 4 Cozy Studio Theme Palettes",
+          });
+        }
+        return;
+      }
+      case "toggle_lofi":
+        toggleLofiRadio();
+        return;
+      case "ambient_preset":
+        applyAmbientPreset(action.presetId);
+        return;
+      case "toggle_pomodoro":
+        togglePomodoro();
+        return;
+      case "open_settings":
+        setShowSettingsModal(true);
+        return;
+      case "open_profile":
+        setShowProfileModal(true);
+        return;
+    }
+  }
+
   const currentLessons = lessons.filter((l) => l.track === activeTrack);
   const completedCount = currentLessons.filter(
     (l) => completedLessons[l.id],
@@ -921,6 +998,7 @@ export default function HomeScreen() {
         session={session}
         onOpenProfile={() => setShowProfileModal(true)}
         onOpenSettings={() => setShowSettingsModal(true)}
+        onOpenCommandPalette={() => setShowCommandPalette(true)}
         onOpenPaywall={() => openPaywall({ source: "header" })}
         onOpenAuth={() => openAuthModal()}
         onSignOut={() => supabase.auth.signOut()}
@@ -1501,6 +1579,9 @@ export default function HomeScreen() {
           })
         }
         onCloseSettings={() => setShowSettingsModal(false)}
+        showCommandPalette={showCommandPalette}
+        onExecuteCommand={handleExecuteCommandAction}
+        onCloseCommandPalette={() => setShowCommandPalette(false)}
         activeCertificate={activeCertificate}
         onCloseCertificate={() => setActiveCertificate(null)}
         activeStreakMilestone={activeStreakMilestone}
