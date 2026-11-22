@@ -4,6 +4,7 @@ export type NavigationIconName =
   | "menu_account_rank"
   | "menu_settings"
   | "pro_member"
+  | "nav_home"
   | "nav_skillmap"
   | "nav_studio"
   | "nav_arcade"
@@ -71,6 +72,11 @@ export const NAVIGATION_ICON_INNER_SVG: Record<NavigationIconName, string> = {
     <polygon points="16,10.2 19.6,15.5 16,21.5 12.4,15.5" fill="#B8FF3B"/>
     <circle cx="16" cy="5.8" r="1.4" fill="#FFFFFF" stroke="#111111" stroke-width="1"/>
     <path d="M25.5 4.2 L26.5 6 L28.3 7 L26.5 8 L25.5 9.8 L24.5 8 L22.7 7 L24.5 6 Z" fill="#FFFFFF" stroke="#111111" stroke-width="0.9" stroke-linejoin="round"/>
+  `,
+  nav_home: `
+    <path d="M5 15 L16 5 L27 15 V26 H5 Z" fill="#6EE7B7" stroke="#111111" stroke-width="2" stroke-linejoin="round"/>
+    <rect x="12.5" y="17" width="7" height="9" rx="1.5" fill="#FFDE59" stroke="#111111" stroke-width="1.8"/>
+    <circle cx="16" cy="11.5" r="2" fill="#FF90E8" stroke="#111111" stroke-width="1.4"/>
   `,
   nav_skillmap: `
     <line x1="8" y1="24" x2="16" y2="16" stroke="#111111" stroke-width="3" stroke-linecap="round"/>

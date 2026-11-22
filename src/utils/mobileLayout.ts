@@ -3,7 +3,7 @@ export const COMPACT_STUDIO_BREAKPOINT = 920;
 
 export type MobileNavTarget =
   | {
-      key: "roadmap" | "studio" | "arcade" | "algolab";
+      key: "home" | "roadmap" | "studio" | "arcade" | "algolab";
       kind: "mode";
       icon: string;
       shortLabel: string;
@@ -19,6 +19,13 @@ export type MobileNavTarget =
     };
 
 export const MOBILE_NAV_ITEMS: readonly MobileNavTarget[] = [
+  {
+    key: "home",
+    kind: "mode",
+    icon: "🏠",
+    shortLabel: "Home",
+    accessibilityLabel: "Home Menu",
+  },
   {
     key: "roadmap",
     kind: "mode",
@@ -46,14 +53,6 @@ export const MOBILE_NAV_ITEMS: readonly MobileNavTarget[] = [
     icon: "🔬",
     shortLabel: "Lab",
     accessibilityLabel: "Algorithm Visual Lab",
-  },
-  {
-    key: "explore",
-    kind: "route",
-    href: "/explore",
-    icon: "📖",
-    shortLabel: "Docs",
-    accessibilityLabel: "Curriculum Showcase",
   },
 ];
 

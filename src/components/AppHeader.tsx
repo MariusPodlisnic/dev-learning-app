@@ -1,7 +1,6 @@
 "use no memo";
 
 import { Session } from "@supabase/supabase-js";
-import { router } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Animated,
@@ -90,6 +89,8 @@ function getModeAccent(viewMode: ViewMode): {
   secondary: string;
 } {
   switch (viewMode) {
+    case "home":
+      return { primary: StudioColors.mint, secondary: StudioColors.yellow };
     case "studio":
       return { primary: "#38BDF8", secondary: StudioColors.mint };
     case "arcade":
@@ -456,11 +457,13 @@ export default function AppHeader({
       {/* Left Cluster: Brand + Category 1 (Coding & Labs) */}
       <View style={styles.headerLeft}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go to Devy Home Menu"
           style={({ pressed }) => [
             styles.brandGroup,
             pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
           ]}
-          onPress={() => handleSwitchMode("roadmap")}
+          onPress={() => handleSwitchMode("home")}
         >
           <View style={styles.brandIconBox}>
             <StudioIcon name="devlearn_logo" size={22} />
@@ -477,6 +480,27 @@ export default function AppHeader({
             </View>
 
             <View style={styles.modeSwitcher}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open Devy Home Menu"
+              style={({ pressed }) => [
+                styles.modeBtn,
+                viewMode === "home" && styles.modeBtnActive,
+                pressed && { transform: [{ translateY: 1 }] },
+              ]}
+              onPress={() => handleSwitchMode("home")}
+            >
+              <StudioIcon name="nav_home" size={18} />
+              <Text
+                style={[
+                  styles.modeBtnText,
+                  viewMode === "home" && styles.modeBtnTextActive,
+                ]}
+              >
+                HOME
+              </Text>
+            </Pressable>
+
             <Pressable
               style={({ pressed }) => [
                 styles.modeBtn,
@@ -556,20 +580,6 @@ export default function AppHeader({
               >
                 ALGO LAB
               </Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.modeBtn,
-                pressed && { transform: [{ translateY: 1 }] },
-              ]}
-              onPress={() => {
-                playKeyClick();
-                router.push("/explore");
-              }}
-            >
-              <StudioIcon name="nav_showcase" size={18} />
-              <Text style={styles.modeBtnText}>SHOWCASE</Text>
             </Pressable>
             </View>
           </View>

@@ -67,13 +67,24 @@ export function buildCommandPaletteItems(
   const items: CommandPaletteItem[] = [
     // NAVIGATION
     {
+      id: "nav-home",
+      group: "NAVIGATION",
+      title: "Home Menu & 3D Desk",
+      subtitle: "Main studio dashboard with interactive 3D CRT desk & portals",
+      keywords: ["home", "main", "menu", "desk", "3d", "start", "lobby"],
+      icon: "nav_home",
+      badge: "HOME",
+      featured: true,
+      action: { type: "view_mode", mode: "home" },
+    },
+    {
       id: "nav-roadmap",
       group: "NAVIGATION",
       title: "Skill Map & Roadmap",
       subtitle: "Browse Python, Algorithms, and System Design tracks",
-      keywords: ["map", "home", "tracks", "roadmap", "path", "curriculum"],
+      keywords: ["map", "tracks", "roadmap", "path", "curriculum", "tree"],
       icon: "nav_skillmap",
-      badge: "HOME",
+      badge: "MAP",
       featured: true,
       action: { type: "view_mode", mode: "roadmap" },
     },

@@ -43,6 +43,8 @@ function getMobileNavIcon(
   isPremium: boolean,
 ): StudioIconName {
   switch (key) {
+    case "home":
+      return "nav_home";
     case "roadmap":
       return "nav_skillmap";
     case "studio":

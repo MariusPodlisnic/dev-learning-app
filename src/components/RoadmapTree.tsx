@@ -36,22 +36,10 @@ import {
 import { playKeyClick } from "../utils/soundEffects";
 import {
   buildDueReviewQueue,
-  getReviewRetentionSummary,
   ReviewScheduleEntry,
 } from "../utils/spacedRepetition";
-import ByteCatGuideCard from "./ByteCatGuideCard";
-import RoadmapDailyQuestCard from "./RoadmapDailyQuestCard";
 import RoadmapRetroTv from "./RoadmapRetroTv";
-import RoadmapReviewCard from "./RoadmapReviewCard";
 import RoadmapScrollBackdrop from "./RoadmapScrollBackdrop";
-import RoadmapWelcomeCard from "./RoadmapWelcomeCard";
-import {
-  getOnboardingState,
-  hydrateOnboardingState,
-  shouldShowWelcomeCard,
-  subscribeOnboarding,
-  type UserOnboardingState,
-} from "../utils/userOnboarding";
 import {
   getDifficultyColor,
   getShortLessonSummary,
@@ -128,14 +116,10 @@ export default function RoadmapTree({
   onSelectLesson,
   claimedChapters = {},
   onClaimChapterBonus,
-  onClaimDailyQuestBonus,
   totalXp = 0,
-  streakCount = 0,
-  lastActiveDate = null,
   totalSolvedCount = 0,
   resumeLesson = null,
   onStartQuickMode,
-  onOpenPaywall,
   onOpenChapterCertificate,
 }: RoadmapTreeProps) {
   const { colors } = useTheme();
@@ -149,15 +133,7 @@ export default function RoadmapTree({
   >("all");
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [onboardingState, setOnboardingState] = useState<UserOnboardingState>(
-    () => getOnboardingState(),
-  );
   const [treeOffsetY, setTreeOffsetY] = useState<number>(620);
-
-  useEffect(() => {
-    void hydrateOnboardingState();
-    return subscribeOnboarding(setOnboardingState);
-  }, []);
   const [maxScrollBottomY, setMaxScrollBottomY] = useState<number>(viewportHeight);
   const [contentHeight, setContentHeight] = useState<number>(2000);
   const [scrollViewHeight, setScrollViewHeight] = useState<number>(viewportHeight);
@@ -250,14 +226,6 @@ export default function RoadmapTree({
     trackFilter: activeTrack,
   });
   const dueReviewIdSet = new Set(dueReviewItems.map((item) => item.lesson.id));
-  const reviewSummary = getReviewRetentionSummary({
-    lessons,
-    completedLessons,
-    peekedSolutions,
-    reviewSchedule,
-    isPremium,
-    trackFilter: activeTrack,
-  });
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredTrackLessons = trackLessons.filter((lesson) => {
@@ -400,43 +368,6 @@ export default function RoadmapTree({
           />
         </View>
 
-        {/* 5-Second Interactive Welcome for First-Time Visitors */}
-        {shouldShowWelcomeCard(onboardingState, totalSolvedCount, totalXp) ? (
-          <RoadmapWelcomeCard
-            initialGoalTrack={activeTrack}
-            onCompleteWelcome={({ goalTrack }) => {
-              onSelectTrack(goalTrack);
-              const goalLessons = lessons
-                .filter((l) => l.track === goalTrack)
-                .sort(
-                  (a, b) =>
-                    getCurriculumLessonSortKey(goalTrack, a) -
-                    getCurriculumLessonSortKey(goalTrack, b),
-                );
-              const firstStarter = goalLessons.find(
-                (l) => !isLessonLockedForUser(l, isPremium),
-              );
-              if (firstStarter) {
-                onSelectLesson(firstStarter);
-              }
-            }}
-          />
-        ) : null}
-
-        {/* Byte-Cat Companion Hub & Interactive Quotes */}
-        <ByteCatGuideCard
-          completedCount={completedCount}
-          totalCount={trackLessons.length}
-          activeTrack={activeTrack}
-          activeTrackLabel={currentTrackMeta.label}
-          activeTrackAccent={currentTrackMeta.stickerBg}
-          isPremium={isPremium}
-          totalXp={totalXp}
-          streakCount={streakCount}
-          lastActiveDate={lastActiveDate}
-          onOpenPaywall={onOpenPaywall}
-        />
-
         {/* Suggestive 3-Path Track Switcher */}
         <View style={styles.trackSwitcherSection}>
           <Text style={styles.trackSectionKicker}>
@@ -470,27 +401,6 @@ export default function RoadmapTree({
             })}
           </View>
         </View>
-
-        {/* Today's 5-Min Daily Quest Strip */}
-        <RoadmapDailyQuestCard
-          onStartLessonStep={
-            nextUpLesson ? () => onSelectLesson(nextUpLesson) : undefined
-          }
-          onStartArenaStep={
-            onStartQuickMode ? (mode) => onStartQuickMode(mode) : undefined
-          }
-          onClaimBonus={onClaimDailyQuestBonus}
-        />
-
-        {/* Spaced Repetition Review Queue */}
-        <RoadmapReviewCard
-          dueItems={dueReviewItems}
-          summary={reviewSummary}
-          onStartReview={(lesson) => onSelectLesson(lesson)}
-          onFilterDue={() =>
-            setStatusFilter((prev) => (prev === "due" ? "all" : "due"))
-          }
-        />
 
         {/* Filter & Search Control Bar */}
         <View style={styles.filterToolbarCard}>

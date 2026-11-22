@@ -74,6 +74,9 @@ const { default: PythonScratchpad } = loadTsModule(
 const { default: CommandPaletteModal } = loadTsModule(
   "src/components/CommandPaletteModal.tsx",
 );
+const { default: HomeMenuScreen } = loadTsModule(
+  "src/components/HomeMenuScreen.tsx",
+);
 const { default: WeeklyLeaguePanel } = loadTsModule(
   "src/components/WeeklyLeaguePanel.tsx",
 );
@@ -121,7 +124,7 @@ test("MobileThumbNav renders all 5 destinations and marks Arcade active for mini
   );
   const freeText = visibleText(freeHtml);
 
-  for (const label of ["Map", "Studio", "Arcade", "Lab", "Docs"]) {
+  for (const label of ["Home", "Map", "Studio", "Arcade", "Lab"]) {
     assert.ok(freeText.includes(label), `Missing MobileThumbNav label: ${label}`);
   }
   assert.ok(
@@ -169,6 +172,7 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
     React.createElement(AppHeader, { ...baseProps, isCompactHeader: false }),
   );
   const desktopText = visibleText(desktopHtml);
+  assert.ok(desktopText.includes("HOME"));
   assert.ok(desktopText.includes("SKILL MAP"));
   assert.ok(desktopText.includes("CODE STUDIO"));
   assert.ok(desktopText.includes("ARCADE"));
@@ -1402,4 +1406,42 @@ test("CommandPaletteModal renders quick switcher groups, search box, and keyboar
   assert.ok(paletteText.includes("Python Playground"));
   assert.ok(paletteText.includes("Variables & Data Types"));
   assert.ok(paletteText.includes("NAVIGATE"));
+});
+
+test("HomeMenuScreen renders 3D CRT Desk centerpiece, 4 portals, Byte-Cat, and Daily Quest cleanly", () => {
+  const homeHtml = renderThemed(
+    React.createElement(HomeMenuScreen, {
+      lessons: [
+        {
+          id: "py-01",
+          title: "Variables & Data Types",
+          track: "python_basics",
+          description: "Store values cleanly.",
+          content: "",
+          initial_code: "",
+          expected_output: "",
+          is_free: true,
+          lesson_order: 1,
+        },
+      ],
+      completedLessons: {},
+      isPremium: false,
+      activeTrack: "python_basics",
+      totalXp: 120,
+      streakCount: 3,
+      totalSolvedCount: 1,
+      onSelectTrack: () => {},
+      onSelectLesson: () => {},
+      onNavigateMode: () => {},
+    }),
+  );
+  const homeText = visibleText(homeHtml);
+  assert.ok(homeHtml.includes("3D hologram: HOLOGRAPHIC RETRO CRT DESK"));
+  assert.equal(homeText.includes("SPIN: ON"), false);
+  assert.equal(homeText.includes("RESET"), false);
+  assert.equal(homeText.includes("ORRERY"), false);
+  assert.ok(homeText.includes("OPEN SKILL MAP"));
+  assert.ok(homeText.includes("Mini-Game Arcade"));
+  assert.ok(homeText.includes("Algorithm Lab"));
+  assert.ok(homeText.includes("CURRICULUM SHOWCASE"));
 });

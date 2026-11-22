@@ -24,6 +24,7 @@ import ArcadeHub, { ArcadeSubNavBar } from "../components/ArcadeHub";
 import AppHeader from "../components/AppHeader";
 import { type AuthModalMode } from "../components/Auth";
 import { renderHighlightedPython } from "../components/FormattedText";
+import HomeMenuScreen from "../components/HomeMenuScreen";
 import LessonProblemPanel from "../components/LessonProblemPanel";
 import MinimalPcbBackground from "../components/MinimalPcbBackground";
 import MobileThumbNav from "../components/MobileThumbNav";
@@ -177,7 +178,7 @@ const EMPTY_SUBSCRIBE = () => () => {};
 const IS_DEV_MODE = typeof __DEV__ !== "undefined" && __DEV__;
 
 export default function HomeScreen() {
-  const [viewMode, setViewMode] = useState<ViewMode>("roadmap");
+  const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
   const [activeTab, setActiveTab] = useState<"problem" | "mission" | "visual">(
@@ -1043,7 +1044,32 @@ export default function HomeScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 6 : 0}
       >
 
-      {viewMode === "roadmap" ? (
+      {viewMode === "home" ? (
+        <HomeMenuScreen
+          lessons={lessons}
+          completedLessons={completedLessons}
+          peekedSolutions={peekedSolutions}
+          reviewSchedule={reviewSchedule}
+          solvedIncidents={solvedIncidents}
+          isPremium={effectiveIsPremium}
+          activeTrack={activeTrack}
+          totalXp={xpPoints}
+          streakCount={streakCount}
+          lastActiveDate={lastActiveDate}
+          totalSolvedCount={totalSolvedCount}
+          resumeLesson={hasSavedDraft && selectedLesson ? selectedLesson : null}
+          onSelectTrack={handleSwitchTrack}
+          onSelectLesson={handleSelectLesson}
+          onNavigateMode={(mode) => setViewMode(mode)}
+          onClaimDailyQuestBonus={handleClaimDailyQuestBonus}
+          onOpenPaywall={() =>
+            openPaywall({
+              source: "companion",
+              lessonTitle: "Byte-Cat Treats & Level Perks",
+            })
+          }
+        />
+      ) : viewMode === "roadmap" ? (
         <RoadmapTree
           lessons={lessons}
           completedLessons={completedLessons}

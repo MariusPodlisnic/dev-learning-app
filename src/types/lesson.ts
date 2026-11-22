@@ -65,6 +65,7 @@ export interface Lesson {
 }
 
 export type ViewMode =
+  | "home"
   | "roadmap"
   | "studio"
   | "arcade"

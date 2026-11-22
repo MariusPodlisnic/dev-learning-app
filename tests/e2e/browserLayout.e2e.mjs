@@ -106,7 +106,17 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     assert.ok(metrics.boxes.leaderboard.x < metrics.boxes.pro.x);
     assert.ok(metrics.boxes.pro.x < metrics.boxes.save.x);
 
-    // Unified Settings menu organizes Appearance (Dark/Light + 4 Palettes), Audio, and Studio tabs
+    // Default landing screen is the new HOME Main Menu with the clean, always-spinning 3D Holographic Retro CRT Desk
+    await page.getByLabel("3D hologram: HOLOGRAPHIC RETRO CRT DESK").waitFor({ timeout: 10000 });
+    await page.waitForSelector("text=OPEN SKILL MAP", { timeout: 5000 });
+    await page.getByLabel("Open Mini-Game Arcade", { exact: true }).hover();
+    await page.getByLabel("3D hologram: RETRO ARCADE PAD").waitFor({ timeout: 5000 });
+    await page.getByLabel("Open Code Studio", { exact: true }).hover();
+    await page.getByLabel("3D hologram: HOLOGRAPHIC RETRO CRT DESK").waitFor({ timeout: 5000 });
+
+    // Switch to Skill Map to verify dedicated Roadmap Tree + Retro TV dark/light mode response
+    await page.getByText("SKILL MAP").first().click();
+    await page.waitForSelector("text=CHOOSE YOUR LEARNING PATH", { timeout: 5000 });
     const darkTvBg = await page
       .getByTestId("retro-tv-cabinet")
       .evaluate((el) => window.getComputedStyle(el).backgroundColor);
@@ -162,6 +172,10 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       lightTvBg,
       `Expected Retro TV cabinet to update when switching to Matcha Cozy (${matchaTvBg} vs ${lightTvBg})`,
     );
+
+    // Return to HOME Main Menu for Welcome, Byte-Cat Style, and Pomodoro checks
+    await page.getByLabel("Open Devy Home Menu").click();
+    await page.getByTestId("home-hologram-stage").waitFor({ timeout: 5000 });
 
     const lightMetrics = await measureAccountHeaderBoxes(page);
     assert.ok(lightMetrics.overflowX <= 1);
@@ -229,7 +243,8 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByLabel("Pause Pomodoro focus timer").click();
     await page.getByLabel("Select 25m Focus timer").click();
 
-    // Midnight Bubble Retro TV switches channels smoothly and keeps CH 04/05 animations alive on repeat laps
+    // Switch to SKILL MAP and verify Midnight Bubble Retro TV switches channels smoothly and keeps CH 04/05 animations alive on repeat laps
+    await page.getByText("SKILL MAP").first().click();
     await page.waitForSelector("text=CH 01/05", { timeout: 5000 });
     for (let step = 0; step < 8; step += 1) {
       const expectedBefore = `CH 0${(step % 5) + 1}/05`;
@@ -444,7 +459,15 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
     assert.ok(bodyText.includes("LEAGUE"));
     assert.ok(bodyText.includes("SETTINGS"));
     assert.ok(bodyText.includes("GET PRO"));
+    await page.getByTestId("home-hologram-stage").waitFor({ timeout: 5000 });
+    await assertZeroMobileOverflow(page, "Home Main Menu");
+
+    // Mobile bottom thumb nav -> Dedicated Skill Map fits cleanly at 390px
+    await page.getByLabel("Skill Map", { exact: true }).click();
+    await page.waitForSelector("text=CHOOSE YOUR LEARNING PATH", { timeout: 5000 });
     await assertZeroMobileOverflow(page, "Skill Map");
+    await page.getByLabel("Home Menu", { exact: true }).click();
+    await page.getByTestId("home-hologram-stage").waitFor({ timeout: 5000 });
 
     // Mobile Quick-Jump button opens Command Palette cleanly without overflow
     await page.getByLabel("Open Quick Command Palette").click();
@@ -476,7 +499,7 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
     await assertZeroMobileOverflow(page, "Python Playground");
 
     // Mobile bottom thumb nav -> Code Studio fits cleanly at 390px
-    await page.getByLabel("Code Studio").click();
+    await page.getByLabel("Code Studio", { exact: true }).click();
     await page.waitForSelector("text=CODE EDITOR", { timeout: 10000 });
     await assertZeroMobileOverflow(page, "Code Studio (Lesson Pane)");
     await page.getByText("CODE EDITOR").first().click();
