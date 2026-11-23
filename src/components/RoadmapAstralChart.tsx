@@ -26,7 +26,6 @@ import {
   isLessonLockedForUser,
   isProTrackPreviewLesson,
 } from "../types/lesson";
-import type { Lesson } from "./RoadmapTree";
 import {
   type AstralStarGraph,
   type AstralStarNode,
@@ -40,6 +39,7 @@ import {
   getDifficultyColor,
   getShortLessonSummary,
 } from "./RoadmapSubcomponents";
+import type { Lesson } from "./RoadmapTree";
 import { Text } from "./StudioIcon";
 
 interface RoadmapAstralChartProps {
@@ -47,8 +47,6 @@ interface RoadmapAstralChartProps {
   trackLabel: string;
   trackAccent: string;
   trackLessons: Lesson[];
-  filteredLessonIds: Set<string>;
-  hasActiveFilter: boolean;
   chapters: ChapterTierMeta[];
   completedLessons: Record<string, boolean>;
   completedChallenges: Record<string, boolean>;
@@ -57,7 +55,6 @@ interface RoadmapAstralChartProps {
   claimedChapters: Record<string, boolean>;
   isPremium: boolean;
   nextUpLesson: Lesson | null;
-  focusedChapterId: number | null;
   onSelectLesson: (lesson: Lesson) => void;
   onClaimChapterBonus?: (chapterKey: string, bonusXp: number) => void;
   onOpenChapterCertificate?: (
@@ -107,7 +104,7 @@ function createAmbientStars(count: number): AmbientStar[] {
     stars.push({
       x: rand(),
       y: rand(),
-      r: 0.65 + rand() * 1.9,
+      r: 0.65 + rand() * 2.0,
       depth: 0.2 + rand() * 0.85,
       phase: rand() * Math.PI * 2,
       tint: rand(),
@@ -116,15 +113,13 @@ function createAmbientStars(count: number): AmbientStar[] {
   return stars;
 }
 
-const AMBIENT_STARS = createAmbientStars(170);
+const AMBIENT_STARS = createAmbientStars(210);
 
 export default function RoadmapAstralChart({
   activeTrack,
   trackLabel,
   trackAccent,
   trackLessons,
-  filteredLessonIds,
-  hasActiveFilter,
   chapters,
   completedLessons,
   completedChallenges,
@@ -133,15 +128,19 @@ export default function RoadmapAstralChart({
   claimedChapters,
   isPremium,
   nextUpLesson,
-  focusedChapterId,
   onSelectLesson,
   onClaimChapterBonus,
   onOpenChapterCertificate,
 }: RoadmapAstralChartProps) {
   const { paletteId, themeMode } = useTheme();
   const styles = useThemedStyles(createStyles);
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isPhone = windowWidth > 0 && windowWidth < 640;
+
+  const viewportHeight = windowHeight > 0 ? windowHeight : 860;
+  const observatoryHeight = isPhone
+    ? Math.max(540, Math.min(680, Math.round(viewportHeight * 0.72)))
+    : Math.max(680, Math.min(860, Math.round(viewportHeight * 0.8)));
 
   const astralPalette = useMemo(
     () => getAstralPalette(paletteId, themeMode),
@@ -154,15 +153,11 @@ export default function RoadmapAstralChart({
   );
 
   const defaultSelectedId = useMemo(() => {
-    if (hasActiveFilter) {
-      const firstMatch = graph.nodes.find((n) => filteredLessonIds.has(n.id));
-      if (firstMatch) return firstMatch.id;
-    }
     if (nextUpLesson && graph.nodes.some((n) => n.id === nextUpLesson.id)) {
       return nextUpLesson.id;
     }
     return graph.nodes[0]?.id || null;
-  }, [graph.nodes, hasActiveFilter, filteredLessonIds, nextUpLesson]);
+  }, [graph.nodes, nextUpLesson]);
 
   const [selectedId, setSelectedId] = useState<string | null>(defaultSelectedId);
   const [inspectorOpen, setInspectorOpen] = useState<boolean>(!isPhone);
@@ -171,7 +166,6 @@ export default function RoadmapAstralChart({
   );
   const [zoomDisplay, setZoomDisplay] = useState<number>(100);
 
-  // Sync selected star when switching tracks or when current selection is no longer in graph
   const resolvedSelectedId = useMemo(() => {
     if (selectedId && graph.nodes.some((n) => n.id === selectedId)) {
       return selectedId;
@@ -197,7 +191,7 @@ export default function RoadmapAstralChart({
   const hoveredIdRef = useRef<string | null>(null);
   const burstsRef = useRef<RippleBurst[]>([]);
   const shootingStarRef = useRef<ShootingStar | null>(null);
-  const nextMeteorTimerRef = useRef<number>(3.4);
+  const nextMeteorTimerRef = useRef<number>(3.2);
 
   const latestPropsRef = useRef({
     graph,
@@ -207,8 +201,6 @@ export default function RoadmapAstralChart({
     completedChallenges,
     peekedSolutions,
     dueReviewIdSet,
-    filteredLessonIds,
-    hasActiveFilter,
     isPremium,
     nextUpLessonId: nextUpLesson?.id || null,
     selectedId: resolvedSelectedId,
@@ -225,8 +217,6 @@ export default function RoadmapAstralChart({
       completedChallenges,
       peekedSolutions,
       dueReviewIdSet,
-      filteredLessonIds,
-      hasActiveFilter,
       isPremium,
       nextUpLessonId: nextUpLesson?.id || null,
       selectedId: resolvedSelectedId,
@@ -236,10 +226,10 @@ export default function RoadmapAstralChart({
   });
 
   const spawnStardustBurst = useCallback(
-    (wx: number, wy: number, color: string, count = 22) => {
+    (wx: number, wy: number, color: string, count = 24) => {
       for (let i = 0; i < count; i += 1) {
         const a = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.45;
-        const speed = 48 + Math.random() * 125;
+        const speed = 52 + Math.random() * 135;
         burstsRef.current.push({
           x: wx,
           y: wy,
@@ -247,7 +237,7 @@ export default function RoadmapAstralChart({
           vy: Math.sin(a) * speed,
           life: 1,
           decay: 1.0 + Math.random() * 0.85,
-          r: 1.8 + Math.random() * 3.1,
+          r: 2.0 + Math.random() * 3.2,
           color,
         });
       }
@@ -278,26 +268,6 @@ export default function RoadmapAstralChart({
     glideToPoint(targetNode.x, targetNode.y, isNewTrack);
   }, [activeTrack, defaultSelectedId, graph.nodes, glideToPoint]);
 
-  // Glide camera when parent Chapter filter pill is toggled
-  useEffect(() => {
-    if (focusedChapterId === null) return;
-    const cluster = graph.clusters.find(
-      (c) => c.chapter.id === focusedChapterId,
-    );
-    if (cluster) {
-      glideToPoint(cluster.cx, cluster.cy, false);
-    }
-  }, [focusedChapterId, graph.clusters, glideToPoint]);
-
-  // Center on first filtered match when user types a search query
-  useEffect(() => {
-    if (!hasActiveFilter) return;
-    const firstMatch = graph.nodes.find((n) => filteredLessonIds.has(n.id));
-    if (firstMatch) {
-      glideToPoint(firstMatch.x, firstMatch.y, false);
-    }
-  }, [hasActiveFilter, filteredLessonIds, graph.nodes, glideToPoint]);
-
   const handleAdjustZoom = useCallback((delta: number) => {
     playKeyClick();
     const next = Math.max(
@@ -318,7 +288,7 @@ export default function RoadmapAstralChart({
     if (target) {
       setSelectedId(target.id);
       glideToPoint(target.x, target.y, false);
-      spawnStardustBurst(target.x, target.y, astralPalette.accent, 18);
+      spawnStardustBurst(target.x, target.y, astralPalette.accent, 20);
     }
   }, [
     graph.nodes,
@@ -362,13 +332,13 @@ export default function RoadmapAstralChart({
       return;
     }
 
-    let W = host.clientWidth || 960;
-    let H = host.clientHeight || 540;
+    let W = host.clientWidth || 1200;
+    let H = host.clientHeight || 720;
     let dpr = 1;
 
     const syncSize = () => {
-      const nextW = Math.max(280, host.clientWidth || 960);
-      const nextH = Math.max(320, host.clientHeight || 540);
+      const nextW = Math.max(280, host.clientWidth || 1200);
+      const nextH = Math.max(360, host.clientHeight || 720);
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = nextW;
       H = nextH;
@@ -388,8 +358,7 @@ export default function RoadmapAstralChart({
 
     const worldToScreen = (wx: number, wy: number) => {
       const cam = cameraRef.current;
-      // Offset center slightly left on desktop when inspector is visible so star stays framed cleanly
-      const centerShiftX = latestPropsRef.current.isPhone ? 0 : -65;
+      const centerShiftX = latestPropsRef.current.isPhone ? 0 : -72;
       return {
         x: W * 0.5 + centerShiftX + (wx - cam.x) * cam.zoom,
         y: H * 0.5 + (wy - cam.y) * cam.zoom,
@@ -402,7 +371,7 @@ export default function RoadmapAstralChart({
       for (let i = g.nodes.length - 1; i >= 0; i -= 1) {
         const node = g.nodes[i];
         const sc = worldToScreen(node.x, node.y);
-        const hitR = Math.max(24, (node.radius + 11) * zoom);
+        const hitR = Math.max(26, (node.radius + 12) * zoom);
         if (Math.hypot(sx - sc.x, sy - sc.y) <= hitR) {
           return node;
         }
@@ -487,7 +456,7 @@ export default function RoadmapAstralChart({
           hit.x,
           hit.y,
           latestPropsRef.current.astralPalette.accent,
-          20,
+          22,
         );
 
         if (isDouble) {
@@ -503,7 +472,6 @@ export default function RoadmapAstralChart({
     };
 
     const onWheel = (e: WheelEvent) => {
-      // Allow horizontal wheel / trackpad pan or Shift+wheel without hijacking normal vertical page scroll
       const horizontalIntent =
         Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey;
       if (!horizontalIntent) return;
@@ -561,30 +529,30 @@ export default function RoadmapAstralChart({
       ctx.fillRect(0, 0, W, H);
 
       // 2. Twin Soft Drifting Parallax Nebulae
-      const neb1X = W * 0.28 - cam.x * 0.08 + Math.sin(elapsed * 0.22) * 26;
+      const neb1X = W * 0.28 - cam.x * 0.08 + Math.sin(elapsed * 0.22) * 30;
       const neb1Y = H * 0.34 - cam.y * 0.08;
       const neb1 = ctx.createRadialGradient(
         neb1X,
         neb1Y,
-        12,
+        14,
         neb1X,
         neb1Y,
-        Math.max(W, H) * 0.48,
+        Math.max(W, H) * 0.5,
       );
       neb1.addColorStop(0, pal.nebulaA);
       neb1.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = neb1;
       ctx.fillRect(0, 0, W, H);
 
-      const neb2X = W * 0.72 - cam.x * 0.06 + Math.cos(elapsed * 0.18) * 24;
+      const neb2X = W * 0.72 - cam.x * 0.06 + Math.cos(elapsed * 0.18) * 28;
       const neb2Y = H * 0.68 - cam.y * 0.06;
       const neb2 = ctx.createRadialGradient(
         neb2X,
         neb2Y,
-        12,
+        14,
         neb2X,
         neb2Y,
-        Math.max(W, H) * 0.44,
+        Math.max(W, H) * 0.46,
       );
       neb2.addColorStop(0, pal.nebulaB);
       neb2.addColorStop(1, "rgba(0,0,0,0)");
@@ -614,15 +582,15 @@ export default function RoadmapAstralChart({
       nextMeteorTimerRef.current -= dt;
       if (nextMeteorTimerRef.current <= 0 && !shootingStarRef.current) {
         shootingStarRef.current = {
-          x: W * (0.18 + Math.random() * 0.62),
+          x: W * (0.16 + Math.random() * 0.64),
           y: H * (0.06 + Math.random() * 0.28),
-          vx: 360 + Math.random() * 140,
-          vy: 145 + Math.random() * 65,
+          vx: 380 + Math.random() * 140,
+          vy: 150 + Math.random() * 65,
           life: 0.72,
           maxLife: 0.72,
-          len: 52 + Math.random() * 34,
+          len: 58 + Math.random() * 36,
         };
-        nextMeteorTimerRef.current = 5.5 + Math.random() * 6.5;
+        nextMeteorTimerRef.current = 5.0 + Math.random() * 6.0;
       }
       const meteor = shootingStarRef.current;
       if (meteor) {
@@ -638,15 +606,15 @@ export default function RoadmapAstralChart({
           const tx = meteor.x - (meteor.vx / mag) * meteor.len;
           const ty = meteor.y - (meteor.vy / mag) * meteor.len;
           const mg = ctx.createLinearGradient(meteor.x, meteor.y, tx, ty);
-          mg.addColorStop(0, `rgba(255, 255, 255, ${(alpha * 0.9).toFixed(3)})`);
+          mg.addColorStop(0, `rgba(255, 255, 255, ${(alpha * 0.92).toFixed(3)})`);
           mg.addColorStop(
             0.4,
-            `rgba(255, 222, 89, ${(alpha * 0.45).toFixed(3)})`,
+            `rgba(255, 222, 89, ${(alpha * 0.48).toFixed(3)})`,
           );
           mg.addColorStop(1, "rgba(255, 255, 255, 0)");
           ctx.save();
           ctx.strokeStyle = mg;
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 2.2;
           ctx.lineCap = "round";
           ctx.beginPath();
           ctx.moveTo(meteor.x, meteor.y);
@@ -661,7 +629,7 @@ export default function RoadmapAstralChart({
       const astrolabeCenter = worldToScreen(0, 0);
       ctx.strokeStyle = pal.ringStroke;
       ctx.lineWidth = 1;
-      [200, 390, 600, 840].forEach((rad, idx) => {
+      [230, 440, 680, 940].forEach((rad, idx) => {
         const sr = rad * cam.zoom;
         ctx.setLineDash(idx % 2 === 1 ? [5, 11] : []);
         ctx.beginPath();
@@ -675,7 +643,7 @@ export default function RoadmapAstralChart({
       for (const cluster of g.clusters) {
         const sc = worldToScreen(cluster.cx, cluster.cy);
         const rad = cluster.radius * cam.zoom;
-        if (sc.x + rad < -80 || sc.x - rad > W + 80) continue;
+        if (sc.x + rad < -90 || sc.x - rad > W + 90) continue;
 
         const doneCount = cluster.lessonIds.filter(
           (id) => props.completedLessons[id],
@@ -683,7 +651,6 @@ export default function RoadmapAstralChart({
         const totalCount = cluster.lessonIds.length;
         const isCleared = totalCount > 0 && doneCount === totalCount;
 
-        // Soft glowing constellation nebula wash
         const halo = ctx.createRadialGradient(
           sc.x,
           sc.y,
@@ -695,8 +662,8 @@ export default function RoadmapAstralChart({
         halo.addColorStop(
           0,
           isCleared
-            ? "rgba(255, 222, 89, 0.11)"
-            : "rgba(255, 255, 255, 0.045)",
+            ? "rgba(255, 222, 89, 0.12)"
+            : "rgba(255, 255, 255, 0.048)",
         );
         halo.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = halo;
@@ -704,21 +671,19 @@ export default function RoadmapAstralChart({
         ctx.arc(sc.x, sc.y, rad, 0, Math.PI * 2);
         ctx.fill();
 
-        // Subtle dashed boundary arc at top of chapter constellation
         ctx.save();
         ctx.strokeStyle = isCleared
-          ? "rgba(255, 222, 89, 0.25)"
+          ? "rgba(255, 222, 89, 0.28)"
           : pal.ringStroke;
-        ctx.lineWidth = 1.1;
+        ctx.lineWidth = 1.2;
         ctx.setLineDash([4, 8]);
         ctx.beginPath();
         ctx.arc(sc.x, sc.y, rad * 0.86, Math.PI * 1.18, Math.PI * 1.82);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Chapter Constellation Label
-        const labelY = sc.y - Math.min(rad * 0.84, 165 * cam.zoom) - 10;
-        ctx.font = `900 ${Math.max(9, Math.round(10 * cam.zoom))}px 'JetBrains Mono', ui-monospace, monospace`;
+        const labelY = sc.y - Math.min(rad * 0.84, 188 * cam.zoom) - 12;
+        ctx.font = `900 ${Math.max(10, Math.round(11 * cam.zoom))}px 'JetBrains Mono', ui-monospace, monospace`;
         ctx.textAlign = "center";
         ctx.fillStyle = isCleared ? pal.accentGold : pal.starTextDim;
         const chTag = `CHAPTER ${cluster.chapter.roman} · ${cluster.chapter.title.toUpperCase()}`;
@@ -735,10 +700,7 @@ export default function RoadmapAstralChart({
 
         const s1 = worldToScreen(fromNode.x, fromNode.y);
         const s2 = worldToScreen(toNode.x, toNode.y);
-        if (
-          Math.max(s1.x, s2.x) < -60 ||
-          Math.min(s1.x, s2.x) > W + 60
-        ) {
+        if (Math.max(s1.x, s2.x) < -70 || Math.min(s1.x, s2.x) > W + 70) {
           continue;
         }
 
@@ -751,39 +713,32 @@ export default function RoadmapAstralChart({
           focusAncestors.has(fromNode.id) &&
           focusAncestors.has(toNode.id);
 
-        const matchesFilter =
-          !props.hasActiveFilter ||
-          (props.filteredLessonIds.has(fromNode.id) &&
-            props.filteredLessonIds.has(toNode.id));
-
         const mx = (s1.x + s2.x) * 0.5;
         const my =
-          (s1.y + s2.y) * 0.5 - (edge.crossChapter ? 26 : 16) * cam.zoom;
+          (s1.y + s2.y) * 0.5 - (edge.crossChapter ? 30 : 18) * cam.zoom;
 
         ctx.save();
-        ctx.globalAlpha = matchesFilter ? 1 : 0.2;
         ctx.beginPath();
         ctx.moveTo(s1.x, s1.y);
         ctx.quadraticCurveTo(mx, my, s2.x, s2.y);
 
         if (isAncestorHi) {
           ctx.strokeStyle = pal.accentGold;
-          ctx.lineWidth = 3 * cam.zoom;
+          ctx.lineWidth = 3.2 * cam.zoom;
           ctx.shadowColor = pal.accentGold;
-          ctx.shadowBlur = 12;
+          ctx.shadowBlur = 14;
         } else if (lit) {
           ctx.strokeStyle = toDone ? pal.accent : pal.accentCyan;
-          ctx.lineWidth = 2.2 * cam.zoom;
+          ctx.lineWidth = 2.4 * cam.zoom;
           ctx.shadowColor = ctx.strokeStyle;
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 11;
         } else {
           ctx.strokeStyle = pal.filamentDim;
-          ctx.lineWidth = 1.25 * cam.zoom;
+          ctx.lineWidth = 1.3 * cam.zoom;
           ctx.setLineDash([4, 6]);
         }
         ctx.stroke();
 
-        // Animated glowing starlight packet gliding along completed/active filaments
         if (lit || isAncestorHi) {
           const u = (elapsed * 0.44 + Math.abs(fromNode.x) * 0.0023) % 1;
           const omt = 1 - u;
@@ -791,9 +746,9 @@ export default function RoadmapAstralChart({
           const py = omt * omt * s1.y + 2 * omt * u * my + u * u * s2.y;
           ctx.fillStyle = "#FFFFFF";
           ctx.shadowColor = isAncestorHi ? pal.accentGold : pal.accent;
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 11;
           ctx.beginPath();
-          ctx.arc(px, py, 2.7 * cam.zoom, 0, Math.PI * 2);
+          ctx.arc(px, py, 3 * cam.zoom, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.restore();
@@ -803,7 +758,7 @@ export default function RoadmapAstralChart({
       for (let idx = 0; idx < g.nodes.length; idx += 1) {
         const node = g.nodes[idx];
         const s = worldToScreen(node.x, node.y);
-        if (s.x < -90 || s.x > W + 90 || s.y < -90 || s.y > H + 90) continue;
+        if (s.x < -100 || s.x > W + 100 || s.y < -100 || s.y > H + 100) continue;
 
         const isDone = Boolean(props.completedLessons[node.id]);
         const isLocked = isLessonLockedForUser(node.lesson, props.isPremium);
@@ -821,8 +776,6 @@ export default function RoadmapAstralChart({
         const isHover = activeHoverId === node.id;
         const isSelected = props.selectedId === node.id;
         const inAncestorTrail = focusAncestors?.has(node.id) ?? false;
-        const matchesFilter =
-          !props.hasActiveFilter || props.filteredLessonIds.has(node.id);
 
         const breathe = 1 + Math.sin(elapsed * 2.6 + idx * 0.7) * 0.06;
         const r =
@@ -845,58 +798,58 @@ export default function RoadmapAstralChart({
                   : pal.accentCyan;
 
         ctx.save();
-        ctx.globalAlpha = matchesFilter ? 1 : 0.18;
 
         // Orbiting dual brass astrolabe rings for Next-Up Active Mission
         if (isNextUp) {
           const wave = (elapsed * 0.75) % 1;
           ctx.strokeStyle = pal.accentGold;
-          ctx.globalAlpha = (1 - wave) * 0.45 * (matchesFilter ? 1 : 0.18);
-          ctx.lineWidth = 1.6;
+          ctx.globalAlpha = (1 - wave) * 0.45;
+          ctx.lineWidth = 1.7;
           ctx.beginPath();
-          ctx.arc(s.x, s.y, r + (10 + wave * 26) * cam.zoom, 0, Math.PI * 2);
+          ctx.arc(s.x, s.y, r + (11 + wave * 28) * cam.zoom, 0, Math.PI * 2);
           ctx.stroke();
 
-          ctx.globalAlpha = matchesFilter ? 0.92 : 0.18;
+          ctx.globalAlpha = 0.94;
           ctx.strokeStyle = pal.accent;
-          ctx.lineWidth = 1.8;
+          ctx.lineWidth = 1.9;
           ctx.beginPath();
           ctx.arc(
             s.x,
             s.y,
-            r + 11 * cam.zoom,
+            r + 12 * cam.zoom,
             elapsed * 0.95,
             elapsed * 0.95 + Math.PI * 1.32,
           );
           ctx.stroke();
 
           ctx.strokeStyle = pal.accentSecondary;
-          ctx.lineWidth = 1.4;
+          ctx.lineWidth = 1.5;
           ctx.beginPath();
           ctx.arc(
             s.x,
             s.y,
-            r + 17 * cam.zoom,
+            r + 18 * cam.zoom,
             -elapsed * 0.7,
             -elapsed * 0.7 + Math.PI * 0.92,
           );
           ctx.stroke();
+          ctx.globalAlpha = 1;
         } else if (isSelected || isHover) {
           ctx.strokeStyle = isSelected ? pal.accentGold : pal.accent;
-          ctx.lineWidth = 1.8;
+          ctx.lineWidth = 1.9;
           ctx.setLineDash([4, 4]);
           ctx.beginPath();
-          ctx.arc(s.x, s.y, r + 9 * cam.zoom, 0, Math.PI * 2);
+          ctx.arc(s.x, s.y, r + 10 * cam.zoom, 0, Math.PI * 2);
           ctx.stroke();
           ctx.setLineDash([]);
         } else if (isReviewDue) {
           ctx.strokeStyle = "#C4B5FD";
-          ctx.lineWidth = 1.6;
+          ctx.lineWidth = 1.7;
           ctx.beginPath();
           ctx.arc(
             s.x,
             s.y,
-            r + 8 * cam.zoom,
+            r + 9 * cam.zoom,
             elapsed * 1.1,
             elapsed * 1.1 + Math.PI * 1.4,
           );
@@ -904,7 +857,7 @@ export default function RoadmapAstralChart({
         }
 
         // Luminous Star Glow Halo
-        const haloR = (isLocked ? r * 1.8 : r * 3.1) * breathe;
+        const haloR = (isLocked ? r * 1.85 : r * 3.15) * breathe;
         const hg = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, haloR);
         hg.addColorStop(
           0,
@@ -912,7 +865,7 @@ export default function RoadmapAstralChart({
             ? "rgba(148, 163, 184, 0.22)"
             : inAncestorTrail
               ? `${pal.accentGold}AA`
-              : `${starColor}88`,
+              : `${starColor}8A`,
         );
         hg.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = hg;
@@ -920,16 +873,16 @@ export default function RoadmapAstralChart({
         ctx.arc(s.x, s.y, haloR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Starlight Rays (8-point Supernova for Recap Boss, 4-point for solved/active/unlocked)
+        // Starlight Rays
         if (!isLocked) {
-          const spike = r * (node.isBoss ? 1.95 : 1.62) * breathe;
+          const spike = r * (node.isBoss ? 1.98 : 1.65) * breathe;
           ctx.fillStyle = "#FFFFFF";
           const drawCross = (angleOffset: number, scale: number) => {
             ctx.save();
             ctx.translate(s.x, s.y);
             ctx.rotate(angleOffset);
             const sp = spike * scale;
-            const w = Math.max(1.8, r * 0.16);
+            const w = Math.max(2, r * 0.16);
             ctx.beginPath();
             ctx.moveTo(0, -sp);
             ctx.quadraticCurveTo(w, -w, sp, 0);
@@ -950,17 +903,17 @@ export default function RoadmapAstralChart({
         ctx.arc(s.x, s.y, r * 0.74, 0, Math.PI * 2);
         ctx.fillStyle = isLocked ? "#1E293B" : isDone ? starColor : "#0F172A";
         ctx.fill();
-        ctx.lineWidth = isSelected ? 2.8 : 2;
+        ctx.lineWidth = isSelected ? 3 : 2.1;
         ctx.strokeStyle = isSelected ? "#FFFFFF" : starColor;
         ctx.stroke();
 
-        // Crisp Core Symbol (Checkmark / Boss / Order Number / PRO)
+        // Core Symbol
         ctx.fillStyle = isDone
           ? "#111111"
           : isLocked
             ? "#94A3B8"
             : "#FFFFFF";
-        ctx.font = `900 ${Math.max(8, Math.round(9.5 * cam.zoom))}px 'JetBrains Mono', ui-monospace, monospace`;
+        ctx.font = `900 ${Math.max(8.5, Math.round(10 * cam.zoom))}px 'JetBrains Mono', ui-monospace, monospace`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         const coreSymbol = isDone
@@ -975,30 +928,30 @@ export default function RoadmapAstralChart({
         // Star Title Label Below
         const showStrongLabel =
           isHover || isSelected || isNextUp || node.isBoss || isDone;
-        const fontSize = Math.max(9.5, Math.round(10.5 * cam.zoom));
+        const fontSize = Math.max(10, Math.round(11 * cam.zoom));
         ctx.font = `${showStrongLabel ? "800" : "600"} ${fontSize}px 'Plus Jakarta Sans', system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         const label =
-          node.lesson.title.length > 22
-            ? `${node.lesson.title.slice(0, 21)}…`
+          node.lesson.title.length > 24
+            ? `${node.lesson.title.slice(0, 23)}…`
             : node.lesson.title;
-        const labelY = s.y + r + 18 * cam.zoom;
+        const labelY = s.y + r + 19 * cam.zoom;
 
         if (isHover || isSelected || isNextUp) {
           const textW = ctx.measureText(label).width;
-          const padX = 8;
-          const pillH = fontSize + 8;
-          ctx.fillStyle = "rgba(8, 12, 24, 0.88)";
+          const padX = 9;
+          const pillH = fontSize + 9;
+          ctx.fillStyle = "rgba(8, 12, 24, 0.90)";
           ctx.strokeStyle = isNextUp
             ? pal.accentGold
             : isSelected
               ? "#FFFFFF"
               : starColor;
-          ctx.lineWidth = 1.25;
+          ctx.lineWidth = 1.3;
           ctx.beginPath();
           const rx = s.x - textW * 0.5 - padX;
-          const ry = labelY - fontSize - 2;
+          const ry = labelY - fontSize - 2.5;
           const rw = textW + padX * 2;
           const radPill = 6;
           ctx.moveTo(rx + radPill, ry);
@@ -1019,14 +972,13 @@ export default function RoadmapAstralChart({
         }
         ctx.fillText(label, s.x, labelY);
 
-        // Micro Status Tag Above Active / Boss / Free Preview
         if (isNextUp || (isFreePreview && !isDone)) {
-          ctx.font = `900 ${Math.max(8, Math.round(8.5 * cam.zoom))}px 'JetBrains Mono', ui-monospace, monospace`;
+          ctx.font = `900 ${Math.max(8.5, Math.round(9 * cam.zoom))}px 'JetBrains Mono', ui-monospace, monospace`;
           ctx.fillStyle = isNextUp ? pal.accentGold : pal.accentCyan;
           ctx.fillText(
             isNextUp ? "★ UP NEXT" : "★ FREE PREVIEW",
             s.x,
-            s.y - r - 13 * cam.zoom,
+            s.y - r - 14 * cam.zoom,
           );
         }
 
@@ -1081,7 +1033,7 @@ export default function RoadmapAstralChart({
     };
   }, [spawnStardustBurst]);
 
-  // Selected star metadata for the floating Telescope Inspector Card
+  // Selected star metadata + its chapter milestone status for the Telescope Inspector
   const selectedMeta = useMemo(() => {
     if (!selectedNode) return null;
     const lesson = selectedNode.lesson;
@@ -1091,6 +1043,13 @@ export default function RoadmapAstralChart({
     const isNextUp = !isDone && !isLocked && nextUpLesson?.id === lesson.id;
     const isReviewDue = dueReviewIdSet.has(lesson.id);
     const chapter = getChapterForTrackLesson(activeTrack, lesson);
+    const chLessons = trackLessons.filter((l) => isLessonInChapter(l, chapter));
+    const chDoneCount = chLessons.filter((l) => completedLessons[l.id]).length;
+    const isChapterCleared =
+      chLessons.length > 0 && chDoneCount === chLessons.length;
+    const chapterBonusKey = `${activeTrack}_ch_${chapter.id}`;
+    const isChapterClaimed = Boolean(claimedChapters[chapterBonusKey]);
+
     const stars = getLessonStarRating(
       lesson,
       completedLessons,
@@ -1112,6 +1071,11 @@ export default function RoadmapAstralChart({
       isNextUp,
       isReviewDue,
       chapter,
+      chDoneCount,
+      chTotalCount: chLessons.length,
+      isChapterCleared,
+      chapterBonusKey,
+      isChapterClaimed,
       stars,
       stageProg,
       diffStyle,
@@ -1124,6 +1088,8 @@ export default function RoadmapAstralChart({
     nextUpLesson?.id,
     dueReviewIdSet,
     activeTrack,
+    trackLessons,
+    claimedChapters,
     completedChallenges,
     peekedSolutions,
   ]);
@@ -1134,465 +1100,429 @@ export default function RoadmapAstralChart({
     : 0;
 
   return (
-    <View style={styles.outerWrap}>
-      {/* Main Interactive Observatory Viewport */}
-      <View
-        testID="roadmap-astral-chart"
-        accessibilityLabel={`Interactive Astral Star Chart for ${trackLabel}`}
-        style={[
-          styles.observatoryFrame,
-          isPhone && styles.observatoryFramePhone,
-          { borderColor: astralPalette.cardBorder },
-        ]}
-      >
-        {Platform.OS === "web" ? (
-          <View ref={hostRef} style={StyleSheet.absoluteFill} />
-        ) : (
-          /* Native iOS/Android Cozy Constellation Fallback */
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.nativeConstellationRow}
-            style={{ backgroundColor: astralPalette.skyMid }}
-          >
-            {graph.nodes.map((node) => {
-              const isDone = Boolean(completedLessons[node.id]);
-              const isSelected = resolvedSelectedId === node.id;
-              return (
-                <Pressable
-                  key={node.id}
-                  style={[
-                    styles.nativeStarPill,
-                    isDone && { borderColor: astralPalette.accent },
-                    isSelected && {
-                      backgroundColor: astralPalette.cardBg,
-                      borderColor: astralPalette.accentGold,
-                    },
-                  ]}
-                  onPress={() => {
-                    playKeyClick();
-                    setSelectedId(node.id);
-                    setInspectorOpen(true);
-                  }}
-                >
-                  <Text style={styles.nativeStarNum}>
-                    {isDone
-                      ? "★"
-                      : String(node.lesson.lesson_order).padStart(2, "0")}
-                  </Text>
-                  <Text style={styles.nativeStarTitle} numberOfLines={2}>
-                    {node.lesson.title}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
-
-        {/* Top-Left Observatory Telemetry Pill */}
-        <View pointerEvents="none" style={styles.topLeftHud}>
-          <View style={styles.hudBadgeRow}>
-            <View
-              style={[styles.hudLiveDot, { backgroundColor: astralPalette.accent }]}
-            />
-            <Text style={[styles.hudKicker, { color: astralPalette.accent }]}>
-              ASTRAL STAR CHART · {solvedCount}/{trackLessons.length} ({pct}%)
-            </Text>
-          </View>
-          {!isPhone ? (
-            <Text style={styles.hudSub}>
-              Drag sky · click a star to inspect · double-click to launch
-            </Text>
-          ) : null}
-        </View>
-
-        {/* Top-Right Observatory Zoom & Glide Controls */}
-        <View style={styles.topRightControls}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Pan star chart left"
-            style={styles.ctrlBtn}
-            onPress={() => handlePanStep(-240)}
-          >
-            <Text style={styles.ctrlBtnText}>←</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Pan star chart right"
-            style={styles.ctrlBtn}
-            onPress={() => handlePanStep(240)}
-          >
-            <Text style={styles.ctrlBtnText}>→</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Zoom out star chart"
-            style={styles.ctrlBtn}
-            onPress={() => handleAdjustZoom(-0.15)}
-          >
-            <Text style={styles.ctrlBtnText}>−</Text>
-          </Pressable>
-          <View style={styles.zoomReadout}>
-            <Text style={styles.zoomReadoutText}>{zoomDisplay}%</Text>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Zoom in star chart"
-            style={styles.ctrlBtn}
-            onPress={() => handleAdjustZoom(0.15)}
-          >
-            <Text style={styles.ctrlBtnText}>+</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Center star chart on active mission"
-            style={[styles.ctrlBtn, styles.ctrlCenterBtn]}
-            onPress={handleRecenter}
-          >
-            <Text style={[styles.ctrlBtnText, { color: astralPalette.accent }]}>
-              ⌖ NEXT
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Floating Telescope Lesson Inspector Card */}
-        {selectedMeta && inspectorOpen ? (
-          <View
-            testID="astral-star-inspector"
-            style={[
-              styles.inspectorCard,
-              isPhone && styles.inspectorCardPhone,
-              {
-                backgroundColor: astralPalette.cardBg,
-                borderColor: selectedMeta.isNextUp
-                  ? astralPalette.accentGold
-                  : astralPalette.cardBorder,
-              },
-            ]}
-          >
-            <View style={styles.inspTopRow}>
-              <View
+    <View
+      testID="roadmap-astral-chart"
+      accessibilityLabel={`Interactive Astral Star Chart for ${trackLabel}`}
+      style={[
+        styles.observatoryFrame,
+        {
+          height: observatoryHeight,
+          borderColor: astralPalette.cardBorder,
+        },
+        isPhone && styles.observatoryFramePhone,
+      ]}
+    >
+      {Platform.OS === "web" ? (
+        <View ref={hostRef} style={StyleSheet.absoluteFill} />
+      ) : (
+        /* Native iOS/Android Cozy Constellation Fallback */
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.nativeConstellationRow}
+          style={{ backgroundColor: astralPalette.skyMid }}
+        >
+          {graph.nodes.map((node) => {
+            const isDone = Boolean(completedLessons[node.id]);
+            const isSelected = resolvedSelectedId === node.id;
+            return (
+              <Pressable
+                key={node.id}
                 style={[
-                  styles.inspStatusPill,
-                  {
-                    backgroundColor: selectedMeta.isDone
-                      ? StudioColors.mint
-                      : selectedMeta.isNextUp
-                        ? StudioColors.lime
-                        : selectedMeta.lesson.is_recap
-                          ? StudioColors.yellow
-                          : selectedMeta.isLocked
-                            ? StudioColors.pink
-                            : astralPalette.accentCyan,
+                  styles.nativeStarPill,
+                  isDone && { borderColor: astralPalette.accent },
+                  isSelected && {
+                    backgroundColor: astralPalette.cardBg,
+                    borderColor: astralPalette.accentGold,
                   },
                 ]}
-              >
-                <Text style={styles.inspStatusText}>
-                  {selectedMeta.isDone
-                    ? `✓ SOLVED · ${[1, 2, 3].map((s) => (s <= selectedMeta.stars ? "★" : "☆")).join("")}`
-                    : selectedMeta.lesson.is_recap
-                      ? `🏆 CH. ${selectedMeta.chapter.roman} RECAP BOSS`
-                      : selectedMeta.isReviewDue
-                        ? "🔁 REVIEW DUE"
-                        : selectedMeta.isFreePreview
-                          ? "★ FREE PREVIEW"
-                          : selectedMeta.isNextUp
-                            ? "⚡ NEXT MISSION"
-                            : selectedMeta.isLocked
-                              ? "PRO MODULE"
-                              : `MODULE ${String(selectedMeta.lesson.lesson_order).padStart(2, "0")}`}
-                </Text>
-              </View>
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close star inspector"
-                style={styles.inspCloseBtn}
                 onPress={() => {
                   playKeyClick();
-                  setInspectorOpen(false);
+                  setSelectedId(node.id);
+                  setInspectorOpen(true);
                 }}
               >
-                <Text style={styles.inspCloseText}>✕</Text>
+                <Text style={styles.nativeStarNum}>
+                  {isDone
+                    ? "★"
+                    : String(node.lesson.lesson_order).padStart(2, "0")}
+                </Text>
+                <Text style={styles.nativeStarTitle} numberOfLines={2}>
+                  {node.lesson.title}
+                </Text>
               </Pressable>
-            </View>
+            );
+          })}
+        </ScrollView>
+      )}
 
-            <Text style={styles.inspChapterLabel}>
-              CHAPTER {selectedMeta.chapter.roman} · {selectedMeta.chapter.title.toUpperCase()}
-            </Text>
-            <Text style={styles.inspTitle} numberOfLines={2}>
-              {selectedMeta.lesson.title}
-            </Text>
-            {selectedMeta.shortSummary ? (
-              <Text style={styles.inspSummary} numberOfLines={isPhone ? 2 : 3}>
-                {selectedMeta.shortSummary}
-              </Text>
-            ) : null}
-
-            <View style={styles.inspMetaRow}>
-              {selectedMeta.lesson.difficulty ? (
-                <View
-                  style={[
-                    styles.inspMetaChip,
-                    {
-                      backgroundColor: selectedMeta.diffStyle.bg,
-                      borderColor: selectedMeta.diffStyle.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.inspMetaChipText,
-                      { color: selectedMeta.diffStyle.text },
-                    ]}
-                  >
-                    {selectedMeta.lesson.difficulty}
-                  </Text>
-                </View>
-              ) : null}
-
-              {selectedMeta.lesson.complexities?.time ? (
-                <View style={styles.inspDarkChip}>
-                  <Text style={styles.inspDarkChipText}>
-                    {selectedMeta.lesson.complexities.time}
-                  </Text>
-                </View>
-              ) : null}
-
-              {selectedMeta.stageProg.totalStages > 1 ? (
-                <View style={styles.inspDarkChip}>
-                  <Text style={styles.inspDarkChipText}>
-                    🎯 {selectedMeta.stageProg.solvedStages}/
-                    {selectedMeta.stageProg.totalStages}
-                  </Text>
-                </View>
-              ) : null}
-
+      {/* Top-Left Observatory Telemetry & Compact Legend Pill */}
+      <View pointerEvents="none" style={styles.topLeftHud}>
+        <View style={styles.hudBadgeRow}>
+          <View
+            style={[
+              styles.hudLiveDot,
+              { backgroundColor: astralPalette.accent },
+            ]}
+          />
+          <Text style={[styles.hudKicker, { color: astralPalette.accent }]}>
+            ASTRAL STAR CHART · {solvedCount}/{trackLessons.length} ({pct}%)
+          </Text>
+        </View>
+        {!isPhone ? (
+          <View style={styles.hudLegendRow}>
+            <View style={styles.hudLegendItem}>
               <View
                 style={[
-                  styles.inspDarkChip,
-                  { borderColor: astralPalette.accent },
+                  styles.hudLegendDot,
+                  { backgroundColor: StudioColors.yellow },
                 ]}
-              >
-                <Text
-                  style={[
-                    styles.inspDarkChipText,
-                    { color: astralPalette.accent },
-                  ]}
-                >
-                  {selectedMeta.isDone ? "✓ 50 XP" : "+50 XP"}
-                </Text>
-              </View>
+              />
+              <Text style={styles.hudLegendText}>UP NEXT</Text>
+            </View>
+            <View style={styles.hudLegendItem}>
+              <View
+                style={[
+                  styles.hudLegendDot,
+                  { backgroundColor: astralPalette.accent },
+                ]}
+              />
+              <Text style={styles.hudLegendText}>SOLVED</Text>
+            </View>
+            <View style={styles.hudLegendItem}>
+              <View
+                style={[
+                  styles.hudLegendDot,
+                  { backgroundColor: StudioColors.pink },
+                ]}
+              />
+              <Text style={styles.hudLegendText}>PRO</Text>
+            </View>
+            <Text style={styles.hudSubSep}>· Drag sky or hover to trace</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {/* Top-Right Observatory Zoom & Glide Controls */}
+      <View style={styles.topRightControls}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Pan star chart left"
+          style={styles.ctrlBtn}
+          onPress={() => handlePanStep(-260)}
+        >
+          <Text style={styles.ctrlBtnText}>←</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Pan star chart right"
+          style={styles.ctrlBtn}
+          onPress={() => handlePanStep(260)}
+        >
+          <Text style={styles.ctrlBtnText}>→</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Zoom out star chart"
+          style={styles.ctrlBtn}
+          onPress={() => handleAdjustZoom(-0.15)}
+        >
+          <Text style={styles.ctrlBtnText}>−</Text>
+        </Pressable>
+        <View style={styles.zoomReadout}>
+          <Text style={styles.zoomReadoutText}>{zoomDisplay}%</Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Zoom in star chart"
+          style={styles.ctrlBtn}
+          onPress={() => handleAdjustZoom(0.15)}
+        >
+          <Text style={styles.ctrlBtnText}>+</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Center star chart on active mission"
+          style={[styles.ctrlBtn, styles.ctrlCenterBtn]}
+          onPress={handleRecenter}
+        >
+          <Text style={[styles.ctrlBtnText, { color: astralPalette.accent }]}>
+            ⌖ NEXT
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* Floating Telescope Lesson Inspector Card */}
+      {selectedMeta && inspectorOpen ? (
+        <View
+          testID="astral-star-inspector"
+          style={[
+            styles.inspectorCard,
+            isPhone && styles.inspectorCardPhone,
+            {
+              backgroundColor: astralPalette.cardBg,
+              borderColor: selectedMeta.isNextUp
+                ? astralPalette.accentGold
+                : astralPalette.cardBorder,
+            },
+          ]}
+        >
+          <View style={styles.inspTopRow}>
+            <View
+              style={[
+                styles.inspStatusPill,
+                {
+                  backgroundColor: selectedMeta.isDone
+                    ? StudioColors.mint
+                    : selectedMeta.isNextUp
+                      ? StudioColors.lime
+                      : selectedMeta.lesson.is_recap
+                        ? StudioColors.yellow
+                        : selectedMeta.isLocked
+                          ? StudioColors.pink
+                          : astralPalette.accentCyan,
+                },
+              ]}
+            >
+              <Text style={styles.inspStatusText}>
+                {selectedMeta.isDone
+                  ? `✓ SOLVED · ${[1, 2, 3].map((s) => (s <= selectedMeta.stars ? "★" : "☆")).join("")}`
+                  : selectedMeta.lesson.is_recap
+                    ? `🏆 CH. ${selectedMeta.chapter.roman} RECAP BOSS`
+                    : selectedMeta.isReviewDue
+                      ? "🔁 REVIEW DUE"
+                      : selectedMeta.isFreePreview
+                        ? "★ FREE PREVIEW"
+                        : selectedMeta.isNextUp
+                          ? "⚡ NEXT MISSION"
+                          : selectedMeta.isLocked
+                            ? "PRO MODULE"
+                            : `MODULE ${String(selectedMeta.lesson.lesson_order).padStart(2, "0")}`}
+              </Text>
             </View>
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Launch ${selectedMeta.lesson.title} in Code Studio`}
-              style={({ pressed }) => [
-                styles.inspLaunchBtn,
-                {
-                  backgroundColor: selectedMeta.isLocked
-                    ? StudioColors.pink
-                    : astralPalette.accent,
-                },
-                pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
-              ]}
+              accessibilityLabel="Close star inspector"
+              style={styles.inspCloseBtn}
               onPress={() => {
                 playKeyClick();
-                onSelectLesson(selectedMeta.lesson);
+                setInspectorOpen(false);
               }}
             >
-              <Text style={styles.inspLaunchBtnText}>
-                {selectedMeta.isLocked
-                  ? "🔒 PREVIEW & UNLOCK PRO →"
-                  : selectedMeta.isDone
-                    ? "↺ REPLAY IN CODE STUDIO →"
-                    : "⚡ LAUNCH IN CODE STUDIO →"}
-              </Text>
+              <Text style={styles.inspCloseText}>✕</Text>
             </Pressable>
           </View>
-        ) : null}
 
-        {/* Bottom Constellation Chapter Quick-Jump Dock */}
-        <View style={styles.chapterDockWrap}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chapterDockRow}
-          >
-            {graph.clusters.map((cluster) => {
-              const done = cluster.lessonIds.filter(
-                (id) => completedLessons[id],
-              ).length;
-              const total = cluster.lessonIds.length;
-              const cleared = total > 0 && done === total;
-              const isActive = activeJumpChapter === cluster.chapter.id;
-              return (
-                <Pressable
-                  key={cluster.chapter.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Jump star chart to Chapter ${cluster.chapter.roman}: ${cluster.chapter.title}`}
-                  style={[
-                    styles.dockPill,
-                    isActive && {
-                      backgroundColor: astralPalette.accent,
-                      borderColor: StudioColors.ink,
-                    },
-                    cleared &&
-                      !isActive && {
-                        borderColor: astralPalette.accentGold,
-                      },
-                  ]}
-                  onPress={() => {
-                    playKeyClick();
-                    setActiveJumpChapter(cluster.chapter.id);
-                    glideToPoint(cluster.cx, cluster.cy, false);
-                    const firstInCh =
-                      graph.nodes.find(
-                        (n) =>
-                          n.chapterId === cluster.chapter.id &&
-                          !completedLessons[n.id],
-                      ) ||
-                      graph.nodes.find(
-                        (n) => n.chapterId === cluster.chapter.id,
-                      );
-                    if (firstInCh) {
-                      setSelectedId(firstInCh.id);
-                      spawnStardustBurst(
-                        firstInCh.x,
-                        firstInCh.y,
-                        astralPalette.accentGold,
-                        14,
-                      );
-                    }
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.dockPillText,
-                      isActive && { color: StudioColors.ink },
-                      cleared &&
-                        !isActive && { color: astralPalette.accentGold },
-                    ]}
-                  >
-                    CH. {cluster.chapter.roman} ({done}/{total}
-                    {cleared ? " ★" : ""})
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </View>
+          <Text style={styles.inspChapterLabel}>
+            CHAPTER {selectedMeta.chapter.roman} ·{" "}
+            {selectedMeta.chapter.title.toUpperCase()} ({selectedMeta.chDoneCount}
+            /{selectedMeta.chTotalCount})
+          </Text>
+          <Text style={styles.inspTitle} numberOfLines={2}>
+            {selectedMeta.lesson.title}
+          </Text>
+          {selectedMeta.shortSummary ? (
+            <Text style={styles.inspSummary} numberOfLines={isPhone ? 2 : 3}>
+              {selectedMeta.shortSummary}
+            </Text>
+          ) : null}
 
-      {/* Chapter Constellations Milestone & Bonus Claim Strip */}
-      <View style={styles.milestonesStrip}>
-        {chapters.map((ch) => {
-          const chLessons = trackLessons.filter((l) =>
-            isLessonInChapter(l, ch),
-          );
-          if (chLessons.length === 0) return null;
-          const doneCount = chLessons.filter(
-            (l) => completedLessons[l.id],
-          ).length;
-          const isCleared = doneCount === chLessons.length;
-          const bonusKey = `${activeTrack}_ch_${ch.id}`;
-          const isClaimed = Boolean(claimedChapters[bonusKey]);
-
-          return (
-            <Pressable
-              key={ch.id}
-              style={[
-                styles.milestoneCard,
-                isCleared && styles.milestoneCardCleared,
-              ]}
-              onPress={() => {
-                playKeyClick();
-                const cluster = graph.clusters.find(
-                  (c) => c.chapter.id === ch.id,
-                );
-                if (cluster) {
-                  setActiveJumpChapter(ch.id);
-                  glideToPoint(cluster.cx, cluster.cy, false);
-                }
-              }}
-            >
-              <View style={styles.milestoneTop}>
-                <Text style={styles.milestoneRoman}>CH. {ch.roman}</Text>
+          <View style={styles.inspMetaRow}>
+            {selectedMeta.lesson.difficulty ? (
+              <View
+                style={[
+                  styles.inspMetaChip,
+                  {
+                    backgroundColor: selectedMeta.diffStyle.bg,
+                    borderColor: selectedMeta.diffStyle.border,
+                  },
+                ]}
+              >
                 <Text
                   style={[
-                    styles.milestoneCount,
-                    isCleared && { color: StudioColors.mint },
+                    styles.inspMetaChipText,
+                    { color: selectedMeta.diffStyle.text },
                   ]}
                 >
-                  {isCleared ? "★ CLEARED" : `${doneCount}/${chLessons.length}`}
+                  {selectedMeta.lesson.difficulty}
                 </Text>
               </View>
-              <Text style={styles.milestoneTitle} numberOfLines={1}>
-                {ch.title}
-              </Text>
-              <View style={styles.milestoneSegs}>
-                {chLessons.map((cl) => (
-                  <View
-                    key={cl.id}
-                    style={[
-                      styles.milestoneSeg,
-                      completedLessons[cl.id] && {
-                        backgroundColor: StudioColors.mint,
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
+            ) : null}
 
-              {isCleared && !isClaimed && onClaimChapterBonus ? (
-                <Pressable
-                  style={styles.milestoneClaimBtn}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    onClaimChapterBonus(bonusKey, 100);
-                  }}
-                >
-                  <Text style={styles.milestoneClaimText}>
-                    🎁 CLAIM +100 XP →
-                  </Text>
-                </Pressable>
-              ) : isCleared && onOpenChapterCertificate ? (
-                <Pressable
-                  style={styles.milestoneCertBtn}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    playKeyClick();
-                    onOpenChapterCertificate(activeTrack, ch);
-                  }}
-                >
-                  <Text style={styles.milestoneCertText}>
-                    🎓 CERTIFICATE ↗
-                  </Text>
-                </Pressable>
-              ) : (
-                <Text style={styles.milestoneHint}>
-                  {isCleared ? "🏆 +100 XP STAMPED" : "+100 XP bonus at 100%"}
+            {selectedMeta.lesson.complexities?.time ? (
+              <View style={styles.inspDarkChip}>
+                <Text style={styles.inspDarkChipText}>
+                  {selectedMeta.lesson.complexities.time}
                 </Text>
-              )}
+              </View>
+            ) : null}
+
+            {selectedMeta.stageProg.totalStages > 1 ? (
+              <View style={styles.inspDarkChip}>
+                <Text style={styles.inspDarkChipText}>
+                  🎯 {selectedMeta.stageProg.solvedStages}/
+                  {selectedMeta.stageProg.totalStages}
+                </Text>
+              </View>
+            ) : null}
+
+            <View
+              style={[
+                styles.inspDarkChip,
+                { borderColor: astralPalette.accent },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.inspDarkChipText,
+                  { color: astralPalette.accent },
+                ]}
+              >
+                {selectedMeta.isDone ? "✓ 50 XP" : "+50 XP"}
+              </Text>
+            </View>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Launch ${selectedMeta.lesson.title} in Code Studio`}
+            style={({ pressed }) => [
+              styles.inspLaunchBtn,
+              {
+                backgroundColor: selectedMeta.isLocked
+                  ? StudioColors.pink
+                  : astralPalette.accent,
+              },
+              pressed && { transform: [{ translateX: 1 }, { translateY: 1 }] },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              onSelectLesson(selectedMeta.lesson);
+            }}
+          >
+            <Text style={styles.inspLaunchBtnText}>
+              {selectedMeta.isLocked
+                ? "🔒 PREVIEW & UNLOCK PRO →"
+                : selectedMeta.isDone
+                  ? "↺ REPLAY IN CODE STUDIO →"
+                  : "⚡ LAUNCH IN CODE STUDIO →"}
+            </Text>
+          </Pressable>
+
+          {/* In-Inspector Chapter Milestone Claim / Certificate Action when Chapter Cleared */}
+          {selectedMeta.isChapterCleared &&
+          !selectedMeta.isChapterClaimed &&
+          onClaimChapterBonus ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Claim Chapter ${selectedMeta.chapter.roman} +100 XP bonus`}
+              style={styles.inspBonusBtn}
+              onPress={() => {
+                onClaimChapterBonus(selectedMeta.chapterBonusKey, 100);
+              }}
+            >
+              <Text style={styles.inspBonusBtnText}>
+                🎁 CLAIM CH. {selectedMeta.chapter.roman} BONUS (+100 XP) →
+              </Text>
             </Pressable>
-          );
-        })}
+          ) : selectedMeta.isChapterCleared && onOpenChapterCertificate ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`View Chapter ${selectedMeta.chapter.roman} certificate`}
+              style={styles.inspCertBtn}
+              onPress={() => {
+                playKeyClick();
+                onOpenChapterCertificate(activeTrack, selectedMeta.chapter);
+              }}
+            >
+              <Text style={styles.inspCertBtnText}>
+                🎓 VIEW CH. {selectedMeta.chapter.roman} CERTIFICATE ↗
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* Bottom Constellation Chapter Quick-Jump Dock */}
+      <View style={styles.chapterDockWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chapterDockRow}
+        >
+          {graph.clusters.map((cluster) => {
+            const done = cluster.lessonIds.filter(
+              (id) => completedLessons[id],
+            ).length;
+            const total = cluster.lessonIds.length;
+            const cleared = total > 0 && done === total;
+            const bonusKey = `${activeTrack}_ch_${cluster.chapter.id}`;
+            const hasUnclaimedBonus = cleared && !claimedChapters[bonusKey];
+            const isActive = activeJumpChapter === cluster.chapter.id;
+            return (
+              <Pressable
+                key={cluster.chapter.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Jump star chart to Chapter ${cluster.chapter.roman}: ${cluster.chapter.title}`}
+                style={[
+                  styles.dockPill,
+                  isActive && {
+                    backgroundColor: astralPalette.accent,
+                    borderColor: StudioColors.ink,
+                  },
+                  cleared &&
+                    !isActive && {
+                      borderColor: astralPalette.accentGold,
+                    },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  setActiveJumpChapter(cluster.chapter.id);
+                  glideToPoint(cluster.cx, cluster.cy, false);
+                  const firstInCh =
+                    graph.nodes.find(
+                      (n) =>
+                        n.chapterId === cluster.chapter.id &&
+                        !completedLessons[n.id],
+                    ) ||
+                    graph.nodes.find((n) => n.chapterId === cluster.chapter.id);
+                  if (firstInCh) {
+                    setSelectedId(firstInCh.id);
+                    setInspectorOpen(true);
+                    spawnStardustBurst(
+                      firstInCh.x,
+                      firstInCh.y,
+                      astralPalette.accentGold,
+                      16,
+                    );
+                  }
+                }}
+              >
+                <Text
+                  style={[
+                    styles.dockPillText,
+                    isActive && { color: StudioColors.ink },
+                    cleared && !isActive && { color: astralPalette.accentGold },
+                  ]}
+                >
+                  CH. {cluster.chapter.roman} ({done}/{total}
+                  {hasUnclaimedBonus ? " 🎁" : cleared ? " ★" : ""})
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
     </View>
   );
 }
 
-const createStyles = (colors: StudioThemeColors) =>
+const createStyles = (_colors: StudioThemeColors) =>
   StyleSheet.create({
-    outerWrap: {
-      width: "100%",
-      gap: 14,
-    },
     observatoryFrame: {
       width: "100%",
-      height: 560,
-      borderRadius: 18,
+      borderRadius: 20,
       borderWidth: 2,
       overflow: "hidden",
       position: "relative",
@@ -1600,21 +1530,20 @@ const createStyles = (colors: StudioThemeColors) =>
       ...HardShadow,
     },
     observatoryFramePhone: {
-      height: 490,
       borderRadius: 14,
     },
     topLeftHud: {
       position: "absolute",
-      top: 12,
-      left: 12,
-      backgroundColor: "rgba(9, 13, 24, 0.80)",
+      top: 14,
+      left: 14,
+      backgroundColor: "rgba(9, 13, 24, 0.82)",
       borderWidth: 1,
       borderColor: "rgba(255, 255, 255, 0.14)",
-      borderRadius: 10,
-      paddingHorizontal: 11,
-      paddingVertical: 7,
-      gap: 2,
-      maxWidth: "62%",
+      borderRadius: 11,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      gap: 4,
+      maxWidth: "60%",
     },
     hudBadgeRow: {
       flexDirection: "row",
@@ -1628,37 +1557,59 @@ const createStyles = (colors: StudioThemeColors) =>
     },
     hudKicker: {
       fontFamily: MonoFont,
-      fontSize: 10,
+      fontSize: 10.5,
       fontWeight: "900",
       letterSpacing: 0.7,
     },
-    hudSub: {
-      color: "rgba(203, 213, 225, 0.76)",
-      fontSize: 10.5,
+    hudLegendRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 9,
+    },
+    hudLegendItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    hudLegendDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+    },
+    hudLegendText: {
+      color: "rgba(226, 232, 240, 0.8)",
+      fontFamily: MonoFont,
+      fontSize: 9,
+      fontWeight: "800",
+    },
+    hudSubSep: {
+      color: "rgba(148, 163, 184, 0.78)",
+      fontSize: 10,
       fontWeight: "600",
     },
     topRightControls: {
       position: "absolute",
-      top: 12,
-      right: 12,
+      top: 14,
+      right: 14,
       flexDirection: "row",
       alignItems: "center",
       gap: 4,
-      backgroundColor: "rgba(9, 13, 24, 0.84)",
+      backgroundColor: "rgba(9, 13, 24, 0.85)",
       borderWidth: 1,
       borderColor: "rgba(255, 255, 255, 0.14)",
       borderRadius: 10,
       padding: 4,
     },
     ctrlBtn: {
-      paddingHorizontal: 8,
-      paddingVertical: 5,
+      paddingHorizontal: 9,
+      paddingVertical: 6,
       borderRadius: 6,
       backgroundColor: "rgba(255, 255, 255, 0.06)",
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     ctrlCenterBtn: {
-      paddingHorizontal: 9,
+      paddingHorizontal: 10,
     },
     ctrlBtnText: {
       color: "#F8FAFC",
@@ -1670,25 +1621,25 @@ const createStyles = (colors: StudioThemeColors) =>
       paddingHorizontal: 5,
     },
     zoomReadoutText: {
-      color: "rgba(203, 213, 225, 0.78)",
+      color: "rgba(203, 213, 225, 0.8)",
       fontFamily: MonoFont,
       fontSize: 9.5,
       fontWeight: "800",
     },
     inspectorCard: {
       position: "absolute",
-      right: 14,
-      top: 62,
-      width: 296,
+      right: 16,
+      top: 66,
+      width: 308,
       borderRadius: 14,
       borderWidth: 2,
-      padding: 14,
+      padding: 15,
       gap: 7,
       ...HardShadow,
     },
     inspectorCardPhone: {
       top: undefined,
-      bottom: 58,
+      bottom: 60,
       left: 10,
       right: 10,
       width: undefined,
@@ -1739,12 +1690,12 @@ const createStyles = (colors: StudioThemeColors) =>
     },
     inspTitle: {
       color: "#FFFFFF",
-      fontSize: 16,
+      fontSize: 16.5,
       fontWeight: "900",
-      lineHeight: 20,
+      lineHeight: 21,
     },
     inspSummary: {
-      color: "rgba(226, 232, 240, 0.80)",
+      color: "rgba(226, 232, 240, 0.82)",
       fontSize: 12,
       lineHeight: 17,
       fontWeight: "500",
@@ -1785,7 +1736,7 @@ const createStyles = (colors: StudioThemeColors) =>
       borderRadius: 9,
       borderWidth: 2,
       borderColor: StudioColors.ink,
-      paddingVertical: 9,
+      paddingVertical: 10,
       paddingHorizontal: 12,
       alignItems: "center",
       ...HardShadowSm,
@@ -1798,18 +1749,52 @@ const createStyles = (colors: StudioThemeColors) =>
       fontWeight: "900",
       letterSpacing: 0.4,
     },
+    inspBonusBtn: {
+      borderRadius: 8,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+      backgroundColor: StudioColors.yellow,
+      paddingVertical: 7,
+      paddingHorizontal: 10,
+      alignItems: "center",
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    inspBonusBtnText: {
+      color: StudioColors.ink,
+      fontFamily: MonoFont,
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 0.4,
+    },
+    inspCertBtn: {
+      borderRadius: 8,
+      borderWidth: 1.5,
+      borderColor: StudioColors.ink,
+      backgroundColor: StudioColors.violet,
+      paddingVertical: 7,
+      paddingHorizontal: 10,
+      alignItems: "center",
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    inspCertBtnText: {
+      color: StudioColors.ink,
+      fontFamily: MonoFont,
+      fontSize: 10,
+      fontWeight: "900",
+      letterSpacing: 0.4,
+    },
     chapterDockWrap: {
       position: "absolute",
-      bottom: 12,
-      left: 12,
-      right: 12,
+      bottom: 14,
+      left: 14,
+      right: 14,
       alignItems: "center",
     },
     chapterDockRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      paddingHorizontal: 8,
+      paddingHorizontal: 9,
       paddingVertical: 6,
       backgroundColor: "rgba(9, 13, 24, 0.86)",
       borderWidth: 1,
@@ -1817,8 +1802,8 @@ const createStyles = (colors: StudioThemeColors) =>
       borderRadius: 11,
     },
     dockPill: {
-      paddingHorizontal: 10,
-      paddingVertical: 5,
+      paddingHorizontal: 11,
+      paddingVertical: 6,
       borderRadius: 7,
       borderWidth: 1,
       borderColor: "rgba(255, 255, 255, 0.16)",
@@ -1833,13 +1818,13 @@ const createStyles = (colors: StudioThemeColors) =>
     },
     nativeConstellationRow: {
       padding: 20,
-      paddingTop: 64,
-      paddingBottom: 68,
+      paddingTop: 68,
+      paddingBottom: 70,
       gap: 12,
       alignItems: "center",
     },
     nativeStarPill: {
-      width: 128,
+      width: 132,
       padding: 12,
       borderRadius: 12,
       borderWidth: 1.5,
@@ -1859,97 +1844,5 @@ const createStyles = (colors: StudioThemeColors) =>
       fontSize: 11.5,
       fontWeight: "800",
       textAlign: "center",
-    },
-    milestonesStrip: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 10,
-      width: "100%",
-    },
-    milestoneCard: {
-      flexGrow: 1,
-      flexBasis: 190,
-      backgroundColor: colors.surface,
-      borderWidth: 2,
-      borderColor: colors.border,
-      borderRadius: 12,
-      padding: 11,
-      gap: 6,
-      ...HardShadowSm,
-      ...Platform.select({ web: { cursor: "pointer" } }),
-    },
-    milestoneCardCleared: {
-      borderColor: StudioColors.yellow,
-    },
-    milestoneTop: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    milestoneRoman: {
-      color: colors.textMuted,
-      fontFamily: MonoFont,
-      fontSize: 9.5,
-      fontWeight: "900",
-      letterSpacing: 0.6,
-    },
-    milestoneCount: {
-      color: colors.textSecondary,
-      fontFamily: MonoFont,
-      fontSize: 9.5,
-      fontWeight: "900",
-    },
-    milestoneTitle: {
-      color: colors.textPrimary,
-      fontSize: 13,
-      fontWeight: "900",
-    },
-    milestoneSegs: {
-      flexDirection: "row",
-      gap: 3,
-    },
-    milestoneSeg: {
-      flex: 1,
-      height: 5,
-      borderRadius: 3,
-      backgroundColor: colors.surfaceElevated,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    milestoneHint: {
-      color: colors.textMuted,
-      fontFamily: MonoFont,
-      fontSize: 9,
-      fontWeight: "700",
-    },
-    milestoneClaimBtn: {
-      backgroundColor: StudioColors.lime,
-      borderWidth: 1.5,
-      borderColor: StudioColors.ink,
-      borderRadius: 7,
-      paddingVertical: 5,
-      alignItems: "center",
-      ...Platform.select({ web: { cursor: "pointer" } }),
-    },
-    milestoneClaimText: {
-      color: StudioColors.ink,
-      fontFamily: MonoFont,
-      fontSize: 9.5,
-      fontWeight: "900",
-    },
-    milestoneCertBtn: {
-      backgroundColor: StudioColors.yellow,
-      borderWidth: 1.5,
-      borderColor: StudioColors.ink,
-      borderRadius: 7,
-      paddingVertical: 5,
-      alignItems: "center",
-      ...Platform.select({ web: { cursor: "pointer" } }),
-    },
-    milestoneCertText: {
-      color: StudioColors.ink,
-      fontFamily: MonoFont,
-      fontSize: 9.5,
-      fontWeight: "900",
     },
   });

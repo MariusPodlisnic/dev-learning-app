@@ -278,9 +278,9 @@ export function buildAstralStarGraph<T extends AstralLessonLike>(
   const edges: AstralEdge[] = [];
   const rowNodeGroups: AstralStarNode<T>[][] = [];
 
-  const ROW_STEP_X = 158;
-  const CHAPTER_GAP_X = 68;
-  const BRANCH_SPACING_Y = 112;
+  const ROW_STEP_X = 178;
+  const CHAPTER_GAP_X = 82;
+  const BRANCH_SPACING_Y = 128;
 
   let cursorX = 0;
   let prevChapterId: number | null = null;
@@ -322,7 +322,7 @@ export function buildAstralStarGraph<T extends AstralLessonLike>(
         rowIndex,
         x: cursorX + staggerX,
         y: riverY + offsetFrac * BRANCH_SPACING_Y + jitterY,
-        radius: isBoss ? 21 : 14,
+        radius: isBoss ? 24 : 16,
         isBoss,
       };
       nodes.push(node);
@@ -392,7 +392,7 @@ export function buildAstralStarGraph<T extends AstralLessonLike>(
       chapter,
       cx,
       cy,
-      radius: Math.min(270, maxDist),
+      radius: Math.min(310, maxDist + 10),
       lessonIds: chNodes.map((n) => n.id),
     });
   }

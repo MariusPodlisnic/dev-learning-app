@@ -1481,4 +1481,6 @@ test("RoadmapTree renders Astral Star Chart observatory exclusively without lega
   assert.ok(mapText.includes("LAUNCH IN CODE STUDIO"));
   assert.ok(mapText.includes("CH. I"));
   assert.equal(mapText.includes("☰ LIST"), false);
+  assert.equal(mapText.includes("+100 XP bonus at 100%"), false);
+  assert.equal(mapText.includes("UNSOLVED ("), false);
 });
