@@ -271,17 +271,15 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       `Expected CH 05 steam to keep animating on 2nd lap, got transforms=${JSON.stringify(steamTransforms)}`,
     );
 
-    // Verify Interactive Astral Star Chart renders on SKILL MAP, jumps chapters, and switches to List View cleanly
+    // Verify Interactive Astral Star Chart is the sole Skill Map view with zoom, recenter, and chapter jump
     await page.getByTestId("roadmap-astral-chart").waitFor({ timeout: 5000 });
     await page.waitForSelector("text=ASTRAL STAR CHART", { timeout: 5000 });
     await page.getByLabel("Zoom in star chart").click();
     await page.waitForSelector("text=115%", { timeout: 5000 });
     await page.getByLabel("Center star chart on active mission").click();
     await page.waitForSelector("text=100%", { timeout: 5000 });
-    await page.getByLabel("Classic list view").click();
-    await page.waitForSelector("text=STAGE 01", { timeout: 5000 });
-    await page.getByLabel("Astral Star Chart view").click();
-    await page.getByTestId("roadmap-astral-chart").waitFor({ timeout: 5000 });
+    await page.getByLabel(/^Jump star chart to Chapter II:/).click();
+    await page.getByTestId("astral-star-inspector").waitFor({ timeout: 5000 });
 
     // Auth modal exposes OAuth buttons & Forgot Password reset flow
     await page.getByText("SAVE PROGRESS").first().click();

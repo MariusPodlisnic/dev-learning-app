@@ -1460,7 +1460,7 @@ test("ShowcaseLandingScreen renders Lo-Fi Arcade Orbit hero, features, and Free 
   assert.equal(showcaseText.includes("02 // FREE & PRO TRACKS"), false);
 });
 
-test("RoadmapTree defaults to Astral Star Chart observatory with chapter constellations and inspector", () => {
+test("RoadmapTree renders Astral Star Chart observatory exclusively without legacy list toggle", () => {
   const { default: RoadmapTree } = loadTsModule("src/components/RoadmapTree.tsx");
   const sampleLessons = mergeCurriculumLessons([]).filter(
     (l) => l.track === "python_basics",
@@ -1477,9 +1477,8 @@ test("RoadmapTree defaults to Astral Star Chart observatory with chapter constel
   );
   const mapText = visibleText(mapHtml);
   assert.ok(mapHtml.includes("Interactive Astral Star Chart"));
-  assert.ok(mapText.includes("✦ STAR CHART"));
-  assert.ok(mapText.includes("☰ LIST"));
   assert.ok(mapText.includes("ASTRAL STAR CHART"));
   assert.ok(mapText.includes("LAUNCH IN CODE STUDIO"));
   assert.ok(mapText.includes("CH. I"));
+  assert.equal(mapText.includes("☰ LIST"), false);
 });
