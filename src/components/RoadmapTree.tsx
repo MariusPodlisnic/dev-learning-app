@@ -38,6 +38,7 @@ import {
   buildDueReviewQueue,
   ReviewScheduleEntry,
 } from "../utils/spacedRepetition";
+import RoadmapAstralChart from "./RoadmapAstralChart";
 import RoadmapRetroTv from "./RoadmapRetroTv";
 import RoadmapScrollBackdrop from "./RoadmapScrollBackdrop";
 import {
@@ -132,6 +133,7 @@ export default function RoadmapTree({
   >("all");
   const [chapterFilter, setChapterFilter] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [mapViewMode, setMapViewMode] = useState<"astral" | "list">("astral");
   const [treeOffsetY, setTreeOffsetY] = useState<number>(620);
   const [maxScrollBottomY, setMaxScrollBottomY] = useState<number>(viewportHeight);
   const [contentHeight, setContentHeight] = useState<number>(2000);
@@ -227,6 +229,10 @@ export default function RoadmapTree({
   const dueReviewIdSet = new Set(dueReviewItems.map((item) => item.lesson.id));
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const hasActiveFilter =
+    statusFilter !== "all" ||
+    chapterFilter !== null ||
+    normalizedQuery.length > 0;
   const filteredTrackLessons = trackLessons.filter((lesson) => {
     const isDone = Boolean(completedLessons[lesson.id]);
     if (statusFilter === "unsolved" && isDone) return false;
@@ -248,6 +254,7 @@ export default function RoadmapTree({
     }
     return true;
   });
+  const filteredLessonIds = new Set(filteredTrackLessons.map((l) => l.id));
 
   const rowsMap: Record<number, Lesson[]> = {};
   filteredTrackLessons.forEach((lesson) => {
@@ -521,17 +528,64 @@ export default function RoadmapTree({
         onLayout={(e) => setTreeOffsetY(e.nativeEvent.layout.y)}
       >
         <View style={styles.treeLegendBar}>
-          <View style={styles.treeLegendItem}>
-            <View style={[styles.treeLegendDot, { backgroundColor: StudioColors.lime }]} />
-            <Text style={styles.treeLegendText}>UP NEXT</Text>
+          <View style={styles.treeLegendGroup}>
+            <View style={styles.treeLegendItem}>
+              <View style={[styles.treeLegendDot, { backgroundColor: StudioColors.yellow }]} />
+              <Text style={styles.treeLegendText}>UP NEXT</Text>
+            </View>
+            <View style={styles.treeLegendItem}>
+              <View style={[styles.treeLegendDot, { backgroundColor: StudioColors.lime }]} />
+              <Text style={styles.treeLegendText}>SOLVED ✓</Text>
+            </View>
+            <View style={styles.treeLegendItem}>
+              <View style={[styles.treeLegendDot, { backgroundColor: StudioColors.pink }]} />
+              <Text style={styles.treeLegendText}>PRO</Text>
+            </View>
           </View>
-          <View style={styles.treeLegendItem}>
-            <View style={[styles.treeLegendDot, { backgroundColor: StudioColors.mint }]} />
-            <Text style={styles.treeLegendText}>SOLVED ✓</Text>
-          </View>
-          <View style={styles.treeLegendItem}>
-            <View style={[styles.treeLegendDot, { backgroundColor: StudioColors.pink }]} />
-            <Text style={styles.treeLegendText}>PRO</Text>
+
+          <View style={styles.viewModeToggleRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Astral Star Chart view"
+              style={[
+                styles.viewModeBtn,
+                mapViewMode === "astral" && styles.viewModeBtnActive,
+              ]}
+              onPress={() => {
+                playKeyClick();
+                setMapViewMode("astral");
+              }}
+            >
+              <Text
+                style={[
+                  styles.viewModeBtnText,
+                  mapViewMode === "astral" && styles.viewModeBtnTextActive,
+                ]}
+              >
+                ✦ STAR CHART
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Classic list view"
+              style={[
+                styles.viewModeBtn,
+                mapViewMode === "list" && styles.viewModeBtnActive,
+              ]}
+              onPress={() => {
+                playKeyClick();
+                setMapViewMode("list");
+              }}
+            >
+              <Text
+                style={[
+                  styles.viewModeBtnText,
+                  mapViewMode === "list" && styles.viewModeBtnTextActive,
+                ]}
+              >
+                ☰ LIST
+              </Text>
+            </Pressable>
           </View>
         </View>
         {sortedRows.length === 0 ? (
@@ -553,6 +607,27 @@ export default function RoadmapTree({
               <Text style={styles.resetFilterCtaText}>SHOW ALL MODULES →</Text>
             </Pressable>
           </View>
+        ) : mapViewMode === "astral" ? (
+          <RoadmapAstralChart
+            activeTrack={activeTrack}
+            trackLabel={currentTrackMeta.label}
+            trackAccent={currentTrackMeta.stickerBg}
+            trackLessons={trackLessons}
+            filteredLessonIds={filteredLessonIds}
+            hasActiveFilter={hasActiveFilter}
+            chapters={trackChapters}
+            completedLessons={completedLessons}
+            completedChallenges={completedChallenges}
+            peekedSolutions={peekedSolutions}
+            dueReviewIdSet={dueReviewIdSet}
+            claimedChapters={claimedChapters}
+            isPremium={isPremium}
+            nextUpLesson={nextUpLesson || null}
+            focusedChapterId={chapterFilter}
+            onSelectLesson={onSelectLesson}
+            onClaimChapterBonus={onClaimChapterBonus}
+            onOpenChapterCertificate={onOpenChapterCertificate}
+          />
         ) : (
           sortedRows.map((rowNum, idx) => {
             const rowNodes = rowsMap[rowNum];
