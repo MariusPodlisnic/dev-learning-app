@@ -34,6 +34,16 @@ import {
   getAstralAncestors,
   getAstralPalette,
 } from "../utils/astralChartGeometry";
+import {
+  type AstralCursorState,
+  clearAstralCursor,
+  createAstralCursorState,
+  setAstralCursorDragging,
+  setAstralCursorHover,
+  stepAstralCursor,
+  triggerAstralCursorClick,
+  updateAstralCursorPointer,
+} from "../utils/astralCursorState";
 import { playKeyClick } from "../utils/soundEffects";
 import {
   getDifficultyColor,
@@ -189,6 +199,7 @@ export default function RoadmapAstralChart({
     initializedTrack: "",
   });
   const hoveredIdRef = useRef<string | null>(null);
+  const cursorRef = useRef<AstralCursorState>(createAstralCursorState());
   const burstsRef = useRef<RippleBurst[]>([]);
   const shootingStarRef = useRef<ShootingStar | null>(null);
   const nextMeteorTimerRef = useRef<number>(3.2);
@@ -196,6 +207,7 @@ export default function RoadmapAstralChart({
   const latestPropsRef = useRef({
     graph,
     astralPalette,
+    themeMode,
     trackAccent,
     completedLessons,
     completedChallenges,
@@ -212,6 +224,7 @@ export default function RoadmapAstralChart({
     latestPropsRef.current = {
       graph,
       astralPalette,
+      themeMode,
       trackAccent,
       completedLessons,
       completedChallenges,
@@ -388,6 +401,15 @@ export default function RoadmapAstralChart({
       const rect = canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
+      const usesCustom = updateAstralCursorPointer(
+        cursorRef.current,
+        sx,
+        sy,
+        e.pointerType,
+      );
+      setAstralCursorDragging(cursorRef.current, true);
+      triggerAstralCursorClick(cursorRef.current);
+
       isDragging = true;
       dragMoved = false;
       dragStart = {
@@ -396,7 +418,7 @@ export default function RoadmapAstralChart({
         cx: cameraRef.current.tx,
         cy: cameraRef.current.ty,
       };
-      canvas.style.cursor = "grabbing";
+      canvas.style.cursor = usesCustom ? "none" : "grabbing";
       try {
         canvas.setPointerCapture(e.pointerId);
       } catch {
@@ -408,6 +430,12 @@ export default function RoadmapAstralChart({
       const rect = canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
+      const usesCustom = updateAstralCursorPointer(
+        cursorRef.current,
+        sx,
+        sy,
+        e.pointerType,
+      );
 
       if (isDragging) {
         const dx = sx - dragStart.x;
@@ -421,10 +449,11 @@ export default function RoadmapAstralChart({
         );
         cameraRef.current.tx = clamped.x;
         cameraRef.current.ty = clamped.y;
+        canvas.style.cursor = usesCustom ? "none" : "grabbing";
       } else {
         const hit = hitTest(sx, sy);
         hoveredIdRef.current = hit ? hit.id : null;
-        canvas.style.cursor = hit ? "pointer" : "grab";
+        canvas.style.cursor = usesCustom ? "none" : hit ? "pointer" : "grab";
       }
     };
 
@@ -433,8 +462,14 @@ export default function RoadmapAstralChart({
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
       isDragging = false;
+      setAstralCursorDragging(cursorRef.current, false);
       const hit = hitTest(sx, sy);
-      canvas.style.cursor = hit ? "pointer" : "grab";
+      hoveredIdRef.current = hit ? hit.id : null;
+      canvas.style.cursor = cursorRef.current.active
+        ? "none"
+        : hit
+          ? "pointer"
+          : "grab";
 
       if (!dragMoved && hit) {
         playKeyClick();
@@ -468,6 +503,8 @@ export default function RoadmapAstralChart({
     const onPointerLeave = () => {
       if (!isDragging) {
         hoveredIdRef.current = null;
+        clearAstralCursor(cursorRef.current);
+        canvas.style.cursor = "grab";
       }
     };
 
@@ -1007,6 +1044,261 @@ export default function RoadmapAstralChart({
         ctx.arc(sc.x, sc.y, b.r * b.life * cam.zoom, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+      }
+
+      // 10. Custom Celestial Astrolabe Cursor (Zero-Lag Polaris Core + Cozy Orbital Reticle)
+      const cur = cursorRef.current;
+      const hoveredNode = activeHoverId ? nodeById.get(activeHoverId) : null;
+      if (hoveredNode && cur.active && !cur.isDragging) {
+        const hs = worldToScreen(hoveredNode.x, hoveredNode.y);
+        setAstralCursorHover(cur, {
+          x: hs.x,
+          y: hs.y,
+          radius: hoveredNode.radius * cam.zoom,
+        });
+      } else {
+        setAstralCursorHover(cur, null);
+      }
+      stepAstralCursor(cur, dt);
+
+      if (cur.opacity > 0.01 || cur.trail.length > 0 || cur.pulses.length > 0) {
+        const isLightTheme = props.themeMode === "light";
+
+        // 10a. Soft Drifting Stardust Wake
+        for (let i = 0; i < cur.trail.length; i += 1) {
+          const dot = cur.trail[i];
+          const p = Math.max(0, dot.life / dot.maxLife);
+          const color =
+            dot.tint === "gold"
+              ? pal.accentGold
+              : dot.tint === "accent"
+                ? pal.accent
+                : "#FFFDF5";
+          ctx.save();
+          ctx.globalAlpha = p * 0.72;
+          ctx.fillStyle = color;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.arc(dot.x, dot.y, dot.r * (0.4 + p * 0.7), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 10b. Expanding Celestial Click Ripple Waves
+        for (let i = 0; i < cur.pulses.length; i += 1) {
+          const pulse = cur.pulses[i];
+          const p = Math.max(0, pulse.life / pulse.maxLife);
+          const rad = 8 + (1 - p) * 28;
+          ctx.save();
+          ctx.globalAlpha = p * 0.68;
+          ctx.strokeStyle = pal.accentGold;
+          ctx.lineWidth = 1.6 * p + 0.5;
+          ctx.beginPath();
+          ctx.arc(pulse.x, pulse.y, rad, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        if (cur.opacity > 0.01) {
+          const alpha = cur.opacity;
+          const r = cur.ringRadius;
+          const lock = cur.lockBlend;
+          const drag = cur.dragBlend;
+
+          // 10c. Warm Stargazer Lantern Glow around the Reticle
+          ctx.save();
+          ctx.globalAlpha = alpha * (isLightTheme ? 0.16 : 0.22);
+          const lanternR = r + 24;
+          const lg = ctx.createRadialGradient(
+            cur.ringX,
+            cur.ringY,
+            2,
+            cur.ringX,
+            cur.ringY,
+            lanternR,
+          );
+          lg.addColorStop(0, lock > 0.3 ? pal.accentGold : pal.accent);
+          lg.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = lg;
+          ctx.beginPath();
+          ctx.arc(cur.ringX, cur.ringY, lanternR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // 10d. Gossamer Dotted Starlight Tether when Magnetically Locked onto a Star
+          if (lock > 0.08) {
+            const tetherDist = Math.hypot(
+              cur.ringX - cur.rawX,
+              cur.ringY - cur.rawY,
+            );
+            if (tetherDist > 5) {
+              ctx.save();
+              ctx.globalAlpha = alpha * lock * 0.55;
+              ctx.strokeStyle = pal.accentGold;
+              ctx.lineWidth = 1.15;
+              ctx.setLineDash([2.5, 4]);
+              ctx.beginPath();
+              ctx.moveTo(cur.rawX, cur.rawY);
+              ctx.lineTo(cur.ringX, cur.ringY);
+              ctx.stroke();
+              ctx.setLineDash([]);
+              ctx.restore();
+            }
+          }
+
+          // 10e. Smooth Spring-Damped Celestial Astrolabe Reticle
+          ctx.save();
+          ctx.translate(cur.ringX, cur.ringY);
+          ctx.globalAlpha = alpha;
+
+          // Faint continuous halo ring
+          ctx.strokeStyle =
+            drag > 0.4
+              ? pal.accentCyan
+              : lock > 0.4
+                ? pal.accentGold
+                : pal.accent;
+          ctx.globalAlpha = alpha * 0.28;
+          ctx.lineWidth = 1.15;
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Rotating twin astrolabe arcs + orbital moon pips
+          ctx.save();
+          ctx.rotate(cur.angle);
+          ctx.globalAlpha = alpha * 0.88;
+          ctx.strokeStyle =
+            drag > 0.4
+              ? pal.accentCyan
+              : lock > 0.35
+                ? pal.accentGold
+                : pal.accent;
+          ctx.lineWidth = 1.65;
+          ctx.lineCap = "round";
+          const arcSpan = Math.PI * (0.42 + lock * 0.16);
+          for (const startA of [0, Math.PI]) {
+            ctx.beginPath();
+            ctx.arc(0, 0, r, startA + 0.24, startA + 0.24 + arcSpan);
+            ctx.stroke();
+          }
+
+          // Twin tiny glowing orbital moons perched on the astrolabe ring
+          const pipColor = lock > 0.35 ? "#FFFDF5" : pal.accentGold;
+          ctx.fillStyle = pipColor;
+          ctx.shadowColor = pipColor;
+          ctx.shadowBlur = 7;
+          for (const pipA of [0, Math.PI]) {
+            ctx.beginPath();
+            ctx.arc(
+              Math.cos(pipA) * r,
+              Math.sin(pipA) * r,
+              1.9 + lock * 0.8,
+              0,
+              Math.PI * 2,
+            );
+            ctx.fill();
+          }
+          ctx.restore();
+
+          // Cardinal compass notches (idle) / golden telescope brackets (hover) / cyan pan chevrons (drag)
+          if (drag > 0.2) {
+            ctx.save();
+            ctx.globalAlpha = alpha * drag * 0.92;
+            ctx.strokeStyle = pal.accentCyan;
+            ctx.lineWidth = 1.6;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            const dOff = r + 5.5 + Math.sin(elapsed * 8) * 1.1;
+            for (let k = 0; k < 4; k += 1) {
+              ctx.save();
+              ctx.rotate((k * Math.PI) / 2);
+              ctx.beginPath();
+              ctx.moveTo(dOff - 3, -3.2);
+              ctx.lineTo(dOff, 0);
+              ctx.lineTo(dOff - 3, 3.2);
+              ctx.stroke();
+              ctx.restore();
+            }
+            ctx.restore();
+          } else if (lock > 0.12) {
+            ctx.save();
+            ctx.rotate(-cur.angle * 0.35);
+            ctx.globalAlpha = alpha * lock * 0.92;
+            ctx.strokeStyle = pal.accentGold;
+            ctx.lineWidth = 1.85;
+            ctx.lineCap = "round";
+            const br = r + 5;
+            for (let k = 0; k < 4; k += 1) {
+              const a0 = k * (Math.PI / 2) + Math.PI / 4;
+              ctx.beginPath();
+              ctx.arc(0, 0, br, a0 - 0.19, a0 + 0.19);
+              ctx.stroke();
+            }
+            ctx.restore();
+          } else {
+            ctx.save();
+            ctx.globalAlpha = alpha * 0.65;
+            ctx.strokeStyle = "#FFFDF5";
+            ctx.lineWidth = 1.25;
+            ctx.lineCap = "round";
+            for (let k = 0; k < 4; k += 1) {
+              const a = (k * Math.PI) / 2;
+              ctx.beginPath();
+              ctx.moveTo(Math.cos(a) * (r - 2.5), Math.sin(a) * (r - 2.5));
+              ctx.lineTo(Math.cos(a) * (r + 2.8), Math.sin(a) * (r + 2.8));
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+          ctx.restore();
+
+          // 10f. Zero-Lag 4-Point Polaris Star Core at exact (rawX, rawY)
+          ctx.save();
+          ctx.translate(cur.rawX, cur.rawY);
+          ctx.globalAlpha = alpha;
+          const starSpike = (7.8 + lock * 1.8 - drag * 2.2) * (1 + Math.sin(elapsed * 3.4) * 0.05);
+          const starWaist = Math.max(1.5, starSpike * 0.26);
+
+          // Crisp dark backdrop shadow so Polaris stays legible over bright stars & light themes
+          ctx.fillStyle = isLightTheme
+            ? "rgba(15, 23, 42, 0.72)"
+            : "rgba(6, 10, 22, 0.65)";
+          ctx.beginPath();
+          ctx.arc(0, 0, starWaist + 2.4, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#FFFDF5";
+          ctx.shadowColor =
+            drag > 0.4
+              ? pal.accentCyan
+              : lock > 0.35
+                ? pal.accentGold
+                : pal.accent;
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.moveTo(0, -starSpike);
+          ctx.quadraticCurveTo(starWaist, -starWaist, starSpike, 0);
+          ctx.quadraticCurveTo(starWaist, starWaist, 0, starSpike);
+          ctx.quadraticCurveTo(-starWaist, starWaist, -starSpike, 0);
+          ctx.quadraticCurveTo(-starWaist, -starWaist, 0, -starSpike);
+          ctx.closePath();
+          ctx.fill();
+
+          // Tiny glowing jewel center dot
+          ctx.shadowBlur = 0;
+          ctx.fillStyle =
+            drag > 0.4
+              ? pal.accentCyan
+              : lock > 0.35
+                ? pal.accentGold
+                : pal.accent;
+          ctx.beginPath();
+          ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
       }
 
       rafId = requestAnimationFrame(renderFrame);
