@@ -40,7 +40,7 @@ import {
   getShortLessonSummary,
 } from "./RoadmapSubcomponents";
 import type { Lesson } from "./RoadmapTree";
-import { Text } from "./StudioIcon";
+import { StudioIcon, type StudioIconName, Text } from "./StudioIcon";
 
 interface RoadmapAstralChartProps {
   activeTrack: string;
@@ -1284,21 +1284,40 @@ export default function RoadmapAstralChart({
                 },
               ]}
             >
-              <Text style={styles.inspStatusText}>
-                {selectedMeta.isDone
-                  ? `✓ SOLVED · ${[1, 2, 3].map((s) => (s <= selectedMeta.stars ? "★" : "☆")).join("")}`
+              {(() => {
+                const pillIcon: StudioIconName = selectedMeta.isDone
+                  ? "star"
                   : selectedMeta.lesson.is_recap
-                    ? `🏆 CH. ${selectedMeta.chapter.roman} RECAP BOSS`
+                    ? "trophy"
                     : selectedMeta.isReviewDue
-                      ? "🔁 REVIEW DUE"
+                      ? "sparkles"
                       : selectedMeta.isFreePreview
-                        ? "★ FREE PREVIEW"
+                        ? "star"
                         : selectedMeta.isNextUp
-                          ? "⚡ NEXT MISSION"
+                          ? "astral_compass"
+                          : selectedMeta.isLocked
+                            ? "lock"
+                            : "astral_compass";
+                const pillLabel = selectedMeta.isDone
+                  ? `SOLVED · ${[1, 2, 3].map((s) => (s <= selectedMeta.stars ? "★" : "☆")).join("")}`
+                  : selectedMeta.lesson.is_recap
+                    ? `CH. ${selectedMeta.chapter.roman} RECAP BOSS`
+                    : selectedMeta.isReviewDue
+                      ? "REVIEW DUE"
+                      : selectedMeta.isFreePreview
+                        ? "FREE PREVIEW"
+                        : selectedMeta.isNextUp
+                          ? "NEXT MISSION"
                           : selectedMeta.isLocked
                             ? "PRO MODULE"
-                            : `MODULE ${String(selectedMeta.lesson.lesson_order).padStart(2, "0")}`}
-              </Text>
+                            : `MODULE ${String(selectedMeta.lesson.lesson_order).padStart(2, "0")}`;
+                return (
+                  <>
+                    <StudioIcon name={pillIcon} size={14} />
+                    <Text style={styles.inspStatusText}>{pillLabel}</Text>
+                  </>
+                );
+              })()}
             </View>
 
             <Pressable
@@ -1360,8 +1379,9 @@ export default function RoadmapAstralChart({
 
             {selectedMeta.stageProg.totalStages > 1 ? (
               <View style={styles.inspDarkChip}>
+                <StudioIcon name="target" size={13} />
                 <Text style={styles.inspDarkChipText}>
-                  🎯 {selectedMeta.stageProg.solvedStages}/
+                  {selectedMeta.stageProg.solvedStages}/
                   {selectedMeta.stageProg.totalStages}
                 </Text>
               </View>
@@ -1401,12 +1421,16 @@ export default function RoadmapAstralChart({
               onSelectLesson(selectedMeta.lesson);
             }}
           >
+            <StudioIcon
+              name={selectedMeta.isLocked ? "lock" : "studio_launch"}
+              size={16}
+            />
             <Text style={styles.inspLaunchBtnText}>
               {selectedMeta.isLocked
-                ? "🔒 PREVIEW & UNLOCK PRO →"
+                ? "PREVIEW & UNLOCK PRO →"
                 : selectedMeta.isDone
-                  ? "↺ REPLAY IN CODE STUDIO →"
-                  : "⚡ LAUNCH IN CODE STUDIO →"}
+                  ? "REPLAY IN CODE STUDIO →"
+                  : "LAUNCH IN CODE STUDIO →"}
             </Text>
           </Pressable>
 
@@ -1422,8 +1446,9 @@ export default function RoadmapAstralChart({
                 onClaimChapterBonus(selectedMeta.chapterBonusKey, 100);
               }}
             >
+              <StudioIcon name="gift" size={14} />
               <Text style={styles.inspBonusBtnText}>
-                🎁 CLAIM CH. {selectedMeta.chapter.roman} BONUS (+100 XP) →
+                CLAIM CH. {selectedMeta.chapter.roman} BONUS (+100 XP) →
               </Text>
             </Pressable>
           ) : selectedMeta.isChapterCleared && onOpenChapterCertificate ? (
@@ -1436,8 +1461,9 @@ export default function RoadmapAstralChart({
                 onOpenChapterCertificate(activeTrack, selectedMeta.chapter);
               }}
             >
+              <StudioIcon name="grad" size={14} />
               <Text style={styles.inspCertBtnText}>
-                🎓 VIEW CH. {selectedMeta.chapter.roman} CERTIFICATE ↗
+                VIEW CH. {selectedMeta.chapter.roman} CERTIFICATE ↗
               </Text>
             </Pressable>
           ) : null}
@@ -1652,9 +1678,14 @@ const createStyles = (_colors: StudioThemeColors) =>
       gap: 8,
     },
     inspStatusPill: {
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      minHeight: 26,
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: 7,
       borderWidth: 1.5,
       borderColor: StudioColors.ink,
     },
@@ -1662,6 +1693,8 @@ const createStyles = (_colors: StudioThemeColors) =>
       color: StudioColors.ink,
       fontFamily: MonoFont,
       fontSize: 9.5,
+      lineHeight: 12,
+      includeFontPadding: false,
       fontWeight: "900",
       letterSpacing: 0.4,
     },
@@ -1702,24 +1735,34 @@ const createStyles = (_colors: StudioThemeColors) =>
     },
     inspMetaRow: {
       flexDirection: "row",
+      alignItems: "center",
       flexWrap: "wrap",
-      gap: 5,
+      gap: 6,
       marginTop: 2,
     },
     inspMetaChip: {
-      paddingHorizontal: 7,
-      paddingVertical: 2.5,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      height: 26,
+      paddingHorizontal: 8,
       borderRadius: 6,
       borderWidth: 1,
     },
     inspMetaChipText: {
       fontFamily: MonoFont,
-      fontSize: 9,
+      fontSize: 9.5,
+      lineHeight: 12,
+      includeFontPadding: false,
       fontWeight: "900",
     },
     inspDarkChip: {
-      paddingHorizontal: 7,
-      paddingVertical: 2.5,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 5,
+      height: 26,
+      paddingHorizontal: 8,
       borderRadius: 6,
       borderWidth: 1,
       borderColor: "rgba(255, 255, 255, 0.18)",
@@ -1728,17 +1771,23 @@ const createStyles = (_colors: StudioThemeColors) =>
     inspDarkChipText: {
       color: "#E2E8F0",
       fontFamily: MonoFont,
-      fontSize: 9,
+      fontSize: 9.5,
+      lineHeight: 12,
+      includeFontPadding: false,
       fontWeight: "800",
     },
     inspLaunchBtn: {
-      marginTop: 4,
-      borderRadius: 9,
+      marginTop: 5,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      minHeight: 40,
+      borderRadius: 10,
       borderWidth: 2,
       borderColor: StudioColors.ink,
-      paddingVertical: 10,
+      paddingVertical: 9,
       paddingHorizontal: 12,
-      alignItems: "center",
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
@@ -1746,40 +1795,54 @@ const createStyles = (_colors: StudioThemeColors) =>
       color: StudioColors.ink,
       fontFamily: MonoFont,
       fontSize: 11,
+      lineHeight: 14,
+      includeFontPadding: false,
       fontWeight: "900",
       letterSpacing: 0.4,
     },
     inspBonusBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      minHeight: 34,
       borderRadius: 8,
       borderWidth: 1.5,
       borderColor: StudioColors.ink,
       backgroundColor: StudioColors.yellow,
-      paddingVertical: 7,
+      paddingVertical: 6,
       paddingHorizontal: 10,
-      alignItems: "center",
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     inspBonusBtnText: {
       color: StudioColors.ink,
       fontFamily: MonoFont,
       fontSize: 10,
+      lineHeight: 13,
+      includeFontPadding: false,
       fontWeight: "900",
       letterSpacing: 0.4,
     },
     inspCertBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      minHeight: 34,
       borderRadius: 8,
       borderWidth: 1.5,
       borderColor: StudioColors.ink,
       backgroundColor: StudioColors.violet,
-      paddingVertical: 7,
+      paddingVertical: 6,
       paddingHorizontal: 10,
-      alignItems: "center",
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     inspCertBtnText: {
       color: StudioColors.ink,
       fontFamily: MonoFont,
       fontSize: 10,
+      lineHeight: 13,
+      includeFontPadding: false,
       fontWeight: "900",
       letterSpacing: 0.4,
     },

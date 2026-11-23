@@ -223,7 +223,7 @@ export default function RoadmapTree({
                       onSelectLesson(heroTargetLesson);
                     }}
                   >
-                    <StudioIcon name="bolt" size={14} />
+                    <StudioIcon name="mission_play" size={16} />
                     <Text style={styles.heroPrimaryBtnText} numberOfLines={1}>
                       {isResumingDraft
                         ? `RESUME DRAFT: ${heroTargetLesson.title} →`

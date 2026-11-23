@@ -297,7 +297,7 @@ export default function HomeMenuScreen({
                     onSelectLesson(heroLesson);
                   }}
                 >
-                  <StudioIcon name="bolt" size={15} />
+                  <StudioIcon name="mission_play" size={16} />
                   <Text style={styles.primaryCtaText} numberOfLines={1}>
                     {isResumingDraft
                       ? `RESUME DRAFT: ${heroLesson.title} →`

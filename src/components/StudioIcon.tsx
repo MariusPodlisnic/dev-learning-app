@@ -86,7 +86,10 @@ export type CoreStudioIconName =
   | "practice_2"
   | "practice_3"
   | "practice_4"
-  | "daily_quest";
+  | "daily_quest"
+  | "astral_compass"
+  | "studio_launch"
+  | "mission_play";
 
 export type StudioIconName =
   | CoreStudioIconName
@@ -532,6 +535,28 @@ const CORE_ICON_INNER_SVG: Record<CoreStudioIconName, string> = {
     <line x1="10" y1="12.5" x2="20" y2="12.5" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
     <line x1="10" y1="17" x2="17" y2="17" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
     <polygon points="23,15.5 24.8,19.4 29,20 25.9,22.8 26.7,27 23,24.9 19.3,27 20.1,22.8 17,20 21.2,19.4" fill="#B8FF3B" stroke="#111111" stroke-width="1.7" stroke-linejoin="round"/>
+  `,
+  astral_compass: `
+    <circle cx="16" cy="16" r="11.5" fill="#111111" transform="translate(1.5,1.5)"/>
+    <circle cx="16" cy="16" r="11.5" fill="#1E1B4B" stroke="#111111" stroke-width="2.1"/>
+    <circle cx="16" cy="16" r="8.2" fill="none" stroke="#FFDE59" stroke-width="1.4" stroke-dasharray="3 2.5"/>
+    <polygon points="16,4.2 19,13 27.8,16 19,19 16,27.8 13,19 4.2,16 13,13" fill="#FFDE59" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+    <circle cx="16" cy="16" r="2.6" fill="#FF90E8" stroke="#111111" stroke-width="1.5"/>
+  `,
+  studio_launch: `
+    <rect x="4" y="6" width="23.5" height="19.5" rx="4.5" fill="#111111" transform="translate(1.6,1.6)"/>
+    <rect x="4" y="6" width="23.5" height="19.5" rx="4.5" fill="#181826" stroke="#111111" stroke-width="2.1"/>
+    <rect x="4" y="6" width="23.5" height="5.5" rx="3" fill="#38BDF8" stroke="#111111" stroke-width="1.8"/>
+    <circle cx="8" cy="8.7" r="1.2" fill="#111111"/>
+    <circle cx="11.6" cy="8.7" r="1.2" fill="#111111"/>
+    <polyline points="9,15 13.8,18.2 9,21.4" fill="none" stroke="#B8FF3B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="16.2" y1="21.2" x2="22.5" y2="21.2" stroke="#FFDE59" stroke-width="2.4" stroke-linecap="round"/>
+  `,
+  mission_play: `
+    <polygon points="16,3.5 27,9.5 27,22.5 16,28.5 5,22.5 5,9.5" fill="#111111" transform="translate(1.6,1.6)"/>
+    <polygon points="16,3.5 27,9.5 27,22.5 16,28.5 5,22.5 5,9.5" fill="#1E1B4B" stroke="#111111" stroke-width="2.1" stroke-linejoin="round"/>
+    <polygon points="12.5,10.2 22.8,16 12.5,21.8" fill="#FFDE59" stroke="#111111" stroke-width="1.9" stroke-linejoin="round"/>
+    <circle cx="16" cy="6.6" r="1.3" fill="#6EE7B7"/>
   `,
 };
 
