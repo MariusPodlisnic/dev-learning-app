@@ -1484,3 +1484,24 @@ test("RoadmapTree renders Astral Star Chart observatory exclusively without lega
   assert.equal(mapText.includes("+100 XP bonus at 100%"), false);
   assert.equal(mapText.includes("UNSOLVED ("), false);
 });
+
+test("AstralDriftBackground renders observatory backdrop and resolves all 4 palettes in dark & light modes", () => {
+  const {
+    default: AstralDriftBackground,
+    getAstralDriftPalette,
+  } = loadTsModule("src/components/AstralDriftBackground.tsx");
+  for (const palId of ["arcade", "matcha", "amber", "sakura"]) {
+    for (const mode of ["dark", "light"]) {
+      const p = getAstralDriftPalette(palId, mode);
+      assert.match(p.bg0, /^#[0-9A-Fa-f]{6}$/);
+      assert.match(p.starHighlight, /^#[0-9A-Fa-f]{6}$/);
+    }
+  }
+  const html = renderThemed(
+    React.createElement(AstralDriftBackground, {
+      themeMode: "dark",
+      section: "home",
+    }),
+  );
+  assert.ok(html.includes("Astral Observatory Drift background"));
+});

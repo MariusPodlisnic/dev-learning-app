@@ -26,7 +26,7 @@ import { type AuthModalMode } from "../components/Auth";
 import { renderHighlightedPython } from "../components/FormattedText";
 import HomeMenuScreen from "../components/HomeMenuScreen";
 import LessonProblemPanel from "../components/LessonProblemPanel";
-import MinimalPcbBackground from "../components/MinimalPcbBackground";
+import AstralDriftBackground from "../components/AstralDriftBackground";
 import MobileThumbNav from "../components/MobileThumbNav";
 import {
   PaywallPlanId,
@@ -982,13 +982,6 @@ export default function HomeScreen() {
                 ? StudioColors.violet
               : TrackThemes[activeTrack]?.stickerBg || StudioColors.yellow;
 
-  const backdropVariant =
-    viewMode === "studio"
-      ? "studio"
-      : viewMode === "roadmap"
-        ? "roadmap"
-        : "arena";
-
   if (showShowcase) {
     return (
       <>
@@ -1037,10 +1030,9 @@ export default function HomeScreen() {
           themeMode={themeMode}
         />
       ) : (
-        <MinimalPcbBackground
-          accentColor={activeBackdropAccent}
+        <AstralDriftBackground
           themeMode={themeMode}
-          variant={backdropVariant}
+          section={viewMode}
         />
       )}
       <AppHeader
