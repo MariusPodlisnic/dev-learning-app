@@ -15,6 +15,13 @@ import {
   subscribeLofiRadio,
 } from "../utils/lofiRadio";
 import {
+  commandLoftCatTo,
+  createInitialLoftCatState,
+  LOFT_CAT_STATIONS,
+  stepLoftCat,
+  type LoftCatState,
+} from "../utils/loftCatState";
+import {
   computeIsoMetrics,
   getLoftThemeColors,
   getWindowGlassPolygon,
@@ -41,7 +48,7 @@ interface FloatingParticle {
   vx: number;
   vy: number;
   life: number;
-  kind: "heart" | "note" | "spark";
+  kind: "heart" | "note" | "spark" | "code" | "zzz" | "arcade";
   char: string;
   color: string;
 }
@@ -229,6 +236,8 @@ export default function HomeLoftStage({
     lofiPlaying: boolean;
     steamBoost: number;
     catHappy: number;
+    cat: LoftCatState;
+    catFxCooldown: number;
     mouseX: number;
     mouseY: number;
     smoothMx: number;
@@ -254,6 +263,8 @@ export default function HomeLoftStage({
     lofiPlaying: getLofiRadioState().isPlaying,
     steamBoost: 0,
     catHappy: 0,
+    cat: createInitialLoftCatState(),
+    catFxCooldown: 0.9,
     mouseX: 0,
     mouseY: 0,
     smoothMx: 0,
@@ -363,7 +374,13 @@ export default function HomeLoftStage({
           ? ["♥"]
           : kind === "note"
             ? ["♪", "♫"]
-            : ["✦", "·"];
+            : kind === "code"
+              ? ["{}", "✓", "01", "λ"]
+              : kind === "zzz"
+                ? ["z", "Z"]
+                : kind === "arcade"
+                  ? ["★", "+10", "✦"]
+                  : ["✦", "·"];
       for (let i = 0; i < count; i += 1) {
         stateRef.current.particles.push({
           x: x + (Math.random() - 0.5) * 22,
@@ -426,17 +443,35 @@ export default function HomeLoftStage({
       } else if (hit === "window") {
         st.rainOn = !st.rainOn;
         playKeyClick();
-        st.showToast(st.rainOn ? "COZY WINDOW RAIN: ON" : "CLEAR STARRY SKY");
+        if (st.cat.activity !== "window") {
+          commandLoftCatTo(st.cat, "window");
+          st.showToast(
+            st.rainOn
+              ? "COZY WINDOW RAIN: ON · CAT LEAPED TO THE SILL!"
+              : "CLEAR STARRY SKY · CAT LEAPED TO THE SILL!",
+          );
+        } else {
+          st.showToast(st.rainOn ? "COZY WINDOW RAIN: ON" : "CLEAR STARRY SKY");
+        }
       } else if (hit === "mug") {
         st.steamBoost = 1.5;
         playKeyClick();
         spawnParticles(pt.x, pt.y - 8, "spark", 4, pal.accentSecondary);
-        st.showToast("FRESH HOT BREW AT YOUR DESK");
+        if (st.cat.activity !== "coding") {
+          commandLoftCatTo(st.cat, "coding");
+          st.showToast("FRESH BREW · CAT HOPPED OVER TO CODE!");
+        } else {
+          st.showToast("FRESH HOT BREW AT YOUR DESK");
+        }
       } else if (hit === "cat") {
-        st.catHappy = 2.0;
+        st.catHappy = 2.2;
         playSuccessChime();
         spawnParticles(pt.x, pt.y - 12, "heart", 6, pal.accentPink);
-        st.showToast("LOFT CAT PURRS HAPPILY (^ ω ^)");
+        st.showToast(
+          st.cat.phase === "walking"
+            ? "CAT IS EXPLORING THE LOFT (^ ω ^)"
+            : LOFT_CAT_STATIONS[st.cat.activity].petToast,
+        );
       } else if (hit === "bonsai") {
         playKeyClick();
         spawnParticles(pt.x, pt.y - 12, "spark", 6, pal.bonsaiBlossom);
@@ -447,8 +482,13 @@ export default function HomeLoftStage({
         );
       } else if (hit === "arcade") {
         playKeyClick();
-        spawnParticles(pt.x, pt.y - 16, "spark", 5, pal.accentPink);
-        st.showToast("ARCADE CABINET READY · 6 CARTRIDGES");
+        spawnParticles(pt.x, pt.y - 16, "arcade", 5, pal.accentPink);
+        if (st.cat.activity !== "arcade") {
+          commandLoftCatTo(st.cat, "arcade");
+          st.showToast("ARCADE CABINET · CAT IS HEADING OVER TO PLAY!");
+        } else {
+          st.showToast("CAT IS ALREADY CRUSHING THE ARCADE HIGH SCORE!");
+        }
       }
     };
 
@@ -464,6 +504,17 @@ export default function HomeLoftStage({
       st.smoothMy += (st.mouseY - st.smoothMy) * Math.min(1, dt * 5);
       st.steamBoost = Math.max(0, st.steamBoost - dt * 0.75);
       st.catHappy = Math.max(0, st.catHappy - dt * 0.85);
+      stepLoftCat(st.cat, dt);
+      const catIsPlayingArcade =
+        st.cat.phase === "staying" && st.cat.activity === "arcade";
+      const catIsCoding =
+        st.cat.phase === "staying" && st.cat.activity === "coding";
+      const catIsListening =
+        st.cat.phase === "staying" && st.cat.activity === "music";
+      const catIsWindowGazing =
+        st.cat.phase === "staying" && st.cat.activity === "window";
+      const catIsLounging =
+        st.cat.phase === "staying" && st.cat.activity === "lounge";
 
       const m = computeIsoMetrics(
         stageW,
@@ -471,6 +522,591 @@ export default function HomeLoftStage({
         st.smoothMx * 5.5,
         st.smoothMy * 3.5,
       );
+
+      // Helper: renders the expressive autonomous Loft Cat at its live 3D isometric position
+      const drawDynamicLoftCat = () => {
+        const cat = st.cat;
+        const catScale = Math.max(0.75, Math.min(1.06, m.halfW / 245));
+        const isWalking = cat.phase === "walking";
+        const walkBounce = isWalking ? Math.abs(Math.sin(cat.walkPhase)) * 4.2 : 0;
+        const arcadeBounce = catIsPlayingArcade ? Math.abs(Math.sin(t * 9.6)) * 2.6 : 0;
+        const musicBeat = catIsListening ? Math.abs(Math.sin(t * 5.1)) : 0;
+        const codingCadence = catIsCoding
+          ? 0.45 + 0.55 * Math.max(0, Math.sin(t * 2.3))
+          : 0;
+        const catDelighted = st.catHappy > 0 || st.activeZone === "cat";
+
+        // Grounded shadow stays glued to floor, chair seat, arcade stool, or windowsill cushion
+        const shadowZ = catIsCoding
+          ? 0.188
+          : catIsPlayingArcade
+            ? 0.152
+            : catIsWindowGazing
+              ? 0.373
+              : 0.008;
+        const shadowPt = projectIso(m, cat.u, cat.v, shadowZ);
+        const shadowScale = Math.max(0.5, 1 - cat.hopZ * 2.1) * catScale;
+        ctx.save();
+        ctx.fillStyle = "rgba(5, 8, 15, 0.36)";
+        ctx.beginPath();
+        ctx.ellipse(
+          shadowPt.x,
+          shadowPt.y + (catIsWindowGazing || catIsCoding || catIsPlayingArcade ? 2 : 8) * catScale,
+          (catIsWindowGazing ? 15 : 19) * shadowScale,
+          (catIsWindowGazing ? 6 : 8.5) * shadowScale,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+        ctx.restore();
+
+        const catPt = projectIso(m, cat.u, cat.v, cat.z + cat.hopZ);
+        const bodyYOffset = -walkBounce - arcadeBounce;
+
+        // 0. World-space reaching paws for Coding (on keyboard!), Arcade (on joystick/buttons!), and Window (pawing glass!)
+        if (catIsCoding && !catDelighted) {
+          const shoulderL = { x: catPt.x - 1 * catScale, y: catPt.y - 5 * catScale };
+          const shoulderR = { x: catPt.x + 8 * catScale, y: catPt.y - 1 * catScale };
+          const tapL = Math.sin(t * 22) * 3.0 * codingCadence;
+          const tapR = Math.sin(t * 22 + Math.PI) * 3.0 * codingCadence;
+          const keyL = projectIso(m, 0.278, 0.258, 0.306);
+          const keyR = projectIso(m, 0.352, 0.256, 0.306);
+
+          ctx.save();
+          ctx.lineCap = "round";
+          // Subtle keycap glow right beneath whichever paw is tapping down!
+          if (tapL > 1.0) {
+            ctx.fillStyle = `${pal.accentCyan}99`;
+            ctx.beginPath();
+            ctx.arc(keyL.x, keyL.y, 4.8 * catScale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          if (tapR > 1.0) {
+            ctx.fillStyle = `${pal.accent}99`;
+            ctx.beginPath();
+            ctx.arc(keyR.x, keyR.y, 4.8 * catScale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          // Outstretched arms + tapping paws reaching cleanly onto the mechanical keyboard
+          for (const [sh, kp, tap] of [
+            [shoulderL, keyL, tapL],
+            [shoulderR, keyR, tapR],
+          ] as const) {
+            ctx.strokeStyle = "#090B10";
+            ctx.lineWidth = 7.2 * catScale;
+            ctx.beginPath();
+            ctx.moveTo(sh.x, sh.y);
+            ctx.lineTo(kp.x, kp.y - Math.max(0, -tap) * 0.9);
+            ctx.stroke();
+
+            ctx.strokeStyle = "#2E344E";
+            ctx.lineWidth = 4.4 * catScale;
+            ctx.beginPath();
+            ctx.moveTo(sh.x, sh.y);
+            ctx.lineTo(kp.x, kp.y - Math.max(0, -tap) * 0.9);
+            ctx.stroke();
+
+            ctx.fillStyle = "#3A4262";
+            ctx.strokeStyle = "#090B10";
+            ctx.lineWidth = 1.4 * catScale;
+            ctx.beginPath();
+            ctx.ellipse(
+              kp.x,
+              kp.y - Math.max(0, -tap) * 0.9,
+              4.3 * catScale,
+              2.9 * catScale,
+              -0.3,
+              0,
+              Math.PI * 2,
+            );
+            ctx.fill();
+            ctx.stroke();
+          }
+          ctx.restore();
+        } else if (catIsPlayingArcade && !catDelighted) {
+          const arcSpec = LOFT_GROUNDED_FURNITURE.arcadeCabinet;
+          const shoulderL = {
+            x: catPt.x - 3 * catScale,
+            y: catPt.y - 6 * catScale + bodyYOffset,
+          };
+          const shoulderR = {
+            x: catPt.x + 8 * catScale,
+            y: catPt.y - 2 * catScale + bodyYOffset,
+          };
+          const joyTarget = projectIso(
+            m,
+            arcSpec.u0 + 0.06,
+            arcSpec.v0 + arcSpec.dv + 0.025,
+            0.345,
+          );
+          const btnTarget = projectIso(
+            m,
+            arcSpec.u0 + 0.148,
+            arcSpec.v0 + arcSpec.dv + 0.024,
+            0.346,
+          );
+          const wiggleX = Math.sin(t * 15) * 3.0 * catScale;
+          const mashY = Math.abs(Math.sin(t * 21)) * 4.0 * catScale;
+
+          ctx.save();
+          ctx.lineCap = "round";
+          if (mashY < 1.2 * catScale) {
+            ctx.fillStyle = `${pal.accentSecondary}99`;
+            ctx.beginPath();
+            ctx.arc(btnTarget.x, btnTarget.y, 4.6 * catScale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          const pairs: [Point2D, Point2D][] = [
+            [shoulderL, { x: joyTarget.x + wiggleX, y: joyTarget.y - 9 * catScale }],
+            [shoulderR, { x: btnTarget.x, y: btnTarget.y - mashY }],
+          ];
+          for (const [sh, tgt] of pairs) {
+            ctx.strokeStyle = "#090B10";
+            ctx.lineWidth = 7.2 * catScale;
+            ctx.beginPath();
+            ctx.moveTo(sh.x, sh.y);
+            ctx.lineTo(tgt.x, tgt.y);
+            ctx.stroke();
+            ctx.strokeStyle = "#2E344E";
+            ctx.lineWidth = 4.4 * catScale;
+            ctx.beginPath();
+            ctx.moveTo(sh.x, sh.y);
+            ctx.lineTo(tgt.x, tgt.y);
+            ctx.stroke();
+            ctx.fillStyle = "#3A4262";
+            ctx.strokeStyle = "#090B10";
+            ctx.lineWidth = 1.4 * catScale;
+            ctx.beginPath();
+            ctx.ellipse(tgt.x, tgt.y, 4.2 * catScale, 2.9 * catScale, -0.25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+          ctx.restore();
+        } else if (catIsWindowGazing && !catDelighted) {
+          // Far paw periodically reaches up onto the starry windowpane glass to playfully tap raindrops!
+          const batWave = Math.max(0, Math.sin(t * 1.9) - 0.28) / 0.72;
+          const glassPaw = projectIso(
+            m,
+            0.008,
+            0.46 - batWave * 0.038,
+            0.49 + batWave * 0.115,
+          );
+          const sh = { x: catPt.x - 5 * catScale, y: catPt.y - 6 * catScale };
+          ctx.save();
+          ctx.lineCap = "round";
+          if (st.rainOn && batWave > 0.62) {
+            ctx.strokeStyle = "rgba(214, 240, 255, 0.72)";
+            ctx.lineWidth = 1.4 * catScale;
+            ctx.beginPath();
+            ctx.arc(
+              glassPaw.x - 2 * catScale,
+              glassPaw.y - 2 * catScale,
+              (3.5 + (batWave - 0.62) * 14) * catScale,
+              0,
+              Math.PI * 2,
+            );
+            ctx.stroke();
+          }
+          ctx.strokeStyle = "#090B10";
+          ctx.lineWidth = 6.6 * catScale;
+          ctx.beginPath();
+          ctx.moveTo(sh.x, sh.y);
+          ctx.lineTo(glassPaw.x, glassPaw.y);
+          ctx.stroke();
+          ctx.strokeStyle = "#2E344E";
+          ctx.lineWidth = 4.0 * catScale;
+          ctx.beginPath();
+          ctx.moveTo(sh.x, sh.y);
+          ctx.lineTo(glassPaw.x, glassPaw.y);
+          ctx.stroke();
+          ctx.fillStyle = "#3A4262";
+          ctx.strokeStyle = "#090B10";
+          ctx.lineWidth = 1.3 * catScale;
+          ctx.beginPath();
+          ctx.ellipse(
+            glassPaw.x,
+            glassPaw.y,
+            3.8 * catScale,
+            2.8 * catScale,
+            0.4,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.translate(catPt.x, catPt.y + bodyYOffset);
+        ctx.scale(catScale, catScale);
+
+        const isFacingAwayRight =
+          (catIsCoding || catIsPlayingArcade) && !catDelighted;
+        const isFacingAwayLeft = catIsWindowGazing && !catDelighted;
+        const isRearView = isFacingAwayRight || isFacingAwayLeft;
+
+        // Horizontal orientation for walking/front poses
+        const flipX = isWalking
+          ? cat.facingX
+          : catIsWindowGazing
+            ? -1
+            : 1;
+
+        // 1. Expressive Tail (dangles gracefully off the windowsill when window-gazing!)
+        if (catIsWindowGazing) {
+          // Tail hangs down off the front edge of the wooden windowsill, swinging lazily like a pendulum!
+          const swing = Math.sin(t * 2.1) * 8;
+          ctx.strokeStyle = "#090B10";
+          ctx.lineWidth = 7.6;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(10, 7);
+          ctx.quadraticCurveTo(18 + swing * 0.4, 21, 12 + swing, 34);
+          ctx.stroke();
+          ctx.strokeStyle = "#2A2F46";
+          ctx.lineWidth = 4.8;
+          ctx.beginPath();
+          ctx.moveTo(10, 7);
+          ctx.quadraticCurveTo(18 + swing * 0.4, 21, 12 + swing, 34);
+          ctx.stroke();
+        } else if (!isRearView) {
+          const tailSpeed = isWalking ? 8.5 : catIsListening ? 5.1 : 2.6;
+          const tailAmp = isWalking ? 7 : 5.5;
+          ctx.strokeStyle = "#2A2F46";
+          ctx.lineWidth = 5.4;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(flipX * -12, 6);
+          ctx.quadraticCurveTo(
+            flipX * -29,
+            3 + Math.sin(t * tailSpeed) * tailAmp,
+            flipX * -26,
+            (isWalking ? -15 : -10) + Math.cos(t * tailSpeed) * 4,
+          );
+          ctx.stroke();
+        }
+
+        // 2. Trotting Legs when Walking
+        if (isWalking) {
+          const stride = Math.sin(cat.walkPhase) * 6;
+          ctx.fillStyle = "#1E2235";
+          ctx.strokeStyle = "#090B10";
+          ctx.lineWidth = 1.6;
+          const paws: [number, number][] = [
+            [-9 + stride, 13],
+            [9 - stride, 13],
+            [-3 - stride * 0.8, 15],
+            [4 + stride * 0.8, 15],
+          ];
+          for (const [px, py] of paws) {
+            ctx.beginPath();
+            ctx.ellipse(px, py, 4.4, 3.1, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+        }
+
+        // 3. Cat Body (tilts naturally into keyboard / arcade / window / music beat!)
+        ctx.save();
+        if (catIsListening) {
+          ctx.rotate(Math.sin(t * 2.55) * 0.08);
+        } else if (isWalking) {
+          ctx.rotate(flipX * 0.07);
+        } else if (isFacingAwayRight) {
+          ctx.rotate(catIsCoding ? 0.1 : 0.12);
+        } else if (isFacingAwayLeft) {
+          ctx.rotate(-0.1);
+        }
+
+        ctx.fillStyle = "#2A2F46";
+        ctx.strokeStyle = "#090B10";
+        ctx.lineWidth = 2.1;
+        ctx.beginPath();
+        ctx.ellipse(
+          0,
+          catIsPlayingArcade ? 2 : catIsWindowGazing ? 2 : 4,
+          catIsPlayingArcade ? 16 : catIsWindowGazing ? 15.5 : 18,
+          catIsPlayingArcade ? 15.5 : catIsWindowGazing ? 14 : 13.5,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+        ctx.stroke();
+
+        // Back fur stripes when viewed from behind, or cozy belly patch when facing front
+        if (isRearView) {
+          ctx.strokeStyle = "rgba(15, 19, 34, 0.5)";
+          ctx.lineWidth = 2.2;
+          ctx.lineCap = "round";
+          for (const sy of [-2, 3, 8]) {
+            ctx.beginPath();
+            ctx.moveTo(-6, sy);
+            ctx.quadraticCurveTo(0, sy - 2, 6, sy);
+            ctx.stroke();
+          }
+        } else {
+          ctx.fillStyle = "rgba(196, 181, 253, 0.16)";
+          ctx.beginPath();
+          ctx.ellipse(flipX * 2, 7, 9, 6.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Music station beat-tapping front paw
+        if (catIsListening) {
+          ctx.fillStyle = "#363D5C";
+          ctx.strokeStyle = "#090B10";
+          ctx.lineWidth = 1.6;
+          const pawTap = musicBeat * 3.2;
+          ctx.beginPath();
+          ctx.ellipse(10, 11 - pawTap, 4.8, 3.2, 0.15, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        // Foreground curled tail when facing away at PC or Arcade!
+        if (isFacingAwayRight) {
+          const tailSpd = catIsPlayingArcade ? 9.5 : 2.8;
+          const tailAmp = catIsPlayingArcade ? 8.5 : 4.5;
+          ctx.strokeStyle = "#090B10";
+          ctx.lineWidth = 7.6;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(-6, 10);
+          ctx.quadraticCurveTo(
+            -21,
+            12 + Math.sin(t * tailSpd) * tailAmp,
+            -25,
+            (catIsPlayingArcade ? -4 : 2) + Math.cos(t * tailSpd) * 4,
+          );
+          ctx.stroke();
+          ctx.strokeStyle = "#2A2F46";
+          ctx.lineWidth = 4.8;
+          ctx.beginPath();
+          ctx.moveTo(-6, 10);
+          ctx.quadraticCurveTo(
+            -21,
+            12 + Math.sin(t * tailSpd) * tailAmp,
+            -25,
+            (catIsPlayingArcade ? -4 : 2) + Math.cos(t * tailSpd) * 4,
+          );
+          ctx.stroke();
+        }
+
+        // 4. Expressive Head + Activity Tilt/Bob
+        const headBob = catIsListening
+          ? -musicBeat * 3.2
+          : catIsCoding
+            ? Math.sin(t * 7.2) * 1.1 * codingCadence
+            : catIsPlayingArcade
+              ? Math.sin(t * 9.6) * 1.3
+              : Math.sin(t * 2.2) * 1.3;
+        const headTilt = catIsListening
+          ? Math.sin(t * 2.55) * 0.14
+          : isFacingAwayLeft
+            ? -0.14 + Math.sin(t * 1.3) * 0.05
+            : isFacingAwayRight
+              ? 0.06 + Math.sin(t * 2.1) * 0.03
+              : 0;
+
+        ctx.translate(
+          isFacingAwayRight ? 3 : isFacingAwayLeft ? -3 : 0,
+          -15 + headBob,
+        );
+        ctx.rotate(headTilt);
+
+        // Pointed Ears (no bright front pink triangles when facing away — authentic dark ear backs!)
+        const earTwitch =
+          catIsWindowGazing && Math.sin(t * 3.4) > 0.82 ? 2.6 : 0;
+        for (const side of [-1, 1]) {
+          const twitch = side === -1 ? earTwitch : 0;
+          ctx.fillStyle = "#2A2F46";
+          ctx.strokeStyle = "#090B10";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(side * 6, -10);
+          ctx.lineTo(side * (17 + twitch), -23 - twitch * 0.6);
+          ctx.lineTo(side * 18, -5);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          if (!isRearView) {
+            ctx.fillStyle = pal.accentPink;
+            ctx.beginPath();
+            ctx.moveTo(side * 9, -10);
+            ctx.lineTo(side * (15 + twitch * 0.7), -18 - twitch * 0.5);
+            ctx.lineTo(side * 15, -8);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            // Soft screen / moonlight rim-light along the edge facing the monitor, arcade, or window!
+            const rimFacing =
+              (isFacingAwayRight && side === 1) ||
+              (isFacingAwayLeft && side === -1);
+            if (rimFacing) {
+              ctx.strokeStyle = catIsCoding
+                ? pal.accentCyan
+                : catIsPlayingArcade
+                  ? pal.accentPink
+                  : pal.skyGlow;
+              ctx.lineWidth = 1.6;
+              ctx.beginPath();
+              ctx.moveTo(side * 9, -12);
+              ctx.lineTo(side * (16 + twitch), -21.5 - twitch * 0.6);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Rounded Head
+        ctx.fillStyle = "#2A2F46";
+        ctx.strokeStyle = "#090B10";
+        ctx.lineWidth = 2.1;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 18, 15, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Ambient Rim-Light Glow + Peeking Whiskers on Head Edge Facing PC Monitor / Arcade Screen / Moonlit Window!
+        if (isRearView) {
+          const rimColor = catIsCoding
+            ? pal.accentCyan
+            : catIsPlayingArcade
+              ? pal.accentPink
+              : "#FFF8DC";
+          const dir = isFacingAwayRight ? 1 : -1;
+          ctx.save();
+          ctx.strokeStyle = rimColor;
+          ctx.lineWidth = 2.6;
+          ctx.globalAlpha = 0.82;
+          ctx.beginPath();
+          if (isFacingAwayRight) {
+            ctx.arc(0, 0, 16.2, -Math.PI * 0.45, Math.PI * 0.16);
+          } else {
+            ctx.arc(0, 0, 16.2, Math.PI * 0.84, Math.PI * 1.45);
+          }
+          ctx.stroke();
+
+          // Tiny peeking cheek whiskers facing the screen/window so the 3/4 gaze reads cleanly past the headphones!
+          ctx.globalAlpha = 0.85;
+          ctx.strokeStyle = "#CBD5E1";
+          ctx.lineWidth = 1.2;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(dir * 19.5, 4.5);
+          ctx.lineTo(dir * 25.5, 3.2);
+          ctx.moveTo(dir * 18.8, 7.6);
+          ctx.lineTo(dir * 24.5, 8.2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Golden Studio Headphones (+ pulsing neon beat rings when listening to music!)
+        if (catIsListening) {
+          const ringR = 5 + musicBeat * 7;
+          ctx.strokeStyle = pal.accent;
+          ctx.lineWidth = 1.4;
+          ctx.globalAlpha = 0.25 + (1 - musicBeat) * 0.55;
+          ctx.beginPath();
+          ctx.arc(-22, 0, ringR, Math.PI * 0.7, Math.PI * 1.3);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(22, 0, ringR, -Math.PI * 0.3, Math.PI * 0.3);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        ctx.strokeStyle = pal.accentSecondary;
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.arc(0, -2, 19, Math.PI * 1.05, Math.PI * 1.95);
+        ctx.stroke();
+        ctx.fillStyle = pal.accentSecondary;
+        ctx.strokeStyle = "#090B10";
+        ctx.lineWidth = 1.6;
+        drawRoundedRect(ctx, -22, -6, 6.5, 12, 3);
+        ctx.fill();
+        ctx.stroke();
+        drawRoundedRect(ctx, 15.5, -6, 6.5, 12, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // Front Visor Face ONLY when facing toward the viewer (lounge, music, walking, or petted!)
+        if (!isRearView) {
+          ctx.fillStyle = "#090D16";
+          drawRoundedRect(ctx, -12, -5.5, 24, 11, 5);
+          ctx.fill();
+          const blinking = Math.sin(t * 0.85) > 0.965;
+          ctx.lineWidth = 1.8;
+
+          if (catDelighted || catIsListening || blinking) {
+            ctx.strokeStyle = catIsListening ? pal.accentPink : pal.accent;
+            for (const ex of [-5.5, 5.5]) {
+              ctx.beginPath();
+              ctx.moveTo(ex - 2.8, 1);
+              ctx.lineTo(ex, -2.2);
+              ctx.lineTo(ex + 2.8, 1);
+              ctx.stroke();
+            }
+          } else {
+            const lookX = isWalking ? flipX * 1.5 : 0;
+            ctx.fillStyle = pal.accent;
+            ctx.beginPath();
+            ctx.arc(-5.5 + lookX, 0, 2.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(5.5 + lookX, 0, 2.1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else {
+          // Cute subtle back-of-head tabby tufts when looking at PC / Arcade / Window
+          ctx.strokeStyle = "rgba(15, 19, 34, 0.55)";
+          ctx.lineWidth = 1.8;
+          ctx.lineCap = "round";
+          for (const tx of [-4, 0, 4]) {
+            ctx.beginPath();
+            ctx.moveTo(tx, -8);
+            ctx.lineTo(tx, -3);
+            ctx.stroke();
+          }
+        }
+
+        ctx.restore();
+        ctx.restore();
+
+        // Update live cat hitbox so petting works anywhere in the room!
+        st.hitZones.cat = [
+          { x: catPt.x - 28 * catScale, y: catPt.y - 38 * catScale + bodyYOffset },
+          { x: catPt.x + 28 * catScale, y: catPt.y - 38 * catScale + bodyYOffset },
+          { x: catPt.x + 28 * catScale, y: catPt.y + 20 * catScale + bodyYOffset },
+          { x: catPt.x - 28 * catScale, y: catPt.y + 20 * catScale + bodyYOffset },
+        ];
+
+        // Periodic charming activity particles!
+        st.catFxCooldown -= dt;
+        if (st.catFxCooldown <= 0 && !isWalking) {
+          if (catIsPlayingArcade) {
+            st.catFxCooldown = 0.72;
+            const arcTop = projectIso(m, 0.78, 0.16, 0.62);
+            spawnParticles(arcTop.x, arcTop.y, "arcade", 1, pal.accentSecondary);
+          } else if (catIsCoding) {
+            st.catFxCooldown = 0.9;
+            const monTop = projectIso(m, 0.31, 0.16, 0.54);
+            spawnParticles(monTop.x, monTop.y, "code", 1, pal.accentCyan);
+          } else if (catIsListening) {
+            st.catFxCooldown = 0.85;
+            spawnParticles(catPt.x, catPt.y - 34 * catScale, "note", 1, pal.accentPink);
+          } else if (catIsWindowGazing) {
+            st.catFxCooldown = 1.5;
+            spawnParticles(catPt.x - 14, catPt.y - 28 * catScale, "spark", 1, "#FFF8DC");
+          } else if (catIsLounging) {
+            st.catFxCooldown = 2.1;
+            spawnParticles(catPt.x + 12, catPt.y - 26 * catScale, "zzz", 1, pal.accentCyan);
+          }
+        }
+      };
 
       // 0. Soft atmospheric studio vignette backdrop
       const bg = ctx.createRadialGradient(
@@ -717,8 +1353,23 @@ export default function HomeLoftStage({
         ctx.fillRect(sp.x, sp.y, 1.8, 1.8);
       }
 
-      // Crescent moon
+      // Crescent moon + soft ambient moonlight halo
       const moonPt = projectIso(m, 0, vMin + 0.12, zMax - 0.11);
+      const moonHalo = ctx.createRadialGradient(
+        moonPt.x,
+        moonPt.y,
+        2,
+        moonPt.x,
+        moonPt.y,
+        Math.max(18, m.halfW * 0.11),
+      );
+      moonHalo.addColorStop(0, "rgba(255, 248, 220, 0.36)");
+      moonHalo.addColorStop(1, "transparent");
+      ctx.fillStyle = moonHalo;
+      ctx.beginPath();
+      ctx.arc(moonPt.x, moonPt.y, Math.max(18, m.halfW * 0.11), 0, Math.PI * 2);
+      ctx.fill();
+
       ctx.fillStyle = "#FFF8DC";
       ctx.beginPath();
       ctx.arc(moonPt.x, moonPt.y, Math.max(5.5, m.halfW * 0.032), 0, Math.PI * 2);
@@ -733,6 +1384,25 @@ export default function HomeLoftStage({
         Math.PI * 2,
       );
       ctx.fill();
+
+      // Occasional gentle shooting star gliding across the starry window sky
+      const shootCycle = t % 7.4;
+      if (shootCycle < 0.85) {
+        const sp = shootCycle / 0.85;
+        const sv = vMin + 0.08 + sp * 0.34;
+        const sz = zMax - 0.06 - sp * 0.16;
+        const head = projectIso(m, 0, sv, sz);
+        const tail = projectIso(m, 0, sv - 0.075, sz + 0.036);
+        ctx.save();
+        ctx.strokeStyle = `rgba(255, 248, 220, ${(Math.sin(sp * Math.PI) * 0.85).toFixed(2)})`;
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(tail.x, tail.y);
+        ctx.lineTo(head.x, head.y);
+        ctx.stroke();
+        ctx.restore();
+      }
 
       // Layered isometric distant skyline silhouettes + glowing windows
       for (let b = 0; b < 7; b += 1) {
@@ -828,22 +1498,120 @@ export default function HomeLoftStage({
       ctx.lineTo(mRight.x, mRight.y);
       ctx.stroke();
 
-      // Protruding 3D wooden windowsill ledge
+      // Deep protruding 3D wooden windowsill ledge + support corbels
+      for (const cv of [vMin + 0.03, vMax - 0.055]) {
+        drawIsoBox(
+          ctx,
+          m,
+          0,
+          cv,
+          zMin - 0.078,
+          0.052,
+          0.026,
+          0.038,
+          "#4E3426",
+          "#3B261B",
+          "#2B1B13",
+          "#090B10",
+          1.2,
+        );
+      }
       drawIsoBox(
         ctx,
         m,
         0,
         vMin - 0.035,
-        zMin - 0.04,
-        0.045,
+        zMin - 0.042,
+        0.084,
         vMax - vMin + 0.07,
-        0.036,
-        "#6B4937",
-        "#4E3426",
-        "#3A251A",
+        0.04,
+        "#734F3C",
+        "#543829",
+        "#3D271C",
         "#090B10",
         1.5,
       );
+
+      // Tiny warm glowing fairy-light jar on the upper-left corner of the sill
+      drawIsoBox(
+        ctx,
+        m,
+        0.018,
+        vMin + 0.02,
+        zMin - 0.002,
+        0.042,
+        0.042,
+        0.056,
+        "rgba(255, 240, 185, 0.55)",
+        "rgba(255, 224, 130, 0.38)",
+        "rgba(200, 175, 110, 0.34)",
+        "#090B10",
+        1.1,
+      );
+      const jarPt = projectIso(m, 0.039, vMin + 0.041, zMin + 0.028 + Math.sin(t * 3.1) * 0.006);
+      const jarGlow = ctx.createRadialGradient(jarPt.x, jarPt.y, 1, jarPt.x, jarPt.y, 13);
+      jarGlow.addColorStop(0, "rgba(255, 232, 138, 0.72)");
+      jarGlow.addColorStop(1, "transparent");
+      ctx.fillStyle = jarGlow;
+      ctx.beginPath();
+      ctx.arc(jarPt.x, jarPt.y, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#FFF8DC";
+      ctx.beginPath();
+      ctx.arc(jarPt.x, jarPt.y, 2.1, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cozy plush miniature window-perch cushion resting on the wooden sill
+      drawIsoBox(
+        ctx,
+        m,
+        0.012,
+        0.43,
+        zMin - 0.002,
+        0.064,
+        0.21,
+        0.016,
+        "#48356B",
+        "#362752",
+        "#271B3D",
+        "#090B10",
+        1.3,
+      );
+      drawIsoQuad(
+        ctx,
+        m,
+        [
+          [0.02, 0.445, zMin + 0.015],
+          [0.068, 0.445, zMin + 0.015],
+          [0.068, 0.625, zMin + 0.015],
+          [0.02, 0.625, zMin + 0.015],
+        ],
+        "rgba(255, 255, 255, 0.06)",
+        pal.rugStripe,
+        1.1,
+      );
+
+      // Soft moonlight wash across the sill & perched cat while window-gazing
+      if (catIsWindowGazing) {
+        const sillLightPt = projectIso(m, 0.04, 0.54, 0.46);
+        const sillGlow = ctx.createRadialGradient(
+          sillLightPt.x - 10,
+          sillLightPt.y - 8,
+          4,
+          sillLightPt.x,
+          sillLightPt.y,
+          m.halfW * 0.24,
+        );
+        sillGlow.addColorStop(0, `${pal.skyGlow}36`);
+        sillGlow.addColorStop(1, "transparent");
+        ctx.fillStyle = sillGlow;
+        ctx.beginPath();
+        ctx.arc(sillLightPt.x, sillLightPt.y, m.halfW * 0.24, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw the perched Loft Cat right on top of the windowsill cushion in exact 3D depth order!
+        drawDynamicLoftCat();
+      }
 
       // 3. LEFT WALL: FLOATING BOOKSHELF & TRAILING IVY + SKILL MAP BOARD
       // Floating mini-bookshelf near back corner (u=0, v=0.03..0.14, z=0.68..0.71)
@@ -1073,7 +1841,8 @@ export default function HomeLoftStage({
         1.1,
       );
 
-      // Ambient monitor glow on desk
+      // Ambient monitor glow on desk (brightens subtly when hovering Studio or while the cat is coding!)
+      const monHot = stuHot || catIsCoding;
       const monCenter = projectIso(m, 0.31, 0.17, 0.36);
       const monGlow = ctx.createRadialGradient(
         monCenter.x,
@@ -1081,11 +1850,11 @@ export default function HomeLoftStage({
         6,
         monCenter.x,
         monCenter.y + 12,
-        stuHot ? m.halfW * 0.44 : m.halfW * 0.28,
+        monHot ? m.halfW * 0.44 : m.halfW * 0.28,
       );
       monGlow.addColorStop(
         0,
-        stuHot ? "rgba(56, 189, 248, 0.42)" : `${pal.accent}36`,
+        monHot ? "rgba(56, 189, 248, 0.44)" : `${pal.accent}36`,
       );
       monGlow.addColorStop(1, "transparent");
       ctx.fillStyle = monGlow;
@@ -1113,10 +1882,14 @@ export default function HomeLoftStage({
         "#090B10",
         1.2,
       );
-      // Animated scrolling Python code lines on main screen
+      // Animated scrolling Python code lines on main screen (faster live typing + cursor when cat is coding!)
+      const codeTick = Math.floor(t * (catIsCoding ? 5.6 : 2.2));
       for (let line = 0; line < 5; line += 1) {
         const lineZ = 0.478 - line * 0.026;
-        const lenU = 0.06 + ((line * 17 + Math.floor(t * 2.2)) % 10) * 0.011;
+        const isTypingLine = catIsCoding && line === 4;
+        const lenU = isTypingLine
+          ? 0.03 + ((t * 1.45) % 1) * 0.135
+          : 0.06 + ((line * 17 + codeTick) % 10) * 0.011;
         const p1 = projectIso(m, 0.22, 0.158, lineZ);
         const p2 = projectIso(m, 0.22 + lenU, 0.158, lineZ);
         ctx.strokeStyle =
@@ -1126,6 +1899,12 @@ export default function HomeLoftStage({
         ctx.moveTo(p1.x, p1.y);
         ctx.lineTo(p2.x, p2.y);
         ctx.stroke();
+
+        // Blinking live terminal cursor right at the tip of the active typing line
+        if (isTypingLine && Math.sin(t * 11) > -0.2) {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(p2.x + 1, p2.y - 3, 2.8, 5);
+        }
       }
 
       // Secondary Vertical Mini Terminal Display (grounded on desk z = 0.286)
@@ -1244,7 +2023,7 @@ export default function HomeLoftStage({
 
       // 6. GROUNDED FULL-HEIGHT RETRO ARCADE CABINET (u=0.67..0.89, v=0.06..0.26, z=0!)
       const arcSpec = LOFT_GROUNDED_FURNITURE.arcadeCabinet;
-      const arcHot = st.activeZone === "arcade";
+      const arcHot = st.activeZone === "arcade" || catIsPlayingArcade;
       drawFloorShadow(ctx, m, arcSpec.u0, arcSpec.v0, arcSpec.du, arcSpec.dv + 0.04, 0.52);
 
       // Ambient pink/lime cabinet glow when hovered
@@ -1410,11 +2189,44 @@ export default function HomeLoftStage({
         "#090B10",
         1.7,
       );
-      const arcHitTop = projectIso(m, arcSpec.u0, arcSpec.v0 + arcSpec.dv, 0.64);
-      const arcHitRight = projectIso(m, arcSpec.u0 + arcSpec.du, arcSpec.v0, 0.64);
-      const arcHitBot = projectIso(m, arcSpec.u0 + arcSpec.du, arcSpec.v0 + arcSpec.dv, 0);
-      const arcHitLeft = projectIso(m, arcSpec.u0, arcSpec.v0 + arcSpec.dv, 0);
-      st.hitZones.arcade = [arcHitTop, arcHitRight, arcHitBot, arcHitLeft];
+      st.hitZones.arcade = [
+        projectIso(m, arcSpec.u0, arcSpec.v0, 0.64),
+        projectIso(m, arcSpec.u0 + arcSpec.du, arcSpec.v0, 0.64),
+        projectIso(m, arcSpec.u0 + arcSpec.du, arcSpec.v0, 0),
+        projectIso(m, arcSpec.u0 + arcSpec.du, arcSpec.v0 + arcSpec.dv, 0),
+        projectIso(m, arcSpec.u0, arcSpec.v0 + arcSpec.dv, 0),
+        projectIso(m, arcSpec.u0, arcSpec.v0 + arcSpec.dv, 0.64),
+      ];
+
+      // Grounded Mini Wooden Arcade Step-Stool (so the cat stands cleanly at joystick height!)
+      drawFloorShadow(ctx, m, 0.715, 0.315, 0.12, 0.10, 0.36);
+      const stoolLegs: [number, number][] = [
+        [0.722, 0.322],
+        [0.812, 0.322],
+        [0.722, 0.392],
+        [0.812, 0.392],
+      ];
+      for (const [slu, slv] of stoolLegs) {
+        drawIsoBox(ctx, m, slu, slv, 0, 0.018, 0.018, 0.126, "#5C3D2C", "#422B1F", "#301E15", "#090B10", 1);
+      }
+      drawIsoBox(
+        ctx,
+        m,
+        0.715,
+        0.315,
+        0.126,
+        0.12,
+        0.10,
+        0.024,
+        "#7D533C",
+        "#5D3C2A",
+        "#462C1F",
+        "#090B10",
+        1.3,
+      );
+      if (catIsPlayingArcade) {
+        drawDynamicLoftCat();
+      }
 
       // 7. GROUNDED DESK CHAIR (z = 0..0.34)
       const chSpec = LOFT_GROUNDED_FURNITURE.chair;
@@ -1424,6 +2236,10 @@ export default function HomeLoftStage({
       drawIsoBox(ctx, m, chSpec.u0 + 0.058, chSpec.v0 + 0.058, 0.02, 0.024, 0.024, 0.13, "#363F56", "#23293A", "#171C28", "#090B10", 1);
       // Cushioned chair seat
       drawIsoBox(ctx, m, chSpec.u0, chSpec.v0, 0.15, chSpec.du, chSpec.dv, 0.036, "#4A5575", "#353E59", "#262D42", "#090B10", 1.4);
+      // When the cat is coding at the desk, draw it seated snugly inside the chair BEFORE the backrest!
+      if (catIsCoding) {
+        drawDynamicLoftCat();
+      }
       // Curved backrest facing desk
       drawIsoBox(ctx, m, chSpec.u0, chSpec.v0 + chSpec.dv - 0.032, 0.186, chSpec.du, 0.032, 0.155, "#5A678C", "#3D4766", "#2B334B", "#090B10", 1.4);
 
@@ -1539,13 +2355,12 @@ export default function HomeLoftStage({
         1.5,
       );
 
-      // Plush Cushion resting squarely on the rug + Cozy Loft Cat!
-      const catPt = projectIso(m, 0.43, 0.74, 0.025);
-      const catScale = Math.max(0.75, Math.min(1.08, m.halfW / 245));
+      // Plush Cushion resting squarely on the rug
+      const cushionPt = projectIso(m, 0.43, 0.74, 0.025);
+      const cushionScale = Math.max(0.75, Math.min(1.08, m.halfW / 245));
       ctx.save();
-      ctx.translate(catPt.x, catPt.y);
-      ctx.scale(catScale, catScale);
-      // Soft floor cushion
+      ctx.translate(cushionPt.x, cushionPt.y);
+      ctx.scale(cushionScale, cushionScale);
       ctx.fillStyle = "#3E2E5C";
       ctx.strokeStyle = "#090B10";
       ctx.lineWidth = 2;
@@ -1553,100 +2368,12 @@ export default function HomeLoftStage({
       ctx.ellipse(0, 12, 28, 13, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-
-      // Swaying curved tail
-      ctx.strokeStyle = "#2A2F46";
-      ctx.lineWidth = 5.5;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(14, 6);
-      ctx.quadraticCurveTo(31, 4 + Math.sin(t * 2.8) * 6, 28, -10 + Math.cos(t * 2.8) * 4);
-      ctx.stroke();
-
-      // Loft cat body
-      ctx.fillStyle = "#2A2F46";
-      ctx.strokeStyle = "#090B10";
-      ctx.lineWidth = 2.1;
-      ctx.beginPath();
-      ctx.ellipse(0, 4, 19, 14, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Head + gentle breathing bob
-      const catBob = Math.sin(t * 2.2) * 1.4;
-      ctx.translate(0, -15 + catBob);
-      for (const side of [-1, 1]) {
-        ctx.fillStyle = "#2A2F46";
-        ctx.beginPath();
-        ctx.moveTo(side * 6, -10);
-        ctx.lineTo(side * 17, -23);
-        ctx.lineTo(side * 18, -5);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = pal.accentPink;
-        ctx.beginPath();
-        ctx.moveTo(side * 9, -10);
-        ctx.lineTo(side * 15, -18);
-        ctx.lineTo(side * 15, -8);
-        ctx.closePath();
-        ctx.fill();
-      }
-      ctx.fillStyle = "#2A2F46";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 18, 15, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Golden studio headphones
-      ctx.strokeStyle = pal.accentSecondary;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(0, -2, 19, Math.PI * 1.05, Math.PI * 1.95);
-      ctx.stroke();
-      ctx.fillStyle = pal.accentSecondary;
-      ctx.strokeStyle = "#090B10";
-      ctx.lineWidth = 1.6;
-      drawRoundedRect(ctx, -22, -6, 6.5, 12, 3);
-      ctx.fill();
-      ctx.stroke();
-      drawRoundedRect(ctx, 15.5, -6, 6.5, 12, 3);
-      ctx.fill();
-      ctx.stroke();
-
-      // Glowing visor face (^ ω ^ when happy/hovered or blinking!)
-      ctx.fillStyle = "#090D16";
-      drawRoundedRect(ctx, -12, -5.5, 24, 11, 5);
-      ctx.fill();
-      const catDelighted = st.catHappy > 0 || st.activeZone === "cat";
-      const blinking = Math.sin(t * 0.85) > 0.965;
-      ctx.fillStyle = pal.accent;
-      ctx.strokeStyle = pal.accent;
-      ctx.lineWidth = 1.8;
-      if (catDelighted || blinking) {
-        for (const ex of [-5.5, 5.5]) {
-          ctx.beginPath();
-          ctx.moveTo(ex - 2.8, 1);
-          ctx.lineTo(ex, -2.2);
-          ctx.lineTo(ex + 2.8, 1);
-          ctx.stroke();
-        }
-      } else {
-        ctx.beginPath();
-        ctx.arc(-5.5, 0, 2.1, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(5.5, 0, 2.1, 0, Math.PI * 2);
-        ctx.fill();
-      }
       ctx.restore();
 
-      st.hitZones.cat = [
-        { x: catPt.x - 30 * catScale, y: catPt.y - 38 * catScale },
-        { x: catPt.x + 30 * catScale, y: catPt.y - 38 * catScale },
-        { x: catPt.x + 30 * catScale, y: catPt.y + 22 * catScale },
-        { x: catPt.x - 30 * catScale, y: catPt.y + 22 * catScale },
-      ];
+      // Render the autonomous Loft Cat when lounging, walking, or listening to lo-fi on the floorboards
+      if (!catIsCoding && !catIsWindowGazing && !catIsPlayingArcade) {
+        drawDynamicLoftCat();
+      }
 
       // 10. FRONT-RIGHT GROUNDED RECORD CONSOLE & REAL LO-FI TURNTABLE (z = 0!)
       const recSpec = LOFT_GROUNDED_FURNITURE.recordTable;
@@ -1754,7 +2481,12 @@ export default function HomeLoftStage({
         ctx.save();
         ctx.globalAlpha = Math.min(1, pt.life);
         ctx.fillStyle = pt.color;
-        ctx.font = pt.kind === "note" ? "900 14px sans-serif" : "900 13px sans-serif";
+        ctx.font =
+          pt.kind === "code" || pt.kind === "arcade" || pt.kind === "zzz"
+            ? "900 11px 'JetBrains Mono', ui-monospace, monospace"
+            : pt.kind === "note"
+              ? "900 14px sans-serif"
+              : "900 13px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(pt.char, pt.x, pt.y);
         ctx.restore();
