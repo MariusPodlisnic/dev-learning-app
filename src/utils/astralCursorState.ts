@@ -47,12 +47,14 @@ export interface AstralCursorState {
   angle: number;
   /** Distance accumulator for spawning gentle stardust motes */
   trailCarry: number;
+  /** Smoothed pointer movement speed (px/frame equivalent) for snag-free fast sweeps */
+  moveBurst: number;
   trail: AstralCursorTrailDot[];
   pulses: AstralCursorPulse[];
   lastTrailSeed: number;
 }
 
-const MAX_TRAIL_DOTS = 22;
+const MAX_TRAIL_DOTS = 18;
 const MAX_PULSES = 6;
 const IDLE_RING_RADIUS = 16;
 const DRAG_RING_RADIUS = 11;
@@ -72,6 +74,7 @@ export function createAstralCursorState(): AstralCursorState {
     lockTarget: null,
     angle: 0,
     trailCarry: 0,
+    moveBurst: 0,
     trail: [],
     pulses: [],
     lastTrailSeed: 1337,
@@ -113,14 +116,19 @@ export function updateAstralCursorPointer(
     state.ringX = x;
     state.ringY = y;
     state.trailCarry = 0;
+    state.moveBurst = 0;
     return true;
   }
 
-  // Spawn soft, cozy stardust motes along smooth pointer motion
-  state.trailCarry += Math.min(dist, 64);
-  const spacing = state.isDragging ? 14 : 18;
-  while (state.trailCarry >= spacing) {
+  state.moveBurst = Math.min(120, state.moveBurst + dist);
+
+  // Spawn soft, cozy stardust motes along smooth pointer motion (capped to 2 per event so fast flicks stay silky!)
+  state.trailCarry += Math.min(dist, 44);
+  const spacing = state.isDragging ? 18 : 22;
+  let spawned = 0;
+  while (state.trailCarry >= spacing && spawned < 2) {
     state.trailCarry -= spacing;
+    spawned += 1;
     const r1 = nextPseudoRand(state);
     const r2 = nextPseudoRand(state);
     const r3 = nextPseudoRand(state);
@@ -128,16 +136,19 @@ export function updateAstralCursorPointer(
     state.trail.push({
       x: x + (r1 - 0.5) * 6,
       y: y + (r2 - 0.5) * 6,
-      vx: -dx * 0.08 + (r1 - 0.5) * 14,
-      vy: -dy * 0.08 - 6 + (r2 - 0.5) * 10,
-      life: 0.44 + r3 * 0.2,
-      maxLife: 0.44 + r3 * 0.2,
-      r: 1.3 + r1 * 1.6,
+      vx: -dx * 0.06 + (r1 - 0.5) * 12,
+      vy: -dy * 0.06 - 5 + (r2 - 0.5) * 9,
+      life: 0.38 + r3 * 0.16,
+      maxLife: 0.38 + r3 * 0.16,
+      r: 1.3 + r1 * 1.5,
       tint,
     });
     if (state.trail.length > MAX_TRAIL_DOTS) {
       state.trail.shift();
     }
+  }
+  if (state.trailCarry >= spacing) {
+    state.trailCarry = 0;
   }
 
   return true;
@@ -198,20 +209,38 @@ export function stepAstralCursor(state: AstralCursorState, dt: number): void {
   state.lockBlend += (targetLock - state.lockBlend) * Math.min(1, safeDt * 13);
   state.dragBlend += (targetDrag - state.dragBlend) * Math.min(1, safeDt * 16);
 
-  // Outer astrolabe reticle smoothly glides behind cursor, or magnetizes to hovered star!
+  // Decay movement burst smoothly so fast sweeps relax magnetic pull and never snag on stars
+  state.moveBurst *= Math.max(0, 1 - safeDt * 14);
+  const fastSweepFactor = Math.max(0, Math.min(1, (state.moveBurst - 28) / 56));
+  const pullStrength = 0.68 * (1 - fastSweepFactor);
+
+  // Outer astrolabe reticle smoothly glides behind cursor, or magnetizes to hovered star when slowing down!
   const desiredX =
     state.lockTarget && !state.isDragging
-      ? state.rawX + (state.lockTarget.x - state.rawX) * 0.72
+      ? state.rawX + (state.lockTarget.x - state.rawX) * pullStrength
       : state.rawX;
   const desiredY =
     state.lockTarget && !state.isDragging
-      ? state.rawY + (state.lockTarget.y - state.rawY) * 0.72
+      ? state.rawY + (state.lockTarget.y - state.rawY) * pullStrength
       : state.rawY;
 
-  const followRate = state.isDragging ? 24 : state.lockTarget ? 16 : 15;
+  const followRate = state.isDragging ? 32 : state.lockTarget ? 22 : 24;
   const followAlpha = Math.min(1, safeDt * followRate);
   state.ringX += (desiredX - state.ringX) * followAlpha;
   state.ringY += (desiredY - state.ringY) * followAlpha;
+
+  // Clamp maximum spring lag so rapid flicks across wide monitors always stay glued to your hand
+  if (!state.lockTarget || fastSweepFactor > 0.4) {
+    const lagDx = state.ringX - desiredX;
+    const lagDy = state.ringY - desiredY;
+    const lagDist = Math.hypot(lagDx, lagDy);
+    const maxLag = state.isDragging ? 8 : 22;
+    if (lagDist > maxLag) {
+      const ratio = maxLag / lagDist;
+      state.ringX = desiredX + lagDx * ratio;
+      state.ringY = desiredY + lagDy * ratio;
+    }
+  }
 
   const desiredRadius = state.isDragging
     ? DRAG_RING_RADIUS

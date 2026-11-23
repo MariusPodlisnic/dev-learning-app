@@ -72,3 +72,20 @@ test("astralCursorState magnetizes onto hovered stars, compresses on drag, and e
   }
   assert.equal(cur.opacity, 0);
 });
+
+test("astralCursorState clamps lag and relaxes magnetic snag during fast sweeps", () => {
+  const cur = createAstralCursorState();
+  updateAstralCursorPointer(cur, 100, 100, "mouse");
+  setAstralCursorHover(cur, { x: 120, y: 100, radius: 18 });
+
+  // Simulate a rapid high-speed flick across the star chart
+  updateAstralCursorPointer(cur, 500, 260, "mouse");
+  stepAstralCursor(cur, 0.016);
+
+  const lag = Math.hypot(cur.ringX - cur.rawX, cur.ringY - cur.rawY);
+  assert.ok(
+    lag <= 22.5,
+    `Reticle lag (${lag.toFixed(1)}px) must stay tightly clamped during fast sweeps`,
+  );
+  assert.ok(cur.trail.length <= 2, "Fast single sweep should cap trail spawns to prevent stalls");
+});

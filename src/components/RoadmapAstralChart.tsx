@@ -461,6 +461,10 @@ export default function RoadmapAstralChart({
     canvas.style.display = "block";
     canvas.style.cursor = "grab";
     canvas.style.touchAction = "none";
+    canvas.style.userSelect = "none";
+    (canvas.style as CSSStyleDeclaration & { webkitUserSelect?: string }).webkitUserSelect =
+      "none";
+    canvas.draggable = false;
     host.appendChild(canvas);
 
     const ctx = canvas.getContext("2d");
@@ -516,12 +520,37 @@ export default function RoadmapAstralChart({
       return null;
     };
 
+    let isPointerDown = false;
     let isDragging = false;
     let dragMoved = false;
+    let activePointerId: number | null = null;
     let dragStart = { x: 0, y: 0, cx: 0, cy: 0 };
     let lastClickInfo = { id: "", time: 0 };
 
+    const resetPointerInteraction = (clearVisualCursor = false) => {
+      isPointerDown = false;
+      isDragging = false;
+      dragMoved = false;
+      activePointerId = null;
+      setAstralCursorDragging(cursorRef.current, false);
+      if (clearVisualCursor) {
+        hoveredIdRef.current = null;
+        clearAstralCursor(cursorRef.current);
+        canvas.style.cursor = "grab";
+      }
+    };
+
+    const onDragStart = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
     const onPointerDown = (e: PointerEvent) => {
+      // Only start clicks/panning on primary mouse button or touch/pen
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (e.pointerType !== "touch") {
+        // Prevent browser text-selection / native drag hijack on rapid multi-clicks!
+        e.preventDefault();
+      }
       const rect = canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
@@ -531,11 +560,12 @@ export default function RoadmapAstralChart({
         sy,
         e.pointerType,
       );
-      setAstralCursorDragging(cursorRef.current, true);
       triggerAstralCursorClick(cursorRef.current);
 
-      isDragging = true;
+      isPointerDown = true;
+      isDragging = false;
       dragMoved = false;
+      activePointerId = e.pointerId;
       dragStart = {
         x: sx,
         y: sy,
@@ -543,59 +573,111 @@ export default function RoadmapAstralChart({
         cy: cameraRef.current.ty,
       };
       canvas.style.cursor = usesCustom ? "none" : "grabbing";
-      try {
-        canvas.setPointerCapture(e.pointerId);
-      } catch {
-        // Ignore capture failures on synthetic events
-      }
     };
 
-    const onPointerMove = (e: PointerEvent) => {
+    const onWindowPointerMove = (e: PointerEvent) => {
+      // Self-heal if mouse button was released outside the browser window
+      if (
+        isPointerDown &&
+        e.pointerType === "mouse" &&
+        (e.buttons & 1) === 0
+      ) {
+        resetPointerInteraction(false);
+      }
+
       const rect = canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
+      const insideCanvas =
+        sx >= 0 && sy >= 0 && sx <= rect.width && sy <= rect.height;
+
+      if (isPointerDown) {
+        if (activePointerId !== null && e.pointerId !== activePointerId) return;
+        const usesCustom = updateAstralCursorPointer(
+          cursorRef.current,
+          sx,
+          sy,
+          e.pointerType,
+        );
+        const dx = sx - dragStart.x;
+        const dy = sy - dragStart.y;
+        if (!dragMoved && Math.hypot(dx, dy) > 4) {
+          dragMoved = true;
+          isDragging = true;
+          setAstralCursorDragging(cursorRef.current, true);
+        }
+        if (dragMoved) {
+          const z = Math.max(0.5, cameraRef.current.zoom);
+          const clamped = clampAstralCamera(
+            dragStart.cx - dx / z,
+            dragStart.cy - dy / z,
+            latestPropsRef.current.graph.bounds,
+          );
+          cameraRef.current.tx = clamped.x;
+          cameraRef.current.ty = clamped.y;
+        }
+        canvas.style.cursor = usesCustom
+          ? "none"
+          : isDragging
+            ? "grabbing"
+            : "grab";
+        return;
+      }
+
+      // Free-hovering: track smoothly whenever pointer is directly over the starfield canvas
+      if (e.target === canvas && insideCanvas) {
+        const usesCustom = updateAstralCursorPointer(
+          cursorRef.current,
+          sx,
+          sy,
+          e.pointerType,
+        );
+        const hit = hitTest(sx, sy);
+        hoveredIdRef.current = hit ? hit.id : null;
+        canvas.style.cursor = usesCustom ? "none" : hit ? "pointer" : "grab";
+      } else if (cursorRef.current.active) {
+        // Immediately release custom cursor when hovering HUD overlays or leaving canvas
+        hoveredIdRef.current = null;
+        clearAstralCursor(cursorRef.current);
+        canvas.style.cursor = "grab";
+      }
+    };
+
+    const onWindowPointerUp = (e: PointerEvent) => {
+      if (!isPointerDown) return;
+      if (activePointerId !== null && e.pointerId !== activePointerId) return;
+
+      const wasDrag = dragMoved;
+      resetPointerInteraction(false);
+
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const onCanvas =
+        e.target === canvas &&
+        sx >= 0 &&
+        sy >= 0 &&
+        sx <= rect.width &&
+        sy <= rect.height;
+
+      if (!onCanvas) {
+        hoveredIdRef.current = null;
+        clearAstralCursor(cursorRef.current);
+        canvas.style.cursor = "grab";
+        return;
+      }
+
       const usesCustom = updateAstralCursorPointer(
         cursorRef.current,
         sx,
         sy,
         e.pointerType,
       );
-
-      if (isDragging) {
-        const dx = sx - dragStart.x;
-        const dy = sy - dragStart.y;
-        if (Math.hypot(dx, dy) > 4) dragMoved = true;
-        const z = Math.max(0.5, cameraRef.current.zoom);
-        const clamped = clampAstralCamera(
-          dragStart.cx - dx / z,
-          dragStart.cy - dy / z,
-          latestPropsRef.current.graph.bounds,
-        );
-        cameraRef.current.tx = clamped.x;
-        cameraRef.current.ty = clamped.y;
-        canvas.style.cursor = usesCustom ? "none" : "grabbing";
-      } else {
-        const hit = hitTest(sx, sy);
-        hoveredIdRef.current = hit ? hit.id : null;
-        canvas.style.cursor = usesCustom ? "none" : hit ? "pointer" : "grab";
-      }
-    };
-
-    const onPointerUp = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      isDragging = false;
-      setAstralCursorDragging(cursorRef.current, false);
       const hit = hitTest(sx, sy);
       hoveredIdRef.current = hit ? hit.id : null;
-      canvas.style.cursor = cursorRef.current.active
-        ? "none"
-        : hit
-          ? "pointer"
-          : "grab";
+      canvas.style.cursor = usesCustom ? "none" : hit ? "pointer" : "grab";
 
-      if (!dragMoved && hit) {
+      if (!wasDrag && hit) {
         playKeyClick();
         const now = performance.now();
         const isDouble =
@@ -624,8 +706,16 @@ export default function RoadmapAstralChart({
       }
     };
 
+    const onWindowPointerCancel = () => {
+      resetPointerInteraction(true);
+    };
+
+    const onWindowBlur = () => {
+      resetPointerInteraction(true);
+    };
+
     const onPointerLeave = () => {
-      if (!isDragging) {
+      if (!isPointerDown) {
         hoveredIdRef.current = null;
         clearAstralCursor(cursorRef.current);
         canvas.style.cursor = "grab";
@@ -648,12 +738,14 @@ export default function RoadmapAstralChart({
       cameraRef.current.ty = clamped.y;
     };
 
+    canvas.addEventListener("dragstart", onDragStart);
     canvas.addEventListener("pointerdown", onPointerDown);
-    canvas.addEventListener("pointermove", onPointerMove);
-    canvas.addEventListener("pointerup", onPointerUp);
-    canvas.addEventListener("pointercancel", onPointerUp);
     canvas.addEventListener("pointerleave", onPointerLeave);
     canvas.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("pointermove", onWindowPointerMove, { passive: true });
+    window.addEventListener("pointerup", onWindowPointerUp);
+    window.addEventListener("pointercancel", onWindowPointerCancel);
+    window.addEventListener("blur", onWindowBlur);
 
     // Optional Mini Galaxy Radar canvas (mounted cleanly in bottom-left HUD on desktop/tablet)
     const RADAR_W = 248;
@@ -1525,24 +1617,29 @@ export default function RoadmapAstralChart({
       if (cur.opacity > 0.01 || cur.trail.length > 0 || cur.pulses.length > 0) {
         const isLightTheme = props.themeMode === "light";
 
-        // 10a. Soft Drifting Stardust Wake
-        for (let i = 0; i < cur.trail.length; i += 1) {
-          const dot = cur.trail[i];
-          const p = Math.max(0, dot.life / dot.maxLife);
-          const color =
-            dot.tint === "gold"
-              ? pal.accentGold
-              : dot.tint === "accent"
-                ? pal.accent
-                : "#FFFDF5";
+        // 10a. Soft Drifting Stardust Wake (lightweight dual-circle glow — zero shadowBlur stall!)
+        if (cur.trail.length > 0) {
           ctx.save();
-          ctx.globalAlpha = p * 0.72;
-          ctx.fillStyle = color;
-          ctx.shadowColor = color;
-          ctx.shadowBlur = 6;
-          ctx.beginPath();
-          ctx.arc(dot.x, dot.y, dot.r * (0.4 + p * 0.7), 0, Math.PI * 2);
-          ctx.fill();
+          for (let i = 0; i < cur.trail.length; i += 1) {
+            const dot = cur.trail[i];
+            const p = Math.max(0, dot.life / dot.maxLife);
+            const color =
+              dot.tint === "gold"
+                ? pal.accentGold
+                : dot.tint === "accent"
+                  ? pal.accent
+                  : "#FFFDF5";
+            const rad = dot.r * (0.4 + p * 0.7);
+            ctx.fillStyle = color;
+            ctx.globalAlpha = p * 0.24;
+            ctx.beginPath();
+            ctx.arc(dot.x, dot.y, rad * 2.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = p * 0.78;
+            ctx.beginPath();
+            ctx.arc(dot.x, dot.y, rad, 0, Math.PI * 2);
+            ctx.fill();
+          }
           ctx.restore();
         }
 
@@ -1886,12 +1983,14 @@ export default function RoadmapAstralChart({
 
     return () => {
       cancelAnimationFrame(rafId);
+      canvas.removeEventListener("dragstart", onDragStart);
       canvas.removeEventListener("pointerdown", onPointerDown);
-      canvas.removeEventListener("pointermove", onPointerMove);
-      canvas.removeEventListener("pointerup", onPointerUp);
-      canvas.removeEventListener("pointercancel", onPointerUp);
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("wheel", onWheel);
+      window.removeEventListener("pointermove", onWindowPointerMove);
+      window.removeEventListener("pointerup", onWindowPointerUp);
+      window.removeEventListener("pointercancel", onWindowPointerCancel);
+      window.removeEventListener("blur", onWindowBlur);
       if (radarCanvas) {
         radarCanvas.removeEventListener("pointerdown", onRadarDown);
         radarCanvas.removeEventListener("pointermove", onRadarMove);
