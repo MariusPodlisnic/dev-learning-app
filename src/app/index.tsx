@@ -3,6 +3,7 @@ import Head from "expo-router/head";
 import type { Metadata } from "expo-router/server";
 import React, {
   Suspense,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -178,6 +179,19 @@ export function generateMetadata(): Metadata {
 const EMPTY_SUBSCRIBE = () => () => {};
 const IS_DEV_MODE = typeof __DEV__ !== "undefined" && __DEV__;
 
+function isLocalDevHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location?.hostname || "";
+  return (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host.endsWith(".local") ||
+    host.startsWith("192.168.") ||
+    host.startsWith("10.")
+  );
+}
+
 export default function HomeScreen() {
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
@@ -274,6 +288,10 @@ export default function HomeScreen() {
     useState<PythonTraceResult | null>(null);
   const [isTracing, setIsTracing] = useState<boolean>(false);
   const [tracedLineNumber, setTracedLineNumber] = useState<number | null>(null);
+  const [recentCompletedLessonId, setRecentCompletedLessonId] = useState<
+    string | null
+  >(null);
+  const prevStudioCompletedRef = useRef<Record<string, boolean>>({});
 
   const pyodideRef = useRef<any>(null);
   const studioActionsRef = useRef({
@@ -799,6 +817,37 @@ export default function HomeScreen() {
   const styles = useThemedStyles(getStudioScreenStyles);
   const devRank = getDeveloperRank(xpPoints);
 
+  // Capture newly solved Code Studio lessons so returning to the Skill Map plays a Supernova celebration
+  useEffect(() => {
+    if (viewMode === "studio") {
+      const newlySolved = Object.keys(completedLessons).find(
+        (id) => completedLessons[id] && !prevStudioCompletedRef.current[id],
+      );
+      if (newlySolved) {
+        setRecentCompletedLessonId(newlySolved);
+      }
+    }
+    prevStudioCompletedRef.current = completedLessons;
+  }, [completedLessons, viewMode]);
+
+  const handleDevSetLessonsCompletion = useCallback(
+    (updates: Record<string, boolean>) => {
+      setCompletedLessons((prev) => {
+        const next: Record<string, boolean> = { ...prev };
+        for (const [id, done] of Object.entries(updates)) {
+          if (done) {
+            next[id] = true;
+          } else {
+            delete next[id];
+          }
+        }
+        latestGuestStateRef.current.completedLessons = next;
+        return next;
+      });
+    },
+    [setCompletedLessons, latestGuestStateRef],
+  );
+
   const focusAwardRef = useRef(handleAwardFocusXp);
   useEffect(() => {
     focusAwardRef.current = handleAwardFocusXp;
@@ -1141,6 +1190,13 @@ export default function HomeScreen() {
           onOpenTrackCertificate={(trackKey) => openTrackCertificate(trackKey)}
           onOpenChapterCertificate={(trackKey, chapter) =>
             openChapterCertificate(trackKey, chapter)
+          }
+          recentlyCompletedLessonId={recentCompletedLessonId}
+          onConsumeRecentCompletion={() => setRecentCompletedLessonId(null)}
+          onDevSetLessonsCompletion={
+            IS_DEV_MODE || (isMounted && isLocalDevHost())
+              ? handleDevSetLessonsCompletion
+              : undefined
           }
         />
       ) : viewMode === "arcade" ||

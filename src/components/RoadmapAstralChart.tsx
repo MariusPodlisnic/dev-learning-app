@@ -35,6 +35,15 @@ import {
   getAstralPalette,
 } from "../utils/astralChartGeometry";
 import {
+  type ChapterAwakeningFx,
+  createSupernovaFx,
+  evaluateSupernovaComet,
+  getConstellationFigure,
+  projectRadarPoint,
+  radarPointToWorld,
+  type SupernovaFx,
+} from "../utils/astralConstellationArt";
+import {
   type AstralCursorState,
   clearAstralCursor,
   createAstralCursorState,
@@ -44,7 +53,7 @@ import {
   triggerAstralCursorClick,
   updateAstralCursorPointer,
 } from "../utils/astralCursorState";
-import { playKeyClick } from "../utils/soundEffects";
+import { playKeyClick, playSuccessChime } from "../utils/soundEffects";
 import {
   getDifficultyColor,
   getShortLessonSummary,
@@ -71,6 +80,9 @@ interface RoadmapAstralChartProps {
     trackKey: string,
     chapter: ChapterTierMeta,
   ) => void;
+  recentlyCompletedLessonId?: string | null;
+  onConsumeRecentCompletion?: () => void;
+  onDevSetLessonsCompletion?: (updates: Record<string, boolean>) => void;
 }
 
 interface AmbientStar {
@@ -141,6 +153,9 @@ export default function RoadmapAstralChart({
   onSelectLesson,
   onClaimChapterBonus,
   onOpenChapterCertificate,
+  recentlyCompletedLessonId = null,
+  onConsumeRecentCompletion,
+  onDevSetLessonsCompletion,
 }: RoadmapAstralChartProps) {
   const { paletteId, themeMode } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -175,6 +190,9 @@ export default function RoadmapAstralChart({
     null,
   );
   const [zoomDisplay, setZoomDisplay] = useState<number>(100);
+  const [devPanelOpen, setDevPanelOpen] = useState<boolean>(false);
+  const [devToast, setDevToast] = useState<string | null>(null);
+  const devToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resolvedSelectedId = useMemo(() => {
     if (selectedId && graph.nodes.some((n) => n.id === selectedId)) {
@@ -189,6 +207,7 @@ export default function RoadmapAstralChart({
   }, [graph.nodes, resolvedSelectedId]);
 
   const hostRef = useRef<any>(null);
+  const radarHostRef = useRef<any>(null);
   const cameraRef = useRef({
     x: 0,
     y: 0,
@@ -201,6 +220,8 @@ export default function RoadmapAstralChart({
   const hoveredIdRef = useRef<string | null>(null);
   const cursorRef = useRef<AstralCursorState>(createAstralCursorState());
   const burstsRef = useRef<RippleBurst[]>([]);
+  const supernovasRef = useRef<SupernovaFx[]>([]);
+  const chapterAwakeningsRef = useRef<ChapterAwakeningFx[]>([]);
   const shootingStarRef = useRef<ShootingStar | null>(null);
   const nextMeteorTimerRef = useRef<number>(3.2);
 
@@ -280,6 +301,109 @@ export default function RoadmapAstralChart({
     cameraRef.current.initializedTrack = activeTrack;
     glideToPoint(targetNode.x, targetNode.y, isNewTrack);
   }, [activeTrack, defaultSelectedId, graph.nodes, glideToPoint]);
+
+  const showDevToast = useCallback((msg: string) => {
+    setDevToast(msg);
+    if (devToastTimerRef.current) clearTimeout(devToastTimerRef.current);
+    devToastTimerRef.current = setTimeout(() => setDevToast(null), 2600);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (devToastTimerRef.current) clearTimeout(devToastTimerRef.current);
+    };
+  }, []);
+
+  const triggerChapterAwakening = useCallback(
+    (chapterId: number, playAudio = true) => {
+      const cluster = graph.clusters.find((c) => c.chapter.id === chapterId);
+      if (!cluster) return;
+      glideToPoint(cluster.cx, cluster.cy, false);
+      chapterAwakeningsRef.current.push({
+        chapterId,
+        cx: cluster.cx,
+        cy: cluster.cy,
+        radius: cluster.radius,
+        elapsed: 0,
+        duration: 2.35,
+      });
+      for (const lid of cluster.lessonIds) {
+        const node = graph.nodes.find((n) => n.id === lid);
+        if (node) {
+          spawnStardustBurst(node.x, node.y, astralPalette.accentGold, 16);
+        }
+      }
+      if (playAudio) playSuccessChime();
+    },
+    [graph.clusters, graph.nodes, glideToPoint, spawnStardustBurst, astralPalette.accentGold],
+  );
+
+  const triggerSupernovaForLesson = useCallback(
+    (lessonId: string, playAudio = true) => {
+      const originNode = graph.nodes.find((n) => n.id === lessonId);
+      if (!originNode) return;
+      const outgoing = graph.edges.find((e) => e.fromId === lessonId);
+      const targetNode = outgoing
+        ? graph.nodes.find((n) => n.id === outgoing.toId) || null
+        : null;
+
+      // Glide smoothly to the supernova midpoint so both origin & unlocked target stay framed
+      const focusX = targetNode
+        ? originNode.x + (targetNode.x - originNode.x) * 0.35
+        : originNode.x;
+      const focusY = targetNode
+        ? originNode.y + (targetNode.y - originNode.y) * 0.35
+        : originNode.y;
+      glideToPoint(focusX, focusY, false);
+
+      supernovasRef.current.push(
+        createSupernovaFx(
+          originNode.id,
+          originNode.x,
+          originNode.y,
+          targetNode
+            ? {
+                id: targetNode.id,
+                x: targetNode.x,
+                y: targetNode.y,
+                crossChapter: outgoing?.crossChapter,
+              }
+            : null,
+          astralPalette.accentGold,
+        ),
+      );
+      spawnStardustBurst(originNode.x, originNode.y, astralPalette.accentGold, 34);
+      spawnStardustBurst(originNode.x, originNode.y, "#FFFFFF", 14);
+      if (playAudio) playSuccessChime();
+    },
+    [graph.nodes, graph.edges, glideToPoint, spawnStardustBurst, astralPalette.accentGold],
+  );
+
+  // Trigger Supernova (+ Chapter Constellation Awakening if cleared!) upon returning from Code Studio
+  useEffect(() => {
+    if (!recentlyCompletedLessonId) return;
+    const node = graph.nodes.find((n) => n.id === recentlyCompletedLessonId);
+    if (!node) return;
+
+    triggerSupernovaForLesson(node.id, true);
+    const cluster = graph.clusters.find((c) => c.chapter.id === node.chapterId);
+    if (
+      cluster &&
+      cluster.lessonIds.length > 0 &&
+      cluster.lessonIds.every((id) => completedLessons[id])
+    ) {
+      triggerChapterAwakening(node.chapterId, false);
+    }
+    onConsumeRecentCompletion?.();
+  }, [
+    recentlyCompletedLessonId,
+    graph.nodes,
+    graph.clusters,
+    completedLessons,
+    triggerSupernovaForLesson,
+    triggerChapterAwakening,
+    onConsumeRecentCompletion,
+  ]);
 
   const handleAdjustZoom = useCallback((delta: number) => {
     playKeyClick();
@@ -531,6 +655,87 @@ export default function RoadmapAstralChart({
     canvas.addEventListener("pointerleave", onPointerLeave);
     canvas.addEventListener("wheel", onWheel, { passive: false });
 
+    // Optional Mini Galaxy Radar canvas (mounted cleanly in bottom-left HUD on desktop/tablet)
+    const RADAR_W = 248;
+    const RADAR_H = 66;
+    const RADAR_PAD = 9;
+    let radarCanvas: HTMLCanvasElement | null = null;
+    let radarCtx: CanvasRenderingContext2D | null = null;
+    let radarDragging = false;
+
+    const warpFromRadarEvent = (e: PointerEvent) => {
+      if (!radarCanvas) return;
+      const rect = radarCanvas.getBoundingClientRect();
+      const rx = e.clientX - rect.left;
+      const ry = e.clientY - rect.top;
+      const worldPt = radarPointToWorld(
+        rx,
+        ry,
+        latestPropsRef.current.graph.bounds,
+        rect.width || RADAR_W,
+        rect.height || RADAR_H,
+        RADAR_PAD,
+      );
+      const clamped = clampAstralCamera(
+        worldPt.x,
+        worldPt.y,
+        latestPropsRef.current.graph.bounds,
+      );
+      cameraRef.current.tx = clamped.x;
+      cameraRef.current.ty = clamped.y;
+    };
+
+    const onRadarDown = (e: PointerEvent) => {
+      radarDragging = true;
+      warpFromRadarEvent(e);
+      try {
+        radarCanvas?.setPointerCapture(e.pointerId);
+      } catch {
+        // Ignore synthetic event capture errors
+      }
+    };
+    const onRadarMove = (e: PointerEvent) => {
+      if (!radarDragging) return;
+      warpFromRadarEvent(e);
+    };
+    const onRadarUp = () => {
+      radarDragging = false;
+    };
+
+    const ensureRadarMounted = () => {
+      const rHost = radarHostRef.current as HTMLElement | null;
+      if (!rHost) {
+        if (radarCanvas && radarCanvas.parentNode) {
+          radarCanvas.parentNode.removeChild(radarCanvas);
+        }
+        radarCanvas = null;
+        radarCtx = null;
+        return;
+      }
+      if (radarCanvas && radarCanvas.parentNode === rHost) return;
+      const rc = document.createElement("canvas");
+      rc.style.width = `${RADAR_W}px`;
+      rc.style.height = `${RADAR_H}px`;
+      rc.style.display = "block";
+      rc.style.cursor = "crosshair";
+      rc.style.touchAction = "none";
+      const rdpr = Math.min(window.devicePixelRatio || 1, 2);
+      rc.width = Math.round(RADAR_W * rdpr);
+      rc.height = Math.round(RADAR_H * rdpr);
+      const rctx = rc.getContext("2d");
+      if (rctx) {
+        rctx.setTransform(rdpr, 0, 0, rdpr, 0, 0);
+        rHost.appendChild(rc);
+        rc.addEventListener("pointerdown", onRadarDown);
+        rc.addEventListener("pointermove", onRadarMove);
+        rc.addEventListener("pointerup", onRadarUp);
+        rc.addEventListener("pointercancel", onRadarUp);
+        radarCanvas = rc;
+        radarCtx = rctx;
+      }
+    };
+    ensureRadarMounted();
+
     let rafId = 0;
     let lastTs = performance.now();
     let elapsed = 0;
@@ -676,7 +881,17 @@ export default function RoadmapAstralChart({
       ctx.setLineDash([]);
       ctx.restore();
 
-      // 6. Chapter Constellation Halos & Celestial Headers
+      // 6. Chapter Constellation Halos, Geometric Figures & Awakening Waves
+      for (let i = chapterAwakeningsRef.current.length - 1; i >= 0; i -= 1) {
+        chapterAwakeningsRef.current[i].elapsed += dt;
+        if (
+          chapterAwakeningsRef.current[i].elapsed >=
+          chapterAwakeningsRef.current[i].duration
+        ) {
+          chapterAwakeningsRef.current.splice(i, 1);
+        }
+      }
+
       for (const cluster of g.clusters) {
         const sc = worldToScreen(cluster.cx, cluster.cy);
         const rad = cluster.radius * cam.zoom;
@@ -686,7 +901,19 @@ export default function RoadmapAstralChart({
           (id) => props.completedLessons[id],
         ).length;
         const totalCount = cluster.lessonIds.length;
+        const progress = totalCount > 0 ? doneCount / totalCount : 0;
         const isCleared = totalCount > 0 && doneCount === totalCount;
+        const fig = getConstellationFigure(cluster.chapter.id);
+
+        const activeAwaken = chapterAwakeningsRef.current.find(
+          (a) => a.chapterId === cluster.chapter.id,
+        );
+        const awakenProgress = activeAwaken
+          ? activeAwaken.elapsed / activeAwaken.duration
+          : 0;
+        const awakenBoost = activeAwaken
+          ? Math.sin(awakenProgress * Math.PI)
+          : 0;
 
         const halo = ctx.createRadialGradient(
           sc.x,
@@ -699,7 +926,7 @@ export default function RoadmapAstralChart({
         halo.addColorStop(
           0,
           isCleared
-            ? "rgba(255, 222, 89, 0.12)"
+            ? `rgba(255, 222, 89, ${(0.14 + awakenBoost * 0.18).toFixed(3)})`
             : "rgba(255, 255, 255, 0.048)",
         );
         halo.addColorStop(1, "rgba(0,0,0,0)");
@@ -708,11 +935,114 @@ export default function RoadmapAstralChart({
         ctx.arc(sc.x, sc.y, rad, 0, Math.PI * 2);
         ctx.fill();
 
+        // Geometric Planetarium Constellation Artwork behind the chapter's stars!
+        const figScale = rad * 0.72;
+        const shimmer =
+          0.5 + 0.5 * Math.sin(elapsed * 2.1 + cluster.chapter.id * 1.1);
+        ctx.save();
+        ctx.translate(sc.x, sc.y);
+
+        // Soft translucent facet glow when chapter constellation is awakened (100% cleared)
+        if (isCleared || awakenBoost > 0.02) {
+          ctx.fillStyle = pal.accentGold;
+          ctx.globalAlpha =
+            (isCleared ? 0.065 + shimmer * 0.035 : 0) + awakenBoost * 0.14;
+          for (const poly of fig.fillPolys) {
+            if (poly.length < 3) continue;
+            ctx.beginPath();
+            ctx.moveTo(poly[0][0] * figScale, poly[0][1] * figScale);
+            for (let p = 1; p < poly.length; p += 1) {
+              ctx.lineTo(poly[p][0] * figScale, poly[p][1] * figScale);
+            }
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+
+        // Faint blueprint skeleton (always whispered in the deep sky)
+        ctx.strokeStyle = pal.starTextDim;
+        ctx.globalAlpha = isCleared ? 0.14 : 0.065;
+        ctx.lineWidth = Math.max(0.8, 1.0 * cam.zoom);
+        ctx.beginPath();
+        for (const [x1, y1, x2, y2] of fig.segments) {
+          ctx.moveTo(x1 * figScale, y1 * figScale);
+          ctx.lineTo(x2 * figScale, y2 * figScale);
+        }
+        ctx.stroke();
+
+        // Illuminated constellation segments proportional to chapter completion!
+        const litCount = isCleared
+          ? fig.segments.length
+          : Math.round(fig.segments.length * progress);
+        if (litCount > 0) {
+          ctx.strokeStyle = isCleared ? pal.accentGold : pal.accentCyan;
+          ctx.globalAlpha = isCleared
+            ? 0.42 + shimmer * 0.16 + awakenBoost * 0.36
+            : 0.16 + progress * 0.14;
+          ctx.lineWidth =
+            (isCleared ? 1.65 + awakenBoost * 1.4 : 1.15) * cam.zoom;
+          if (isCleared || awakenBoost > 0.05) {
+            ctx.shadowColor = pal.accentGold;
+            ctx.shadowBlur = 10 + awakenBoost * 16;
+          }
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          for (let sIdx = 0; sIdx < litCount; sIdx += 1) {
+            const [x1, y1, x2, y2] = fig.segments[sIdx];
+            ctx.moveTo(x1 * figScale, y1 * figScale);
+            ctx.lineTo(x2 * figScale, y2 * figScale);
+          }
+          ctx.stroke();
+        }
+
+        // Twinkling 4-point glint stars on constellation vertices when awakened or >= 50% done
+        if (isCleared || progress >= 0.5) {
+          ctx.shadowBlur = isCleared ? 8 : 0;
+          ctx.shadowColor = pal.accentGold;
+          ctx.fillStyle = isCleared ? "#FFFDF5" : pal.accentCyan;
+          for (let gIdx = 0; gIdx < fig.glints.length; gIdx += 1) {
+            const [gx, gy] = fig.glints[gIdx];
+            const glTwinkle =
+              0.45 + 0.55 * Math.sin(elapsed * 3.1 + gIdx * 1.7 + cluster.chapter.id);
+            const gR = (isCleared ? 3.8 + awakenBoost * 2.5 : 2.3) * cam.zoom * glTwinkle;
+            ctx.globalAlpha = isCleared ? 0.55 + glTwinkle * 0.4 : 0.35;
+            const px = gx * figScale;
+            const py = gy * figScale;
+            ctx.beginPath();
+            ctx.moveTo(px, py - gR);
+            ctx.lineTo(px + gR * 0.28, py - gR * 0.28);
+            ctx.lineTo(px + gR, py);
+            ctx.lineTo(px + gR * 0.28, py + gR * 0.28);
+            ctx.lineTo(px, py + gR);
+            ctx.lineTo(px - gR * 0.28, py + gR * 0.28);
+            ctx.lineTo(px - gR, py);
+            ctx.lineTo(px - gR * 0.28, py - gR * 0.28);
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+        ctx.restore();
+
+        // Sweeping Golden Constellation Awakening Wave on chapter clear!
+        if (activeAwaken) {
+          ctx.save();
+          const waveR = rad * (0.14 + awakenProgress * 1.08);
+          ctx.strokeStyle = pal.accentGold;
+          ctx.globalAlpha = (1 - awakenProgress) * 0.85;
+          ctx.lineWidth = (3.2 * (1 - awakenProgress) + 0.8) * cam.zoom;
+          ctx.shadowColor = pal.accentGold;
+          ctx.shadowBlur = 18;
+          ctx.beginPath();
+          ctx.arc(sc.x, sc.y, waveR, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
         ctx.save();
         ctx.strokeStyle = isCleared
-          ? "rgba(255, 222, 89, 0.28)"
+          ? "rgba(255, 222, 89, 0.36)"
           : pal.ringStroke;
-        ctx.lineWidth = 1.2;
+        ctx.lineWidth = isCleared ? 1.5 : 1.2;
         ctx.setLineDash([4, 8]);
         ctx.beginPath();
         ctx.arc(sc.x, sc.y, rad * 0.86, Math.PI * 1.18, Math.PI * 1.82);
@@ -726,6 +1056,16 @@ export default function RoadmapAstralChart({
         const chTag = `CHAPTER ${cluster.chapter.roman} · ${cluster.chapter.title.toUpperCase()}`;
         const statTag = isCleared ? " ★ CLEARED" : ` (${doneCount}/${totalCount})`;
         ctx.fillText(`${chTag}${statTag}`, sc.x, labelY);
+
+        if (isCleared) {
+          ctx.font = `800 ${Math.max(8.5, Math.round(9.5 * cam.zoom))}px 'JetBrains Mono', ui-monospace, monospace`;
+          ctx.fillStyle = "rgba(255, 232, 145, 0.84)";
+          ctx.fillText(
+            `✦ ${fig.latinName} · ${fig.englishName.toUpperCase()} ✦`,
+            sc.x,
+            labelY + 14 * cam.zoom,
+          );
+        }
         ctx.restore();
       }
 
@@ -1046,6 +1386,127 @@ export default function RoadmapAstralChart({
         ctx.restore();
       }
 
+      // 9b. Supernova Shockwaves & Starlight Filament Unlock Comets
+      for (let i = supernovasRef.current.length - 1; i >= 0; i -= 1) {
+        const fx = supernovasRef.current[i];
+        fx.elapsed += dt;
+        if (fx.elapsed >= fx.duration) {
+          supernovasRef.current.splice(i, 1);
+          continue;
+        }
+
+        const originScreen = worldToScreen(fx.originX, fx.originY);
+        // Twin expanding concentric supernova shockwaves (0..0.9s)
+        if (fx.elapsed < 0.92) {
+          const sp = fx.elapsed / 0.92;
+          const easeOut = 1 - (1 - sp) * (1 - sp);
+          ctx.save();
+          // Warm central nova flash
+          if (sp < 0.45) {
+            const flashAlpha = (1 - sp / 0.45) * 0.72;
+            const flashR = (18 + sp * 55) * cam.zoom;
+            const fg = ctx.createRadialGradient(
+              originScreen.x,
+              originScreen.y,
+              2,
+              originScreen.x,
+              originScreen.y,
+              flashR,
+            );
+            fg.addColorStop(0, `rgba(255, 255, 255, ${flashAlpha.toFixed(3)})`);
+            fg.addColorStop(0.45, `${fx.color}${Math.round(flashAlpha * 180).toString(16).padStart(2, "0")}`);
+            fg.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = fg;
+            ctx.beginPath();
+            ctx.arc(originScreen.x, originScreen.y, flashR, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Primary golden supernova ring
+          ctx.strokeStyle = fx.color;
+          ctx.globalAlpha = (1 - sp) * 0.92;
+          ctx.lineWidth = (3.4 * (1 - sp) + 0.8) * cam.zoom;
+          ctx.shadowColor = fx.color;
+          ctx.shadowBlur = 16;
+          ctx.beginPath();
+          ctx.arc(
+            originScreen.x,
+            originScreen.y,
+            (14 + easeOut * 108) * cam.zoom,
+            0,
+            Math.PI * 2,
+          );
+          ctx.stroke();
+
+          // Secondary softer accent ring trailing slightly behind
+          if (sp > 0.12) {
+            const sp2 = (sp - 0.12) / 0.88;
+            ctx.strokeStyle = pal.accentCyan;
+            ctx.globalAlpha = (1 - sp2) * 0.65;
+            ctx.lineWidth = 1.6 * cam.zoom;
+            ctx.beginPath();
+            ctx.arc(
+              originScreen.x,
+              originScreen.y,
+              (12 + sp2 * 82) * cam.zoom,
+              0,
+              Math.PI * 2,
+            );
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        // Blazing Starlight Comet gliding along the curved filament to the next mission star!
+        const comet = evaluateSupernovaComet(fx);
+        if (comet) {
+          const headScreen = worldToScreen(comet.x, comet.y);
+          ctx.save();
+          // Glowing curved comet tail tracing behind head
+          ctx.strokeStyle = pal.accentGold;
+          ctx.lineWidth = 3.2 * cam.zoom;
+          ctx.lineCap = "round";
+          ctx.shadowColor = pal.accentGold;
+          ctx.shadowBlur = 16;
+          ctx.beginPath();
+          const tailSteps = 8;
+          for (let ts = 0; ts <= tailSteps; ts += 1) {
+            const uTail = Math.max(0, comet.progress - (ts / tailSteps) * 0.24);
+            const omt = 1 - uTail;
+            const wx =
+              omt * omt * fx.originX +
+              2 * omt * uTail * fx.ctrlX +
+              uTail * uTail * fx.targetX;
+            const wy =
+              omt * omt * fx.originY +
+              2 * omt * uTail * fx.ctrlY +
+              uTail * uTail * fx.targetY;
+            const pt = worldToScreen(wx, wy);
+            if (ts === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+          }
+          ctx.stroke();
+
+          // Luminous white-gold comet nucleus
+          ctx.fillStyle = "#FFFFFF";
+          ctx.shadowColor = "#FFFFFF";
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(headScreen.x, headScreen.y, 4.6 * cam.zoom, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        } else if (!fx.arrivalTriggered && fx.elapsed >= 1.22 && fx.targetId) {
+          // Ignite the next star when the comet arrives!
+          fx.arrivalTriggered = true;
+          spawnStardustBurst(fx.targetX, fx.targetY, pal.accentCyan, 24);
+          spawnStardustBurst(fx.targetX, fx.targetY, pal.accentGold, 16);
+          const nextClamped = clampAstralCamera(fx.targetX, fx.targetY, g.bounds);
+          cameraRef.current.tx = nextClamped.x;
+          cameraRef.current.ty = nextClamped.y;
+          setSelectedId(fx.targetId);
+        }
+      }
+
       // 10. Custom Celestial Astrolabe Cursor (Zero-Lag Polaris Core + Cozy Orbital Reticle)
       const cur = cursorRef.current;
       const hoveredNode = activeHoverId ? nodeById.get(activeHoverId) : null;
@@ -1301,6 +1762,123 @@ export default function RoadmapAstralChart({
         }
       }
 
+      // 11. Live 60fps Mini Galaxy Radar (Bottom-Left Observatory HUD)
+      ensureRadarMounted();
+      if (radarCtx && radarCanvas) {
+        const rctx = radarCtx;
+        rctx.clearRect(0, 0, RADAR_W, RADAR_H);
+
+        // Deep twilight radar glass fill
+        rctx.fillStyle = "rgba(8, 12, 24, 0.88)";
+        rctx.fillRect(0, 0, RADAR_W, RADAR_H);
+
+        // Subtle horizontal equatorial meridian line
+        rctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        rctx.lineWidth = 1;
+        rctx.beginPath();
+        rctx.moveTo(RADAR_PAD, RADAR_H * 0.5);
+        rctx.lineTo(RADAR_W - RADAR_PAD, RADAR_H * 0.5);
+        rctx.stroke();
+
+        // Faint constellation edges on radar
+        rctx.lineWidth = 1;
+        for (const edge of g.edges) {
+          const fn = nodeById.get(edge.fromId);
+          const tn = nodeById.get(edge.toId);
+          if (!fn || !tn) continue;
+          const p1 = projectRadarPoint(fn.x, fn.y, g.bounds, RADAR_W, RADAR_H, RADAR_PAD);
+          const p2 = projectRadarPoint(tn.x, tn.y, g.bounds, RADAR_W, RADAR_H, RADAR_PAD);
+          const lit =
+            Boolean(props.completedLessons[fn.id]) &&
+            Boolean(props.completedLessons[tn.id]);
+          rctx.strokeStyle = lit ? `${pal.accent}99` : "rgba(148, 163, 184, 0.24)";
+          rctx.beginPath();
+          rctx.moveTo(p1.x, p1.y);
+          rctx.lineTo(p2.x, p2.y);
+          rctx.stroke();
+        }
+
+        // Cleared chapter golden auras + tiny Roman numeral ticks on radar
+        rctx.font = "900 7.5px 'JetBrains Mono', ui-monospace, monospace";
+        rctx.textAlign = "center";
+        for (const cluster of g.clusters) {
+          const cp = projectRadarPoint(
+            cluster.cx,
+            cluster.cy,
+            g.bounds,
+            RADAR_W,
+            RADAR_H,
+            RADAR_PAD,
+          );
+          const cleared =
+            cluster.lessonIds.length > 0 &&
+            cluster.lessonIds.every((id) => props.completedLessons[id]);
+          if (cleared) {
+            rctx.fillStyle = "rgba(255, 222, 89, 0.22)";
+            rctx.beginPath();
+            rctx.arc(cp.x, cp.y, 12, 0, Math.PI * 2);
+            rctx.fill();
+          }
+          rctx.fillStyle = cleared ? pal.accentGold : "rgba(148, 163, 184, 0.52)";
+          rctx.fillText(cluster.chapter.roman, cp.x, RADAR_H - 4);
+        }
+
+        // Every lesson star plotted cleanly on radar
+        for (const node of g.nodes) {
+          const rp = projectRadarPoint(
+            node.x,
+            node.y,
+            g.bounds,
+            RADAR_W,
+            RADAR_H,
+            RADAR_PAD,
+          );
+          const isDone = Boolean(props.completedLessons[node.id]);
+          const isNext = !isDone && props.nextUpLessonId === node.id;
+          const isLocked = isLessonLockedForUser(node.lesson, props.isPremium);
+          rctx.fillStyle = isDone
+            ? pal.accent
+            : isNext
+              ? pal.accentGold
+              : isLocked
+                ? "rgba(148, 163, 184, 0.45)"
+                : pal.accentCyan;
+          rctx.beginPath();
+          rctx.arc(rp.x, rp.y, isNext ? 2.8 : node.isBoss ? 2.4 : 1.9, 0, Math.PI * 2);
+          rctx.fill();
+        }
+
+        // Live translucent golden viewport rectangle showing exact visible galaxy area!
+        const centerShiftX = props.isPhone ? 0 : -72;
+        const viewHalfW = W * 0.5 / Math.max(0.4, cam.zoom);
+        const viewHalfH = H * 0.5 / Math.max(0.4, cam.zoom);
+        const viewCx = cam.x - centerShiftX / Math.max(0.4, cam.zoom);
+        const viewCy = cam.y;
+        const tl = projectRadarPoint(
+          viewCx - viewHalfW,
+          viewCy - viewHalfH,
+          g.bounds,
+          RADAR_W,
+          RADAR_H,
+          RADAR_PAD,
+        );
+        const br = projectRadarPoint(
+          viewCx + viewHalfW,
+          viewCy + viewHalfH,
+          g.bounds,
+          RADAR_W,
+          RADAR_H,
+          RADAR_PAD,
+        );
+        const vw = Math.max(14, br.x - tl.x);
+        const vh = Math.max(14, br.y - tl.y);
+        rctx.fillStyle = "rgba(255, 222, 89, 0.12)";
+        rctx.strokeStyle = pal.accentGold;
+        rctx.lineWidth = 1.3;
+        rctx.fillRect(tl.x, tl.y, vw, vh);
+        rctx.strokeRect(tl.x, tl.y, vw, vh);
+      }
+
       rafId = requestAnimationFrame(renderFrame);
     };
 
@@ -1314,6 +1892,15 @@ export default function RoadmapAstralChart({
       canvas.removeEventListener("pointercancel", onPointerUp);
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("wheel", onWheel);
+      if (radarCanvas) {
+        radarCanvas.removeEventListener("pointerdown", onRadarDown);
+        radarCanvas.removeEventListener("pointermove", onRadarMove);
+        radarCanvas.removeEventListener("pointerup", onRadarUp);
+        radarCanvas.removeEventListener("pointercancel", onRadarUp);
+        if (radarCanvas.parentNode) {
+          radarCanvas.parentNode.removeChild(radarCanvas);
+        }
+      }
       if (ro) {
         ro.disconnect();
       } else {
@@ -1542,7 +2129,198 @@ export default function RoadmapAstralChart({
             ⌖ NEXT
           </Text>
         </Pressable>
+        {onDevSetLessonsCompletion ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Toggle Astral Chart dev testing tools"
+            style={[
+              styles.ctrlBtn,
+              styles.ctrlDevBtn,
+              devPanelOpen && {
+                backgroundColor: StudioColors.yellow,
+                borderColor: StudioColors.ink,
+              },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              setDevPanelOpen((prev) => !prev);
+            }}
+          >
+            <Text
+              style={[
+                styles.ctrlBtnText,
+                { color: devPanelOpen ? StudioColors.ink : StudioColors.yellow },
+              ]}
+            >
+              ⚙ DEV
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
+
+      {/* Collapsible Local Dev Testing Sandbox (Complete Star / Chapter / Replay Supernova) */}
+      {devPanelOpen && onDevSetLessonsCompletion ? (
+        <View
+          testID="astral-dev-tools"
+          style={[
+            styles.devPanelCard,
+            {
+              backgroundColor: astralPalette.cardBg,
+              borderColor: StudioColors.yellow,
+            },
+          ]}
+        >
+          <View style={styles.devPanelHeader}>
+            <Text style={styles.devPanelKicker}>⚙ DEV SANDBOX · CONSTELLATION FX</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close dev testing tools"
+              style={styles.inspCloseBtn}
+              onPress={() => {
+                playKeyClick();
+                setDevPanelOpen(false);
+              }}
+            >
+              <Text style={styles.inspCloseText}>✕</Text>
+            </Pressable>
+          </View>
+
+          <Text style={styles.devTargetText} numberOfLines={1}>
+            TARGET:{" "}
+            {selectedMeta
+              ? `CH.${selectedMeta.chapter.roman} · #${String(selectedMeta.lesson.lesson_order).padStart(2, "0")} ${selectedMeta.lesson.title}`
+              : "NO STAR SELECTED"}
+          </Text>
+
+          <View style={styles.devBtnGrid}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dev complete selected lesson star"
+              style={[styles.devActionBtn, { borderColor: astralPalette.accent }]}
+              onPress={() => {
+                const target = selectedNode || graph.nodes[0];
+                if (!target) return;
+                onDevSetLessonsCompletion({ [target.id]: true });
+                triggerSupernovaForLesson(target.id, true);
+                const ch = graph.clusters.find((c) => c.chapter.id === target.chapterId);
+                if (
+                  ch &&
+                  ch.lessonIds.every(
+                    (id) => id === target.id || Boolean(completedLessons[id]),
+                  )
+                ) {
+                  triggerChapterAwakening(target.chapterId, false);
+                  showDevToast(`★ CH.${ch.chapter.roman} CONSTELLATION AWAKENED!`);
+                } else {
+                  showDevToast(`★ SOLVED: ${target.lesson.title}`);
+                }
+              }}
+            >
+              <Text style={[styles.devActionText, { color: astralPalette.accent }]}>
+                ★ COMPLETE STAR
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dev complete current chapter"
+              style={[styles.devActionBtn, { borderColor: StudioColors.yellow }]}
+              onPress={() => {
+                const chId =
+                  selectedNode?.chapterId ?? graph.clusters[0]?.chapter.id;
+                const cluster = graph.clusters.find((c) => c.chapter.id === chId);
+                if (!cluster) return;
+                const updates: Record<string, boolean> = {};
+                for (const id of cluster.lessonIds) updates[id] = true;
+                onDevSetLessonsCompletion(updates);
+                triggerChapterAwakening(cluster.chapter.id, true);
+                const lastId = cluster.lessonIds[cluster.lessonIds.length - 1];
+                if (lastId) triggerSupernovaForLesson(lastId, false);
+                showDevToast(
+                  `✦ CH.${cluster.chapter.roman} (${getConstellationFigure(cluster.chapter.id).latinName}) AWAKENED!`,
+                );
+              }}
+            >
+              <Text style={[styles.devActionText, { color: StudioColors.yellow }]}>
+                ✦ COMPLETE CHAPTER
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dev replay supernova animation"
+              style={[styles.devActionBtn, { borderColor: astralPalette.accentCyan }]}
+              onPress={() => {
+                const target = selectedNode || graph.nodes[0];
+                if (!target) return;
+                triggerSupernovaForLesson(target.id, true);
+                showDevToast(`⚡ SUPERNOVA FIRED ON #${target.lesson.lesson_order}`);
+              }}
+            >
+              <Text style={[styles.devActionText, { color: astralPalette.accentCyan }]}>
+                ⚡ REPLAY NOVA
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dev uncomplete selected star"
+              style={styles.devActionBtn}
+              onPress={() => {
+                const target = selectedNode || graph.nodes[0];
+                if (!target) return;
+                playKeyClick();
+                onDevSetLessonsCompletion({ [target.id]: false });
+                showDevToast(`↺ UNSOLVED: ${target.lesson.title}`);
+              }}
+            >
+              <Text style={styles.devActionText}>↺ UNSOLVE STAR</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dev complete entire active track"
+              style={[styles.devActionBtn, { borderColor: StudioColors.pink }]}
+              onPress={() => {
+                const updates: Record<string, boolean> = {};
+                for (const n of graph.nodes) updates[n.id] = true;
+                onDevSetLessonsCompletion(updates);
+                const activeCh =
+                  selectedNode?.chapterId ?? graph.clusters[0]?.chapter.id ?? 1;
+                triggerChapterAwakening(activeCh, true);
+                showDevToast(`✦ ALL ${graph.clusters.length} CONSTELLATIONS AWAKENED!`);
+              }}
+            >
+              <Text style={[styles.devActionText, { color: StudioColors.pink }]}>
+                ✦ AWAKEN ALL TRACK
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dev reset active track progress"
+              style={styles.devActionBtn}
+              onPress={() => {
+                playKeyClick();
+                const updates: Record<string, boolean> = {};
+                for (const n of graph.nodes) updates[n.id] = false;
+                onDevSetLessonsCompletion(updates);
+                showDevToast("↺ TRACK PROGRESS RESET TO 0%");
+              }}
+            >
+              <Text style={[styles.devActionText, { color: "#FCA5A5" }]}>
+                ✕ RESET TRACK
+              </Text>
+            </Pressable>
+          </View>
+
+          {devToast ? (
+            <Text style={styles.devToastText} numberOfLines={1}>
+              {devToast}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
 
       {/* Floating Telescope Lesson Inspector Card */}
       {selectedMeta && inspectorOpen ? (
@@ -1762,6 +2540,23 @@ export default function RoadmapAstralChart({
         </View>
       ) : null}
 
+      {/* Bottom-Left Live Interactive Mini Galaxy Radar (Web Desktop/Tablet) */}
+      {Platform.OS === "web" && !isPhone ? (
+        <View
+          testID="astral-galaxy-radar"
+          accessibilityLabel="Interactive Mini Galaxy Radar — click or drag to warp"
+          style={styles.radarWrap}
+        >
+          <View style={styles.radarHeaderRow}>
+            <Text style={[styles.radarKicker, { color: astralPalette.accentGold }]}>
+              ◎ GALAXY RADAR
+            </Text>
+            <Text style={styles.radarHint}>CLICK / DRAG</Text>
+          </View>
+          <View ref={radarHostRef} style={styles.radarCanvasFrame} />
+        </View>
+      ) : null}
+
       {/* Bottom Constellation Chapter Quick-Jump Dock */}
       <View style={styles.chapterDockWrap}>
         <ScrollView
@@ -1928,6 +2723,110 @@ const createStyles = (_colors: StudioThemeColors) =>
     },
     ctrlCenterBtn: {
       paddingHorizontal: 10,
+    },
+    ctrlDevBtn: {
+      paddingHorizontal: 9,
+      borderWidth: 1,
+      borderColor: "rgba(255, 222, 89, 0.35)",
+    },
+    devPanelCard: {
+      position: "absolute",
+      top: 76,
+      left: 14,
+      width: 284,
+      borderRadius: 13,
+      borderWidth: 2,
+      padding: 11,
+      gap: 8,
+      ...HardShadow,
+    },
+    devPanelHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 6,
+    },
+    devPanelKicker: {
+      color: StudioColors.yellow,
+      fontFamily: MonoFont,
+      fontSize: 9.5,
+      fontWeight: "900",
+      letterSpacing: 0.6,
+    },
+    devTargetText: {
+      color: "rgba(226, 232, 240, 0.84)",
+      fontFamily: MonoFont,
+      fontSize: 9,
+      fontWeight: "700",
+    },
+    devBtnGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 6,
+    },
+    devActionBtn: {
+      width: "48%",
+      paddingVertical: 7,
+      paddingHorizontal: 7,
+      borderRadius: 7,
+      borderWidth: 1.2,
+      borderColor: "rgba(255, 255, 255, 0.2)",
+      backgroundColor: "rgba(255, 255, 255, 0.06)",
+      alignItems: "center",
+      justifyContent: "center",
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    devActionText: {
+      color: "#F8FAFC",
+      fontFamily: MonoFont,
+      fontSize: 8.5,
+      fontWeight: "900",
+      letterSpacing: 0.3,
+    },
+    devToastText: {
+      color: StudioColors.yellow,
+      fontFamily: MonoFont,
+      fontSize: 9,
+      fontWeight: "800",
+      paddingTop: 2,
+    },
+    radarWrap: {
+      position: "absolute",
+      bottom: 66,
+      left: 14,
+      backgroundColor: "rgba(9, 13, 24, 0.88)",
+      borderWidth: 1.4,
+      borderColor: "rgba(255, 222, 89, 0.3)",
+      borderRadius: 11,
+      padding: 6,
+      gap: 4,
+      ...HardShadowSm,
+    },
+    radarHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 3,
+    },
+    radarKicker: {
+      fontFamily: MonoFont,
+      fontSize: 8.5,
+      fontWeight: "900",
+      letterSpacing: 0.6,
+    },
+    radarHint: {
+      color: "rgba(148, 163, 184, 0.72)",
+      fontFamily: MonoFont,
+      fontSize: 8,
+      fontWeight: "800",
+    },
+    radarCanvasFrame: {
+      width: 248,
+      height: 66,
+      borderRadius: 7,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.12)",
     },
     ctrlBtnText: {
       color: "#F8FAFC",

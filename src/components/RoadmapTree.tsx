@@ -83,6 +83,9 @@ interface RoadmapTreeProps {
     trackKey: string,
     chapter: ChapterTierMeta,
   ) => void;
+  recentlyCompletedLessonId?: string | null;
+  onConsumeRecentCompletion?: () => void;
+  onDevSetLessonsCompletion?: (updates: Record<string, boolean>) => void;
 }
 
 export default function RoadmapTree({
@@ -102,6 +105,9 @@ export default function RoadmapTree({
   resumeLesson = null,
   onStartQuickMode,
   onOpenChapterCertificate,
+  recentlyCompletedLessonId = null,
+  onConsumeRecentCompletion,
+  onDevSetLessonsCompletion,
 }: RoadmapTreeProps) {
   const styles = useThemedStyles(createRoadmapStyles);
   const [scrollAnim] = useState(() => new Animated.Value(0));
@@ -330,6 +336,9 @@ export default function RoadmapTree({
             onSelectLesson={onSelectLesson}
             onClaimChapterBonus={onClaimChapterBonus}
             onOpenChapterCertificate={onOpenChapterCertificate}
+            recentlyCompletedLessonId={recentlyCompletedLessonId}
+            onConsumeRecentCompletion={onConsumeRecentCompletion}
+            onDevSetLessonsCompletion={onDevSetLessonsCompletion}
           />
         </View>
 
