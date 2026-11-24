@@ -1532,3 +1532,28 @@ test("ArcadeHub omits ROM header strip and Gauntlet, while AlgorithmRaceArena re
   assert.ok(raceText.includes("TRY YOUR OWN DATA:"));
   assert.ok(raceText.includes("4× TURBO"));
 });
+
+test("ConstellationCodexModal renders illumination meter, track filters, highlighted blueprint, and Studio append CTA", () => {
+  const { default: ConstellationCodexModal } = loadTsModule(
+    "src/components/ConstellationCodexModal.tsx",
+  );
+  const sampleLessons = mergeCurriculumLessons([]);
+  const codexText = visibleText(
+    renderThemed(
+      React.createElement(ConstellationCodexModal, {
+        lessons: sampleLessons,
+        completedLessons: {},
+        isStudioActive: true,
+        onInsertSnippet: () => {},
+        onJumpToLesson: () => {},
+        onClose: () => {},
+      }),
+    ),
+  );
+  assert.ok(codexText.includes("Constellation Field Guide"));
+  assert.ok(codexText.includes("2 / 21 ILLUMINATED"));
+  assert.ok(codexText.includes("Variables, Types & F-Strings"));
+  assert.ok(codexText.includes("+ APPEND TO EDITOR"));
+  assert.ok(codexText.includes("KEY INVARIANT"));
+  assert.ok(codexText.includes("CLASSIC PITFALL"));
+});

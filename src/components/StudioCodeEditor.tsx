@@ -211,6 +211,7 @@ interface StudioCodeEditorProps {
   onSelectTestIndex: (idx: number) => void;
   failedAttemptCount?: number;
   lessonHints?: string[];
+  onOpenCodex?: () => void;
 }
 
 function HoverLiftButton({
@@ -285,6 +286,7 @@ export default function StudioCodeEditor({
   onSelectTestIndex,
   failedAttemptCount = 0,
   lessonHints = [],
+  onOpenCodex,
 }: StudioCodeEditorProps) {
   const styles = useThemedStyles(getStudioCodeEditorStyles);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
@@ -645,6 +647,19 @@ export default function StudioCodeEditor({
                 {activeTypingMeta.chipLabel}
               </Text>
             </Pressable>
+            {onOpenCodex ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open Constellation Field Guide Codex"
+                style={styles.copyCodeBtn}
+                onPress={() => {
+                  playKeyClick();
+                  onOpenCodex();
+                }}
+              >
+                <Text style={styles.copyCodeBtnText}>✦ CODEX</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               style={[
                 styles.copyCodeBtn,

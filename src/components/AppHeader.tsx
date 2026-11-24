@@ -62,6 +62,7 @@ interface AppHeaderProps {
   onOpenProfile: () => void;
   onOpenSettings?: () => void;
   onOpenCommandPalette?: () => void;
+  onOpenCodex?: () => void;
   onOpenPaywall: () => void;
   onOpenAuth: () => void;
   onSignOut: () => void;
@@ -419,6 +420,7 @@ export default function AppHeader({
   onOpenProfile,
   onOpenSettings,
   onOpenCommandPalette,
+  onOpenCodex,
   onOpenPaywall,
   onOpenAuth,
   onSignOut,
@@ -1136,6 +1138,29 @@ export default function AppHeader({
                 ]}
               />
             </Pressable>
+
+            {!isCompactHeader && onOpenCodex && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open Constellation Field Guide Codex"
+                style={({ pressed }) => [
+                  styles.cmdKeycapBtn,
+                  themeMode === "light"
+                    ? styles.settingsLaunchBtnLight
+                    : styles.settingsLaunchBtnDark,
+                  pressed && {
+                    transform: [{ translateX: 1 }, { translateY: 1 }],
+                  },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  onOpenCodex();
+                }}
+              >
+                <StudioIcon name="book" size={14} />
+                <Text style={styles.cmdKeycapText}>CODEX · ⌘J</Text>
+              </Pressable>
+            )}
 
             {onOpenCommandPalette && (
               <Pressable

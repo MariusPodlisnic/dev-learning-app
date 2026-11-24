@@ -23,7 +23,8 @@ export type CommandAction =
   | { type: "ambient_preset"; presetId: AmbientPresetId }
   | { type: "toggle_pomodoro" }
   | { type: "open_settings" }
-  | { type: "open_profile" };
+  | { type: "open_profile" }
+  | { type: "open_codex" };
 
 export interface CommandPaletteItem {
   id: string;
@@ -120,6 +121,27 @@ export function buildCommandPaletteItems(
       badge: ctx.isPremium ? "LAB" : "PRO",
       featured: true,
       action: { type: "view_mode", mode: "algolab" },
+    },
+    {
+      id: "nav-codex",
+      group: "NAVIGATION",
+      title: "Constellation Field Guide & Syntax Codex",
+      subtitle: "Unlockable Python, Algorithms & Architecture pattern blueprints",
+      keywords: [
+        "codex",
+        "field guide",
+        "cheatsheet",
+        "syntax",
+        "patterns",
+        "grimoire",
+        "reference",
+        "book",
+      ],
+      icon: "book",
+      badge: "CODEX",
+      shortcut: "⌘J",
+      featured: true,
+      action: { type: "open_codex" },
     },
     {
       id: "nav-league",

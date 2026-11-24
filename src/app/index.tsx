@@ -280,6 +280,7 @@ export default function HomeScreen() {
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showCommandPalette, setShowCommandPalette] = useState<boolean>(false);
+  const [showCodexModal, setShowCodexModal] = useState<boolean>(false);
   const [activeCertificate, setActiveCertificate] =
     useState<CertificateData | null>(null);
   const [upgrading, setUpgrading] = useState<boolean>(false);
@@ -885,11 +886,19 @@ export default function HomeScreen() {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
+        setShowCodexModal(false);
         setShowCommandPalette((prev) => !prev);
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "j") {
+        event.preventDefault();
+        setShowCommandPalette(false);
+        setShowCodexModal((prev) => !prev);
         return;
       }
       if (event.key === "Escape") {
         setShowCommandPalette((prev) => (prev ? false : prev));
+        setShowCodexModal((prev) => (prev ? false : prev));
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -945,6 +954,9 @@ export default function HomeScreen() {
         return;
       case "open_profile":
         setShowProfileModal(true);
+        return;
+      case "open_codex":
+        setShowCodexModal(true);
         return;
     }
   }
@@ -1102,6 +1114,7 @@ export default function HomeScreen() {
         onOpenProfile={() => setShowProfileModal(true)}
         onOpenSettings={() => setShowSettingsModal(true)}
         onOpenCommandPalette={() => setShowCommandPalette(true)}
+        onOpenCodex={() => setShowCodexModal(true)}
         onOpenPaywall={() => openPaywall({ source: "header" })}
         onOpenAuth={() => openAuthModal()}
         onSignOut={() => supabase.auth.signOut()}
@@ -1630,6 +1643,7 @@ export default function HomeScreen() {
                           ].hints
                         : selectedLesson.hints
                     }
+                    onOpenCodex={() => setShowCodexModal(true)}
                   />
                 )}
               </View>
@@ -1722,6 +1736,29 @@ export default function HomeScreen() {
         showCommandPalette={showCommandPalette}
         onExecuteCommand={handleExecuteCommandAction}
         onCloseCommandPalette={() => setShowCommandPalette(false)}
+        showCodexModal={showCodexModal}
+        isStudioActive={viewMode === "studio" && Boolean(selectedLesson)}
+        onInsertCodexSnippet={(snippet) => {
+          if (!selectedLesson) return;
+          const base = (code || "").trimEnd();
+          const combined = base ? `${base}\n\n${snippet}\n` : `${snippet}\n`;
+          updateCodeWithDraft(combined, selectedLesson, activeChallengeIdx);
+        }}
+        onJumpToLessonFromCodex={(lesson) => {
+          if (lessons.some((l) => l.id === lesson.id)) {
+            handleSelectLesson(lesson);
+          } else if (!isLessonLockedForUser(lesson, effectiveIsPremium)) {
+            openLessonInStudio(lesson);
+          } else {
+            openPaywall({
+              source: "lesson",
+              lessonId: lesson.id,
+              lessonTitle: lesson.title,
+              track: lesson.track,
+            });
+          }
+        }}
+        onCloseCodexModal={() => setShowCodexModal(false)}
         activeCertificate={activeCertificate}
         onCloseCertificate={() => setActiveCertificate(null)}
         activeStreakMilestone={activeStreakMilestone}

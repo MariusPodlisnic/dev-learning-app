@@ -17,6 +17,7 @@ import { type CommandAction } from "../utils/commandPalette";
 import Auth, { type AuthModalMode } from "./Auth";
 import CertificateModal from "./CertificateModal";
 import CommandPaletteModal from "./CommandPaletteModal";
+import ConstellationCodexModal from "./ConstellationCodexModal";
 import PaywallModal, {
   PaywallPlanId,
   PaywallTriggerContext,
@@ -80,6 +81,11 @@ interface StudioModalsProps {
   showCommandPalette: boolean;
   onExecuteCommand: (action: CommandAction) => void;
   onCloseCommandPalette: () => void;
+  showCodexModal?: boolean;
+  isStudioActive?: boolean;
+  onInsertCodexSnippet?: (snippet: string) => void;
+  onJumpToLessonFromCodex?: (lesson: Lesson) => void;
+  onCloseCodexModal?: () => void;
   activeCertificate: CertificateData | null;
   onCloseCertificate: () => void;
   activeStreakMilestone: StreakMilestone | null;
@@ -141,6 +147,11 @@ export default function StudioModals({
   showCommandPalette,
   onExecuteCommand,
   onCloseCommandPalette,
+  showCodexModal = false,
+  isStudioActive = false,
+  onInsertCodexSnippet,
+  onJumpToLessonFromCodex,
+  onCloseCodexModal,
   activeCertificate,
   onCloseCertificate,
   activeStreakMilestone,
@@ -348,6 +359,27 @@ export default function StudioModals({
             isPremium={effectiveIsPremium}
             onExecuteAction={onExecuteCommand}
             onClose={onCloseCommandPalette}
+          />
+        </View>
+      )}
+
+      {showCodexModal && onCloseCodexModal && (
+        <View style={styles.modalOverlay}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close Constellation Field Guide backdrop"
+            style={StyleSheet.absoluteFill}
+            onPress={onCloseCodexModal}
+          />
+          <ConstellationCodexModal
+            lessons={lessons}
+            completedLessons={completedLessons}
+            isStudioActive={isStudioActive}
+            onInsertSnippet={onInsertCodexSnippet}
+            onJumpToLesson={(lesson) => {
+              onJumpToLessonFromCodex?.(lesson);
+            }}
+            onClose={onCloseCodexModal}
           />
         </View>
       )}
