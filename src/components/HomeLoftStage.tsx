@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import {
   HardShadow,
+  HardShadowSm,
   MonoFont,
+  StudioColors,
   StudioThemeColors,
 } from "../constants/theme";
 import { useTheme, useThemedStyles } from "../constants/themeContext";
@@ -33,13 +35,35 @@ import {
   type LoftHighlightZone,
   type Point2D,
 } from "../utils/loftGeometry";
+import {
+  getLoftSkyVisuals,
+  getNextLoftSkyMode,
+  resolveLoftSkyPhase,
+  type LoftMilestoneTrophies,
+  type LoftResolvedSkyPhase,
+  type LoftSkyMode,
+} from "../utils/loftMilestones";
 import { playKeyClick, playSuccessChime } from "../utils/soundEffects";
 import { StudioIcon, Text } from "./StudioIcon";
+
+const DEFAULT_MILESTONES: LoftMilestoneTrophies = {
+  serpensPoster: false,
+  fairyLights: false,
+  arcadeTrophy: false,
+  holoPrism: false,
+  unlockedCount: 0,
+  totalCount: 4,
+  nextHint: "NEXT KEEPSAKE: Clear Chapter I for Serpens Wall Chart",
+};
 
 interface HomeLoftStageProps {
   activeZone: LoftHighlightZone;
   streakCount?: number;
   compact?: boolean;
+  milestones?: LoftMilestoneTrophies;
+  recentVictoryLessonId?: string | null;
+  onConsumeVictory?: () => void;
+  enableDevTools?: boolean;
 }
 
 interface FloatingParticle {
@@ -213,6 +237,10 @@ export default function HomeLoftStage({
   activeZone,
   streakCount = 0,
   compact = false,
+  milestones = DEFAULT_MILESTONES,
+  recentVictoryLessonId = null,
+  onConsumeVictory,
+  enableDevTools = false,
 }: HomeLoftStageProps) {
   const { paletteId, themeMode } = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -220,10 +248,45 @@ export default function HomeLoftStage({
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [skyMode, setSkyMode] = useState<LoftSkyMode>("auto");
+  const [devOpen, setDevOpen] = useState<boolean>(false);
+  const [devOverrides, setDevOverrides] = useState<{
+    serpensPoster?: boolean;
+    fairyLights?: boolean;
+    arcadeTrophy?: boolean;
+    holoPrism?: boolean;
+  }>({});
+
+  const effectiveMilestones: LoftMilestoneTrophies = useMemo(() => {
+    const serpensPoster = devOverrides.serpensPoster ?? milestones.serpensPoster;
+    const fairyLights = devOverrides.fairyLights ?? milestones.fairyLights;
+    const arcadeTrophy = devOverrides.arcadeTrophy ?? milestones.arcadeTrophy;
+    const holoPrism = devOverrides.holoPrism ?? milestones.holoPrism;
+    const unlockedCount = [
+      serpensPoster,
+      fairyLights,
+      arcadeTrophy,
+      holoPrism,
+    ].filter(Boolean).length;
+    return {
+      ...milestones,
+      serpensPoster,
+      fairyLights,
+      arcadeTrophy,
+      holoPrism,
+      unlockedCount,
+    };
+  }, [devOverrides, milestones]);
+
+  const resolvedSkyPhase: LoftResolvedSkyPhase = useMemo(
+    () => resolveLoftSkyPhase(skyMode, new Date().getHours()),
+    [skyMode],
+  );
+
   const showToast = useCallback((msg: string) => {
     setToastMsg(msg);
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setToastMsg(null), 1900);
+    toastTimerRef.current = setTimeout(() => setToastMsg(null), 2200);
   }, []);
 
   const stateRef = useRef<{
@@ -231,11 +294,15 @@ export default function HomeLoftStage({
     themeMode: typeof themeMode;
     activeZone: LoftHighlightZone;
     streakCount: number;
+    skyPhase: LoftResolvedSkyPhase;
+    milestones: LoftMilestoneTrophies;
     lampOn: boolean;
     rainOn: boolean;
     lofiPlaying: boolean;
     steamBoost: number;
     catHappy: number;
+    victoryBounce: number;
+    pendingVictoryBurst: boolean;
     cat: LoftCatState;
     catFxCooldown: number;
     mouseX: number;
@@ -251,6 +318,9 @@ export default function HomeLoftStage({
       cat: Point2D[];
       arcade: Point2D[];
       bonsai: Point2D[];
+      poster: Point2D[];
+      trophy: Point2D[];
+      prism: Point2D[];
     };
     showToast: (msg: string) => void;
   }>({
@@ -258,11 +328,15 @@ export default function HomeLoftStage({
     themeMode,
     activeZone,
     streakCount,
+    skyPhase: resolvedSkyPhase,
+    milestones: effectiveMilestones,
     lampOn: true,
     rainOn: true,
     lofiPlaying: getLofiRadioState().isPlaying,
     steamBoost: 0,
     catHappy: 0,
+    victoryBounce: 0,
+    pendingVictoryBurst: false,
     cat: createInitialLoftCatState(),
     catFxCooldown: 0.9,
     mouseX: 0,
@@ -278,6 +352,9 @@ export default function HomeLoftStage({
       cat: [],
       arcade: [],
       bonsai: [],
+      poster: [],
+      trophy: [],
+      prism: [],
     },
     showToast,
   });
@@ -287,8 +364,31 @@ export default function HomeLoftStage({
     stateRef.current.themeMode = themeMode;
     stateRef.current.activeZone = activeZone;
     stateRef.current.streakCount = streakCount;
+    stateRef.current.skyPhase = resolvedSkyPhase;
+    stateRef.current.milestones = effectiveMilestones;
     stateRef.current.showToast = showToast;
-  }, [activeZone, paletteId, showToast, streakCount, themeMode]);
+  }, [
+    activeZone,
+    effectiveMilestones,
+    paletteId,
+    resolvedSkyPhase,
+    showToast,
+    streakCount,
+    themeMode,
+  ]);
+
+  const triggerCatVictoryCelebration = useCallback(() => {
+    stateRef.current.catHappy = 3.8;
+    stateRef.current.victoryBounce = 1.7;
+    stateRef.current.pendingVictoryBurst = true;
+    playSuccessChime();
+  }, []);
+
+  useEffect(() => {
+    if (!recentVictoryLessonId) return;
+    triggerCatVictoryCelebration();
+    onConsumeVictory?.();
+  }, [onConsumeVictory, recentVictoryLessonId, triggerCatVictoryCelebration]);
 
   useEffect(() => {
     const syncLofi = (radio: { isPlaying: boolean }) => {
@@ -401,9 +501,12 @@ export default function HomeLoftStage({
       const order: (keyof typeof hz)[] = [
         "cat",
         "mug",
+        "prism",
         "lamp",
         "bonsai",
         "arcade",
+        "trophy",
+        "poster",
         "window",
       ];
       for (const key of order) {
@@ -489,6 +592,18 @@ export default function HomeLoftStage({
         } else {
           st.showToast("CAT IS ALREADY CRUSHING THE ARCADE HIGH SCORE!");
         }
+      } else if (hit === "poster") {
+        playKeyClick();
+        spawnParticles(pt.x, pt.y - 10, "spark", 5, "#FFDE59");
+        st.showToast("KEEPSAKE · SERPENS CONSTELLATION WALL CHART ★");
+      } else if (hit === "trophy") {
+        playSuccessChime();
+        spawnParticles(pt.x, pt.y - 10, "arcade", 5, "#FFDE59");
+        st.showToast("KEEPSAKE · GOLDEN ARCADE S-RANK TROPHY ★");
+      } else if (hit === "prism") {
+        playKeyClick();
+        spawnParticles(pt.x, pt.y - 12, "code", 5, pal.accentCyan);
+        st.showToast("KEEPSAKE · MASTER HOLOGRAPHIC TRACK PRISM ★");
       }
     };
 
@@ -499,11 +614,18 @@ export default function HomeLoftStage({
     const drawLoftScene = (t: number, dt: number) => {
       const st = stateRef.current;
       const pal = getLoftThemeColors(st.paletteId, st.themeMode);
+      const sky = getLoftSkyVisuals(st.skyPhase, pal);
+
+      // Clear optional keepsake hitZones each frame so locked keepsakes aren't clickable
+      st.hitZones.poster = [];
+      st.hitZones.trophy = [];
+      st.hitZones.prism = [];
 
       st.smoothMx += (st.mouseX - st.smoothMx) * Math.min(1, dt * 5);
       st.smoothMy += (st.mouseY - st.smoothMy) * Math.min(1, dt * 5);
       st.steamBoost = Math.max(0, st.steamBoost - dt * 0.75);
       st.catHappy = Math.max(0, st.catHappy - dt * 0.85);
+      st.victoryBounce = Math.max(0, st.victoryBounce - dt);
       stepLoftCat(st.cat, dt);
       const catIsPlayingArcade =
         st.cat.phase === "staying" && st.cat.activity === "arcade";
@@ -562,7 +684,18 @@ export default function HomeLoftStage({
         ctx.restore();
 
         const catPt = projectIso(m, cat.u, cat.v, cat.z + cat.hopZ);
-        const bodyYOffset = -walkBounce - arcadeBounce;
+        const winHopOffset =
+          st.victoryBounce > 0
+            ? Math.abs(Math.sin(st.victoryBounce * Math.PI * 3.5)) * 13 * catScale
+            : 0;
+        const bodyYOffset = -walkBounce - arcadeBounce - winHopOffset;
+
+        if (st.pendingVictoryBurst) {
+          st.pendingVictoryBurst = false;
+          spawnParticles(catPt.x, catPt.y - 26 * catScale, "arcade", 6, "#FFDE59");
+          spawnParticles(catPt.x, catPt.y - 22 * catScale, "heart", 5, pal.accentPink);
+          st.showToast("WELCOME BACK · CAT IS CELEBRATING YOUR WIN ★");
+        }
 
         // 0. World-space reaching paws for Coding (on keyboard!), Arcade (on joystick/buttons!), and Window (pawing glass!)
         if (catIsCoding && !catDelighted) {
@@ -1328,9 +1461,9 @@ export default function HomeLoftStage({
       const wTop = projectIso(m, 0, vMin, zMax);
       const wBot = projectIso(m, 0, vMax, zMin);
       const skyGrad = ctx.createLinearGradient(wTop.x, wTop.y, wBot.x, wBot.y);
-      skyGrad.addColorStop(0, pal.skyTop);
-      skyGrad.addColorStop(0.58, pal.skyMid);
-      skyGrad.addColorStop(1, pal.skyGlow);
+      skyGrad.addColorStop(0, sky.skyTop);
+      skyGrad.addColorStop(0.58, sky.skyMid);
+      skyGrad.addColorStop(1, sky.skyGlow);
       ctx.fillStyle = skyGrad;
       ctx.fillRect(
         Math.min(wTop.x, wBot.x) - 10,
@@ -1339,69 +1472,121 @@ export default function HomeLoftStage({
         Math.abs(wBot.y - wTop.y) + 20,
       );
 
-      // Twinkling stars inside clipped sky
-      for (let i = 0; i < windowStars.length; i += 1) {
-        const ws = windowStars[i];
-        const sp = projectIso(
-          m,
-          0,
-          vMin + ws.vFrac * (vMax - vMin),
-          zMin + ws.zFrac * (zMax - zMin),
-        );
-        const a = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 2.1 + ws.phase));
-        ctx.fillStyle = `rgba(255, 255, 255, ${a.toFixed(2)})`;
-        ctx.fillRect(sp.x, sp.y, 1.8, 1.8);
+      // Twinkling stars inside clipped sky (scaled smoothly by sky.starOpacity)
+      if (sky.starOpacity > 0.02) {
+        for (let i = 0; i < windowStars.length; i += 1) {
+          const ws = windowStars[i];
+          const sp = projectIso(
+            m,
+            0,
+            vMin + ws.vFrac * (vMax - vMin),
+            zMin + ws.zFrac * (zMax - zMin),
+          );
+          const a =
+            (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 2.1 + ws.phase))) *
+            sky.starOpacity;
+          ctx.fillStyle = `rgba(255, 255, 255, ${a.toFixed(2)})`;
+          ctx.fillRect(sp.x, sp.y, 1.8, 1.8);
+        }
       }
 
-      // Crescent moon + soft ambient moonlight halo
-      const moonPt = projectIso(m, 0, vMin + 0.12, zMax - 0.11);
-      const moonHalo = ctx.createRadialGradient(
-        moonPt.x,
-        moonPt.y,
-        2,
-        moonPt.x,
-        moonPt.y,
-        Math.max(18, m.halfW * 0.11),
-      );
-      moonHalo.addColorStop(0, "rgba(255, 248, 220, 0.36)");
-      moonHalo.addColorStop(1, "transparent");
-      ctx.fillStyle = moonHalo;
-      ctx.beginPath();
-      ctx.arc(moonPt.x, moonPt.y, Math.max(18, m.halfW * 0.11), 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "#FFF8DC";
-      ctx.beginPath();
-      ctx.arc(moonPt.x, moonPt.y, Math.max(5.5, m.halfW * 0.032), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = pal.skyTop;
-      ctx.beginPath();
-      ctx.arc(
-        moonPt.x + 2.8,
-        moonPt.y - 1.6,
-        Math.max(4.6, m.halfW * 0.027),
-        0,
-        Math.PI * 2,
-      );
-      ctx.fill();
-
-      // Occasional gentle shooting star gliding across the starry window sky
-      const shootCycle = t % 7.4;
-      if (shootCycle < 0.85) {
-        const sp = shootCycle / 0.85;
-        const sv = vMin + 0.08 + sp * 0.34;
-        const sz = zMax - 0.06 - sp * 0.16;
-        const head = projectIso(m, 0, sv, sz);
-        const tail = projectIso(m, 0, sv - 0.075, sz + 0.036);
-        ctx.save();
-        ctx.strokeStyle = `rgba(255, 248, 220, ${(Math.sin(sp * Math.PI) * 0.85).toFixed(2)})`;
-        ctx.lineWidth = 1.6;
-        ctx.lineCap = "round";
+      if (sky.showMoon) {
+        // Crescent moon + soft ambient moonlight halo
+        const moonPt = projectIso(m, 0, vMin + 0.12, zMax - 0.11);
+        const moonHalo = ctx.createRadialGradient(
+          moonPt.x,
+          moonPt.y,
+          2,
+          moonPt.x,
+          moonPt.y,
+          Math.max(18, m.halfW * 0.11),
+        );
+        moonHalo.addColorStop(0, "rgba(255, 248, 220, 0.36)");
+        moonHalo.addColorStop(1, "transparent");
+        ctx.fillStyle = moonHalo;
         ctx.beginPath();
-        ctx.moveTo(tail.x, tail.y);
-        ctx.lineTo(head.x, head.y);
-        ctx.stroke();
-        ctx.restore();
+        ctx.arc(moonPt.x, moonPt.y, Math.max(18, m.halfW * 0.11), 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#FFF8DC";
+        ctx.beginPath();
+        ctx.arc(moonPt.x, moonPt.y, Math.max(5.5, m.halfW * 0.032), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = sky.skyTop;
+        ctx.beginPath();
+        ctx.arc(
+          moonPt.x + 2.8,
+          moonPt.y - 1.6,
+          Math.max(4.6, m.halfW * 0.027),
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+
+        // Occasional gentle shooting star gliding across the starry window sky
+        const shootCycle = t % 7.4;
+        if (shootCycle < 0.85) {
+          const sp = shootCycle / 0.85;
+          const sv = vMin + 0.08 + sp * 0.34;
+          const sz = zMax - 0.06 - sp * 0.16;
+          const head = projectIso(m, 0, sv, sz);
+          const tail = projectIso(m, 0, sv - 0.075, sz + 0.036);
+          ctx.save();
+          ctx.strokeStyle = `rgba(255, 248, 220, ${(Math.sin(sp * Math.PI) * 0.85).toFixed(2)})`;
+          ctx.lineWidth = 1.6;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(tail.x, tail.y);
+          ctx.lineTo(head.x, head.y);
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else {
+        // Warm rising/setting or clear-day Sun + soft atmospheric halo
+        const sunZ =
+          sky.sunMode === "day"
+            ? zMax - 0.12
+            : sky.sunMode === "dawn"
+              ? zMin + 0.21
+              : zMin + 0.18;
+        const sunV =
+          sky.sunMode === "day" ? vMin + 0.15 : vMin + 0.24;
+        const sunPt = projectIso(m, 0, sunV, sunZ);
+        const sunR = Math.max(7, m.halfW * (sky.sunMode === "day" ? 0.036 : 0.046));
+        const sunHalo = ctx.createRadialGradient(
+          sunPt.x,
+          sunPt.y,
+          2,
+          sunPt.x,
+          sunPt.y,
+          sunR * 3.2,
+        );
+        sunHalo.addColorStop(0, `${sky.sunColor}99`);
+        sunHalo.addColorStop(1, "transparent");
+        ctx.fillStyle = sunHalo;
+        ctx.beginPath();
+        ctx.arc(sunPt.x, sunPt.y, sunR * 3.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = sky.sunColor;
+        ctx.beginPath();
+        ctx.arc(sunPt.x, sunPt.y, sunR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cozy drifting lo-fi clouds during Clear Day / Dawn / Sunset
+        for (let c = 0; c < 2; c += 1) {
+          const cf = ((t * 0.035 + c * 0.52) % 1.2) - 0.1;
+          const cv = vMin + cf * (vMax - vMin);
+          const cz = zMax - 0.14 - c * 0.09;
+          const cp = projectIso(m, 0, cv, cz);
+          ctx.fillStyle =
+            sky.sunMode === "day"
+              ? "rgba(255, 255, 255, 0.42)"
+              : "rgba(253, 186, 116, 0.28)";
+          ctx.beginPath();
+          ctx.ellipse(cp.x, cp.y, 15, 5.2, -0.35, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       // Layered isometric distant skyline silhouettes + glowing windows
@@ -1418,15 +1603,20 @@ export default function HomeLoftStage({
             [0, bv1, zMin - 0.04],
             [0, bv0, zMin - 0.04],
           ],
-          "rgba(9, 11, 22, 0.78)",
+          sky.sunMode === "day" ? "rgba(18, 34, 62, 0.68)" : "rgba(9, 11, 22, 0.78)",
         );
         // Glowing tiny city apartment lights
-        for (let row = 0; row < 2; row += 1) {
-          if ((b + row) % 2 === 0) {
-            const lp = projectIso(m, 0, bv0 + 0.024, zMin + bh - 0.045 - row * 0.04);
-            ctx.fillStyle = b % 3 === 0 ? pal.accent : "#FFE89E";
-            ctx.fillRect(lp.x, lp.y, 2.8, 3.2);
+        if (sky.cityLightAlpha > 0.18) {
+          ctx.save();
+          ctx.globalAlpha = sky.cityLightAlpha;
+          for (let row = 0; row < 2; row += 1) {
+            if ((b + row) % 2 === 0) {
+              const lp = projectIso(m, 0, bv0 + 0.024, zMin + bh - 0.045 - row * 0.04);
+              ctx.fillStyle = b % 3 === 0 ? pal.accent : "#FFE89E";
+              ctx.fillRect(lp.x, lp.y, 2.8, 3.2);
+            }
           }
+          ctx.restore();
         }
       }
 
@@ -1602,7 +1792,7 @@ export default function HomeLoftStage({
           sillLightPt.y,
           m.halfW * 0.24,
         );
-        sillGlow.addColorStop(0, `${pal.skyGlow}36`);
+        sillGlow.addColorStop(0, `${sky.windowWashColor}38`);
         sillGlow.addColorStop(1, "transparent");
         ctx.fillStyle = sillGlow;
         ctx.beginPath();
@@ -1613,16 +1803,76 @@ export default function HomeLoftStage({
         drawDynamicLoftCat();
       }
 
-      // 3. LEFT WALL: FLOATING BOOKSHELF & TRAILING IVY + SKILL MAP BOARD
-      // Floating mini-bookshelf near back corner (u=0, v=0.03..0.14, z=0.68..0.71)
+      // 2b. MILESTONE KEEPSAKE: 5-DAY STREAK WARM FAIRY STRING-LIGHTS ALONG UPPER WALLS!
+      if (st.milestones.fairyLights) {
+        const drawWallFairyStrand = (isLeftWall: boolean) => {
+          const steps = 21;
+          ctx.save();
+          ctx.strokeStyle = "#181C28";
+          ctx.lineWidth = 1.3;
+          ctx.beginPath();
+          for (let s = 0; s <= steps; s += 1) {
+            const frac = 0.04 + (s / steps) * 0.91;
+            const sag = Math.abs(Math.sin((s / steps) * Math.PI * 3)) * 0.036;
+            const zPos = 0.925 - sag;
+            const pt = isLeftWall
+              ? projectIso(m, 0.004, frac, zPos)
+              : projectIso(m, frac, 0.004, zPos);
+            if (s === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+          }
+          ctx.stroke();
+
+          for (let b = 0; b < 8; b += 1) {
+            const frac = 0.08 + (b / 7) * 0.83;
+            const sag =
+              Math.abs(Math.sin(((frac - 0.04) / 0.91) * Math.PI * 3)) * 0.036;
+            const zPos = 0.922 - sag;
+            const bp = isLeftWall
+              ? projectIso(m, 0.006, frac, zPos)
+              : projectIso(m, frac, 0.006, zPos);
+            const twinkle =
+              0.68 +
+              0.32 * Math.sin(t * 2.8 + b * 1.35 + (isLeftWall ? 0 : 1.9));
+            const glow = ctx.createRadialGradient(
+              bp.x,
+              bp.y + 1.5,
+              0.5,
+              bp.x,
+              bp.y + 1.5,
+              9.5,
+            );
+            glow.addColorStop(
+              0,
+              `rgba(255, 224, 130, ${(0.58 * twinkle).toFixed(2)})`,
+            );
+            glow.addColorStop(1, "transparent");
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(bp.x, bp.y + 1.5, 9.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = b % 2 === 0 ? "#FFFBEB" : "#FDE047";
+            ctx.beginPath();
+            ctx.arc(bp.x, bp.y + 1.5, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        };
+        drawWallFairyStrand(true);
+        drawWallFairyStrand(false);
+      }
+
+      // 3. LEFT WALL: FLOATING BOOKSHELF (+ GOLDEN ARCADE TROPHY KEEPSAKE!) + SKILL MAP BOARD
+      // Floating mini-bookshelf near back corner (u=0, v=0.025..0.155, z=0.68..0.71)
       drawIsoBox(
         ctx,
         m,
         0,
-        0.03,
+        0.025,
         0.68,
-        0.055,
-        0.115,
+        0.058,
+        0.132,
         0.026,
         "#78523D",
         "#543728",
@@ -1637,7 +1887,7 @@ export default function HomeLoftStage({
           ctx,
           m,
           0.008,
-          0.04 + b * 0.026,
+          0.036 + b * 0.025,
           0.706,
           0.036,
           0.02,
@@ -1648,6 +1898,73 @@ export default function HomeLoftStage({
           "#090B10",
           1.1,
         );
+      }
+
+      // MILESTONE KEEPSAKE: Gleaming Golden Arcade S-Rank Cup beside the books!
+      if (st.milestones.arcadeTrophy) {
+        drawIsoBox(
+          ctx,
+          m,
+          0.014,
+          0.118,
+          0.706,
+          0.028,
+          0.028,
+          0.018,
+          "#2B3044",
+          "#1E2233",
+          "#141724",
+          "#090B10",
+          1,
+        );
+        const cupBase = projectIso(m, 0.028, 0.132, 0.725);
+        ctx.save();
+        // Trophy stem + gleaming golden chalice bowl + twin handles
+        ctx.strokeStyle = "#F59E0B";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(cupBase.x, cupBase.y);
+        ctx.lineTo(cupBase.x, cupBase.y - 6);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#FDE047";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(cupBase.x - 4.5, cupBase.y - 9.5, 2.6, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cupBase.x + 4.5, cupBase.y - 9.5, 2.6, -Math.PI * 0.5, Math.PI * 0.5);
+        ctx.stroke();
+
+        ctx.fillStyle = "#FFDE59";
+        ctx.strokeStyle = "#090B10";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(cupBase.x - 5.2, cupBase.y - 13);
+        ctx.lineTo(cupBase.x + 5.2, cupBase.y - 13);
+        ctx.lineTo(cupBase.x + 3.4, cupBase.y - 5.5);
+        ctx.lineTo(cupBase.x - 3.4, cupBase.y - 5.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Periodic golden starlight glint on trophy rim
+        const glint = Math.max(0, Math.sin(t * 3.2));
+        if (glint > 0.55) {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.globalAlpha = (glint - 0.55) / 0.45;
+          ctx.beginPath();
+          ctx.arc(cupBase.x + 3.5, cupBase.y - 13, 2.1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        st.hitZones.trophy = [
+          { x: cupBase.x - 12, y: cupBase.y - 20 },
+          { x: cupBase.x + 12, y: cupBase.y - 20 },
+          { x: cupBase.x + 12, y: cupBase.y + 6 },
+          { x: cupBase.x - 12, y: cupBase.y + 6 },
+        ];
       }
 
       // Skill Map Constellation Corkboard (u=0, v=0.74..0.95, z=0.44..0.82)
@@ -1688,32 +2005,83 @@ export default function HomeLoftStage({
         ctx.fill();
       });
 
-      // 4. RIGHT WALL: MINI POSTER + GLASS ALGORITHM WHITEBOARD
-      // Small framed retro Devy art poster near corner
-      drawIsoQuad(
-        ctx,
-        m,
-        [
-          [0.04, 0, 0.78],
-          [0.13, 0, 0.78],
-          [0.13, 0, 0.56],
-          [0.04, 0, 0.56],
-        ],
-        "#1E2438",
-        "#090B10",
-        1.6,
-      );
-      drawIsoQuad(
-        ctx,
-        m,
-        [
-          [0.055, 0, 0.74],
-          [0.115, 0, 0.74],
-          [0.115, 0, 0.60],
-          [0.055, 0, 0.60],
-        ],
-        pal.accentPink,
-      );
+      // 4. RIGHT WALL: POSTER (UPGRADES TO FRAMED SERPENS STAR CHART!) + GLASS WHITEBOARD
+      if (st.milestones.serpensPoster) {
+        const posterPoly = drawIsoQuad(
+          ctx,
+          m,
+          [
+            [0.032, 0, 0.805],
+            [0.148, 0, 0.805],
+            [0.148, 0, 0.54],
+            [0.032, 0, 0.54],
+          ],
+          "#12162A",
+          "#FFDE59",
+          2.0,
+        );
+        st.hitZones.poster = posterPoly;
+        drawIsoQuad(
+          ctx,
+          m,
+          [
+            [0.042, 0.002, 0.785],
+            [0.138, 0.002, 0.785],
+            [0.138, 0.002, 0.56],
+            [0.042, 0.002, 0.56],
+          ],
+          "#0B0F22",
+        );
+        const serpNodes: [number, number][] = [
+          [0.122, 0.755],
+          [0.095, 0.735],
+          [0.062, 0.695],
+          [0.105, 0.645],
+          [0.072, 0.592],
+        ];
+        const serpPts = serpNodes.map(([su, sz]) => projectIso(m, su, 0.004, sz));
+        ctx.save();
+        ctx.strokeStyle = "#FFDE59";
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        serpPts.forEach((pt, idx) =>
+          idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y),
+        );
+        ctx.stroke();
+        serpPts.forEach((pt, idx) => {
+          ctx.fillStyle = idx === 0 ? "#FFFBEB" : "#FFDE59";
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, idx === 0 ? 2.4 : 1.9, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+      } else {
+        // Starter small framed retro Devy art poster near corner
+        drawIsoQuad(
+          ctx,
+          m,
+          [
+            [0.04, 0, 0.78],
+            [0.13, 0, 0.78],
+            [0.13, 0, 0.56],
+            [0.04, 0, 0.56],
+          ],
+          "#1E2438",
+          "#090B10",
+          1.6,
+        );
+        drawIsoQuad(
+          ctx,
+          m,
+          [
+            [0.055, 0, 0.74],
+            [0.115, 0, 0.74],
+            [0.115, 0, 0.60],
+            [0.055, 0, 0.60],
+          ],
+          pal.accentPink,
+        );
+      }
 
       // Glass Algorithm Whiteboard (v=0, u=0.17..0.58, z=0.49..0.85)
       const labHot = st.activeZone === "algolab";
@@ -1958,6 +2326,98 @@ export default function HomeLoftStage({
       );
       // Wireless Mouse
       drawIsoBox(ctx, m, 0.415, 0.225, 0.287, 0.036, 0.052, 0.015, "#D9DDE8", "#A7B0C4", "#7C859C", "#090B10", 1.1);
+
+      // MILESTONE KEEPSAKE: Spinning 3D Desk Holographic Prism (on back-left corner of desk!)
+      if (st.milestones.holoPrism) {
+        drawIsoBox(
+          ctx,
+          m,
+          0.104,
+          0.088,
+          0.287,
+          0.052,
+          0.052,
+          0.016,
+          "#252C42",
+          "#191E2F",
+          "#111522",
+          "#FFDE59",
+          1.2,
+        );
+        const emitPt = projectIso(m, 0.13, 0.114, 0.305);
+        const holoCenter = projectIso(
+          m,
+          0.13,
+          0.114,
+          0.395 + Math.sin(t * 2.4) * 0.012,
+        );
+
+        // Soft volumetric cyan/gold projector cone
+        ctx.save();
+        const beamGrad = ctx.createLinearGradient(
+          emitPt.x,
+          emitPt.y,
+          holoCenter.x,
+          holoCenter.y - 16,
+        );
+        beamGrad.addColorStop(0, `${pal.accentCyan}66`);
+        beamGrad.addColorStop(1, "transparent");
+        ctx.fillStyle = beamGrad;
+        ctx.beginPath();
+        ctx.moveTo(emitPt.x - 4, emitPt.y);
+        ctx.lineTo(holoCenter.x - 14, holoCenter.y - 12);
+        ctx.lineTo(holoCenter.x + 14, holoCenter.y - 12);
+        ctx.lineTo(emitPt.x + 4, emitPt.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Live 3D rotating wireframe octahedron crystal
+        const topV = { x: holoCenter.x, y: holoCenter.y - 13 };
+        const botV = { x: holoCenter.x, y: holoCenter.y + 13 };
+        const ringPts = [0, 1, 2, 3].map((k) => {
+          const ang = t * 1.85 + (k * Math.PI) / 2;
+          return {
+            x: holoCenter.x + Math.cos(ang) * 10.5,
+            y: holoCenter.y + Math.sin(ang) * 4.2,
+          };
+        });
+
+        ctx.fillStyle = `${pal.accentCyan}26`;
+        ctx.beginPath();
+        ctx.moveTo(topV.x, topV.y);
+        ctx.lineTo(ringPts[0].x, ringPts[0].y);
+        ctx.lineTo(botV.x, botV.y);
+        ctx.lineTo(ringPts[2].x, ringPts[2].y);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = pal.accentCyan;
+        ctx.lineWidth = 1.45;
+        ctx.beginPath();
+        for (let k = 0; k < 4; k += 1) {
+          const nxt = ringPts[(k + 1) % 4];
+          ctx.moveTo(ringPts[k].x, ringPts[k].y);
+          ctx.lineTo(nxt.x, nxt.y);
+          ctx.moveTo(topV.x, topV.y);
+          ctx.lineTo(ringPts[k].x, ringPts[k].y);
+          ctx.moveTo(botV.x, botV.y);
+          ctx.lineTo(ringPts[k].x, ringPts[k].y);
+        }
+        ctx.stroke();
+
+        ctx.fillStyle = "#FFDE59";
+        ctx.beginPath();
+        ctx.arc(holoCenter.x, holoCenter.y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        st.hitZones.prism = [
+          { x: holoCenter.x - 16, y: holoCenter.y - 18 },
+          { x: holoCenter.x + 16, y: holoCenter.y - 18 },
+          { x: emitPt.x + 14, y: emitPt.y + 6 },
+          { x: emitPt.x - 14, y: emitPt.y + 6 },
+        ];
+      }
 
       // Steaming Ceramic Coffee / Matcha Mug (clickable!)
       drawIsoBox(ctx, m, 0.11, 0.20, 0.287, 0.044, 0.044, 0.062, "#F6F1E7", "#DDD6C8", "#C2B9A8", "#090B10", 1.4);
@@ -2556,7 +3016,223 @@ export default function HomeLoftStage({
           </View>
         )}
 
-        {/* Brief Click Interaction Toast (auto-hides after 1.9s) */}
+        {/* Top-Left Real-Time Sky Cycle Pill & Top-Right Keepsake / Dev HUD */}
+        {Platform.OS === "web" ? (
+          <>
+            <View style={styles.topLeftHud}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cycle loft window sky time of day"
+                style={styles.hudPill}
+                onPress={() => {
+                  playKeyClick();
+                  setSkyMode((prev) => {
+                    const next = getNextLoftSkyMode(prev);
+                    const nextResolved = resolveLoftSkyPhase(
+                      next,
+                      new Date().getHours(),
+                    );
+                    const label =
+                      next === "auto"
+                        ? `AUTO · ${nextResolved.toUpperCase()}`
+                        : nextResolved.toUpperCase();
+                    showToast(`WINDOW SKY · ${label}`);
+                    return next;
+                  });
+                }}
+              >
+                <Text style={styles.hudPillText}>
+                  {resolvedSkyPhase === "midnight" ? "☾" : "☀"}{" "}
+                  {skyMode === "auto"
+                    ? `AUTO · ${resolvedSkyPhase.toUpperCase()}`
+                    : resolvedSkyPhase.toUpperCase()}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.topRightHud}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Inspect loft milestone keepsakes"
+                style={[
+                  styles.hudPill,
+                  effectiveMilestones.unlockedCount === 4 && {
+                    borderColor: StudioColors.yellow,
+                  },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  showToast(effectiveMilestones.nextHint.toUpperCase());
+                }}
+              >
+                <Text
+                  style={[
+                    styles.hudPillText,
+                    effectiveMilestones.unlockedCount > 0 && {
+                      color: StudioColors.yellow,
+                    },
+                  ]}
+                >
+                  ★ {effectiveMilestones.unlockedCount}/4 KEEPSAKES
+                </Text>
+              </Pressable>
+
+              {enableDevTools ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Toggle Loft dev testing tools"
+                  style={[
+                    styles.hudPill,
+                    devOpen && {
+                      backgroundColor: StudioColors.yellow,
+                      borderColor: StudioColors.ink,
+                    },
+                  ]}
+                  onPress={() => {
+                    playKeyClick();
+                    setDevOpen((prev) => !prev);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.hudPillText,
+                      { color: devOpen ? StudioColors.ink : StudioColors.yellow },
+                    ]}
+                  >
+                    ⚙ DEV
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            {devOpen && enableDevTools ? (
+              <View testID="loft-dev-tools" style={styles.devDrawer}>
+                <View style={styles.devDrawerHeader}>
+                  <Text style={styles.devDrawerKicker}>
+                    ⚙ LOFT SANDBOX · MILESTONES
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Close Loft dev tools"
+                    onPress={() => {
+                      playKeyClick();
+                      setDevOpen(false);
+                    }}
+                  >
+                    <Text style={styles.devCloseText}>✕</Text>
+                  </Pressable>
+                </View>
+
+                <View style={styles.devGrid}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Dev toggle Serpens wall poster"
+                    style={[
+                      styles.devBtn,
+                      effectiveMilestones.serpensPoster && styles.devBtnOn,
+                    ]}
+                    onPress={() => {
+                      playKeyClick();
+                      setDevOverrides((prev) => ({
+                        ...prev,
+                        serpensPoster: !effectiveMilestones.serpensPoster,
+                      }));
+                    }}
+                  >
+                    <Text style={styles.devBtnText}>★ SERPENS CHART</Text>
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Dev toggle 5-day fairy string lights"
+                    style={[
+                      styles.devBtn,
+                      effectiveMilestones.fairyLights && styles.devBtnOn,
+                    ]}
+                    onPress={() => {
+                      playKeyClick();
+                      setDevOverrides((prev) => ({
+                        ...prev,
+                        fairyLights: !effectiveMilestones.fairyLights,
+                      }));
+                    }}
+                  >
+                    <Text style={styles.devBtnText}>✦ FAIRY LIGHTS</Text>
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Dev toggle golden arcade trophy"
+                    style={[
+                      styles.devBtn,
+                      effectiveMilestones.arcadeTrophy && styles.devBtnOn,
+                    ]}
+                    onPress={() => {
+                      playKeyClick();
+                      setDevOverrides((prev) => ({
+                        ...prev,
+                        arcadeTrophy: !effectiveMilestones.arcadeTrophy,
+                      }));
+                    }}
+                  >
+                    <Text style={styles.devBtnText}>🏆 ARCADE CUP</Text>
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Dev toggle desk holographic prism"
+                    style={[
+                      styles.devBtn,
+                      effectiveMilestones.holoPrism && styles.devBtnOn,
+                    ]}
+                    onPress={() => {
+                      playKeyClick();
+                      setDevOverrides((prev) => ({
+                        ...prev,
+                        holoPrism: !effectiveMilestones.holoPrism,
+                      }));
+                    }}
+                  >
+                    <Text style={styles.devBtnText}>◈ HOLO PRISM</Text>
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Dev unlock all 4 loft keepsakes"
+                    style={[styles.devBtn, { borderColor: StudioColors.yellow }]}
+                    onPress={() => {
+                      playSuccessChime();
+                      setDevOverrides({
+                        serpensPoster: true,
+                        fairyLights: true,
+                        arcadeTrophy: true,
+                        holoPrism: true,
+                      });
+                      showToast("ALL 4 LOFT KEEPSAKES UNLOCKED ★");
+                    }}
+                  >
+                    <Text style={[styles.devBtnText, { color: StudioColors.yellow }]}>
+                      ✦ UNLOCK ALL 4
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Dev trigger cat victory celebration"
+                    style={[styles.devBtn, { borderColor: StudioColors.pink }]}
+                    onPress={triggerCatVictoryCelebration}
+                  >
+                    <Text style={[styles.devBtnText, { color: StudioColors.pink }]}>
+                      🎉 CAT WIN HOP
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+          </>
+        ) : null}
+
+        {/* Brief Click Interaction Toast (auto-hides after 2.2s) */}
         {toastMsg ? (
           <View pointerEvents="none" style={styles.toastWrap}>
             <View style={styles.toastPill}>
@@ -2598,6 +3274,99 @@ const createStyles = (colors: StudioThemeColors) =>
     },
     viewportCompact: {
       height: 315,
+    },
+    topLeftHud: {
+      position: "absolute",
+      top: 10,
+      left: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    topRightHud: {
+      position: "absolute",
+      top: 10,
+      right: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+    },
+    hudPill: {
+      backgroundColor: "rgba(9, 13, 24, 0.82)",
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.16)",
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    hudPillText: {
+      color: "rgba(241, 245, 249, 0.88)",
+      fontFamily: MonoFont,
+      fontSize: 9,
+      lineHeight: 11,
+      includeFontPadding: false,
+      fontWeight: "900",
+      letterSpacing: 0.45,
+    },
+    devDrawer: {
+      position: "absolute",
+      top: 40,
+      right: 10,
+      width: 248,
+      backgroundColor: "rgba(9, 13, 24, 0.94)",
+      borderWidth: 1.8,
+      borderColor: StudioColors.yellow,
+      borderRadius: 12,
+      padding: 10,
+      gap: 7,
+      ...HardShadowSm,
+    },
+    devDrawerHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    devDrawerKicker: {
+      color: StudioColors.yellow,
+      fontFamily: MonoFont,
+      fontSize: 8.5,
+      fontWeight: "900",
+      letterSpacing: 0.5,
+    },
+    devCloseText: {
+      color: "#E2E8F0",
+      fontSize: 11,
+      fontWeight: "900",
+      paddingHorizontal: 4,
+    },
+    devGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 5,
+    },
+    devBtn: {
+      width: "48.5%",
+      paddingVertical: 6,
+      paddingHorizontal: 6,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.2)",
+      backgroundColor: "rgba(255, 255, 255, 0.06)",
+      alignItems: "center",
+      justifyContent: "center",
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    devBtnOn: {
+      borderColor: StudioColors.mint,
+      backgroundColor: "rgba(110, 231, 183, 0.18)",
+    },
+    devBtnText: {
+      color: "#F8FAFC",
+      fontFamily: MonoFont,
+      fontSize: 8,
+      fontWeight: "900",
+      letterSpacing: 0.3,
     },
     nativeFallback: {
       flex: 1,

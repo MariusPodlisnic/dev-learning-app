@@ -291,6 +291,9 @@ export default function HomeScreen() {
   const [recentCompletedLessonId, setRecentCompletedLessonId] = useState<
     string | null
   >(null);
+  const [recentLoftVictoryId, setRecentLoftVictoryId] = useState<string | null>(
+    null,
+  );
   const prevStudioCompletedRef = useRef<Record<string, boolean>>({});
 
   const pyodideRef = useRef<any>(null);
@@ -817,7 +820,7 @@ export default function HomeScreen() {
   const styles = useThemedStyles(getStudioScreenStyles);
   const devRank = getDeveloperRank(xpPoints);
 
-  // Capture newly solved Code Studio lessons so returning to the Skill Map plays a Supernova celebration
+  // Capture newly solved Code Studio lessons so returning to Skill Map or Home Loft plays a celebration
   useEffect(() => {
     if (viewMode === "studio") {
       const newlySolved = Object.keys(completedLessons).find(
@@ -825,6 +828,7 @@ export default function HomeScreen() {
       );
       if (newlySolved) {
         setRecentCompletedLessonId(newlySolved);
+        setRecentLoftVictoryId(newlySolved);
       }
     }
     prevStudioCompletedRef.current = completedLessons;
@@ -1154,6 +1158,9 @@ export default function HomeScreen() {
           onSelectLesson={handleSelectLesson}
           onNavigateMode={(mode) => setViewMode(mode)}
           onClaimDailyQuestBonus={handleClaimDailyQuestBonus}
+          recentVictoryLessonId={recentLoftVictoryId}
+          onConsumeVictory={() => setRecentLoftVictoryId(null)}
+          enableDevTools={IS_DEV_MODE || (isMounted && isLocalDevHost())}
         />
       ) : viewMode === "roadmap" ? (
         <RoadmapTree

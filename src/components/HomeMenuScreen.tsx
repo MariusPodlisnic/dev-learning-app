@@ -29,6 +29,8 @@ import {
   subscribeArcadeRecords,
 } from "../utils/arcadeRecords";
 import type { LoftHighlightZone } from "../utils/loftGeometry";
+import { computeLoftMilestoneTrophies } from "../utils/loftMilestones";
+import { readCompletedMiniBuilds } from "../utils/miniBuilds";
 import { playKeyClick } from "../utils/soundEffects";
 import {
   buildDueReviewQueue,
@@ -66,6 +68,9 @@ interface HomeMenuScreenProps {
   onSelectLesson: (lesson: Lesson) => void;
   onNavigateMode: (mode: ViewMode) => void;
   onClaimDailyQuestBonus?: () => void;
+  recentVictoryLessonId?: string | null;
+  onConsumeVictory?: () => void;
+  enableDevTools?: boolean;
 }
 
 interface PortalCardMeta {
@@ -95,6 +100,9 @@ export default function HomeMenuScreen({
   onSelectLesson,
   onNavigateMode,
   onClaimDailyQuestBonus,
+  recentVictoryLessonId = null,
+  onConsumeVictory,
+  enableDevTools = false,
 }: HomeMenuScreenProps) {
   const styles = useThemedStyles(createStyles);
   const { width: windowWidth } = useWindowDimensions();
@@ -150,6 +158,31 @@ export default function HomeMenuScreen({
   const solvedBugCount = useMemo(
     () => Object.values(solvedIncidents || {}).filter(Boolean).length,
     [solvedIncidents],
+  );
+
+  const completedMiniBuildsCount = useMemo(
+    () => Object.values(readCompletedMiniBuilds()).filter(Boolean).length,
+    [],
+  );
+
+  const loftMilestones = useMemo(
+    () =>
+      computeLoftMilestoneTrophies({
+        lessons,
+        completedLessons,
+        streakCount,
+        blitzBestHits: arcadeRecords.blitzBestHits,
+        solvedBugCount,
+        completedMiniBuildsCount,
+      }),
+    [
+      arcadeRecords.blitzBestHits,
+      completedLessons,
+      completedMiniBuildsCount,
+      lessons,
+      solvedBugCount,
+      streakCount,
+    ],
   );
 
   const dueReviewItems = useMemo(
@@ -361,6 +394,10 @@ export default function HomeMenuScreen({
               activeZone={activeZone}
               streakCount={streakCount}
               compact={isPhone}
+              milestones={loftMilestones}
+              recentVictoryLessonId={recentVictoryLessonId}
+              onConsumeVictory={onConsumeVictory}
+              enableDevTools={enableDevTools}
             />
           </View>
         </View>
