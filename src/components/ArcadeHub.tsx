@@ -24,6 +24,10 @@ import {
   subscribeScratchpadSnippets,
 } from "../utils/scratchpadSnippets";
 import { playKeyClick } from "../utils/soundEffects";
+import {
+  ArcadeLiveCrtDeck,
+  DailyArcadeGauntletSection,
+} from "./ArcadeCrtPreview";
 import { StudioIcon, type StudioIconName, Text } from "./StudioIcon";
 
 export type ArcadeCategoryId = "all" | "sprints" | "recall" | "builds";
@@ -136,6 +140,7 @@ interface ArcadeHubProps {
   isPremium: boolean;
   onLaunchGame: (mode: ArcadeGameMode) => void;
   onBackToMap?: () => void;
+  onAwardGauntletXp?: (xp: number) => void;
 }
 
 export function ArcadeSubNavBar({
@@ -210,9 +215,11 @@ export default function ArcadeHub({
   isPremium,
   onLaunchGame,
   onBackToMap,
+  onAwardGauntletXp,
 }: ArcadeHubProps) {
   const styles = useThemedStyles(createStyles);
   const [category, setCategory] = useState<ArcadeCategoryId>("all");
+  const [previewId, setPreviewId] = useState<ArcadeGameMode>("blitz");
   const [arcadeRecords, setArcadeRecords] = useState<ArcadeRecordsState>(() =>
     getArcadeRecordsState(),
   );
@@ -247,6 +254,38 @@ export default function ArcadeHub({
         : ARCADE_CARTRIDGES.filter((c) => c.category === category),
     [category],
   );
+
+  function getCartridgeStatLine(cartId: ArcadeGameMode): string {
+    if (cartId === "bughunt") return `${solvedBugCount}/25 INCIDENTS CLEARED`;
+    if (cartId === "blitz") {
+      return arcadeRecords.blitzBestHits > 0
+        ? `BEST: ${arcadeRecords.blitzBestHits} HITS · ${getBlitzRankFromHits(arcadeRecords.blitzBestHits)}`
+        : arcadeRecords.blitzBestXp > 0
+          ? `BEST RUN: ${arcadeRecords.blitzBestXp} XP`
+          : "PYTHON · ALGO · SYS DESIGN";
+    }
+    if (cartId === "detective") {
+      return arcadeRecords.detectiveCasesSolvedTotal > 0
+        ? `BEST ${arcadeRecords.detectiveBestScore}/6 · ${arcadeRecords.detectiveCasesSolvedTotal} SOLVED`
+        : "6-CASE TRACE INVESTIGATIONS";
+    }
+    if (cartId === "minibuilds") {
+      return shippedMiniBuildsCount > 0
+        ? `${shippedMiniBuildsCount}/3 TOOLS SHIPPED ✓`
+        : "3 LIVE PYTHON TOOLS";
+    }
+    if (cartId === "playground") {
+      return savedSnippetCount > 0
+        ? `${savedSnippetCount} SAVED ${savedSnippetCount === 1 ? "SNIPPET" : "SNIPPETS"} · 5 TEMPLATES`
+        : "5 TEMPLATES · SAVED SNIPPETS";
+    }
+    return arcadeRecords.flashcardsMasteredTotal > 0
+      ? `${arcadeRecords.flashcardsMasteredTotal} MASTERED · ${arcadeRecords.flashcardsRoundsCleared} ${arcadeRecords.flashcardsRoundsCleared === 1 ? "ROUND" : "ROUNDS"}`
+      : "8-CARD CONCEPT ROUNDS";
+  }
+
+  const previewCart =
+    ARCADE_CARTRIDGES.find((c) => c.id === previewId) || ARCADE_CARTRIDGES[0];
 
   function handleRandomLaunch() {
     playKeyClick();
@@ -347,6 +386,21 @@ export default function ArcadeHub({
           </View>
         </View>
 
+        {/* Live Animated CRT Cartridge Preview Monitor */}
+        <ArcadeLiveCrtDeck
+          cartridges={ARCADE_CARTRIDGES}
+          previewCart={previewCart}
+          previewStatLine={getCartridgeStatLine(previewCart.id)}
+          onSelectPreview={(id) => setPreviewId(id)}
+          onLaunchCartridge={(id) => onLaunchGame(id)}
+        />
+
+        {/* Featured Daily 3-Minute Arcade Gauntlet */}
+        <DailyArcadeGauntletSection
+          isPremium={isPremium}
+          onAwardXp={onAwardGauntletXp}
+        />
+
         {/* Category Filter Shelf Bar */}
         <View style={styles.filterBar} accessibilityRole="tablist">
           {(
@@ -406,30 +460,7 @@ export default function ArcadeHub({
         {/* Retro Cartridge Grid */}
         <View style={styles.cartGrid}>
           {visibleCartridges.map((cart) => {
-            const statLine =
-              cart.id === "bughunt"
-                ? `${solvedBugCount}/25 INCIDENTS CLEARED`
-                : cart.id === "blitz"
-                  ? arcadeRecords.blitzBestHits > 0
-                    ? `BEST: ${arcadeRecords.blitzBestHits} HITS · ${getBlitzRankFromHits(arcadeRecords.blitzBestHits)}`
-                    : arcadeRecords.blitzBestXp > 0
-                      ? `BEST RUN: ${arcadeRecords.blitzBestXp} XP`
-                      : "PYTHON · ALGO · SYS DESIGN"
-                  : cart.id === "detective"
-                    ? arcadeRecords.detectiveCasesSolvedTotal > 0
-                      ? `BEST ${arcadeRecords.detectiveBestScore}/6 · ${arcadeRecords.detectiveCasesSolvedTotal} SOLVED`
-                      : "6-CASE TRACE INVESTIGATIONS"
-                    : cart.id === "minibuilds"
-                      ? shippedMiniBuildsCount > 0
-                        ? `${shippedMiniBuildsCount}/3 TOOLS SHIPPED ✓`
-                        : "3 LIVE PYTHON TOOLS"
-                      : cart.id === "playground"
-                        ? savedSnippetCount > 0
-                          ? `${savedSnippetCount} SAVED ${savedSnippetCount === 1 ? "SNIPPET" : "SNIPPETS"} · 5 TEMPLATES`
-                          : "5 TEMPLATES · SAVED SNIPPETS"
-                        : arcadeRecords.flashcardsMasteredTotal > 0
-                          ? `${arcadeRecords.flashcardsMasteredTotal} MASTERED · ${arcadeRecords.flashcardsRoundsCleared} ${arcadeRecords.flashcardsRoundsCleared === 1 ? "ROUND" : "ROUNDS"}`
-                          : "8-CARD CONCEPT ROUNDS";
+            const statLine = getCartridgeStatLine(cart.id);
 
             return (
               <Pressable
@@ -438,8 +469,10 @@ export default function ArcadeHub({
                 accessibilityLabel={`Launch ${cart.title}`}
                 style={({ pressed }) => [
                   styles.cartCard,
+                  previewId === cart.id && { borderColor: cart.accent },
                   pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
                 ]}
+                onHoverIn={() => setPreviewId(cart.id)}
                 onPress={() => {
                   playKeyClick();
                   onLaunchGame(cart.id);
