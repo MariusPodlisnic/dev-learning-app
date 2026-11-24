@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   Animated,
   Easing,
@@ -10,13 +10,22 @@ import { Text } from "./StudioIcon";
 import {
   ALGORITHMS,
   type AlgoId,
+  type AlgoStep,
   BFS_EDGES,
   BFS_HOP_GUIDES,
   BFS_NODE_COORDS,
+  buildCustomAlgoSteps,
+  supportsCustomArrayInput,
 } from "../constants/visualizerAlgorithms";
 import { HardShadowSm, StudioColors } from "../constants/theme";
 import { useTheme, useThemedStyles } from "../constants/themeContext";
+import {
+  type CustomArrayPresetKind,
+  generatePresetArray,
+  parseCustomNumberArray,
+} from "../utils/algoRaceEngine";
 import { playKeyClick, playVictoryFanfare } from "../utils/soundEffects";
+import { AlgorithmRaceArena, CustomAlgoInputBar } from "./AlgorithmRaceStage";
 import {
   AnimatedBarItem,
   AnimatedGraphCircle,
@@ -27,6 +36,22 @@ import VisualizerExtendedStages from "./VisualizerExtendedStages";
 import { createVisualizerStyles } from "./visualizerStyles";
 
 export type { AlgoId };
+
+const EMPTY_SUBSCRIBE = () => () => {};
+const IS_DEV_MODE = typeof __DEV__ !== "undefined" && __DEV__;
+
+function isLocalDevHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location?.hostname || "";
+  return (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host.endsWith(".local") ||
+    host.startsWith("192.168.") ||
+    host.startsWith("10.")
+  );
+}
 
 interface AlgorithmVisualizerLabProps {
   isPremium: boolean;
@@ -41,6 +66,15 @@ export default function AlgorithmVisualizerLab({
 }: AlgorithmVisualizerLabProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(createVisualizerStyles);
+  const isMounted = useSyncExternalStore(
+    EMPTY_SUBSCRIBE,
+    () => true,
+    () => false,
+  );
+  const showDevTools = isMounted && (IS_DEV_MODE || isLocalDevHost());
+
+  const [devUnlocked, setDevUnlocked] = useState<boolean>(false);
+  const [labMode, setLabMode] = useState<"explorer" | "race">("explorer");
   const [selectedAlgoIdx, setSelectedAlgoIdx] = useState<number>(0);
   const [selectedPresetIdx, setSelectedPresetIdx] = useState<number>(0);
   const [stepIdx, setStepIdx] = useState<number>(0);
@@ -48,11 +82,22 @@ export default function AlgorithmVisualizerLab({
   // Default to a calm, readable 2.8s pace so learners have time to read between iterations
   const [speedMs, setSpeedMs] = useState<number>(2800);
 
+  const [customOpen, setCustomOpen] = useState<boolean>(false);
+  const [customSteps, setCustomSteps] = useState<AlgoStep[] | null>(null);
+  const [customArrayText, setCustomArrayText] = useState<string>(
+    "14, 7, 29, 3, 42, 18, 9",
+  );
+  const [customTargetText, setCustomTargetText] = useState<string>("29");
+  const [customError, setCustomError] = useState<string | null>(null);
+
   const activeAlgo = ALGORITHMS[selectedAlgoIdx] || ALGORITHMS[0];
   const activePreset =
     activeAlgo.presets[selectedPresetIdx] || activeAlgo.presets[0];
 
-  const steps = useMemo(() => activePreset.build(), [activePreset]);
+  const steps = useMemo(
+    () => customSteps || activePreset.build(),
+    [customSteps, activePreset],
+  );
   const safeStepIdx = Math.min(stepIdx, Math.max(0, steps.length - 1));
   const step = steps[safeStepIdx];
   const isLastStep = safeStepIdx >= steps.length - 1;
@@ -138,6 +183,9 @@ export default function AlgorithmVisualizerLab({
     setIsPlaying(false);
     setSelectedAlgoIdx(idx);
     setSelectedPresetIdx(0);
+    setCustomSteps(null);
+    setCustomOpen(false);
+    setCustomError(null);
     setStepIdx(0);
   }
 
@@ -145,7 +193,68 @@ export default function AlgorithmVisualizerLab({
     playKeyClick();
     setIsPlaying(false);
     setSelectedPresetIdx(idx);
+    setCustomSteps(null);
+    setCustomOpen(false);
+    setCustomError(null);
     setStepIdx(0);
+  }
+
+  const canUseCustomData = supportsCustomArrayInput(activeAlgo.id);
+  const customNeedsTarget =
+    activeAlgo.id === "binary_search" ||
+    activeAlgo.id === "two_pointers" ||
+    activeAlgo.id === "sliding_window" ||
+    activeAlgo.id === "hash_lookup";
+  const customTargetLabel =
+    activeAlgo.id === "sliding_window"
+      ? "WINDOW K"
+      : activeAlgo.id === "binary_search"
+        ? "TARGET"
+        : "PAIR SUM";
+
+  function applyExplorerCustomData(rawArrStr: string, rawTargetStr: string) {
+    const parsed = parseCustomNumberArray(rawArrStr, { minLen: 4, maxLen: 10 });
+    if (parsed.error) {
+      setCustomError(parsed.error);
+      return;
+    }
+    const parsedTarget = Number(rawTargetStr.trim());
+    const safeTarget = Number.isFinite(parsedTarget)
+      ? Math.round(parsedTarget)
+      : parsed.values[Math.floor(parsed.values.length / 2)] || 10;
+
+    const built = buildCustomAlgoSteps(activeAlgo.id, parsed.values, safeTarget);
+    if (!built || built.length === 0) {
+      setCustomError("Could not build steps for this dataset.");
+      return;
+    }
+    setCustomError(null);
+    setIsPlaying(false);
+    setCustomSteps(built);
+    setStepIdx(0);
+  }
+
+  function handleGenerateExplorerPreset(kind: CustomArrayPresetKind) {
+    const count = activeAlgo.id === "min_heap" ? 6 : 7;
+    const nums = generatePresetArray(kind, count);
+    const nextArrText = nums.join(", ");
+    let nextTarget = customTargetText;
+
+    if (activeAlgo.id === "sliding_window") {
+      nextTarget = "3";
+    } else if (activeAlgo.id === "binary_search") {
+      const sorted = [...nums].sort((a, b) => a - b);
+      nextTarget = String(sorted[Math.min(sorted.length - 2, Math.floor(sorted.length * 0.65))]);
+    } else if (
+      activeAlgo.id === "two_pointers" ||
+      activeAlgo.id === "hash_lookup"
+    ) {
+      nextTarget = String(nums[1] + nums[nums.length - 2]);
+    }
+
+    setCustomArrayText(nextArrText);
+    setCustomTargetText(nextTarget);
+    applyExplorerCustomData(nextArrText, nextTarget);
   }
 
   function handleNext() {
@@ -174,7 +283,7 @@ export default function AlgorithmVisualizerLab({
     setIsPlaying((p) => !p);
   }
 
-  if (!isPremium) {
+  if (!isPremium && !devUnlocked) {
     return (
       <ScrollView
         style={styles.pageScroll}
@@ -182,8 +291,23 @@ export default function AlgorithmVisualizerLab({
       >
         <View style={styles.lockHeroCard}>
           <View style={styles.lockTopRow}>
-            <View style={styles.proSticker}>
-              <Text style={styles.proStickerText}>★ PRO ONLY LAB</Text>
+            <View style={styles.heroBadgeGroup}>
+              <View style={styles.proSticker}>
+                <Text style={styles.proStickerText}>★ PRO ONLY LAB</Text>
+              </View>
+              {showDevTools ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Dev preview unlock Algorithm Lab"
+                  style={styles.devUnlockBtn}
+                  onPress={() => {
+                    playKeyClick();
+                    setDevUnlocked(true);
+                  }}
+                >
+                  <Text style={styles.devUnlockBtnText}>⚙ DEV UNLOCK LAB</Text>
+                </Pressable>
+              ) : null}
             </View>
             <Pressable style={styles.backBtn} onPress={onBackToMap}>
               <Text style={styles.backBtnText}>← SKILL MAP</Text>
@@ -195,8 +319,8 @@ export default function AlgorithmVisualizerLab({
           </Text>
           <Text style={styles.lockDesc}>
             Watch the most-used interview algorithms execute visually with calm
-            step pauses, animated pointers, sorting bars, hash buckets, and
-            beginner-friendly explanations.
+            step pauses, head-to-head Big-O Race Mode, custom playground
+            datasets, and beginner-friendly explanations.
           </Text>
 
           <View style={styles.lockGrid}>
@@ -255,7 +379,9 @@ export default function AlgorithmVisualizerLab({
               <Text style={styles.proStickerText}>★ PRO VISUAL LAB</Text>
             </View>
             <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>{activeAlgo.category}</Text>
+              <Text style={styles.categoryBadgeText}>
+                {labMode === "race" ? "HEAD-TO-HEAD BENCHMARK" : activeAlgo.category}
+              </Text>
             </View>
           </View>
           <Pressable style={styles.backBtn} onPress={onBackToMap}>
@@ -263,57 +389,112 @@ export default function AlgorithmVisualizerLab({
           </Pressable>
         </View>
 
-        <Text style={styles.heroTitle}>{activeAlgo.name}</Text>
+        {/* Lab Mode Switcher: Step Explorer vs Side-by-Side Race Mode */}
+        <View style={styles.labModeRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Step Explorer Mode"
+            style={[
+              styles.labModeBtn,
+              labMode === "explorer" && styles.labModeBtnActive,
+            ]}
+            onPress={() => {
+              playKeyClick();
+              setLabMode("explorer");
+            }}
+          >
+            <Text
+              style={[
+                styles.labModeBtnText,
+                labMode === "explorer" && styles.labModeBtnTextActive,
+              ]}
+            >
+              🔬 STEP EXPLORER (10 ENGINES)
+            </Text>
+          </Pressable>
 
-        {/* Compact Brief Introduction Strip */}
-        <View
-          style={[
-            styles.introBanner,
-            { borderLeftColor: activeAlgo.accent },
-          ]}
-        >
-          <Text style={styles.introTag}>💡 QUICK INTRO</Text>
-          <Text style={styles.introText}>{activeAlgo.intro}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Side-by-Side Algorithm Race Mode"
+            style={[
+              styles.labModeBtn,
+              labMode === "race" && styles.labModeBtnRaceActive,
+            ]}
+            onPress={() => {
+              playKeyClick();
+              setIsPlaying(false);
+              setLabMode("race");
+            }}
+          >
+            <Text
+              style={[
+                styles.labModeBtnText,
+                labMode === "race" && styles.labModeBtnTextActive,
+              ]}
+            >
+              🏁 SIDE-BY-SIDE RACE MODE
+            </Text>
+          </Pressable>
         </View>
 
-        {/* Algorithm Selector Pills */}
-        <View style={styles.algoTabsWrap}>
-          {ALGORITHMS.map((algo, idx) => {
-            const isSelected = idx === selectedAlgoIdx;
-            return (
-              <Pressable
-                key={algo.id}
-                style={[
-                  styles.algoTab,
-                  isSelected && {
-                    backgroundColor: algo.accent,
-                    borderColor: StudioColors.ink,
-                    ...HardShadowSm,
-                  },
-                ]}
-                onPress={() => selectAlgo(idx)}
-              >
-                <Text
-                  style={[
-                    styles.algoTabText,
-                    isSelected && styles.algoTabTextActive,
-                  ]}
-                >
-                  {algo.name}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {labMode === "explorer" ? (
+          <>
+            <Text style={styles.heroTitle}>{activeAlgo.name}</Text>
+
+            {/* Compact Brief Introduction Strip */}
+            <View
+              style={[
+                styles.introBanner,
+                { borderLeftColor: activeAlgo.accent },
+              ]}
+            >
+              <Text style={styles.introTag}>💡 QUICK INTRO</Text>
+              <Text style={styles.introText}>{activeAlgo.intro}</Text>
+            </View>
+
+            {/* Algorithm Selector Pills */}
+            <View style={styles.algoTabsWrap}>
+              {ALGORITHMS.map((algo, idx) => {
+                const isSelected = idx === selectedAlgoIdx;
+                return (
+                  <Pressable
+                    key={algo.id}
+                    style={[
+                      styles.algoTab,
+                      isSelected && {
+                        backgroundColor: algo.accent,
+                        borderColor: StudioColors.ink,
+                        ...HardShadowSm,
+                      },
+                    ]}
+                    onPress={() => selectAlgo(idx)}
+                  >
+                    <Text
+                      style={[
+                        styles.algoTabText,
+                        isSelected && styles.algoTabTextActive,
+                      ]}
+                    >
+                      {algo.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
       </View>
 
-      {/* Main Stage Card */}
+      {labMode === "race" ? (
+        <AlgorithmRaceArena />
+      ) : (
+      /* Main Stage Card */
       <View style={styles.stageCard}>
         <View style={styles.stageHeader}>
           <View style={styles.presetRow}>
             <Text style={styles.microLabel}>INPUT:</Text>
             {activeAlgo.presets.map((p, idx) => {
-              const isActive = idx === selectedPresetIdx;
+              const isActive = customSteps === null && !customOpen && idx === selectedPresetIdx;
               return (
                 <Pressable
                   key={p.label}
@@ -331,6 +512,30 @@ export default function AlgorithmVisualizerLab({
                 </Pressable>
               );
             })}
+            {canUseCustomData ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Toggle custom playground dataset"
+                style={[
+                  styles.presetPill,
+                  (customOpen || customSteps !== null) && styles.presetPillActive,
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  setCustomOpen((prev) => !prev);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.presetPillText,
+                    (customOpen || customSteps !== null) &&
+                      styles.presetPillTextActive,
+                  ]}
+                >
+                  ✎ CUSTOM DATA
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <View style={styles.bigOGroup}>
@@ -342,6 +547,22 @@ export default function AlgorithmVisualizerLab({
             </View>
           </View>
         </View>
+
+        {canUseCustomData && customOpen ? (
+          <CustomAlgoInputBar
+            arrayText={customArrayText}
+            onChangeArrayText={setCustomArrayText}
+            showTarget={customNeedsTarget}
+            targetLabel={customTargetLabel}
+            targetText={customTargetText}
+            onChangeTargetText={setCustomTargetText}
+            errorText={customError}
+            onApply={() =>
+              applyExplorerCustomData(customArrayText, customTargetText)
+            }
+            onGeneratePreset={handleGenerateExplorerPreset}
+          />
+        ) : null}
 
         {/* Animated Progress Rail + Inter-Iteration Pause Timer */}
         <View style={styles.progressTrackWrap}>
@@ -1466,6 +1687,7 @@ export default function AlgorithmVisualizerLab({
           })}
         </View>
       </View>
+      )}
     </ScrollView>
   );
 }

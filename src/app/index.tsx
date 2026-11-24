@@ -1262,7 +1262,6 @@ export default function HomeScreen() {
                   isPremium={effectiveIsPremium}
                   onLaunchGame={(game) => setViewMode(game)}
                   onBackToMap={() => setViewMode("roadmap")}
-                  onAwardGauntletXp={(earned) => handleAwardFlashcardXp(earned)}
                 />
               ) : viewMode === "bughunt" ? (
               <BugHuntArena

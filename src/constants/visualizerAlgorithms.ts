@@ -703,3 +703,44 @@ export const ALGORITHMS: AlgoMeta[] = [
   },
 ];
 
+export function supportsCustomArrayInput(algoId: AlgoId): boolean {
+  return (
+    algoId === "binary_search" ||
+    algoId === "two_pointers" ||
+    algoId === "sliding_window" ||
+    algoId === "bubble_sort" ||
+    algoId === "hash_lookup" ||
+    algoId === "min_heap"
+  );
+}
+
+export function buildCustomAlgoSteps(
+  algoId: AlgoId,
+  rawNums: number[],
+  targetOrK: number,
+): AlgoStep[] | null {
+  if (rawNums.length < 4) return null;
+  if (algoId === "binary_search") {
+    const sorted = [...rawNums].sort((a, b) => a - b);
+    return buildBinarySearchSteps(sorted, targetOrK);
+  }
+  if (algoId === "two_pointers") {
+    const sorted = [...rawNums].sort((a, b) => a - b);
+    return buildTwoPointersSteps(sorted, targetOrK);
+  }
+  if (algoId === "sliding_window") {
+    const k = Math.max(2, Math.min(rawNums.length - 1, Math.round(targetOrK) || 3));
+    return buildSlidingWindowSteps(rawNums, k);
+  }
+  if (algoId === "bubble_sort") {
+    return buildBubbleSortSteps(rawNums.slice(0, 8));
+  }
+  if (algoId === "hash_lookup") {
+    return buildHashLookupSteps(rawNums.slice(0, 9), targetOrK);
+  }
+  if (algoId === "min_heap") {
+    return buildMinHeapInsertSteps(rawNums.slice(0, 7));
+  }
+  return null;
+}
+

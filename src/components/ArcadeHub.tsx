@@ -24,10 +24,7 @@ import {
   subscribeScratchpadSnippets,
 } from "../utils/scratchpadSnippets";
 import { playKeyClick } from "../utils/soundEffects";
-import {
-  ArcadeLiveCrtDeck,
-  DailyArcadeGauntletSection,
-} from "./ArcadeCrtPreview";
+import { ArcadeLiveCrtDeck } from "./ArcadeCrtPreview";
 import { StudioIcon, type StudioIconName, Text } from "./StudioIcon";
 
 export type ArcadeCategoryId = "all" | "sprints" | "recall" | "builds";
@@ -140,7 +137,6 @@ interface ArcadeHubProps {
   isPremium: boolean;
   onLaunchGame: (mode: ArcadeGameMode) => void;
   onBackToMap?: () => void;
-  onAwardGauntletXp?: (xp: number) => void;
 }
 
 export function ArcadeSubNavBar({
@@ -215,7 +211,6 @@ export default function ArcadeHub({
   isPremium,
   onLaunchGame,
   onBackToMap,
-  onAwardGauntletXp,
 }: ArcadeHubProps) {
   const styles = useThemedStyles(createStyles);
   const [category, setCategory] = useState<ArcadeCategoryId>("all");
@@ -393,12 +388,6 @@ export default function ArcadeHub({
           previewStatLine={getCartridgeStatLine(previewCart.id)}
           onSelectPreview={(id) => setPreviewId(id)}
           onLaunchCartridge={(id) => onLaunchGame(id)}
-        />
-
-        {/* Featured Daily 3-Minute Arcade Gauntlet */}
-        <DailyArcadeGauntletSection
-          isPremium={isPremium}
-          onAwardXp={onAwardGauntletXp}
         />
 
         {/* Category Filter Shelf Bar */}

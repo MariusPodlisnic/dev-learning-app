@@ -1505,3 +1505,30 @@ test("AstralDriftBackground renders observatory backdrop and resolves all 4 pale
   );
   assert.ok(html.includes("Astral Observatory Drift background"));
 });
+
+test("ArcadeHub omits ROM header strip and Gauntlet, while AlgorithmRaceArena renders side-by-side race lanes and custom data bar", () => {
+  const arcadeText = visibleText(
+    renderThemed(
+      React.createElement(ArcadeHub, {
+        xpPoints: 1200,
+        streakCount: 5,
+        solvedIncidents: {},
+        isPremium: true,
+        onLaunchGame: () => {},
+      }),
+    ),
+  );
+  assert.equal(arcadeText.includes("ROM://"), false);
+  assert.equal(arcadeText.includes("GAUNTLET"), false);
+
+  const { AlgorithmRaceArena } = loadTsModule(
+    "src/components/AlgorithmRaceStage.tsx",
+  );
+  const raceText = visibleText(
+    renderThemed(React.createElement(AlgorithmRaceArena)),
+  );
+  assert.ok(raceText.includes("QuickSort"));
+  assert.ok(raceText.includes("Bubble Sort"));
+  assert.ok(raceText.includes("TRY YOUR OWN DATA:"));
+  assert.ok(raceText.includes("4× TURBO"));
+});
