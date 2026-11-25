@@ -44,7 +44,6 @@ import {
   hydrateSoundPreference,
   playKeyClick,
 } from "../utils/soundEffects";
-import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
 
@@ -410,7 +409,6 @@ export default function AppHeader({
   viewMode,
   onChangeViewMode,
   isCompactHeader,
-  pyodideReady,
   themeMode,
   onToggleTheme,
   devRank,
@@ -456,7 +454,7 @@ export default function AppHeader({
       {/* Cool Dynamic Studio Header Backdrop */}
       <HeaderDynamicBackdrop viewMode={viewMode} themeMode={themeMode} />
 
-      {/* Left Cluster: Brand + Category 1 (Coding & Labs) */}
+      {/* Left Cluster: Brand + Primary Navigation */}
       <View style={styles.headerLeft}>
         <Pressable
           accessibilityRole="button"
@@ -468,20 +466,13 @@ export default function AppHeader({
           onPress={() => handleSwitchMode("home")}
         >
           <View style={styles.brandIconBox}>
-            <StudioIcon name="devlearn_logo" size={22} />
+            <StudioIcon name="devlearn_logo" size={18} />
             <Text style={styles.brandIconText}>DEVY</Text>
           </View>
         </Pressable>
 
-        {/* CATEGORY 1: CODING & LABS (desktop/tablet header; mobile uses MobileThumbNav) */}
         {!isCompactHeader && (
-          <View style={styles.categoryGroupTray}>
-            <View style={styles.categoryLabelPill}>
-              <StudioIcon name="menu_coding" size={13} />
-              <Text style={styles.categoryLabelText}>CODING &amp; LABS</Text>
-            </View>
-
-            <View style={styles.modeSwitcher}>
+          <View style={styles.modeSwitcher}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Open Devy Home Menu"
@@ -492,7 +483,7 @@ export default function AppHeader({
               ]}
               onPress={() => handleSwitchMode("home")}
             >
-              <StudioIcon name="nav_home" size={18} />
+              <StudioIcon name="nav_home" size={15} />
               <Text
                 style={[
                   styles.modeBtnText,
@@ -511,7 +502,7 @@ export default function AppHeader({
               ]}
               onPress={() => handleSwitchMode("roadmap")}
             >
-              <StudioIcon name="nav_skillmap" size={18} />
+              <StudioIcon name="nav_skillmap" size={15} />
               <Text
                 style={[
                   styles.modeBtnText,
@@ -530,7 +521,7 @@ export default function AppHeader({
               ]}
               onPress={() => handleSwitchMode("studio")}
             >
-              <StudioIcon name="nav_studio" size={18} />
+              <StudioIcon name="nav_studio" size={15} />
               <Text
                 style={[
                   styles.modeBtnText,
@@ -551,7 +542,7 @@ export default function AppHeader({
               ]}
               onPress={() => handleSwitchMode("arcade")}
             >
-              <StudioIcon name="nav_arcade" size={18} />
+              <StudioIcon name="nav_arcade" size={15} />
               <Text
                 style={[
                   styles.modeBtnText,
@@ -572,7 +563,7 @@ export default function AppHeader({
             >
               <StudioIcon
                 name={isPremium ? "nav_algolab" : "lock"}
-                size={18}
+                size={15}
               />
               <Text
                 style={[
@@ -583,519 +574,217 @@ export default function AppHeader({
                 ALGO LAB
               </Text>
             </Pressable>
-            </View>
           </View>
         )}
       </View>
 
-      {/* Right Cluster: Category 2 (Account & Rank) + Category 3 (Settings & Engine) */}
+      {/* Right Cluster: Compact Single-Row Progress + Quick Studio Tools */}
       <View style={styles.headerRight}>
-        {/* CATEGORY 2: ACCOUNT & PROGRESS */}
-        <View
-          style={[
-            styles.categoryGroupTray,
-            isCompactHeader && styles.categoryGroupTrayCompact,
-          ]}
-        >
-          {!isCompactHeader && (
-            <View style={styles.categoryLabelPill}>
-              <StudioIcon name="menu_account_rank" size={13} />
-              <Text style={styles.categoryLabelText}>ACCOUNT &amp; RANK</Text>
+        <View style={styles.categoryItemsRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open Profile and Stats"
+            style={({ pressed }) => [
+              styles.gamificationHeader,
+              pressed && {
+                transform: [{ translateX: 1 }, { translateY: 1 }],
+              },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              onOpenProfile();
+            }}
+          >
+            {/* 1. Compact Profile & Rank Pill */}
+            <View
+              style={[
+                styles.rankPill,
+                themeMode === "light"
+                  ? styles.rankPillLight
+                  : styles.rankPillDark,
+                isCompactHeader && styles.headerActionBoxCompact,
+              ]}
+            >
+              <View style={styles.rankAvatarFrame}>
+                <StudioIcon
+                  name={devRank.avatarIcon ?? getLevelAvatarIcon(devRank.level)}
+                  size={18}
+                />
+              </View>
+              <Text style={[styles.headerMainBase, styles.rankPillText]}>
+                LVL {devRank.level}
+              </Text>
             </View>
-          )}
 
-          <View style={styles.categoryItemsRow}>
+            {/* 2. Compact Daily Streak Pill */}
+            <View
+              style={[
+                styles.statPill,
+                themeMode === "light"
+                  ? styles.statPillLight
+                  : styles.statPillDark,
+                isCompactHeader && styles.headerActionBoxCompact,
+              ]}
+            >
+              <StudioIcon name="flame" size={15} />
+              <Text
+                style={[
+                  styles.headerMainBase,
+                  styles.statText,
+                  themeMode === "light"
+                    ? styles.statTextLight
+                    : styles.statTextDark,
+                ]}
+              >
+                {streakCount} D
+              </Text>
+            </View>
+          </Pressable>
+
+          {/* 3. Achievements Trophy Hall Pill */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open Achievements Trophy Hall"
+            style={({ pressed }) => [
+              styles.achievementsTabBtn,
+              themeMode === "light"
+                ? styles.achievementsTabBtnCalmLight
+                : styles.achievementsTabBtnCalmDark,
+              isCompactHeader && styles.headerActionBoxCompact,
+              viewMode === "achievements" && styles.achievementsTabBtnActive,
+              pressed && {
+                transform: [{ translateX: 1 }, { translateY: 1 }],
+              },
+            ]}
+            onPress={() => handleSwitchMode("achievements")}
+          >
+            <View style={styles.achievementsBtnRow}>
+              <StudioIcon name="nav_achievements" size={15} />
+              <Text
+                style={[
+                  styles.headerMainBase,
+                  styles.achievementsTabBtnText,
+                  viewMode === "achievements" &&
+                    styles.achievementsTabBtnTextActive,
+                ]}
+              >
+                TROPHIES
+              </Text>
+            </View>
+          </Pressable>
+
+          {/* 4. Weekly League Leaderboard Pill */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open Weekly League Leaderboard"
+            style={({ pressed }) => [
+              styles.achievementsTabBtn,
+              themeMode === "light"
+                ? styles.leaderboardTabBtnCalmLight
+                : styles.leaderboardTabBtnCalmDark,
+              isCompactHeader && styles.headerActionBoxCompact,
+              viewMode === "league" && styles.leaderboardTabBtnActive,
+              pressed && {
+                transform: [{ translateX: 1 }, { translateY: 1 }],
+              },
+            ]}
+            onPress={() => handleSwitchMode("league")}
+          >
+            <View style={styles.achievementsBtnRow}>
+              <StudioIcon name="nav_leaderboard" size={15} />
+              <Text
+                style={[
+                  styles.headerMainBase,
+                  styles.achievementsTabBtnText,
+                  viewMode === "league" &&
+                    styles.achievementsTabBtnTextActive,
+                ]}
+              >
+                LEAGUE
+              </Text>
+            </View>
+          </Pressable>
+
+          {/* 5. Pro Membership Pill */}
+          {isPremium ? (
+            <View
+              style={[
+                styles.proBadge,
+                themeMode === "light"
+                  ? styles.proBadgeLight
+                  : styles.proBadgeDark,
+                isCompactHeader && styles.headerActionBoxCompact,
+              ]}
+            >
+              <StudioIcon name="pro_member" size={15} />
+              <Text style={[styles.headerMainBase, styles.proBadgeText]}>
+                PRO ✓
+              </Text>
+            </View>
+          ) : (
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Upgrade to Devy Pro"
               style={({ pressed }) => [
-                styles.gamificationHeader,
+                styles.upgradeHeaderBtn,
+                themeMode === "light"
+                  ? styles.upgradeHeaderBtnLight
+                  : styles.upgradeHeaderBtnDark,
+                isCompactHeader && styles.headerActionBoxCompact,
                 pressed && {
                   transform: [{ translateX: 1 }, { translateY: 1 }],
                 },
               ]}
               onPress={() => {
                 playKeyClick();
-                onOpenProfile();
+                onOpenPaywall();
               }}
             >
-              {/* 1. Profile & Developer Rank Box */}
-              <View
-                style={[
-                  styles.rankPill,
-                  themeMode === "light"
-                    ? styles.rankPillLight
-                    : styles.rankPillDark,
-                ]}
+              <StudioIcon name="pro_member" size={15} />
+              <Text
+                style={[styles.headerMainBase, styles.upgradeHeaderBtnText]}
               >
-                <View style={styles.rankAvatarFrame}>
-                  <StudioIcon
-                    name={devRank.avatarIcon ?? getLevelAvatarIcon(devRank.level)}
-                    size={isCompactHeader ? 20 : 22}
-                  />
-                </View>
-                <View style={styles.rankLevelBadge}>
-                  <StudioIcon name="menu_account_rank" size={12} />
-                  <Text style={styles.rankLevelBadgeText}>
-                    LVL {devRank.level}
-                  </Text>
-                </View>
-                <View style={styles.headerBtnTextStack}>
-                  {!isCompactHeader && (
-                    <Text
-                      style={[
-                        styles.headerMicroBase,
-                        themeMode === "light"
-                          ? styles.rankMicroLight
-                          : styles.rankMicroDark,
-                      ]}
-                    >
-                      MY PROFILE &amp; STATS ↗
-                    </Text>
-                  )}
-                  <Text style={[styles.headerMainBase, styles.rankPillText]}>
-                    {isCompactHeader ? "PROFILE ↗" : devRank.title.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-
-              {/* 2. Daily Streak Telemetry Box */}
-              <View
-                style={[
-                  styles.statPill,
-                  themeMode === "light"
-                    ? styles.statPillLight
-                    : styles.statPillDark,
-                ]}
-              >
-                <StudioIcon
-                  name="flame"
-                  size={isCompactHeader ? 16 : 18}
-                />
-                <View style={styles.headerBtnTextStack}>
-                  {!isCompactHeader && (
-                    <Text
-                      style={[
-                        styles.headerMicroBase,
-                        themeMode === "light"
-                          ? styles.statMicroLight
-                          : styles.statMicroDark,
-                      ]}
-                    >
-                      DAILY STREAK
-                    </Text>
-                  )}
-                  <Text
-                    style={[
-                      styles.headerMainBase,
-                      styles.statText,
-                      themeMode === "light"
-                        ? styles.statTextLight
-                        : styles.statTextDark,
-                    ]}
-                  >
-                    {streakCount}{" "}
-                    {isCompactHeader ? "D" : streakCount === 1 ? "DAY" : "DAYS"}
-                  </Text>
-                </View>
-              </View>
+                GET PRO
+              </Text>
             </Pressable>
+          )}
 
-            {/* 2b. Dedicated Achievements Tab Button */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.achievementsTabBtn,
-                themeMode === "light"
-                  ? styles.achievementsTabBtnCalmLight
-                  : styles.achievementsTabBtnCalmDark,
-                isCompactHeader && styles.headerActionBoxCompact,
-                viewMode === "achievements" && styles.achievementsTabBtnActive,
-                pressed && {
-                  transform: [{ translateX: 1 }, { translateY: 1 }],
-                },
-              ]}
-              onPress={() => handleSwitchMode("achievements")}
-            >
-              <View style={styles.achievementsBtnRow}>
-                <StudioIcon
-                  name="nav_achievements"
-                  size={isCompactHeader ? 16 : 18}
-                />
-                <View style={styles.headerBtnTextStack}>
-                  {!isCompactHeader && (
-                    <Text
-                      style={[
-                        styles.headerMicroBase,
-                        themeMode === "light"
-                          ? styles.achievementsCalmMicroLight
-                          : styles.achievementsCalmMicroDark,
-                        viewMode === "achievements" &&
-                          styles.headerBtnMicroLabel,
-                      ]}
-                    >
-                      TROPHY HALL
-                    </Text>
-                  )}
-                  <Text
-                    style={[
-                      styles.headerMainBase,
-                      styles.achievementsTabBtnText,
-                      viewMode === "achievements" &&
-                        styles.achievementsTabBtnTextActive,
-                    ]}
-                  >
-                    ACHIEVEMENTS
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
-
-            {/* 2c. Dedicated Weekly League Leaderboard Button */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open Weekly League Leaderboard"
-              style={({ pressed }) => [
-                styles.achievementsTabBtn,
-                themeMode === "light"
-                  ? styles.leaderboardTabBtnCalmLight
-                  : styles.leaderboardTabBtnCalmDark,
-                isCompactHeader && styles.headerActionBoxCompact,
-                viewMode === "league" && styles.leaderboardTabBtnActive,
-                pressed && {
-                  transform: [{ translateX: 1 }, { translateY: 1 }],
-                },
-              ]}
-              onPress={() => handleSwitchMode("league")}
-            >
-              <View style={styles.achievementsBtnRow}>
-                <StudioIcon
-                  name="nav_leaderboard"
-                  size={isCompactHeader ? 16 : 18}
-                />
-                <View style={styles.headerBtnTextStack}>
-                  {!isCompactHeader && (
-                    <Text
-                      style={[
-                        styles.headerMicroBase,
-                        themeMode === "light"
-                          ? styles.leaderboardCalmMicroLight
-                          : styles.leaderboardCalmMicroDark,
-                        viewMode === "league" && styles.headerBtnMicroLabel,
-                      ]}
-                    >
-                      WEEKLY RANK
-                    </Text>
-                  )}
-                  <Text
-                    style={[
-                      styles.headerMainBase,
-                      styles.achievementsTabBtnText,
-                      viewMode === "league" &&
-                        styles.achievementsTabBtnTextActive,
-                    ]}
-                  >
-                    {isCompactHeader ? "LEAGUE" : "LEADERBOARD"}
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
-
-            {/* 3. Pro Membership Box (stays in place between Free & Pro) */}
-            {isPremium ? (
-              <View
-                style={[
-                  styles.proBadge,
-                  themeMode === "light"
-                    ? styles.proBadgeLight
-                    : styles.proBadgeDark,
-                  isCompactHeader && styles.headerActionBoxCompact,
-                ]}
-              >
-                <StudioIcon
-                  name="pro_member"
-                  size={isCompactHeader ? 16 : 18}
-                />
-                <View style={styles.headerBtnTextStack}>
-                  {!isCompactHeader && (
-                    <Text
-                      style={[
-                        styles.headerMicroBase,
-                        themeMode === "light"
-                          ? styles.proBadgeMicroLight
-                          : styles.proBadgeMicroDark,
-                      ]}
-                    >
-                      ALL TRACKS UNLOCKED
-                    </Text>
-                  )}
-                  <Text style={[styles.headerMainBase, styles.proBadgeText]}>
-                    PRO MEMBER
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.proStatusKeycap,
-                    themeMode === "light"
-                      ? styles.proStatusKeycapLight
-                      : styles.proStatusKeycapDark,
-                  ]}
-                >
-                  <Text style={styles.proStatusKeycapText}>PRO ✓</Text>
-                </View>
-              </View>
-            ) : (
+          {/* 6. Cloud Sync / Sign In Pill */}
+          {session ? (
+            <View style={styles.userSection}>
               <Pressable
-                style={({ pressed }) => [
-                  styles.upgradeHeaderBtn,
-                  themeMode === "light"
-                    ? styles.upgradeHeaderBtnLight
-                    : styles.upgradeHeaderBtnDark,
-                  isCompactHeader && styles.headerActionBoxCompact,
-                  pressed && {
-                    transform: [{ translateX: 2 }, { translateY: 2 }],
-                  },
-                ]}
-                onPress={() => {
-                  playKeyClick();
-                  onOpenPaywall();
-                }}
-              >
-                <StudioIcon
-                  name="pro_member"
-                  size={isCompactHeader ? 16 : 18}
-                />
-                <View style={styles.headerBtnTextStack}>
-                  {!isCompactHeader && (
-                    <Text
-                      style={[
-                        styles.headerMicroBase,
-                        themeMode === "light"
-                          ? styles.upgradeMicroLight
-                          : styles.upgradeMicroDark,
-                      ]}
-                    >
-                      UNLOCK ALL 3 TRACKS
-                    </Text>
-                  )}
-                  <Text
-                    style={[styles.headerMainBase, styles.upgradeHeaderBtnText]}
-                  >
-                    {isCompactHeader ? "GET PRO" : "UPGRADE TO PRO"}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.headerCtaKeycap,
-                    themeMode === "dark" && styles.headerCtaKeycapPinkDark,
-                  ]}
-                >
-                  <Text style={styles.headerCtaKeycapPinkText}>PRO →</Text>
-                </View>
-              </Pressable>
-            )}
-
-            {/* 4. Cloud Sync / Save Progress Box */}
-            {session ? (
-              <View style={styles.userSection}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.authBtn,
-                    themeMode === "light"
-                      ? styles.saveBtnLight
-                      : styles.saveBtnDark,
-                    isCompactHeader && styles.headerActionBoxCompact,
-                    pressed && {
-                      transform: [{ translateX: 1 }, { translateY: 1 }],
-                    },
-                  ]}
-                  onPress={() => {
-                    playKeyClick();
-                    onSignOut();
-                  }}
-                >
-                  <StudioIcon name="lock" size={isCompactHeader ? 16 : 18} />
-                  <View style={styles.headerBtnTextStack}>
-                    {!isCompactHeader && (
-                      <Text
-                        style={[
-                          styles.headerMicroBase,
-                          themeMode === "light"
-                            ? styles.saveMicroLight
-                            : styles.saveMicroDark,
-                        ]}
-                      >
-                        CLOUD SYNCED ✓
-                      </Text>
-                    )}
-                    <Text style={[styles.headerMainBase, styles.authBtnText]}>
-                      SIGN OUT
-                    </Text>
-                  </View>
-                </Pressable>
-              </View>
-            ) : (
-              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Sign out of cloud sync"
                 style={({ pressed }) => [
                   styles.authBtn,
-                  styles.loginBtn,
                   themeMode === "light"
                     ? styles.saveBtnLight
                     : styles.saveBtnDark,
                   isCompactHeader && styles.headerActionBoxCompact,
                   pressed && {
-                    transform: [{ translateX: 2 }, { translateY: 2 }],
+                    transform: [{ translateX: 1 }, { translateY: 1 }],
                   },
                 ]}
                 onPress={() => {
                   playKeyClick();
-                  onOpenAuth();
+                  onSignOut();
                 }}
               >
-                <StudioIcon name="cloud" size={isCompactHeader ? 16 : 18} />
-                <View style={styles.headerBtnTextStack}>
-                  {!isCompactHeader && (
-                    <Text
-                      style={[
-                        styles.headerMicroBase,
-                        themeMode === "light"
-                          ? styles.saveMicroLight
-                          : styles.saveMicroDark,
-                      ]}
-                    >
-                      FREE CLOUD BACKUP
-                    </Text>
-                  )}
-                  <Text style={[styles.headerMainBase, styles.loginBtnText]}>
-                    {isCompactHeader ? "SAVE" : "SAVE PROGRESS"}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.headerCtaKeycap,
-                    themeMode === "dark" && styles.headerCtaKeycapLimeDark,
-                  ]}
-                >
-                  <Text style={styles.headerCtaKeycapLimeText}>SIGN IN →</Text>
-                </View>
+                <StudioIcon name="lock" size={14} />
+                <Text style={[styles.headerMainBase, styles.authBtnText]}>
+                  SIGN OUT
+                </Text>
               </Pressable>
-            )}
-          </View>
-        </View>
-
-        {/* CATEGORY 3: SETTINGS & ENGINE */}
-        <View
-          style={[
-            styles.categoryGroupTray,
-            isCompactHeader && styles.categoryGroupTrayCompact,
-          ]}
-        >
-          {!isCompactHeader && (
-            <View style={styles.categoryLabelPill}>
-              <StudioIcon name="menu_settings" size={13} />
-              <Text style={styles.categoryLabelText}>SETTINGS</Text>
             </View>
-          )}
-
-          <View style={styles.categoryItemsRow}>
-            {!isCompactHeader && (() => {
-              const runtimeStatus = getPythonRuntimeStatus(pyodideReady);
-              return (
-                <View style={styles.statusPill}>
-                  <View
-                    style={[
-                      styles.pulseDot,
-                      runtimeStatus.available
-                        ? { backgroundColor: "#10B981" }
-                        : runtimeStatus.mode === "web_only_notice"
-                          ? { backgroundColor: "#6366F1" }
-                          : { backgroundColor: "#F59E0B" },
-                    ]}
-                  />
-                  <Text style={styles.statusText}>
-                    {runtimeStatus.badgeLabel}
-                  </Text>
-                </View>
-              );
-            })()}
-
-            {(() => {
-              const hasAmbient =
-                ambientState.isPlaying && ambientState.activeCount > 0;
-              const hasAudioPlaying = lofiState.isPlaying || hasAmbient;
-              if (!hasAudioPlaying) return null;
-
-              const audioAccent = lofiState.isPlaying
-                ? lofiMeta.accentColor
-                : StudioColors.mint;
-              const audioMicro =
-                lofiState.isPlaying && hasAmbient
-                  ? `LO-FI + ${ambientState.activeCount} MIX`
-                  : lofiState.isPlaying
-                    ? lofiMeta.shortLabel
-                    : `${ambientState.activeCount} AMBIENT`;
-
-              return (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Pause active studio audio"
-                  style={({ pressed }) => [
-                    styles.audioNowPlayingBtn,
-                    {
-                      borderColor:
-                        themeMode === "light" ? StudioColors.ink : audioAccent,
-                    },
-                    isCompactHeader && styles.headerActionBoxCompact,
-                    pressed && {
-                      transform: [{ translateX: 1 }, { translateY: 1 }],
-                    },
-                  ]}
-                  onPress={() => {
-                    stopLofiRadio();
-                    stopAmbientMixer();
-                    playKeyClick();
-                  }}
-                >
-                  <View
-                    style={[
-                      styles.pulseDot,
-                      { backgroundColor: audioAccent },
-                    ]}
-                  />
-                  <View style={styles.headerBtnTextStack}>
-                    {!isCompactHeader && (
-                      <Text
-                        style={[
-                          styles.headerMicroBase,
-                          {
-                            color:
-                              themeMode === "light"
-                                ? StudioColors.textSecondary
-                                : audioAccent,
-                          },
-                        ]}
-                      >
-                        {audioMicro}
-                      </Text>
-                    )}
-                    <Text
-                      style={[
-                        styles.headerMainBase,
-                        styles.settingsLaunchText,
-                      ]}
-                    >
-                      {isCompactHeader ? "❚❚ AUDIO" : "❚❚ PAUSE"}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })()}
-
+          ) : (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Open Studio Settings and Themes"
+              accessibilityLabel="Save progress and sign in"
               style={({ pressed }) => [
-                styles.settingsLaunchBtn,
+                styles.authBtn,
                 themeMode === "light"
-                  ? styles.settingsLaunchBtnLight
-                  : styles.settingsLaunchBtnDark,
+                  ? styles.saveBtnLight
+                  : styles.saveBtnDark,
                 isCompactHeader && styles.headerActionBoxCompact,
                 pressed && {
                   transform: [{ translateX: 1 }, { translateY: 1 }],
@@ -1103,89 +792,156 @@ export default function AppHeader({
               ]}
               onPress={() => {
                 playKeyClick();
-                if (onOpenSettings) {
-                  onOpenSettings();
-                } else {
-                  onToggleTheme?.();
-                }
+                onOpenAuth();
               }}
             >
-              <StudioIcon
-                name="menu_settings"
-                size={isCompactHeader ? 16 : 18}
-              />
-              <View style={styles.headerBtnTextStack}>
-                {!isCompactHeader && (
-                  <Text
-                    style={[
-                      styles.headerMicroBase,
-                      themeMode === "light"
-                        ? styles.settingsLaunchMicroLight
-                        : styles.settingsLaunchMicroDark,
-                    ]}
-                  >
-                    THEME · AUDIO
-                  </Text>
-                )}
-                <Text style={[styles.headerMainBase, styles.settingsLaunchText]}>
-                  SETTINGS
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.paletteAccentDot,
-                  { backgroundColor: activePalette.accent },
-                ]}
-              />
+              <StudioIcon name="cloud" size={15} />
+              <Text style={[styles.headerMainBase, styles.loginBtnText]}>
+                {isCompactHeader ? "SAVE" : "SIGN IN"}
+              </Text>
             </Pressable>
+          )}
 
-            {!isCompactHeader && onOpenCodex && (
+          {!isCompactHeader && <View style={styles.headerDivider} />}
+
+          {/* 7. Active Audio Pill (shown only when Lo-Fi or Ambient is playing) */}
+          {(() => {
+            const hasAmbient =
+              ambientState.isPlaying && ambientState.activeCount > 0;
+            const hasAudioPlaying = lofiState.isPlaying || hasAmbient;
+            if (!hasAudioPlaying) return null;
+
+            const audioAccent = lofiState.isPlaying
+              ? lofiMeta.accentColor
+              : StudioColors.mint;
+            const audioMicro =
+              lofiState.isPlaying && hasAmbient
+                ? `LO-FI + ${ambientState.activeCount} MIX`
+                : lofiState.isPlaying
+                  ? lofiMeta.shortLabel
+                  : `${ambientState.activeCount} AMBIENT`;
+
+            return (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Open Constellation Field Guide Codex"
+                accessibilityLabel="Pause active studio audio"
                 style={({ pressed }) => [
-                  styles.cmdKeycapBtn,
-                  themeMode === "light"
-                    ? styles.settingsLaunchBtnLight
-                    : styles.settingsLaunchBtnDark,
+                  styles.audioNowPlayingBtn,
+                  {
+                    borderColor:
+                      themeMode === "light" ? StudioColors.ink : audioAccent,
+                  },
+                  isCompactHeader && styles.headerActionBoxCompact,
                   pressed && {
                     transform: [{ translateX: 1 }, { translateY: 1 }],
                   },
                 ]}
                 onPress={() => {
+                  stopLofiRadio();
+                  stopAmbientMixer();
                   playKeyClick();
-                  onOpenCodex();
                 }}
               >
-                <StudioIcon name="book" size={14} />
-                <Text style={styles.cmdKeycapText}>CODEX · ⌘J</Text>
+                <View
+                  style={[
+                    styles.pulseDot,
+                    { backgroundColor: audioAccent },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.headerMainBase,
+                    styles.settingsLaunchText,
+                  ]}
+                >
+                  ❚❚ {isCompactHeader ? "AUDIO" : audioMicro}
+                </Text>
               </Pressable>
-            )}
+            );
+          })()}
 
-            {onOpenCommandPalette && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open Quick Command Palette"
-                style={({ pressed }) => [
-                  styles.cmdKeycapBtn,
-                  isCompactHeader && styles.cmdKeycapBtnCompact,
-                  themeMode === "light"
-                    ? styles.settingsLaunchBtnLight
-                    : styles.settingsLaunchBtnDark,
-                  pressed && {
-                    transform: [{ translateX: 1 }, { translateY: 1 }],
-                  },
-                ]}
-                onPress={() => {
-                  playKeyClick();
-                  onOpenCommandPalette();
-                }}
-              >
-                <StudioIcon name="search" size={isCompactHeader ? 15 : 14} />
-                {!isCompactHeader && <Text style={styles.cmdKeycapText}>⌘K</Text>}
-              </Pressable>
-            )}
-          </View>
+          {/* 8. Field Guide Codex Keycap */}
+          {!isCompactHeader && onOpenCodex && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open Constellation Field Guide Codex"
+              style={({ pressed }) => [
+                styles.cmdKeycapBtn,
+                styles.cmdKeycapBtnCompact,
+                themeMode === "light"
+                  ? styles.settingsLaunchBtnLight
+                  : styles.settingsLaunchBtnDark,
+                pressed && {
+                  transform: [{ translateX: 1 }, { translateY: 1 }],
+                },
+              ]}
+              onPress={() => {
+                playKeyClick();
+                onOpenCodex();
+              }}
+            >
+              <StudioIcon name="book" size={15} />
+            </Pressable>
+          )}
+
+          {/* 9. Command Palette Keycap */}
+          {onOpenCommandPalette && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open Quick Command Palette"
+              style={({ pressed }) => [
+                styles.cmdKeycapBtn,
+                styles.cmdKeycapBtnCompact,
+                themeMode === "light"
+                  ? styles.settingsLaunchBtnLight
+                  : styles.settingsLaunchBtnDark,
+                pressed && {
+                  transform: [{ translateX: 1 }, { translateY: 1 }],
+                },
+              ]}
+              onPress={() => {
+                playKeyClick();
+                onOpenCommandPalette();
+              }}
+            >
+              <StudioIcon name="search" size={15} />
+            </Pressable>
+          )}
+
+          {/* 10. Unified Settings Pill */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open Studio Settings and Themes"
+            style={({ pressed }) => [
+              styles.settingsLaunchBtn,
+              themeMode === "light"
+                ? styles.settingsLaunchBtnLight
+                : styles.settingsLaunchBtnDark,
+              isCompactHeader && styles.headerActionBoxCompact,
+              pressed && {
+                transform: [{ translateX: 1 }, { translateY: 1 }],
+              },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              if (onOpenSettings) {
+                onOpenSettings();
+              } else {
+                onToggleTheme?.();
+              }
+            }}
+          >
+            <StudioIcon name="menu_settings" size={15} />
+            <Text style={[styles.headerMainBase, styles.settingsLaunchText]}>
+              SETTINGS
+            </Text>
+            <View
+              style={[
+                styles.paletteAccentDot,
+                { backgroundColor: activePalette.accent },
+              ]}
+            />
+          </Pressable>
         </View>
       </View>
     </View>
@@ -1197,8 +953,8 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     header: {
       position: "relative",
       overflow: "hidden",
-      paddingHorizontal: 18,
-      paddingVertical: 11,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
       borderBottomWidth: 2,
       borderBottomColor: StudioColors.border,
       backgroundColor: StudioColors.surface,
@@ -1207,11 +963,12 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       alignItems: "center",
       zIndex: 100,
       flexWrap: "wrap",
-      gap: 10,
+      gap: 6,
     },
     headerCompact: {
-      paddingHorizontal: 10,
-      paddingVertical: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      gap: 6,
     },
     backdropContainer: {
       position: "absolute",
@@ -1321,7 +1078,7 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       alignItems: "center",
       flexWrap: "wrap",
       maxWidth: "100%",
-      gap: 10,
+      gap: 5,
       zIndex: 2,
     },
     headerRight: {
@@ -1329,8 +1086,15 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       alignItems: "center",
       flexWrap: "wrap",
       maxWidth: "100%",
-      gap: 10,
+      gap: 4,
       zIndex: 2,
+    },
+    headerDivider: {
+      width: 1.5,
+      height: 18,
+      alignSelf: "center",
+      backgroundColor: StudioColors.borderSubtle,
+      marginHorizontal: 1,
     },
     brandGroup: {
       flexDirection: "row",
@@ -1339,10 +1103,11 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     },
     brandIconBox: {
       flexDirection: "row",
-      gap: 7,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 8,
+      gap: 5,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      minHeight: 32,
+      borderRadius: 7,
       backgroundColor: StudioColors.ink,
       borderWidth: 2,
       borderColor: StudioColors.border,
@@ -1352,10 +1117,10 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     },
     brandIconText: {
       color: StudioColors.lime,
-      fontSize: 12,
+      fontSize: 10.5,
       fontWeight: "900",
       fontFamily: MonoFont,
-      letterSpacing: 0.8,
+      letterSpacing: 0.6,
     },
     categoryGroupTray: {
       position: "relative",
@@ -1400,22 +1165,23 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     },
     categoryItemsRow: {
       flexDirection: "row",
-      alignItems: "stretch",
+      alignItems: "center",
       flexWrap: "wrap",
-      gap: 6,
+      gap: 4,
     },
     modeSwitcher: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 6,
+      gap: 4,
     },
     modeBtn: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      gap: 6,
-      paddingHorizontal: 11,
-      paddingVertical: 6,
+      gap: 4,
+      paddingHorizontal: 7,
+      paddingVertical: 4,
+      minHeight: 32,
       borderRadius: 7,
       backgroundColor: StudioColors.surface,
       borderWidth: 1.5,
@@ -1437,12 +1203,12 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     },
     modeBtnText: {
       color: StudioColors.textPrimary,
-      fontSize: 10.5,
-      lineHeight: 13,
+      fontSize: 9,
+      lineHeight: 12,
       includeFontPadding: false,
       fontWeight: "900",
       fontFamily: MonoFont,
-      letterSpacing: 0.5,
+      letterSpacing: 0.25,
     },
     modeBtnTextActive: { color: StudioColors.ink },
     modeBtnArcadeTextActive: {
@@ -1499,14 +1265,14 @@ const getStyles = (StudioColors: StudioThemeColors) =>
     },
     audioNowPlayingBtn: {
       backgroundColor: StudioColors.surfaceElevated,
-      paddingHorizontal: 9,
+      paddingHorizontal: 7,
       paddingVertical: 4,
-      minHeight: 36,
+      minHeight: 32,
       borderRadius: 7,
       borderWidth: 2,
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      gap: 4,
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
@@ -1539,12 +1305,12 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       textAlign: "left",
     },
     headerMainBase: {
-      fontSize: 9.5,
+      fontSize: 9,
       lineHeight: 12,
       includeFontPadding: false,
       fontWeight: "900",
       fontFamily: MonoFont,
-      letterSpacing: 0.4,
+      letterSpacing: 0.25,
       textAlign: "left",
     },
     headerBtnMicroLabel: {
@@ -1557,13 +1323,14 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       letterSpacing: 0.45,
     },
     rankPill: {
-      paddingHorizontal: 8,
+      paddingHorizontal: 7,
       paddingVertical: 4,
+      minHeight: 32,
       borderRadius: 7,
       borderWidth: 2,
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      gap: 4,
       ...HardShadowSm,
     },
     rankPillDark: {
@@ -1621,13 +1388,14 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       letterSpacing: 0.4,
     },
     statPill: {
-      paddingHorizontal: 8,
+      paddingHorizontal: 7,
       paddingVertical: 4,
+      minHeight: 32,
       borderRadius: 7,
       borderWidth: 2,
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      gap: 4,
       ...HardShadowSm,
     },
     statPillDark: {
@@ -1665,18 +1433,17 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       color: StudioColors.ink,
     },
     headerActionBoxCompact: {
-      minHeight: 32,
-      paddingHorizontal: 8,
+      minHeight: 30,
+      paddingHorizontal: 7,
       paddingVertical: 3,
     },
     proBadge: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
-      paddingLeft: 10,
-      paddingRight: 7,
+      gap: 4,
+      paddingHorizontal: 7,
       paddingVertical: 4,
-      minHeight: 36,
+      minHeight: 32,
       borderRadius: 7,
       borderWidth: 2,
       justifyContent: "center",
@@ -1737,9 +1504,9 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       letterSpacing: 0.4,
     },
     achievementsTabBtn: {
-      paddingHorizontal: 10,
+      paddingHorizontal: 7,
       paddingVertical: 4,
-      minHeight: 36,
+      minHeight: 32,
       borderRadius: 7,
       borderWidth: 2,
       justifyContent: "center",
@@ -1804,14 +1571,14 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       borderColor: StudioColors.ink,
     },
     settingsLaunchBtn: {
-      paddingHorizontal: 10,
+      paddingHorizontal: 7,
       paddingVertical: 4,
-      minHeight: 36,
+      minHeight: 32,
       borderRadius: 7,
       borderWidth: 2,
       flexDirection: "row",
       alignItems: "center",
-      gap: 7,
+      gap: 4,
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
@@ -1845,22 +1612,22 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       letterSpacing: 0.4,
     },
     cmdKeycapBtn: {
-      paddingHorizontal: 9,
+      paddingHorizontal: 7,
       paddingVertical: 4,
-      minHeight: 36,
+      minHeight: 32,
       borderRadius: 7,
       borderWidth: 2,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      gap: 5,
+      gap: 4,
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     cmdKeycapBtnCompact: {
-      paddingHorizontal: 8,
+      paddingHorizontal: 7,
       minHeight: 32,
-      minWidth: 34,
+      minWidth: 32,
     },
     cmdKeycapText: {
       color: StudioColors.textPrimary,
@@ -1882,16 +1649,15 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       color: StudioColors.ink,
     },
     upgradeHeaderBtn: {
-      paddingLeft: 10,
-      paddingRight: 7,
+      paddingHorizontal: 7,
       paddingVertical: 4,
-      minHeight: 36,
+      minHeight: 32,
       borderRadius: 7,
       borderWidth: 2,
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
-      ...HardShadow,
+      gap: 4,
+      ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },
     upgradeHeaderBtnDark: {
@@ -1965,14 +1731,14 @@ const getStyles = (StudioColors: StudioThemeColors) =>
       gap: 6,
     },
     authBtn: {
-      paddingHorizontal: 9,
+      paddingHorizontal: 7,
       paddingVertical: 4,
-      minHeight: 36,
+      minHeight: 32,
       borderRadius: 7,
       borderWidth: 2,
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      gap: 4,
       ...HardShadowSm,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
     },

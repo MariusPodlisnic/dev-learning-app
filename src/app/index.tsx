@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   Text,
   useWindowDimensions,
   View,
@@ -242,6 +243,7 @@ export default function HomeScreen() {
   const [output, setOutput] = useState<string>("");
   const [testResults, setTestResults] = useState<TestCaseResult[] | null>(null);
   const [selectedTestIndex, setSelectedTestIndex] = useState<number>(0);
+  const [testRunGeneration, setTestRunGeneration] = useState<number>(0);
 
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
   const [pyodideReady, setPyodideReady] = useState<boolean>(false);
@@ -298,6 +300,8 @@ export default function HomeScreen() {
   const prevStudioCompletedRef = useRef<Record<string, boolean>>({});
 
   const pyodideRef = useRef<any>(null);
+  const studioScrollRef =
+    useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const studioActionsRef = useRef({
     handleSelectLesson: (_lesson: { id: string }) => {},
     handleSwitchTrack: (_trackName: string) => {},
@@ -597,6 +601,9 @@ export default function HomeScreen() {
     setBottomTab("console");
     setMobileDrawerOpen(false);
     setViewMode("studio");
+    setTimeout(() => {
+      studioScrollRef.current?.scrollTo({ y: 0, animated: false });
+    }, 0);
   }
 
   async function handleUpgradeToPro(plan: PaywallPlanId = "annual") {
@@ -803,6 +810,9 @@ export default function HomeScreen() {
       failedAttemptsByLessonRef,
       onFailedAttemptsChange: (lessonId, count) => {
         setFailedAttemptsByLesson((prev) => ({ ...prev, [lessonId]: count }));
+      },
+      onTestRunCompleted: () => {
+        setTestRunGeneration((prev) => prev + 1);
       },
       completedLessons,
       setCompletedLessons,
@@ -1522,7 +1532,12 @@ export default function HomeScreen() {
             </View>
 
             {selectedLesson ? (
-              <View style={styles.workspaceGrid}>
+              <ScrollView
+                ref={studioScrollRef}
+                style={styles.workspaceScroll}
+                contentContainerStyle={styles.workspaceGrid}
+                keyboardShouldPersistTaps="handled"
+              >
                 {(!isCompactStudio || mobileStudioPane === "learn") && (
                   <LessonProblemPanel
                     selectedLesson={selectedLesson}
@@ -1586,6 +1601,9 @@ export default function HomeScreen() {
                         track: selectedLesson.track,
                       })
                     }
+                    onRequestScrollTop={() =>
+                      studioScrollRef.current?.scrollTo({ y: 0, animated: false })
+                    }
                   />
                 )}
 
@@ -1644,9 +1662,10 @@ export default function HomeScreen() {
                         : selectedLesson.hints
                     }
                     onOpenCodex={() => setShowCodexModal(true)}
+                    testRunGeneration={testRunGeneration}
                   />
                 )}
-              </View>
+              </ScrollView>
             ) : null}
           </View>
         </View>
@@ -1758,6 +1777,7 @@ export default function HomeScreen() {
             });
           }
         }}
+        onOpenCodexModal={() => setShowCodexModal(true)}
         onCloseCodexModal={() => setShowCodexModal(false)}
         activeCertificate={activeCertificate}
         onCloseCertificate={() => setActiveCertificate(null)}

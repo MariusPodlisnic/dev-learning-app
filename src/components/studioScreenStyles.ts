@@ -117,11 +117,15 @@ export const getStudioScreenStyles = (StudioColors: StudioThemeColors) =>
       fontWeight: "900",
       fontFamily: MonoFont,
     },
-    workspaceGrid: {
+    workspaceScroll: {
       flex: 1,
+    },
+    workspaceGrid: {
       flexDirection: "row",
+      alignItems: "flex-start",
       gap: 22,
-      overflow: "hidden",
+      paddingBottom: 44,
+      paddingRight: 4,
     },
     modalOverlay: {
       position: "absolute",

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Easing, Platform, Pressable, StyleSheet, View } from "react-native";
 import { StudioIcon, Text } from "./StudioIcon";
 import {
   HardShadow,
@@ -36,6 +36,9 @@ interface SuccessModalProps {
   onSaveProgress?: () => void;
   trackCertificateLabel?: string;
   onViewCertificate?: () => void;
+  codexBlueprintTitle?: string;
+  codexConstellation?: string;
+  onOpenCodex?: () => void;
   onNextLesson: () => void;
   onClose: () => void;
 }
@@ -59,6 +62,9 @@ export default function SuccessModal({
   onSaveProgress,
   trackCertificateLabel,
   onViewCertificate,
+  codexBlueprintTitle,
+  codexConstellation,
+  onOpenCodex,
   onNextLesson,
   onClose,
 }: SuccessModalProps) {
@@ -69,10 +75,24 @@ export default function SuccessModal({
   const currentRank = getDeveloperRank(totalXp);
   const previousRank = getDeveloperRank(Math.max(0, totalXp - xpEarned));
   const didLevelUp = currentRank.level > previousRank.level;
+  const startPct = didLevelUp ? 6 : Math.max(previousRank.progressPercent, 6);
+  const targetPct = Math.max(currentRank.progressPercent, 8);
+  const [rankBarAnim] = useState(() => new Animated.Value(startPct));
 
   useEffect(() => {
     playVictoryFanfare();
-  }, []);
+    Animated.timing(rankBarAnim, {
+      toValue: targetPct,
+      duration: 650,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [rankBarAnim, targetPct]);
+
+  const animatedRankWidth = rankBarAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ["0%", "100%"],
+  });
 
   function buildWinShareData() {
     const challengeUrl = buildChallengeUrl(
@@ -280,11 +300,11 @@ export default function SuccessModal({
         </View>
 
         <View style={styles.rankBarTrack}>
-          <View
+          <Animated.View
             style={[
               styles.rankBarFill,
               {
-                width: `${Math.max(currentRank.progressPercent, 8)}%`,
+                width: animatedRankWidth,
                 backgroundColor: StudioColors.mint,
               },
             ]}
@@ -304,6 +324,36 @@ export default function SuccessModal({
           )}
         </Text>
       </View>
+
+      {codexBlueprintTitle ? (
+        <View style={styles.codexUnlockStrip}>
+          <View style={styles.codexUnlockLeft}>
+            <Text style={styles.codexUnlockMicro}>
+              ✦ {codexConstellation ? `${codexConstellation} · ` : ""}CODEX BLUEPRINT ILLUMINATED
+            </Text>
+            <Text style={styles.codexUnlockTitle} numberOfLines={1}>
+              {codexBlueprintTitle}
+            </Text>
+          </View>
+          {onOpenCodex ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open illuminated blueprint in Field Guide"
+              style={({ pressed }) => [
+                styles.codexUnlockBtn,
+                pressed && { transform: [{ translateY: 1 }] },
+              ]}
+              onPress={() => {
+                playKeyClick();
+                onClose();
+                onOpenCodex();
+              }}
+            >
+              <Text style={styles.codexUnlockBtnText}>📖 OPEN CODEX →</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       {isGuest && totalSolvedCount >= 2 && onSaveProgress ? (
         <View style={styles.guestSaveBanner}>
@@ -868,6 +918,55 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     fontSize: 11,
     letterSpacing: 0.5,
     fontFamily: MonoFont,
+  },
+  codexUnlockStrip: {
+    marginTop: 10,
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: StudioColors.mint,
+    backgroundColor: StudioColors.bg,
+  },
+  codexUnlockLeft: {
+    flex: 1,
+    minWidth: 170,
+    gap: 2,
+  },
+  codexUnlockMicro: {
+    color: StudioColors.mint,
+    fontSize: 9,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.5,
+  },
+  codexUnlockTitle: {
+    color: StudioColors.textPrimary,
+    fontSize: 12.5,
+    fontWeight: "800",
+  },
+  codexUnlockBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: StudioColors.ink,
+    backgroundColor: StudioColors.yellow,
+    ...HardShadowSm,
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  codexUnlockBtnText: {
+    color: StudioColors.ink,
+    fontSize: 9.5,
+    fontWeight: "900",
+    fontFamily: MonoFont,
+    letterSpacing: 0.4,
   },
   closeBtn: {
     marginTop: 12,

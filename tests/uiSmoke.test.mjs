@@ -187,18 +187,19 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
     !desktopText.includes("SPEED BLITZ") && !desktopText.includes("FLASH DECK"),
     "Mini-games should live inside the dedicated Arcade Hub rather than cluttering the top menu",
   );
-  assert.ok(desktopText.includes("LEADERBOARD"));
-  assert.ok(desktopText.includes("UPGRADE TO PRO"));
-  assert.ok(desktopText.includes("ACCOUNT & RANK"));
+  assert.ok(desktopText.includes("TROPHIES"));
+  assert.ok(desktopText.includes("LEAGUE"));
+  assert.ok(desktopText.includes("GET PRO"));
+  assert.ok(desktopText.includes("LVL 3"));
   assert.ok(desktopText.includes("SETTINGS"));
   assert.ok(
     !desktopText.includes("THEMES") && !desktopText.includes("SFX"),
     "Cluttered loose Settings pills should be consolidated into the unified Settings menu",
   );
   assert.ok(
-    desktopText.indexOf("ACHIEVEMENTS") < desktopText.indexOf("LEADERBOARD") &&
-      desktopText.indexOf("LEADERBOARD") < desktopText.indexOf("UPGRADE TO PRO"),
-    "Achievements and Leaderboard should precede the Pro box in Free mode",
+    desktopText.indexOf("TROPHIES") < desktopText.indexOf("LEAGUE") &&
+      desktopText.indexOf("LEAGUE") < desktopText.indexOf("GET PRO"),
+    "Trophies and League should precede the Pro box in Free mode",
   );
 
   const proHeaderHtml = renderThemed(
@@ -209,11 +210,11 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
     }),
   );
   const proDesktopText = visibleText(proHeaderHtml);
-  assert.ok(proDesktopText.includes("PRO MEMBER"));
+  assert.ok(proDesktopText.includes("PRO ✓"));
   assert.ok(
-    proDesktopText.indexOf("ACHIEVEMENTS") < proDesktopText.indexOf("LEADERBOARD") &&
-      proDesktopText.indexOf("LEADERBOARD") < proDesktopText.indexOf("PRO MEMBER"),
-    "Achievements, Leaderboard, and Pro boxes should keep their order when switching to Pro",
+    proDesktopText.indexOf("TROPHIES") < proDesktopText.indexOf("LEAGUE") &&
+      proDesktopText.indexOf("LEAGUE") < proDesktopText.indexOf("PRO ✓"),
+    "Trophies, League, and Pro boxes should keep their order when switching to Pro",
   );
   const headerSvgs = proHeaderHtml.match(/<svg[\s\S]*?<\/svg>/g) || [];
   assert.ok(
@@ -1556,4 +1557,67 @@ test("ConstellationCodexModal renders illumination meter, track filters, highlig
   assert.ok(codexText.includes("+ APPEND TO EDITOR"));
   assert.ok(codexText.includes("KEY INVARIANT"));
   assert.ok(codexText.includes("CLASSIC PITFALL"));
+});
+
+test("StudioCodeEditor renders inline character diff spotlight and SuccessModal renders illuminated Codex blueprint callout", () => {
+  const diffEditorText = visibleText(
+    renderThemed(
+      React.createElement(StudioCodeEditor, {
+        selectedLesson: {
+          id: "py-01",
+          track: "python_basics",
+          lesson_order: 1,
+          title: "Variables",
+          description: "Desc",
+          initial_code: "pass",
+          is_free: true,
+        },
+        code: "def solve():\n    return [10, 20, 30, 40]",
+        onChangeCode: () => {},
+        hasSavedDraft: false,
+        pyodideReady: true,
+        isExecuting: false,
+        onRunPlaygroundOnly: () => {},
+        onRunPythonCode: () => {},
+        bottomTab: "tests",
+        onChangeBottomTab: () => {},
+        output: "",
+        onClearOutput: () => {},
+        testResults: [
+          {
+            id: 1,
+            input: "solve()",
+            expected: "[10, 20, 99, 40]",
+            actual: "[10, 20, 30, 40]",
+            passed: false,
+          },
+        ],
+        selectedTestIndex: 0,
+        onSelectTestIndex: () => {},
+      }),
+    ),
+  );
+  assert.ok(diffEditorText.includes("DIFF SPOTLIGHT:"));
+  assert.ok(diffEditorText.includes("LN 1 · COL 10"));
+  assert.ok(diffEditorText.includes("CLOSE"));
+
+  const winText = visibleText(
+    renderThemed(
+      React.createElement(SuccessModal, {
+        xpEarned: 50,
+        totalXp: 150,
+        streakCount: 3,
+        lessonTitle: "Dictionaries",
+        hasNextLesson: true,
+        codexBlueprintTitle: "Functions, Slicing & Safe Dicts",
+        codexConstellation: "CLAVIS",
+        onOpenCodex: () => {},
+        onNextLesson: () => {},
+        onClose: () => {},
+      }),
+    ),
+  );
+  assert.ok(winText.includes("CLAVIS · CODEX BLUEPRINT ILLUMINATED"));
+  assert.ok(winText.includes("Functions, Slicing & Safe Dicts"));
+  assert.ok(winText.includes("OPEN CODEX →"));
 });

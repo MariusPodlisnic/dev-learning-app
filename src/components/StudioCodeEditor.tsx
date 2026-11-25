@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   Animated,
   Easing,
   Keyboard,
   Platform,
   Pressable,
-  ScrollView,
   TextInput,
   View,
 } from "react-native";
@@ -36,8 +35,8 @@ import {
   type TypingSoundProfile,
 } from "../utils/typingSounds";
 import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
+import { computeCharacterDiffSpotlight } from "../utils/studioMicroMoments";
 import {
-  computeAssertionDiff,
   computeSmartEnter,
   diagnoseFailedTest,
   EditorSelectionResult,
@@ -212,6 +211,23 @@ interface StudioCodeEditorProps {
   failedAttemptCount?: number;
   lessonHints?: string[];
   onOpenCodex?: () => void;
+  testRunGeneration?: number;
+}
+
+const EMPTY_SUBSCRIBE = () => () => {};
+const IS_DEV_MODE = typeof __DEV__ !== "undefined" && __DEV__;
+
+function isLocalDevHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location?.hostname || "";
+  return (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host.endsWith(".local") ||
+    host.startsWith("192.168.") ||
+    host.startsWith("10.")
+  );
 }
 
 function HoverLiftButton({
@@ -287,8 +303,26 @@ export default function StudioCodeEditor({
   failedAttemptCount = 0,
   lessonHints = [],
   onOpenCodex,
+  testRunGeneration = 0,
 }: StudioCodeEditorProps) {
   const styles = useThemedStyles(getStudioCodeEditorStyles);
+  const isMounted = useSyncExternalStore(
+    EMPTY_SUBSCRIBE,
+    () => true,
+    () => false,
+  );
+  const showDevTools = isMounted && (IS_DEV_MODE || isLocalDevHost());
+
+  const [simState, setSimState] = useState<{
+    genBase: number;
+    runId: number;
+    results: TestCaseResult[];
+    selectedIdx: number;
+  } | null>(null);
+  const [cascadeState, setCascadeState] = useState<{
+    genKey: string;
+    revealed: number;
+  }>({ genKey: "0:0", revealed: 999 });
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
   const [copiedOutput, setCopiedOutput] = useState<boolean>(false);
   const [confirmReset, setConfirmReset] = useState<boolean>(false);
@@ -369,15 +403,94 @@ export default function StudioCodeEditor({
     };
   }, []);
 
+  const activeSim =
+    simState && simState.genBase === testRunGeneration ? simState : null;
+  const effectiveTestResults = activeSim ? activeSim.results : testResults;
+  const effectiveSelectedTestIndex = activeSim
+    ? activeSim.selectedIdx
+    : selectedTestIndex;
+
+  const currentGenKey = `${testRunGeneration}:${activeSim?.runId ?? 0}`;
+  const totalChecks = effectiveTestResults?.length ?? 0;
+  const effectiveRevealed =
+    totalChecks === 0
+      ? 0
+      : cascadeState.genKey === currentGenKey
+        ? Math.min(totalChecks, cascadeState.revealed)
+        : 1;
+  const isCascading = totalChecks > 1 && effectiveRevealed < totalChecks;
+
+  useEffect(() => {
+    if (totalChecks <= 1 || effectiveRevealed >= totalChecks) return;
+    const timer = setInterval(() => {
+      setCascadeState((prev) => {
+        const base = prev.genKey === currentGenKey ? prev.revealed : 1;
+        const nextRev = Math.min(totalChecks, base + 1);
+        if (nextRev > base) {
+          playKeyClick();
+        }
+        return { genKey: currentGenKey, revealed: nextRev };
+      });
+    }, 135);
+    return () => clearInterval(timer);
+  }, [currentGenKey, totalChecks, effectiveRevealed]);
+
+  function handleSelectEffectiveTest(idx: number) {
+    if (activeSim) {
+      setSimState((prev) => (prev ? { ...prev, selectedIdx: idx } : null));
+    } else {
+      onSelectTestIndex(idx);
+    }
+  }
+
+  function triggerDevSimulatePass() {
+    playKeyClick();
+    onChangeBottomTab("tests");
+    setSimState((prev) => ({
+      genBase: testRunGeneration,
+      runId: (prev?.runId ?? 0) + 1,
+      selectedIdx: 0,
+      results: [
+        { id: 1, input: "solve([2, 4, 6])", expected: "[4, 8, 12]", actual: "[4, 8, 12]", passed: true },
+        { id: 2, input: "solve([])", expected: "[]", actual: "[]", passed: true },
+        { id: 3, input: "solve([-1, 0, 5])", expected: "[-2, 0, 10]", actual: "[-2, 0, 10]", passed: true },
+        { id: 4, input: "solve([100])", expected: "[200]", actual: "[200]", passed: true },
+      ],
+    }));
+  }
+
+  function triggerDevSimulateDiff() {
+    playKeyClick();
+    onChangeBottomTab("tests");
+    setSimState((prev) => ({
+      genBase: testRunGeneration,
+      runId: (prev?.runId ?? 0) + 1,
+      selectedIdx: 2,
+      results: [
+        { id: 1, input: "rank([10, 20])", expected: "[10, 20]", actual: "[10, 20]", passed: true },
+        { id: 2, input: "rank([5])", expected: "[5]", actual: "[5]", passed: true },
+        {
+          id: 3,
+          input: "rank([10, 20, 99, 40])",
+          expected: "[10, 20, 99, 40]",
+          actual: "[10, 20, 30, 40]",
+          passed: false,
+        },
+      ],
+    }));
+  }
+
   const totalLines = (code || "").split("\n").length;
-  const lineCount = Math.max(totalLines, 8);
+  const lineCount = Math.max(totalLines, 11);
   const unfilledScaffoldLines = findUnfilledScaffoldLines(code || "");
   const safeCursor = Math.min(Math.max(0, cursorPos), (code || "").length);
   const linesBeforeCursor = (code || "").slice(0, safeCursor).split("\n");
   const activeLine = linesBeforeCursor.length;
   const activeCol = linesBeforeCursor[linesBeforeCursor.length - 1].length + 1;
   const allChecksPassed = Boolean(
-    testResults && testResults.length > 0 && testResults.every((t) => t.passed),
+    effectiveTestResults &&
+      effectiveTestResults.length > 0 &&
+      effectiveTestResults.every((t) => t.passed),
   );
   const hasOutputError =
     Boolean(output) &&
@@ -750,14 +863,12 @@ export default function StudioCodeEditor({
           )}
         </View>
 
-        <ScrollView
-          style={styles.editorScroll}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[
+        <View
+          style={[
+            styles.editorScroll,
             styles.editorBody,
             { minHeight: lineCount * 21 + 32 },
           ]}
-          showsVerticalScrollIndicator={true}
         >
           <View style={styles.lineNumbers}>
             {Array.from({ length: lineCount }).map((_, i) => {
@@ -963,7 +1074,7 @@ export default function StudioCodeEditor({
               spellCheck={false}
             />
           </View>
-        </ScrollView>
+        </View>
 
         <View style={styles.ideFooter}>
           <Text style={styles.ideFooterText}>
@@ -1103,14 +1214,40 @@ export default function StudioCodeEditor({
                 ]}
               >
                 MISSION CHECKS{" "}
-                {testResults
-                  ? `[${testResults.filter((t) => t.passed).length}/${testResults.length}${allChecksPassed ? " ✓" : ""}]`
+                {effectiveTestResults
+                  ? isCascading
+                    ? `[${effectiveRevealed}/${effectiveTestResults.length} ⚡]`
+                    : `[${effectiveTestResults.filter((t) => t.passed).length}/${effectiveTestResults.length}${allChecksPassed ? " ✓" : ""}]`
                   : ""}
               </Text>
             </Pressable>
           </View>
 
           <View style={styles.bottomRightActions}>
+            {showDevTools ? (
+              <>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Dev simulate passing test cascade"
+                  style={styles.clearConsoleBtn}
+                  onPress={triggerDevSimulatePass}
+                >
+                  <Text style={[styles.clearConsoleText, { color: StudioColors.lime }]}>
+                    ⚙ CASCADE
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Dev simulate character diff spotlight"
+                  style={styles.clearConsoleBtn}
+                  onPress={triggerDevSimulateDiff}
+                >
+                  <Text style={[styles.clearConsoleText, { color: StudioColors.coral }]}>
+                    ⚙ DIFF
+                  </Text>
+                </Pressable>
+              </>
+            ) : null}
             {bottomTab === "console" && output ? (
               <>
                 <Pressable
@@ -1148,7 +1285,7 @@ export default function StudioCodeEditor({
           </View>
         </View>
 
-        <ScrollView style={styles.bottomContent}>
+        <View style={styles.bottomContent}>
           {bottomTab === "console" ? (
             output ? (
               <View style={styles.consoleOutputWrap}>
@@ -1256,12 +1393,12 @@ export default function StudioCodeEditor({
                 ) : null}
               </View>
             )
-          ) : testResults ? (
+          ) : effectiveTestResults ? (
             <View>
               <View
                 style={[
                   styles.testSummaryBanner,
-                  allChecksPassed
+                  allChecksPassed && !isCascading
                     ? styles.testSummarySuccess
                     : styles.testSummaryWarn,
                 ]}
@@ -1269,15 +1406,33 @@ export default function StudioCodeEditor({
                 <Text
                   style={[
                     styles.testSummaryText,
-                    allChecksPassed
+                    allChecksPassed && !isCascading
                       ? { color: StudioColors.lime }
                       : { color: StudioColors.yellow },
                   ]}
                 >
-                  {allChecksPassed
-                    ? `✓ ALL ${testResults.length} MISSION CHECKS PASSED!`
-                    : `→ ${testResults.filter((t) => t.passed).length} OF ${testResults.length} CHECKS PASSED — INSPECT BELOW`}
+                  {isCascading
+                    ? `⚡ RUNNING MISSION CHECKS (${effectiveRevealed} / ${effectiveTestResults.length})...`
+                    : allChecksPassed
+                      ? `✓ ALL ${effectiveTestResults.length} MISSION CHECKS PASSED! · VICTORY CASCADE`
+                      : `→ ${effectiveTestResults.filter((t) => t.passed).length} OF ${effectiveTestResults.length} CHECKS PASSED — INSPECT BELOW`}
                 </Text>
+                <View style={styles.cascadeRailTrack}>
+                  <View
+                    style={[
+                      styles.cascadeRailFill,
+                      {
+                        width: `${Math.round((effectiveRevealed / Math.max(1, effectiveTestResults.length)) * 100)}%`,
+                        backgroundColor:
+                          allChecksPassed && !isCascading
+                            ? StudioColors.lime
+                            : isCascading
+                              ? StudioColors.yellow
+                              : StudioColors.coral,
+                      },
+                    ]}
+                  />
+                </View>
               </View>
 
               {activeStuckClue ? (
@@ -1307,50 +1462,65 @@ export default function StudioCodeEditor({
               ) : null}
 
               <View style={styles.testCasePills}>
-                {testResults.map((tr, idx) => (
-                  <Pressable
-                    key={idx}
-                    onHoverIn={() => setHoveredTestIdx(idx)}
-                    onHoverOut={() =>
-                      setHoveredTestIdx((prev) => (prev === idx ? null : prev))
-                    }
-                    style={[
-                      styles.testPill,
-                      selectedTestIndex === idx && styles.activeTestPill,
-                      hoveredTestIdx === idx &&
-                        selectedTestIndex !== idx &&
-                        styles.testPillHovered,
-                    ]}
-                    onPress={() => onSelectTestIndex(idx)}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        fontFamily: MonoFont,
-                        fontWeight: "900",
-                        color: tr.passed
-                          ? StudioColors.lime
-                          : StudioColors.coral,
-                      }}
-                    >
-                      {tr.passed ? "✓" : "✕"}
-                    </Text>
-                    <Text
+                {effectiveTestResults.map((tr, idx) => {
+                  const revealed = idx < effectiveRevealed;
+                  const isSelected = effectiveSelectedTestIndex === idx;
+                  return (
+                    <Pressable
+                      key={idx}
+                      onHoverIn={() => setHoveredTestIdx(idx)}
+                      onHoverOut={() =>
+                        setHoveredTestIdx((prev) => (prev === idx ? null : prev))
+                      }
                       style={[
-                        styles.testPillText,
-                        selectedTestIndex === idx && styles.activeTestPillText,
+                        styles.testPill,
+                        !revealed && styles.testPillPending,
+                        revealed &&
+                          (tr.passed
+                            ? styles.testPillPassed
+                            : styles.testPillFailed),
+                        isSelected && styles.activeTestPill,
+                        hoveredTestIdx === idx &&
+                          !isSelected &&
+                          styles.testPillHovered,
                       ]}
+                      onPress={() => handleSelectEffectiveTest(idx)}
                     >
-                      CHECK 0{tr.id}
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontFamily: MonoFont,
+                          fontWeight: "900",
+                          color: !revealed
+                            ? StudioColors.codeMuted
+                            : tr.passed
+                              ? StudioColors.lime
+                              : StudioColors.coral,
+                        }}
+                      >
+                        {!revealed ? "⋯" : tr.passed ? "✓" : "✕"}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.testPillText,
+                          isSelected && styles.activeTestPillText,
+                        ]}
+                      >
+                        CHECK 0{tr.id}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
 
-              {testResults[selectedTestIndex] && (() => {
-                const activeTest = testResults[selectedTestIndex];
-                const diff = !activeTest.passed
-                  ? computeAssertionDiff(activeTest.expected, activeTest.actual)
+              {effectiveTestResults[effectiveSelectedTestIndex] && (() => {
+                const activeTest =
+                  effectiveTestResults[effectiveSelectedTestIndex];
+                const spotlight = !activeTest.passed
+                  ? computeCharacterDiffSpotlight(
+                      activeTest.expected,
+                      activeTest.actual,
+                    )
                   : null;
                 const diagnosis = !activeTest.passed
                   ? diagnoseFailedTest(activeTest, code)
@@ -1364,17 +1534,49 @@ export default function StudioCodeEditor({
                       </Text>
                     </View>
 
-                    {diff && (
-                      <View style={styles.diffDiagnosisBanner}>
-                        <View style={styles.diffReasonBadge}>
-                          <Text style={styles.diffReasonBadgeText}>
-                            FIRST DIFFERENCE
+                    {spotlight && (
+                      <>
+                        <View style={styles.diffDiagnosisBanner}>
+                          <View style={styles.diffReasonBadge}>
+                            <Text style={styles.diffReasonBadgeText}>
+                              FIRST DIFFERENCE
+                            </Text>
+                          </View>
+                          <Text style={styles.diffReasonDetail}>
+                            {spotlight.reason}
                           </Text>
+                          <View style={styles.diffCoordsPill}>
+                            <Text style={styles.diffCoordsText}>
+                              LN {spotlight.lineNumber} · COL{" "}
+                              {spotlight.colNumber}
+                            </Text>
+                          </View>
+                          {spotlight.similarityPct > 0 ? (
+                            <View style={styles.diffSimilarityPill}>
+                              <Text style={styles.diffSimilarityText}>
+                                {spotlight.similarityPct}% CLOSE
+                              </Text>
+                            </View>
+                          ) : null}
                         </View>
-                        <Text style={styles.diffReasonDetail}>
-                          {diff.reason}
-                        </Text>
-                      </View>
+
+                        <View style={styles.diffSpotlightCard}>
+                          <Text style={styles.diffSpotlightMicro}>
+                            DIFF SPOTLIGHT:
+                          </Text>
+                          <View style={styles.diffSpotlightGroup}>
+                            <Text style={styles.diffSpotlightMicro}>WANT</Text>
+                            <Text style={styles.diffSpotlightTokenExp}>
+                              {spotlight.expectedSpotToken}
+                            </Text>
+                            <Text style={styles.diffSpotlightArrow}>≠</Text>
+                            <Text style={styles.diffSpotlightMicro}>GOT</Text>
+                            <Text style={styles.diffSpotlightTokenAct}>
+                              {spotlight.actualSpotToken}
+                            </Text>
+                          </View>
+                        </View>
+                      </>
                     )}
 
                     {diagnosis && (
@@ -1394,13 +1596,18 @@ export default function StudioCodeEditor({
                       <View style={{ flex: 1 }}>
                         <Text style={styles.testHeader}>EXPECTED OUTPUT</Text>
                         <View style={styles.testDataBox}>
-                          {diff ? (
+                          {spotlight ? (
                             <Text style={styles.testDataText}>
                               <Text style={styles.diffMatchPrefix}>
-                                {diff.commonPrefix}
+                                {spotlight.commonPrefix}
                               </Text>
                               <Text style={styles.diffExpectedMismatch}>
-                                {diff.expectedRest || "∅"}
+                                {spotlight.hasInvisibleDiff
+                                  ? spotlight.expectedSpotToken
+                                  : spotlight.expectedMid || "∅"}
+                              </Text>
+                              <Text style={styles.diffMatchPrefix}>
+                                {spotlight.commonSuffix}
                               </Text>
                             </Text>
                           ) : (
@@ -1432,13 +1639,18 @@ export default function StudioCodeEditor({
                               : styles.testDataFail,
                           ]}
                         >
-                          {diff ? (
+                          {spotlight ? (
                             <Text style={styles.testDataText}>
                               <Text style={styles.diffMatchPrefix}>
-                                {diff.commonPrefix}
+                                {spotlight.commonPrefix}
                               </Text>
                               <Text style={styles.diffActualMismatch}>
-                                {diff.actualRest || "∅"}
+                                {spotlight.hasInvisibleDiff
+                                  ? spotlight.actualSpotToken
+                                  : spotlight.actualMid || "∅"}
+                              </Text>
+                              <Text style={styles.diffMatchPrefix}>
+                                {spotlight.commonSuffix}
                               </Text>
                             </Text>
                           ) : (
@@ -1471,7 +1683,7 @@ export default function StudioCodeEditor({
               </Text>
             </View>
           )}
-        </ScrollView>
+        </View>
       </View>
     </View>
   );

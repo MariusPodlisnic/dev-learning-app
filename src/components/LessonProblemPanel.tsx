@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { StudioIcon, Text } from "./StudioIcon";
 import { LessonEnrichment } from "../constants/curriculum";
 import {
@@ -53,6 +53,7 @@ interface LessonProblemPanelProps {
   testResults: TestCaseResult[] | null;
   isPremium: boolean;
   onOpenPaywall: () => void;
+  onRequestScrollTop?: () => void;
 }
 
 export default function LessonProblemPanel({
@@ -78,9 +79,13 @@ export default function LessonProblemPanel({
   testResults,
   isPremium,
   onOpenPaywall,
+  onRequestScrollTop,
 }: LessonProblemPanelProps) {
   const styles = useThemedStyles(getLessonProblemStyles);
-  const scrollRef = useRef<any>(null);
+  const onScrollTopRef = useRef(onRequestScrollTop);
+  useEffect(() => {
+    onScrollTopRef.current = onRequestScrollTop;
+  });
   const [quizAnswerByLesson, setQuizAnswerByLesson] = useState<
     Record<string, number>
   >({});
@@ -93,10 +98,7 @@ export default function LessonProblemPanel({
   );
 
   function scrollToTop() {
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: 0, animated: false });
-    }, 0);
+    onScrollTopRef.current?.();
   }
 
   function handleSwitchTab(tab: "problem" | "mission" | "visual") {
@@ -106,7 +108,7 @@ export default function LessonProblemPanel({
   }
 
   useEffect(() => {
-    scrollToTop();
+    onScrollTopRef.current?.();
   }, [activeTab, selectedLesson.id, activeChallengeIdx]);
 
   const practiceDrills = selectedLesson.practiceChallenges || [];
@@ -140,11 +142,7 @@ export default function LessonProblemPanel({
   const hasPeekedSolution = Boolean(peekedSolutions[selectedLesson.id]);
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      style={styles.explanationPanel}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={styles.explanationPanel}>
       <View style={styles.lessonBadgeRow}>
         <Text
           style={[
@@ -1051,7 +1049,7 @@ export default function LessonProblemPanel({
           }
         />
       )}
-    </ScrollView>
+    </View>
   );
 }
 

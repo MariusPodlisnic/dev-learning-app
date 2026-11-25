@@ -26,6 +26,7 @@ import {
   type CurriculumProgressDeltaItem,
   pushCloudProgressState,
 } from "../utils/supabaseSync";
+import { computeTestCascadePlan } from "../utils/studioMicroMoments";
 
 export interface UseLessonExecutionOptions {
   code: string;
@@ -48,6 +49,7 @@ export interface UseLessonExecutionOptions {
   usedScaffoldInAttemptRef: MutableRefObject<boolean>;
   failedAttemptsByLessonRef: MutableRefObject<Record<string, number>>;
   onFailedAttemptsChange?: (lessonId: string, count: number) => void;
+  onTestRunCompleted?: () => void;
   completedLessons: Record<string, boolean>;
   setCompletedLessons: Dispatch<SetStateAction<Record<string, boolean>>>;
   completedChallenges: Record<string, boolean>;
@@ -93,6 +95,7 @@ export function useLessonExecution({
   usedScaffoldInAttemptRef,
   failedAttemptsByLessonRef,
   onFailedAttemptsChange,
+  onTestRunCompleted,
   completedLessons,
   setCompletedLessons,
   completedChallenges,
@@ -183,10 +186,14 @@ export function useLessonExecution({
         verificationLesson,
       );
 
+      const cascadePlan = computeTestCascadePlan(outcome.testResults);
       setTestResults(outcome.testResults);
       if (outcome.testResults) {
-        setSelectedTestIndex(0);
+        setSelectedTestIndex(
+          cascadePlan.firstFailedIndex >= 0 ? cascadePlan.firstFailedIndex : 0,
+        );
       }
+      onTestRunCompleted?.();
       setBottomTab(outcome.targetTab);
       setOutput(outcome.consoleOutput);
 
@@ -198,7 +205,13 @@ export function useLessonExecution({
       }
 
       if (outcome.allPassed && selectedLesson) {
-        setShowSuccessModal(true);
+        if (cascadePlan.totalCount > 1 && cascadePlan.totalDurationMs > 0) {
+          setTimeout(() => {
+            setShowSuccessModal(true);
+          }, cascadePlan.totalDurationMs);
+        } else {
+          setShowSuccessModal(true);
+        }
         trackFunnelMilestone("first_lesson_solved");
         const stageKey =
           activeChallengeIdx === 0

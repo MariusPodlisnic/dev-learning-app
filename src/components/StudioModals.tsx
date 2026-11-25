@@ -14,6 +14,7 @@ import {
 } from "../types/lesson";
 import { LessonEnrichment } from "../constants/curriculum";
 import { type CommandAction } from "../utils/commandPalette";
+import { findCodexCardForLesson } from "../utils/studioMicroMoments";
 import Auth, { type AuthModalMode } from "./Auth";
 import CertificateModal from "./CertificateModal";
 import CommandPaletteModal from "./CommandPaletteModal";
@@ -85,6 +86,7 @@ interface StudioModalsProps {
   isStudioActive?: boolean;
   onInsertCodexSnippet?: (snippet: string) => void;
   onJumpToLessonFromCodex?: (lesson: Lesson) => void;
+  onOpenCodexModal?: () => void;
   onCloseCodexModal?: () => void;
   activeCertificate: CertificateData | null;
   onCloseCertificate: () => void;
@@ -151,6 +153,7 @@ export default function StudioModals({
   isStudioActive = false,
   onInsertCodexSnippet,
   onJumpToLessonFromCodex,
+  onOpenCodexModal,
   onCloseCodexModal,
   activeCertificate,
   onCloseCertificate,
@@ -301,6 +304,11 @@ export default function StudioModals({
                   }
                 : undefined
             }
+            codexBlueprintTitle={findCodexCardForLesson(selectedLesson)?.title}
+            codexConstellation={
+              findCodexCardForLesson(selectedLesson)?.constellationName
+            }
+            onOpenCodex={onOpenCodexModal}
             onNextLesson={onNextLesson}
             onClose={onCloseSuccess}
           />

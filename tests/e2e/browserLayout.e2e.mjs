@@ -4,22 +4,13 @@ import { openAppInBrowser } from "./helpers/playwrightHarness.mjs";
 
 async function measureAccountHeaderBoxes(page) {
   return page.evaluate(() => {
-    const targets = [
-      { key: "profile", needle: "MY PROFILE & STATS" },
-      { key: "streak", needle: "DAILY STREAK" },
-      { key: "achievements", needle: "ACHIEVEMENTS" },
-      { key: "leaderboard", needle: "LEADERBOARD" },
-      { key: "pro", needle: "UPGRADE TO PRO" },
-      { key: "save", needle: "SAVE PROGRESS" },
-    ];
-
     function findBoxContainer(startNode) {
       let cur = startNode;
       while (cur && cur !== document.body) {
         const cs = window.getComputedStyle(cur);
         const bw = parseFloat(cs.borderTopWidth || "0");
         const rect = cur.getBoundingClientRect();
-        if (bw >= 1.5 && rect.height >= 28 && rect.height <= 64 && rect.width >= 50) {
+        if (bw >= 1.5 && rect.height >= 26 && rect.height <= 48 && rect.width >= 32) {
           return {
             x: rect.x,
             y: rect.y,
@@ -34,24 +25,38 @@ async function measureAccountHeaderBoxes(page) {
       return null;
     }
 
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    const textNodes = [];
-    let node;
-    while ((node = walker.nextNode())) {
-      const txt = (node.nodeValue || "").trim();
-      if (txt) textNodes.push({ node, txt });
+    const brandEl = document.querySelector('[aria-label="Go to Devy Home Menu"]');
+    const headerEl = brandEl?.parentElement?.parentElement;
+    const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
+
+    const scope = headerEl || document.body;
+    const candidates = [...scope.querySelectorAll("div, button")];
+    function matchBoxByText(regex) {
+      const hit = candidates.find(
+        (el) => el.children.length === 0 && regex.test((el.textContent || "").trim()),
+      );
+      return hit ? findBoxContainer(hit) : null;
     }
 
-    const boxes = {};
-    for (const target of targets) {
-      const match = textNodes.find((entry) => entry.txt.includes(target.needle));
-      if (match?.node.parentElement) {
-        boxes[target.key] = findBoxContainer(match.node.parentElement);
-      }
+    const boxes = {
+      profile: matchBoxByText(/^LVL\s*\d*$/),
+      streak: matchBoxByText(/^\d*$|^D$/),
+      achievements: matchBoxByText(/^TROPHIES$/),
+      leaderboard: matchBoxByText(/^LEAGUE$/),
+      pro: matchBoxByText(/^GET PRO$|^PRO/),
+      save: matchBoxByText(/^SIGN IN$|^SAVE$/),
+    };
+
+    // Refine profile & streak using Open Profile and Stats button children directly
+    const profBtn = scope.querySelector('[aria-label="Open Profile and Stats"]');
+    if (profBtn && profBtn.children.length >= 2) {
+      boxes.profile = findBoxContainer(profBtn.children[0]) || boxes.profile;
+      boxes.streak = findBoxContainer(profBtn.children[1]) || boxes.streak;
     }
 
     return {
       boxes,
+      headerHeight,
       overflowX: document.documentElement.scrollWidth - window.innerWidth,
       scrollWidth: document.documentElement.scrollWidth,
       innerWidth: window.innerWidth,
@@ -75,13 +80,17 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     assert.ok(landingOverflowX <= 1, `Expected no overflow on default Showcase landing, got ${landingOverflowX}`);
     await page.getByLabel("Begin Your Adventure", { exact: true }).click();
 
-    await page.waitForSelector("text=ACCOUNT & RANK", { timeout: 10000 });
-    await page.waitForSelector("text=UPGRADE TO PRO", { timeout: 10000 });
+    await page.waitForSelector("text=TROPHIES", { timeout: 10000 });
+    await page.waitForSelector("text=GET PRO", { timeout: 10000 });
 
     const metrics = await measureAccountHeaderBoxes(page);
     assert.ok(
       metrics.overflowX <= 1,
       `Expected no desktop horizontal overflow, got scrollWidth=${metrics.scrollWidth}, innerWidth=${metrics.innerWidth}`,
+    );
+    assert.ok(
+      metrics.headerHeight > 0 && metrics.headerHeight <= 68,
+      `Expected sleek single-row desktop header <= 68px tall, got ${metrics.headerHeight}px`,
     );
 
     for (const key of [
@@ -194,7 +203,7 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     );
 
     // Profile modal opens with Level 1 avatar, no excluded rank tagline, and working PNG card download
-    await page.getByText("MY PROFILE & STATS").first().click();
+    await page.getByLabel("Open Profile and Stats").click();
     await page.waitForSelector("text=LVL 1", { timeout: 5000 });
     await page.waitForSelector("text=COZY PIXEL GARDEN · 12 WEEKS", { timeout: 5000 });
     await page.waitForSelector("text=SAVE PNG CARD", { timeout: 5000 });
@@ -282,7 +291,7 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByTestId("astral-star-inspector").waitFor({ timeout: 5000 });
 
     // Auth modal exposes OAuth buttons & Forgot Password reset flow
-    await page.getByText("SAVE PROGRESS").first().click();
+    await page.getByLabel("Save progress and sign in").click();
     await page.waitForSelector("text=GitHub", { timeout: 5000 });
     await page.waitForSelector("text=Google", { timeout: 5000 });
     await page.getByText("Forgot password?").first().click();
@@ -291,7 +300,7 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByLabel("Close authentication modal").click();
 
     // Secondary lazy-loaded arenas hydrate cleanly via React.lazy + Suspense
-    await page.getByText("ACHIEVEMENTS").first().click();
+    await page.getByLabel("Open Achievements Trophy Hall").click();
     await page.waitForSelector("text=TROPHY HALL", { timeout: 10000 });
 
     // Dedicated top-level Leaderboard menu button opens Weekly League directly
@@ -375,6 +384,25 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.waitForSelector("text=TEST RUN", { timeout: 5000 });
     await page.waitForSelector("text=TRACE", { timeout: 5000 });
 
+    // Verify Code Studio workspace scrolls vertically (not static/locked)
+    const studioScrollCheck = await page.evaluate(() => {
+      const scrollEl = [...document.querySelectorAll("div")].find((d) => {
+        const cs = window.getComputedStyle(d);
+        return (
+          (cs.overflowY === "auto" || cs.overflowY === "scroll") &&
+          d.innerText.includes("SUBMIT CODE") &&
+          d.scrollHeight > d.clientHeight
+        );
+      });
+      if (!scrollEl) return { found: false, moved: false };
+      scrollEl.scrollTop = 180;
+      return { found: true, moved: scrollEl.scrollTop > 0 };
+    });
+    assert.ok(
+      studioScrollCheck.found && studioScrollCheck.moved,
+      `Expected Code Studio workspace to scroll vertically, got ${JSON.stringify(studioScrollCheck)}`,
+    );
+
     // Keyboard Command Palette opens with Ctrl+K, filters commands, and jumps cleanly to Playground
     await page.keyboard.press("Control+k");
     await page.getByLabel("Quick command palette search").waitFor({ timeout: 5000 });
@@ -444,7 +472,7 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
     await page.getByLabel("Begin Your Adventure", { exact: true }).click();
 
     await page.waitForSelector("text=GET PRO", { timeout: 10000 });
-    await page.waitForSelector("text=PROFILE ↗", { timeout: 5000 });
+    await page.waitForSelector("text=LVL 1", { timeout: 5000 });
 
     // Verify installable PWA manifest link & valid JSON payload
     const manifestInfo = await page.evaluate(async () => {
@@ -466,7 +494,7 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
     assert.ok(manifestInfo.iconsCount >= 2);
 
     const bodyText = await page.evaluate(() => document.body.innerText);
-    assert.ok(bodyText.includes("ACHIEVEMENTS"));
+    assert.ok(bodyText.includes("TROPHIES"));
     assert.ok(bodyText.includes("LEAGUE"));
     assert.ok(bodyText.includes("SETTINGS"));
     assert.ok(bodyText.includes("GET PRO"));
@@ -487,7 +515,7 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
     await page.getByLabel("Close command palette", { exact: true }).click();
 
     // Profile modal + 12-Week Cozy Pixel Garden fit cleanly inside 390px phone viewport
-    await page.getByText("PROFILE ↗").first().click();
+    await page.getByLabel("Open Profile and Stats").click();
     await page.waitForSelector("text=COZY PIXEL GARDEN · 12 WEEKS", { timeout: 5000 });
     await assertZeroMobileOverflow(page, "Profile & Pixel Garden");
     await page.getByLabel("Close profile modal").click();
