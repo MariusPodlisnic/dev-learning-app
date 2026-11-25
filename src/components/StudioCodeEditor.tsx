@@ -5,6 +5,7 @@ import {
   Keyboard,
   Platform,
   Pressable,
+  ScrollView,
   TextInput,
   View,
 } from "react-native";
@@ -212,6 +213,7 @@ interface StudioCodeEditorProps {
   lessonHints?: string[];
   onOpenCodex?: () => void;
   testRunGeneration?: number;
+  isStickyDesktop?: boolean;
 }
 
 const EMPTY_SUBSCRIBE = () => () => {};
@@ -304,6 +306,7 @@ export default function StudioCodeEditor({
   lessonHints = [],
   onOpenCodex,
   testRunGeneration = 0,
+  isStickyDesktop = false,
 }: StudioCodeEditorProps) {
   const styles = useThemedStyles(getStudioCodeEditorStyles);
   const isMounted = useSyncExternalStore(
@@ -659,12 +662,18 @@ export default function StudioCodeEditor({
   });
 
   return (
-    <View style={styles.editorPanel}>
+    <View
+      style={[
+        styles.editorPanel,
+        isStickyDesktop && styles.editorPanelSticky,
+      ]}
+    >
       <View
         style={[
           styles.ideFrame,
+          isStickyDesktop && styles.ideFrameSticky,
           allChecksPassed && styles.ideFrameSolved,
-          consoleExpanded && { flex: 0.9, minHeight: 170 },
+          consoleExpanded && { flex: 0.85, minHeight: 170 },
         ]}
       >
         <View style={styles.ideHeader}>
@@ -863,12 +872,14 @@ export default function StudioCodeEditor({
           )}
         </View>
 
-        <View
-          style={[
-            styles.editorScroll,
+        <ScrollView
+          style={styles.editorScroll}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
             styles.editorBody,
             { minHeight: lineCount * 21 + 32 },
           ]}
+          showsVerticalScrollIndicator={true}
         >
           <View style={styles.lineNumbers}>
             {Array.from({ length: lineCount }).map((_, i) => {
@@ -1074,7 +1085,7 @@ export default function StudioCodeEditor({
               spellCheck={false}
             />
           </View>
-        </View>
+        </ScrollView>
 
         <View style={styles.ideFooter}>
           <Text style={styles.ideFooterText}>
@@ -1168,7 +1179,8 @@ export default function StudioCodeEditor({
       <View
         style={[
           styles.bottomPanel,
-          consoleExpanded && { flex: 1.9, minHeight: 240 },
+          isStickyDesktop && styles.bottomPanelSticky,
+          consoleExpanded && { flex: 2.0, minHeight: 260 },
         ]}
       >
         {isExecuting && (
@@ -1285,7 +1297,7 @@ export default function StudioCodeEditor({
           </View>
         </View>
 
-        <View style={styles.bottomContent}>
+        <ScrollView style={styles.bottomContent}>
           {bottomTab === "console" ? (
             output ? (
               <View style={styles.consoleOutputWrap}>
@@ -1683,7 +1695,7 @@ export default function StudioCodeEditor({
               </Text>
             </View>
           )}
-        </View>
+        </ScrollView>
       </View>
     </View>
   );

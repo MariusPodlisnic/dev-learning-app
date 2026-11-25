@@ -9,15 +9,28 @@ import {
 
 export const getStudioCodeEditorStyles = (StudioColors: StudioThemeColors) =>
   StyleSheet.create({
-    editorPanel: { flex: 1.25, minWidth: 0 },
+    editorPanel: { flex: 1.18, minWidth: 0 },
+    editorPanelSticky: Platform.select({
+      web: {
+        position: "sticky" as any,
+        top: 2,
+        height: "calc(100vh - 178px)" as any,
+        minHeight: 540,
+      },
+      default: {},
+    }) as any,
     ideFrame: {
-      minHeight: 330,
+      minHeight: 280,
       backgroundColor: StudioColors.codeBg,
       borderRadius: 10,
       borderWidth: 2,
       borderColor: StudioColors.border,
       overflow: "hidden",
       ...HardShadow,
+    },
+    ideFrameSticky: {
+      flex: 1.35,
+      minHeight: 250,
     },
     ideFrameSolved: {
       borderColor: StudioColors.mint,
@@ -429,9 +442,13 @@ export const getStudioCodeEditorStyles = (StudioColors: StudioThemeColors) =>
       borderRadius: 10,
       borderWidth: 2,
       borderColor: StudioColors.border,
-      minHeight: 190,
+      minHeight: 195,
       overflow: "hidden",
       ...HardShadow,
+    },
+    bottomPanelSticky: {
+      flex: 1,
+      minHeight: 195,
     },
     execSweepTrack: {
       height: 2.5,
@@ -492,7 +509,7 @@ export const getStudioCodeEditorStyles = (StudioColors: StudioThemeColors) =>
       fontWeight: "800",
       fontFamily: MonoFont,
     },
-    bottomContent: { padding: 14 },
+    bottomContent: { padding: 14, flex: 1 },
     emptyConsoleBox: {
       paddingVertical: 12,
       gap: 4,

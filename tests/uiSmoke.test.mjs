@@ -187,8 +187,8 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
     !desktopText.includes("SPEED BLITZ") && !desktopText.includes("FLASH DECK"),
     "Mini-games should live inside the dedicated Arcade Hub rather than cluttering the top menu",
   );
-  assert.ok(desktopText.includes("TROPHIES"));
-  assert.ok(desktopText.includes("LEAGUE"));
+  assert.ok(desktopText.includes("ACHIEVEMENTS"));
+  assert.ok(desktopText.includes("LEADERBOARD"));
   assert.ok(desktopText.includes("GET PRO"));
   assert.ok(desktopText.includes("LVL 3"));
   assert.ok(desktopText.includes("SETTINGS"));
@@ -197,9 +197,8 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
     "Cluttered loose Settings pills should be consolidated into the unified Settings menu",
   );
   assert.ok(
-    desktopText.indexOf("TROPHIES") < desktopText.indexOf("LEAGUE") &&
-      desktopText.indexOf("LEAGUE") < desktopText.indexOf("GET PRO"),
-    "Trophies and League should precede the Pro box in Free mode",
+    desktopText.indexOf("ACHIEVEMENTS") < desktopText.indexOf("LEADERBOARD"),
+    "Achievements should precede Leaderboard on the desktop destination nav rail",
   );
 
   const proHeaderHtml = renderThemed(
@@ -212,9 +211,8 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
   const proDesktopText = visibleText(proHeaderHtml);
   assert.ok(proDesktopText.includes("PRO ✓"));
   assert.ok(
-    proDesktopText.indexOf("TROPHIES") < proDesktopText.indexOf("LEAGUE") &&
-      proDesktopText.indexOf("LEAGUE") < proDesktopText.indexOf("PRO ✓"),
-    "Trophies, League, and Pro boxes should keep their order when switching to Pro",
+    proDesktopText.indexOf("ACHIEVEMENTS") < proDesktopText.indexOf("LEADERBOARD"),
+    "Achievements and Leaderboard should keep their order when switching to Pro",
   );
   const headerSvgs = proHeaderHtml.match(/<svg[\s\S]*?<\/svg>/g) || [];
   assert.ok(

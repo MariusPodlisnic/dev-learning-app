@@ -26,33 +26,35 @@ async function measureAccountHeaderBoxes(page) {
     }
 
     const brandEl = document.querySelector('[aria-label="Go to Devy Home Menu"]');
-    const headerEl = brandEl?.parentElement?.parentElement;
+    let headerEl = brandEl?.parentElement;
+    while (headerEl && headerEl.parentElement && headerEl.getBoundingClientRect().width < window.innerWidth - 20) {
+      headerEl = headerEl.parentElement;
+    }
     const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
 
-    const scope = headerEl || document.body;
-    const candidates = [...scope.querySelectorAll("div, button")];
-    function matchBoxByText(regex) {
-      const hit = candidates.find(
-        (el) => el.children.length === 0 && regex.test((el.textContent || "").trim()),
-      );
-      return hit ? findBoxContainer(hit) : null;
+    function boxForSelector(selector) {
+      const el = document.querySelector(selector);
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      return {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        right: rect.right,
+        bottom: rect.bottom,
+      };
     }
 
+    const profBtn = document.querySelector('[aria-label="Open Profile and Stats"]');
     const boxes = {
-      profile: matchBoxByText(/^LVL\s*\d*$/),
-      streak: matchBoxByText(/^\d*$|^D$/),
-      achievements: matchBoxByText(/^TROPHIES$/),
-      leaderboard: matchBoxByText(/^LEAGUE$/),
-      pro: matchBoxByText(/^GET PRO$|^PRO/),
-      save: matchBoxByText(/^SIGN IN$|^SAVE$/),
+      profile: profBtn?.children?.[0] ? findBoxContainer(profBtn.children[0]) : null,
+      streak: profBtn?.children?.[1] ? findBoxContainer(profBtn.children[1]) : null,
+      achievements: boxForSelector('[aria-label="Open Achievements Trophy Hall"]'),
+      leaderboard: boxForSelector('[aria-label="Open Weekly League Leaderboard"]'),
+      pro: boxForSelector('[aria-label="Upgrade to Devy Pro"]'),
+      save: boxForSelector('[aria-label="Save progress and sign in"]'),
     };
-
-    // Refine profile & streak using Open Profile and Stats button children directly
-    const profBtn = scope.querySelector('[aria-label="Open Profile and Stats"]');
-    if (profBtn && profBtn.children.length >= 2) {
-      boxes.profile = findBoxContainer(profBtn.children[0]) || boxes.profile;
-      boxes.streak = findBoxContainer(profBtn.children[1]) || boxes.streak;
-    }
 
     return {
       boxes,
@@ -80,7 +82,7 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     assert.ok(landingOverflowX <= 1, `Expected no overflow on default Showcase landing, got ${landingOverflowX}`);
     await page.getByLabel("Begin Your Adventure", { exact: true }).click();
 
-    await page.waitForSelector("text=TROPHIES", { timeout: 10000 });
+    await page.waitForSelector("text=ACHIEVEMENTS", { timeout: 10000 });
     await page.waitForSelector("text=GET PRO", { timeout: 10000 });
 
     const metrics = await measureAccountHeaderBoxes(page);
@@ -89,8 +91,8 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       `Expected no desktop horizontal overflow, got scrollWidth=${metrics.scrollWidth}, innerWidth=${metrics.innerWidth}`,
     );
     assert.ok(
-      metrics.headerHeight > 0 && metrics.headerHeight <= 68,
-      `Expected sleek single-row desktop header <= 68px tall, got ${metrics.headerHeight}px`,
+      metrics.headerHeight > 0 && metrics.headerHeight <= 112,
+      `Expected organized 2-tier desktop header <= 112px tall, got ${metrics.headerHeight}px`,
     );
 
     for (const key of [
@@ -102,26 +104,37 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       "save",
     ]) {
       assert.ok(metrics.boxes[key], `Expected bounding box for ${key}`);
+      assert.ok(
+        metrics.boxes[key].height >= 34,
+        `Expected comfy clickable button height >= 34px for ${key}, got ${metrics.boxes[key].height}px`,
+      );
     }
 
-    // All 6 Account & Rank header boxes should share uniform height & vertical top alignment
-    const heights = Object.values(metrics.boxes).map((b) => b.height);
-    const tops = Object.values(metrics.boxes).map((b) => b.y);
+    // Tier 1 utility boxes (profile, streak, pro, save) align on the top bar; Tier 2 progress tabs (achievements, leaderboard) align on the nav rail
+    const tier1Tops = [
+      metrics.boxes.profile.y,
+      metrics.boxes.streak.y,
+      metrics.boxes.pro.y,
+      metrics.boxes.save.y,
+    ];
     assert.ok(
-      Math.max(...heights) - Math.min(...heights) <= 4,
-      `Header boxes should have matched heights, got ${JSON.stringify(heights)}`,
+      Math.max(...tier1Tops) - Math.min(...tier1Tops) <= 4,
+      `Top utility boxes should align on the same row, got y=${JSON.stringify(tier1Tops)}`,
     );
     assert.ok(
-      Math.max(...tops) - Math.min(...tops) <= 4,
-      `Header boxes should align vertically on the same row, got y=${JSON.stringify(tops)}`,
+      Math.abs(metrics.boxes.achievements.y - metrics.boxes.leaderboard.y) <= 4,
+      `Nav rail progress tabs should align on the same row, got y=${metrics.boxes.achievements.y} vs ${metrics.boxes.leaderboard.y}`,
+    );
+    assert.ok(
+      metrics.boxes.achievements.y > metrics.boxes.profile.y + 30,
+      "Destination nav rail should sit cleanly below the top utility bar",
     );
 
-    // Horizontal order: Profile -> Daily Streak -> Achievements -> Leaderboard -> Upgrade to Pro -> Save Progress
+    // Horizontal order within each tier
     assert.ok(metrics.boxes.profile.x < metrics.boxes.streak.x);
-    assert.ok(metrics.boxes.streak.x < metrics.boxes.achievements.x);
-    assert.ok(metrics.boxes.achievements.x < metrics.boxes.leaderboard.x);
-    assert.ok(metrics.boxes.leaderboard.x < metrics.boxes.pro.x);
+    assert.ok(metrics.boxes.streak.x < metrics.boxes.pro.x);
     assert.ok(metrics.boxes.pro.x < metrics.boxes.save.x);
+    assert.ok(metrics.boxes.achievements.x < metrics.boxes.leaderboard.x);
 
     // HOME Main Menu showcases the interactive Living Lo-Fi Dev Loft & portal-linked room highlights
     await page.getByLabel("Interactive studio loft: LIVING LO-FI DEV LOFT").waitFor({ timeout: 10000 });
@@ -198,7 +211,7 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     assert.ok(lightMetrics.overflowX <= 1);
     assert.ok(
       lightMetrics.boxes.achievements.x < lightMetrics.boxes.leaderboard.x &&
-        lightMetrics.boxes.leaderboard.x < lightMetrics.boxes.pro.x,
+        lightMetrics.boxes.pro.x < lightMetrics.boxes.save.x,
       "Order should stay intact after switching theme and palette",
     );
 

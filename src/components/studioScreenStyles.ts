@@ -123,9 +123,12 @@ export const getStudioScreenStyles = (StudioColors: StudioThemeColors) =>
     workspaceGrid: {
       flexDirection: "row",
       alignItems: "flex-start",
-      gap: 22,
-      paddingBottom: 44,
+      gap: 20,
+      paddingBottom: 36,
       paddingRight: 4,
+      maxWidth: 1460,
+      width: "100%",
+      alignSelf: "center",
     },
     modalOverlay: {
       position: "absolute",

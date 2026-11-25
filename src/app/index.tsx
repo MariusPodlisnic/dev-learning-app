@@ -1663,6 +1663,7 @@ export default function HomeScreen() {
                     }
                     onOpenCodex={() => setShowCodexModal(true)}
                     testRunGeneration={testRunGeneration}
+                    isStickyDesktop={!isCompactStudio}
                   />
                 )}
               </ScrollView>
