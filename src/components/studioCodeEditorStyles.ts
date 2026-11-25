@@ -14,8 +14,8 @@ export const getStudioCodeEditorStyles = (StudioColors: StudioThemeColors) =>
       web: {
         position: "sticky" as any,
         top: 2,
-        height: "calc(100vh - 178px)" as any,
-        minHeight: 540,
+        height: "calc(100vh - 208px)" as any,
+        minHeight: 500,
       },
       default: {},
     }) as any,

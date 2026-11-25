@@ -189,16 +189,18 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
   );
   assert.ok(desktopText.includes("ACHIEVEMENTS"));
   assert.ok(desktopText.includes("LEADERBOARD"));
-  assert.ok(desktopText.includes("GET PRO"));
-  assert.ok(desktopText.includes("LVL 3"));
+  assert.ok(desktopText.includes("UPGRADE TO PRO"));
+  assert.ok(desktopText.includes("ACCOUNT & RANK"));
+  assert.ok(desktopText.includes("CODING & LABS"));
   assert.ok(desktopText.includes("SETTINGS"));
   assert.ok(
     !desktopText.includes("THEMES") && !desktopText.includes("SFX"),
     "Cluttered loose Settings pills should be consolidated into the unified Settings menu",
   );
   assert.ok(
-    desktopText.indexOf("ACHIEVEMENTS") < desktopText.indexOf("LEADERBOARD"),
-    "Achievements should precede Leaderboard on the desktop destination nav rail",
+    desktopText.indexOf("ACHIEVEMENTS") < desktopText.indexOf("LEADERBOARD") &&
+      desktopText.indexOf("LEADERBOARD") < desktopText.indexOf("UPGRADE TO PRO"),
+    "Achievements and Leaderboard should precede the Pro box in Free mode",
   );
 
   const proHeaderHtml = renderThemed(
@@ -209,10 +211,11 @@ test("AppHeader toggles desktop navigation vs compact phone header cleanly", () 
     }),
   );
   const proDesktopText = visibleText(proHeaderHtml);
-  assert.ok(proDesktopText.includes("PRO ✓"));
+  assert.ok(proDesktopText.includes("PRO MEMBER"));
   assert.ok(
-    proDesktopText.indexOf("ACHIEVEMENTS") < proDesktopText.indexOf("LEADERBOARD"),
-    "Achievements and Leaderboard should keep their order when switching to Pro",
+    proDesktopText.indexOf("ACHIEVEMENTS") < proDesktopText.indexOf("LEADERBOARD") &&
+      proDesktopText.indexOf("LEADERBOARD") < proDesktopText.indexOf("PRO MEMBER"),
+    "Achievements, Leaderboard, and Pro boxes should keep their order when switching to Pro",
   );
   const headerSvgs = proHeaderHtml.match(/<svg[\s\S]*?<\/svg>/g) || [];
   assert.ok(

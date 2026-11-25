@@ -55,9 +55,15 @@ async function measureAccountHeaderBoxes(page) {
       pro: boxForSelector('[aria-label="Upgrade to Devy Pro"]'),
       save: boxForSelector('[aria-label="Save progress and sign in"]'),
     };
+    const trays = {
+      coding: boxForSelector('[data-testid="header-tray-coding"]'),
+      settings: boxForSelector('[data-testid="header-tray-settings"]'),
+      account: boxForSelector('[data-testid="header-tray-account"]'),
+    };
 
     return {
       boxes,
+      trays,
       headerHeight,
       overflowX: document.documentElement.scrollWidth - window.innerWidth,
       scrollWidth: document.documentElement.scrollWidth,
@@ -82,8 +88,8 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     assert.ok(landingOverflowX <= 1, `Expected no overflow on default Showcase landing, got ${landingOverflowX}`);
     await page.getByLabel("Begin Your Adventure", { exact: true }).click();
 
-    await page.waitForSelector("text=ACHIEVEMENTS", { timeout: 10000 });
-    await page.waitForSelector("text=GET PRO", { timeout: 10000 });
+    await page.waitForSelector("text=ACCOUNT & RANK", { timeout: 10000 });
+    await page.waitForSelector("text=UPGRADE TO PRO", { timeout: 10000 });
 
     const metrics = await measureAccountHeaderBoxes(page);
     assert.ok(
@@ -91,8 +97,26 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       `Expected no desktop horizontal overflow, got scrollWidth=${metrics.scrollWidth}, innerWidth=${metrics.innerWidth}`,
     );
     assert.ok(
-      metrics.headerHeight > 0 && metrics.headerHeight <= 112,
-      `Expected organized 2-tier desktop header <= 112px tall, got ${metrics.headerHeight}px`,
+      metrics.headerHeight > 0 && metrics.headerHeight <= 145,
+      `Expected organized 2-row tray desktop header <= 145px tall (never 3 lines), got ${metrics.headerHeight}px`,
+    );
+
+    // Row 1 holds CODING & LABS + SETTINGS side-by-side; Row 2 holds ACCOUNT & RANK cleanly below
+    assert.ok(
+      metrics.trays.coding && metrics.trays.settings && metrics.trays.account,
+      `Expected all 3 categorized trays to render, got ${JSON.stringify(metrics.trays)}`,
+    );
+    assert.ok(
+      Math.abs(metrics.trays.coding.y - metrics.trays.settings.y) <= 6,
+      `Expected CODING & LABS and SETTINGS trays to share Row 1, got y=${metrics.trays.coding.y} vs ${metrics.trays.settings.y}`,
+    );
+    assert.ok(
+      metrics.trays.coding.right < metrics.trays.settings.x,
+      `Expected SETTINGS tray to sit to the right of CODING & LABS on Row 1`,
+    );
+    assert.ok(
+      metrics.trays.account.y > metrics.trays.coding.y + 40,
+      `Expected ACCOUNT & RANK tray to sit cleanly on Row 2 below Row 1`,
     );
 
     for (const key of [
@@ -110,31 +134,24 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       );
     }
 
-    // Tier 1 utility boxes (profile, streak, pro, save) align on the top bar; Tier 2 progress tabs (achievements, leaderboard) align on the nav rail
-    const tier1Tops = [
+    // All 6 Account & Rank telemetry cards align cleanly on Row 2 with matched heights and strict horizontal order
+    const accountTops = [
       metrics.boxes.profile.y,
       metrics.boxes.streak.y,
+      metrics.boxes.achievements.y,
+      metrics.boxes.leaderboard.y,
       metrics.boxes.pro.y,
       metrics.boxes.save.y,
     ];
     assert.ok(
-      Math.max(...tier1Tops) - Math.min(...tier1Tops) <= 4,
-      `Top utility boxes should align on the same row, got y=${JSON.stringify(tier1Tops)}`,
+      Math.max(...accountTops) - Math.min(...accountTops) <= 4,
+      `All Account & Rank boxes should align on Row 2, got y=${JSON.stringify(accountTops)}`,
     );
-    assert.ok(
-      Math.abs(metrics.boxes.achievements.y - metrics.boxes.leaderboard.y) <= 4,
-      `Nav rail progress tabs should align on the same row, got y=${metrics.boxes.achievements.y} vs ${metrics.boxes.leaderboard.y}`,
-    );
-    assert.ok(
-      metrics.boxes.achievements.y > metrics.boxes.profile.y + 30,
-      "Destination nav rail should sit cleanly below the top utility bar",
-    );
-
-    // Horizontal order within each tier
     assert.ok(metrics.boxes.profile.x < metrics.boxes.streak.x);
-    assert.ok(metrics.boxes.streak.x < metrics.boxes.pro.x);
-    assert.ok(metrics.boxes.pro.x < metrics.boxes.save.x);
+    assert.ok(metrics.boxes.streak.x < metrics.boxes.achievements.x);
     assert.ok(metrics.boxes.achievements.x < metrics.boxes.leaderboard.x);
+    assert.ok(metrics.boxes.leaderboard.x < metrics.boxes.pro.x);
+    assert.ok(metrics.boxes.pro.x < metrics.boxes.save.x);
 
     // HOME Main Menu showcases the interactive Living Lo-Fi Dev Loft & portal-linked room highlights
     await page.getByLabel("Interactive studio loft: LIVING LO-FI DEV LOFT").waitFor({ timeout: 10000 });
@@ -507,7 +524,7 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
     assert.ok(manifestInfo.iconsCount >= 2);
 
     const bodyText = await page.evaluate(() => document.body.innerText);
-    assert.ok(bodyText.includes("TROPHIES"));
+    assert.ok(bodyText.includes("ACHIEVEMENTS"));
     assert.ok(bodyText.includes("LEAGUE"));
     assert.ok(bodyText.includes("SETTINGS"));
     assert.ok(bodyText.includes("GET PRO"));
