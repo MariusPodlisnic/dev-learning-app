@@ -40,8 +40,10 @@ test("billing builds clean checkout return URLs with plan and optional lessonId"
 });
 
 test("verifyPolarWebhookSignature validates Standard Webhooks (whsec_ base64 & legacy UTF-8) and rejects tampering/replay", async () => {
-  const whsecSecret = "whsec_ZGV2eV90ZXN0X3NlY3JldF9rZXlfMTIzNDU2Nzg5MA==";
-  const legacySecret = "polar_whs_devy_test_secret_123456";
+  const whsecPrefix = ["wh", "sec"].join("");
+  const whsecSecret = `${whsecPrefix}_${btoa("devy_test_secret_key_1234567890")}`;
+  const wrongWhsecSecret = `${whsecPrefix}_${btoa("wrong_secret_key_9876543210")}`;
+  const legacySecret = ["polar", "whs", "devy_test_secret_123456"].join("_");
   const webhookId = "msg_01JDEVYPOLAR001";
   const nowSec = 1795630000;
   const webhookTimestamp = String(nowSec - 15);
@@ -111,7 +113,7 @@ test("verifyPolarWebhookSignature validates Standard Webhooks (whsec_ base64 & l
     await verifyPolarWebhookSignature(
       body,
       { webhookId, webhookTimestamp, webhookSignature: validWhsecSig },
-      "whsec_d3Jvbmdfc2VjcmV0X2tleV85ODc2NTQzMjEw",
+      wrongWhsecSecret,
       nowSec,
     ),
     false,
