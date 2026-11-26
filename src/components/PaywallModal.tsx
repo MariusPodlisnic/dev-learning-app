@@ -42,6 +42,7 @@ interface PaywallModalProps {
   triggerContext?: PaywallTriggerContext;
   freePreviewLessonTitle?: string;
   onTryFreePreview?: () => void;
+  errorMessage?: string | null;
 }
 
 const PLANS: {
@@ -56,28 +57,28 @@ const PLANS: {
   {
     id: "monthly",
     label: "MONTHLY",
-    price: "$9.99",
+    price: "$3.99",
     period: "/mo",
-    subline: "Flexible · Cancel anytime",
-    ctaLabel: "UNLOCK MONTHLY PRO ($9.99/MO)",
+    subline: "Early-bird · Cancel anytime",
+    ctaLabel: "UNLOCK MONTHLY PRO ($3.99/MO)",
   },
   {
     id: "annual",
     label: "ANNUAL",
-    price: "$4.99",
+    price: "$2.00",
     period: "/mo",
-    subline: "$59 billed yearly · 7-day free trial",
+    subline: "$24 billed yearly · 7-day free trial",
     badge: "SAVE 50%",
     ctaLabel: "START 7-DAY FREE TRIAL",
   },
   {
     id: "lifetime",
     label: "LIFETIME",
-    price: "$119",
+    price: "$39",
     period: "once",
-    subline: "Pay once · All future tracks",
+    subline: "Pay once · Lock in early-bird access",
     badge: "FOUNDER PASS",
-    ctaLabel: "UNLOCK LIFETIME PRO ($119)",
+    ctaLabel: "UNLOCK LIFETIME PRO ($39)",
   },
 ];
 
@@ -92,6 +93,7 @@ export default function PaywallModal({
   triggerContext,
   freePreviewLessonTitle,
   onTryFreePreview,
+  errorMessage,
 }: PaywallModalProps) {
   const styles = useThemedStyles(createStyles);
   const [selectedPlan, setSelectedPlan] = useState<PaywallPlanId>("annual");
@@ -273,9 +275,15 @@ export default function PaywallModal({
           )}
         </Pressable>
 
+        {errorMessage ? (
+          <View testID="paywall-checkout-error" style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>⚠ {errorMessage}</Text>
+          </View>
+        ) : null}
+
         <Text style={styles.trustMicroCopy}>
-          ✓ Instant access to all {totalModules} interactive labs · ✓ Zero
-          risk, cancel anytime
+          🔒 Secure checkout via Polar · Instant Pro unlock · VAT invoices
+          &amp; cancel anytime
         </Text>
 
         {onTryFreePreview && freePreviewLessonTitle && (
@@ -580,6 +588,23 @@ const createStyles = (StudioColors: StudioThemeColors) =>
     fontWeight: "700",
     textAlign: "center",
     marginTop: 8,
+  },
+  errorBanner: {
+    marginTop: 10,
+    alignSelf: "stretch",
+    backgroundColor: "rgba(251, 113, 133, 0.14)",
+    borderWidth: 1.5,
+    borderColor: StudioColors.coral,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  errorBannerText: {
+    color: StudioColors.coral,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: "800",
+    textAlign: "center",
   },
   previewBtn: {
     marginTop: 10,

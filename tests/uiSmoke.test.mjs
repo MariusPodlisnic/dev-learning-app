@@ -1745,3 +1745,25 @@ test("ToolBlueprintsPanel renders 3-stage Build-a-Tool blueprints and progressiv
   assert.ok(bpText.includes("RATE LIMITER"));
   assert.ok(bpText.includes("RUN STAGE WIDGET"));
 });
+
+test("PaywallModal displays Polar trust copy and checkout error feedback cleanly", () => {
+  const { default: PaywallModal } = loadTsModule(
+    "src/components/PaywallModal.tsx",
+  );
+  const paywallText = visibleText(
+    renderThemed(
+      React.createElement(PaywallModal, {
+        onClose: () => {},
+        onUpgrade: () => {},
+        loading: false,
+        hasSession: true,
+        errorMessage: "Checkout service temporarily unavailable.",
+      }),
+    ),
+  );
+  assert.ok(paywallText.includes("Polar"));
+  assert.ok(paywallText.includes("$3.99"));
+  assert.ok(paywallText.includes("$24 billed yearly"));
+  assert.ok(paywallText.includes("$39"));
+  assert.ok(paywallText.includes("Checkout service temporarily unavailable."));
+});

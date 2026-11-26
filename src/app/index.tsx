@@ -74,6 +74,11 @@ import {
 } from "../types/lesson";
 import { applyAmbientPreset } from "../utils/ambientSoundscapes";
 import {
+  openPolarBillingPortal,
+  pollProfilePremiumUnlock,
+  startPolarCheckout,
+} from "../utils/billing";
+import {
   decodeGhostDuelToken,
   type GhostDuelChallenge,
 } from "../utils/ghostDuel";
@@ -293,6 +298,8 @@ export default function HomeScreen() {
   const [activeCertificate, setActiveCertificate] =
     useState<CertificateData | null>(null);
   const [upgrading, setUpgrading] = useState<boolean>(false);
+  const [paywallError, setPaywallError] = useState<string | null>(null);
+  const handledCheckoutReturnRef = useRef<boolean>(false);
   const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(false);
   const [liveTraceResult, setLiveTraceResult] =
     useState<PythonTraceResult | null>(null);
@@ -396,6 +403,9 @@ export default function HomeScreen() {
     mode?: string;
     track?: string;
     paywall?: string;
+    checkout?: string;
+    checkout_id?: string;
+    plan?: string;
     duel?: string;
     utm_source?: string;
     utm_medium?: string;
@@ -411,6 +421,7 @@ export default function HomeScreen() {
       searchParams.mode ||
       searchParams.track ||
       searchParams.paywall ||
+      searchParams.checkout ||
       searchParams.duel ||
       searchParams.code,
   );
@@ -631,40 +642,98 @@ export default function HomeScreen() {
     }, 0);
   }
 
+  useEffect(() => {
+    if (handledCheckoutReturnRef.current) return;
+    if (searchParams.checkout !== "success" || !session?.user?.id) return;
+    const planLabel = searchParams.plan || "pro";
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setSyncNotice("⏳ Confirming your Polar Pro pass...");
+      }
+    });
+
+    pollProfilePremiumUnlock(
+      session.user.id,
+      8,
+      1500,
+      searchParams.checkout_id,
+    ).then((unlocked) => {
+      if (cancelled) return;
+      handledCheckoutReturnRef.current = true;
+      if (unlocked) {
+        setIsPremium(true);
+        setDevProOverride(null);
+        setShowPaywallModal(false);
+        trackFunnelMilestone("pro_upgraded", { plan: planLabel });
+        playVictoryFanfare();
+        setSyncNotice(
+          "★ Welcome to Devy Pro! All 3 tracks & Pro arenas are now unlocked.",
+        );
+      } else {
+        setSyncNotice(
+          "Payment received — your Pro pass will unlock automatically within a minute. Refresh if needed.",
+        );
+      }
+      if (syncNoticeTimerRef.current) {
+        clearTimeout(syncNoticeTimerRef.current);
+      }
+      syncNoticeTimerRef.current = setTimeout(() => {
+        setSyncNotice(null);
+      }, 6500);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    searchParams.checkout,
+    searchParams.checkout_id,
+    searchParams.plan,
+    session?.user?.id,
+    setDevProOverride,
+    setIsPremium,
+  ]);
+
   async function handleUpgradeToPro(plan: PaywallPlanId = "annual") {
     if (!session) {
       resumePaywallAfterAuthRef.current = true;
+      setPaywallError(null);
       setShowPaywallModal(false);
       openAuthModal(
         "signup",
-        "Create your free developer account first, then unlock Pro Arcade.",
+        "Create your free developer account first, then complete secure Polar checkout.",
       );
       return;
     }
     setUpgrading(true);
+    setPaywallError(null);
     try {
-      const { error } = await supabase.from("profiles").upsert({
-        id: session.user.id,
-        email: session.user.email,
-        is_premium: true,
+      const result = await startPolarCheckout({
+        plan,
+        lessonId: paywallContext.lessonId,
       });
-      if (error) throw error;
-      setIsPremium(true);
-      setShowPaywallModal(false);
-      trackFunnelMilestone("pro_upgraded", { plan });
-      playVictoryFanfare();
-      if (paywallContext.lessonId) {
-        const unlockedLesson = lessons.find(
-          (item) => item.id === paywallContext.lessonId,
+      if (!result.ok) {
+        setPaywallError(
+          result.errorMessage || "Unable to open Polar checkout right now.",
         );
-        if (unlockedLesson) {
-          openLessonInStudio(unlockedLesson);
-        }
       }
-    } catch (err: any) {
-      console.error("Upgrade error:", err.message);
     } finally {
       setUpgrading(false);
+    }
+  }
+
+  async function handleOpenBillingPortal() {
+    const result = await openPolarBillingPortal();
+    if (!result.ok && result.errorMessage) {
+      setSyncNotice(result.errorMessage);
+      if (syncNoticeTimerRef.current) {
+        clearTimeout(syncNoticeTimerRef.current);
+      }
+      syncNoticeTimerRef.current = setTimeout(() => {
+        setSyncNotice(null);
+      }, 4500);
     }
   }
 
@@ -1762,9 +1831,13 @@ export default function HomeScreen() {
           setShowAuthModal(false);
         }}
         showPaywallModal={showPaywallModal}
-        onClosePaywall={() => setShowPaywallModal(false)}
+        onClosePaywall={() => {
+          setPaywallError(null);
+          setShowPaywallModal(false);
+        }}
         onUpgradeToPro={handleUpgradeToPro}
         upgrading={upgrading}
+        paywallError={paywallError}
         lessons={lessons}
         algoModulesCount={algoModulesCount}
         sysDesignModulesCount={sysDesignModulesCount}
@@ -1803,9 +1876,10 @@ export default function HomeScreen() {
         }}
         onToggleDevPro={
           IS_DEV_MODE
-            ? () => setDevProOverride((prev) => !(prev ?? true))
+            ? () => setDevProOverride((prev) => !(prev ?? effectiveIsPremium))
             : undefined
         }
+        onOpenBillingPortal={handleOpenBillingPortal}
         onCloseProfile={() => setShowProfileModal(false)}
         showSettingsModal={showSettingsModal}
         pyodideReady={pyodideReady}

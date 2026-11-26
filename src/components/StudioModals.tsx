@@ -40,6 +40,7 @@ interface StudioModalsProps {
   onClosePaywall: () => void;
   onUpgradeToPro: (plan: PaywallPlanId) => Promise<void> | void;
   upgrading: boolean;
+  paywallError?: string | null;
   lessons: Lesson[];
   algoModulesCount: number;
   sysDesignModulesCount: number;
@@ -74,6 +75,7 @@ interface StudioModalsProps {
   onOpenCertificate: (cert: CertificateData) => void;
   onOpenAchievementsTab: () => void;
   onToggleDevPro?: () => void;
+  onOpenBillingPortal?: () => Promise<void> | void;
   onCloseProfile: () => void;
   showSettingsModal: boolean;
   pyodideReady?: boolean;
@@ -107,6 +109,7 @@ export default function StudioModals({
   onClosePaywall,
   onUpgradeToPro,
   upgrading,
+  paywallError,
   lessons,
   algoModulesCount,
   sysDesignModulesCount,
@@ -141,6 +144,7 @@ export default function StudioModals({
   onOpenCertificate,
   onOpenAchievementsTab,
   onToggleDevPro,
+  onOpenBillingPortal,
   onCloseProfile,
   showSettingsModal,
   pyodideReady,
@@ -199,6 +203,7 @@ export default function StudioModals({
             onClose={onClosePaywall}
             onUpgrade={onUpgradeToPro}
             loading={upgrading}
+            errorMessage={paywallError}
             totalModules={lessons.length || 64}
             algoModulesCount={algoModulesCount || 20}
             sysDesignModulesCount={sysDesignModulesCount || 20}
@@ -329,6 +334,7 @@ export default function StudioModals({
             onOpenCertificate={onOpenCertificate}
             onOpenAchievementsTab={onOpenAchievementsTab}
             onToggleDevPro={onToggleDevPro}
+            onOpenBillingPortal={onOpenBillingPortal}
             onOpenAuth={() => onOpenAuthPrompt("signin")}
             onClose={onCloseProfile}
           />

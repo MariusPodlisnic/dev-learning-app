@@ -122,7 +122,9 @@ export function useStudioSync({
   const [session, setSession] = useState<Session | null>(null);
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [devProOverride, setDevProOverride] = useState<boolean | null>(null);
-  const effectiveIsPremium = IS_DEV_MODE ? (devProOverride ?? true) : isPremium;
+  const effectiveIsPremium = IS_DEV_MODE
+    ? (devProOverride ?? isPremium)
+    : isPremium;
 
   const codeDraftsRef = useRef<Record<string, string>>({});
   const lessonsRef = useRef<Lesson[]>([]);
@@ -552,7 +554,7 @@ export function useStudioSync({
         setDevProOverride(savedState.devProOverride);
       }
       const initialDevPremium = IS_DEV_MODE
-        ? (savedState.devProOverride ?? true)
+        ? (savedState.devProOverride ?? false)
         : false;
       const initialTheme: ThemeMode =
         savedState.themeMode === "light" ? "light" : "dark";

@@ -55,6 +55,7 @@ interface ProfileStatsModalProps {
   onOpenCertificate?: (certificate: CertificateData) => void;
   onOpenAchievementsTab?: () => void;
   onToggleDevPro?: () => void;
+  onOpenBillingPortal?: () => Promise<void> | void;
   onOpenAuth: () => void;
   onClose: () => void;
 }
@@ -208,6 +209,7 @@ export default function ProfileStatsModal({
   onOpenCertificate,
   onOpenAchievementsTab,
   onToggleDevPro,
+  onOpenBillingPortal,
   onOpenAuth,
   onClose,
 }: ProfileStatsModalProps) {
@@ -661,6 +663,26 @@ export default function ProfileStatsModal({
               first shareable Certificate &amp; LinkedIn credential.
             </Text>
           </View>
+        )}
+
+        {isPremium && userEmail && onOpenBillingPortal && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Manage Pro billing and invoices"
+            style={({ pressed }) => [
+              styles.shareCardBtn,
+              { backgroundColor: StudioColors.violet, marginBottom: 8 },
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={() => {
+              playKeyClick();
+              void onOpenBillingPortal();
+            }}
+          >
+            <Text style={styles.shareCardBtnText}>
+              💳 MANAGE BILLING / INVOICES ↗
+            </Text>
+          </Pressable>
         )}
 
         {onOpenAchievementsTab && (
