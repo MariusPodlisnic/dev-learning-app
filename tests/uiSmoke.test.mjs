@@ -1719,3 +1719,29 @@ test("GhostDuelPaceBar and GhostDuelVerdictCard render live duel pace and rematc
   assert.ok(verdictText.includes("GHOST DEFEATED"));
   assert.ok(verdictText.includes("SEND REMATCH LINK"));
 });
+
+test("ToolBlueprintsPanel renders 3-stage Build-a-Tool blueprints and progressive live widget preview", () => {
+  const { default: ToolBlueprintsPanel } = loadTsModule(
+    "src/components/ToolBlueprintsPanel.tsx",
+  );
+  const bpText = visibleText(
+    renderThemed(
+      React.createElement(ToolBlueprintsPanel, {
+        pyodideReady: true,
+        isPremium: false,
+        onRequirePro: () => {},
+        onRunPython: async () => "",
+        onVerifyBuild: async () => ({
+          allPassed: true,
+          results: [],
+          stdout: "",
+        }),
+        onAwardBuildXp: () => {},
+      }),
+    ),
+  );
+  assert.ok(bpText.includes("Autocomplete Search Engine"));
+  assert.ok(bpText.includes("Stage 1: Prefix Matcher"));
+  assert.ok(bpText.includes("RATE LIMITER"));
+  assert.ok(bpText.includes("RUN STAGE WIDGET"));
+});

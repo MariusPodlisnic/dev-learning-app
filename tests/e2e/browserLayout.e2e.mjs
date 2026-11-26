@@ -376,12 +376,18 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       `Expected Arcade filter tab labels to align identically, got ${JSON.stringify(arcadeAlign)}`,
     );
 
-    // Launch Cozy Mini-Builds (CART-05) and verify both free sandboxes switch cleanly
+    // Launch Cozy Mini-Builds (CART-05) and verify both quick tools AND 3-Stage Blueprints switch cleanly
     await page.getByLabel("Launch Cozy Mini-Builds").click();
     await page.waitForSelector("text=Password Strength Meter", { timeout: 10000 });
     await page.waitForSelector("text=LIVE PREVIEW WIDGET", { timeout: 5000 });
     await page.getByLabel("Select mini-build Mini URL Shortener").click();
     await page.waitForSelector("text=Mini URL Shortener", { timeout: 5000 });
+    await page.getByLabel("Switch to 3-Stage Build-a-Tool Blueprints").click();
+    await page.waitForSelector("text=Autocomplete Search Engine", { timeout: 5000 });
+    await page.getByLabel("Select 3-stage blueprint Token-Bucket Rate Limiter").click();
+    await page.waitForSelector("text=Stage 1: Token Refill Engine", { timeout: 5000 });
+    await page.getByLabel("Select blueprint stage 3: Stage 3: Burst Traffic Simulator").click();
+    await page.waitForSelector("text=Stage 3: Burst Traffic Simulator", { timeout: 5000 });
 
     // Switch to Python Playground (CART-06) directly via ArcadeSubNavBar and test template + saved snippet flow
     await page.getByLabel("Switch to Python Playground").click();
@@ -595,6 +601,9 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
     await page.getByLabel("Launch Cozy Mini-Builds").click();
     await page.waitForSelector("text=Password Strength Meter", { timeout: 10000 });
     await assertZeroMobileOverflow(page, "Cozy Mini-Builds");
+    await page.getByLabel("Switch to 3-Stage Build-a-Tool Blueprints").click();
+    await page.waitForSelector("text=Autocomplete Search Engine", { timeout: 5000 });
+    await assertZeroMobileOverflow(page, "3-Stage Build-a-Tool Blueprints");
 
     await page.getByLabel("Switch to Output Detective").click();
     await page.waitForSelector("text=CASE 1 OF 6", { timeout: 10000 });

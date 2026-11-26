@@ -38,6 +38,7 @@ import {
   playMechanicalKeystroke,
 } from "../utils/typingSounds";
 import { StudioIcon, type StudioIconName, Text } from "./StudioIcon";
+import ToolBlueprintsPanel from "./ToolBlueprintsPanel";
 
 interface MiniBuildsArenaProps {
   pyodideReady: boolean;
@@ -74,6 +75,7 @@ export default function MiniBuildsArena({
   const { width: windowWidth } = useWindowDimensions();
   const isNarrow = windowWidth > 0 && windowWidth < 780;
 
+  const [studioMode, setStudioMode] = useState<"quick" | "blueprints">("quick");
   const [activeId, setActiveId] = useState<MiniBuildId>("password_meter");
   const [completedMap, setCompletedMap] = useState<Record<string, boolean>>(() =>
     readCompletedMiniBuilds(),
@@ -262,6 +264,55 @@ export default function MiniBuildsArena({
             </View>
           </View>
 
+          <View style={styles.modeToggleRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Switch to Quick Mini-Build Tools"
+              style={({ pressed }) => [
+                styles.modeToggleBtn,
+                studioMode === "quick" && styles.modeToggleBtnActive,
+                pressed && { transform: [{ translateY: 1 }] },
+              ]}
+              onPress={() => {
+                playKeyClick();
+                setStudioMode("quick");
+              }}
+            >
+              <Text
+                style={[
+                  styles.modeToggleText,
+                  studioMode === "quick" && styles.modeToggleTextActive,
+                ]}
+              >
+                🛠️ QUICK TOOLS ({MINI_BUILD_PROJECTS.length})
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Switch to 3-Stage Build-a-Tool Blueprints"
+              style={({ pressed }) => [
+                styles.modeToggleBtn,
+                studioMode === "blueprints" && styles.modeToggleBtnBlueprints,
+                pressed && { transform: [{ translateY: 1 }] },
+              ]}
+              onPress={() => {
+                playKeyClick();
+                setStudioMode("blueprints");
+              }}
+            >
+              <Text
+                style={[
+                  styles.modeToggleText,
+                  studioMode === "blueprints" && styles.modeToggleTextActive,
+                ]}
+              >
+                🧩 3-STAGE BLUEPRINTS (3)
+              </Text>
+            </Pressable>
+          </View>
+
+          {studioMode === "quick" ? (
           <View style={styles.projectTabsRow}>
             {MINI_BUILD_PROJECTS.map((item) => {
               const selected = activeId === item.id;
@@ -304,9 +355,20 @@ export default function MiniBuildsArena({
               );
             })}
           </View>
+          ) : null}
         </View>
 
-        {/* Split Workbench: Code Editor + Live Powered Preview Widget */}
+        {studioMode === "blueprints" ? (
+          <ToolBlueprintsPanel
+            pyodideReady={pyodideReady}
+            isPremium={isPremium}
+            onRequirePro={onRequirePro}
+            onRunPython={onRunPython}
+            onVerifyBuild={onVerifyBuild}
+            onAwardBuildXp={onAwardBuildXp}
+          />
+        ) : (
+        /* Split Workbench: Code Editor + Live Powered Preview Widget */
         <View
           style={[
             styles.workbenchGrid,
@@ -772,6 +834,7 @@ export default function MiniBuildsArena({
             </View>
           </View>
         </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -801,6 +864,40 @@ const createStyles = (StudioColors: StudioThemeColors) =>
       padding: 15,
       gap: 12,
       ...HardShadow,
+    },
+    modeToggleRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    modeToggleBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 8,
+      borderWidth: 1.5,
+      borderColor: StudioColors.border,
+      backgroundColor: StudioColors.bg,
+      ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+    },
+    modeToggleBtnActive: {
+      backgroundColor: StudioColors.yellow,
+      borderColor: StudioColors.ink,
+      ...HardShadowSm,
+    },
+    modeToggleBtnBlueprints: {
+      backgroundColor: StudioColors.lime,
+      borderColor: StudioColors.ink,
+      ...HardShadowSm,
+    },
+    modeToggleText: {
+      color: StudioColors.textSecondary,
+      fontSize: 10,
+      fontWeight: "900",
+      fontFamily: MonoFont,
+      letterSpacing: 0.5,
+    },
+    modeToggleTextActive: {
+      color: StudioColors.ink,
     },
     headerTopRow: {
       flexDirection: "row",
