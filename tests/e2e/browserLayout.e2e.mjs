@@ -232,11 +232,15 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
       "Order should stay intact after switching theme and palette",
     );
 
-    // Profile modal opens with Level 1 avatar, no excluded rank tagline, and working PNG card download
+    // Profile modal opens with Astral Dev Passport, Level 1 avatar, no excluded rank tagline, and working PNG card download
     await page.getByLabel("Open Profile and Stats").click();
+    await page.waitForSelector("text=ASTRAL DEV PASSPORT", { timeout: 5000 });
+    await page.waitForSelector("text=ILLUMINATED STAR CHART", { timeout: 5000 });
+    await page.waitForSelector("text=VISA STAMPS", { timeout: 5000 });
     await page.waitForSelector("text=LVL 1", { timeout: 5000 });
     await page.waitForSelector("text=COZY PIXEL GARDEN · 12 WEEKS", { timeout: 5000 });
     await page.waitForSelector("text=SAVE PNG CARD", { timeout: 5000 });
+    await page.getByTestId("astral-passport-tilt-stage").hover();
     const modalText = await page.locator("body").innerText();
     assert.ok(
       !modalText.includes("Professional StackOverflow archaeologist"),

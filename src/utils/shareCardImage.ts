@@ -12,6 +12,14 @@ import {
   getGardenTilePalette,
   mergeStreakBaselineIntoHeatmap,
 } from "./activityHeatmap";
+import {
+  type AstralPassportData,
+  buildBonsaiEmblemSvgInner,
+  buildMiniConstellationSvgInner,
+  buildPassportSerial,
+  computePassportBonsaiStage,
+  computePassportRarity,
+} from "./astralPassport";
 import { trackFunnelMilestone } from "./attribution";
 import { shareOrCopyText } from "./shareUtils";
 
@@ -36,6 +44,7 @@ export interface ShareCardPayload {
   accentColor?: string;
   footerUrl?: string;
   activityMap?: ActivityHeatmapMap;
+  passport?: AstralPassportData;
 }
 
 export type ShareCardExportOutcome =
@@ -185,52 +194,66 @@ export function buildShareCardSvg(payload: ShareCardPayload): string {
     `${gardenSummary.activeDays}D · ${gardenSummary.totalActions} WINS`,
   );
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <defs>
-    <pattern id="devyDots" width="24" height="24" patternUnits="userSpaceOnUse">
-      <circle cx="4" cy="4" r="1.4" fill="${darkColors.textPrimary}" fill-opacity="0.10" />
-    </pattern>
-  </defs>
+  const isPassportCard = payload.variant === "profile_card";
+  const passportSerial = escapeXml(
+    payload.passport?.serialNumber ||
+      buildPassportSerial(payload.displayName || payload.headline, payload.rankLevel),
+  );
+  const passportRarity =
+    payload.passport?.rarity || computePassportRarity(payload.rankLevel);
+  const passportBonsai =
+    payload.passport?.bonsai ||
+    computePassportBonsaiStage(payload.streakCount, 0);
+  const passportConstellationSvg =
+    isPassportCard && payload.passport?.constellations?.length
+      ? buildMiniConstellationSvgInner(payload.passport.constellations, 218, 92, 6.4)
+      : "";
+  const passportBonsaiSvg = isPassportCard
+    ? buildBonsaiEmblemSvgInner(passportBonsai, paletteId)
+    : "";
+  const passportStampsBadge = payload.passport
+    ? escapeXml(
+        `STAMPS ${payload.passport.stampsEarnedCount}/${payload.passport.stamps.length} · CODEX ${payload.passport.codexIlluminated}/${payload.passport.codexTotal}`,
+      )
+    : escapeXml(`STAGE ${passportBonsai.stageNumber}/5 · ${passportBonsai.label}`);
 
-  <!-- Outer Canvas -->
-  <rect width="1200" height="630" fill="${darkColors.bg}" />
-  <rect width="1200" height="630" fill="url(#devyDots)" />
+  const rightEmblemSvg = isPassportCard
+    ? `
+  <!-- Right Side: Astral Dev Passport Observatory Emblem + Mini Constellation + Bonsai -->
+  <g transform="translate(812, 100)">
+    <!-- Passport Serial & Rarity Crown Pill -->
+    <rect x="4" y="0" width="270" height="24" rx="7" fill="${darkColors.codeSurface}" stroke="${passportRarity.foilPrimary}" stroke-width="2" />
+    <text x="16" y="16" fill="${passportRarity.foilPrimary}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="900" letter-spacing="0.8">✦ ${passportSerial}</text>
+    <text x="262" y="16" text-anchor="end" fill="${darkColors.textPrimary}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10" font-weight="900">${escapeXml(passportRarity.badgeText)}</text>
 
-  <!-- Decorative Ambient Corner Glows -->
-  <circle cx="1050" cy="110" r="210" fill="${accent}" fill-opacity="0.12" />
-  <circle cx="160" cy="540" r="180" fill="#FF90E8" fill-opacity="0.09" />
+    <!-- Observatory Shadow & Shell -->
+    <rect x="10" y="36" width="270" height="266" rx="24" fill="#000000" />
+    <rect x="4" y="30" width="270" height="266" rx="24" fill="${darkColors.surfaceElevated}" stroke="${passportRarity.foilPrimary}" stroke-width="3.5" />
 
-  <!-- Main Neo-Brutalist Card Hard Shadow -->
-  <rect x="54" y="50" width="1104" height="540" rx="28" fill="#000000" />
-  <!-- Main Card Shell -->
-  <rect x="44" y="40" width="1104" height="540" rx="28" fill="${darkColors.surface}" stroke="${darkColors.border}" stroke-width="4" />
+    <!-- Star Chart Viewport -->
+    <rect x="20" y="46" width="238" height="162" rx="16" fill="#090C16" stroke="${darkColors.codeBorder}" stroke-width="2.5" />
+    <rect x="30" y="54" width="218" height="20" rx="6" fill="${darkColors.codeSurface}" />
+    <text x="40" y="68" fill="${accent}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="900">● ${variantTag}</text>
+    <text x="238" y="68" text-anchor="end" fill="#FFDE59" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10" font-weight="900">${crtStatusCaption}</text>
 
-  <!-- Top Colored Ribbon -->
-  <path d="M48 68 C48 53 60 44 74 44 L1118 44 C1132 44 1144 53 1144 68 L1144 76 L48 76 Z" fill="${accent}" />
-  <line x1="44" y1="76" x2="1148" y2="76" stroke="#111111" stroke-width="3" />
+    <!-- Illuminated Mini Constellation Map -->
+    <g transform="translate(30, 76)">
+      ${passportConstellationSvg}
+    </g>
 
-  <!-- Header Brand Pill + Level Pill -->
-  <rect x="92" y="106" width="218" height="38" rx="10" fill="${darkColors.surfaceElevated}" stroke="${darkColors.border}" stroke-width="2.5" />
-  <circle cx="114" cy="125" r="7" fill="${accent}" stroke="#111111" stroke-width="2" />
-  <text x="132" y="131" fill="${darkColors.textPrimary}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="16" font-weight="900" letter-spacing="1.4">DEVY STUDIO</text>
+    <!-- Crisp Devy Emblem Stamp -->
+    <text x="139" y="195" text-anchor="middle" fill="${accent}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10.5" font-weight="900" letter-spacing="0.6">[ &gt;_ DEVY ] · ASTRAL PASSPORT</text>
 
-  <rect x="326" y="106" width="268" height="38" rx="10" fill="${accent}" stroke="#111111" stroke-width="2.5" />
-  <text x="344" y="131" fill="#111111" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="15" font-weight="900" letter-spacing="1">${eyebrow}</text>
-
-  <!-- Headline & Personalized Identity -->
-  ${headlineSvg}
-  <text x="92" y="${subtitleY}" fill="${darkColors.textSecondary}" font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-size="24" font-weight="700">${subtitle}</text>
-
-  <!-- Coder Handle Pill -->
-  <rect x="92" y="360" width="390" height="44" rx="10" fill="${darkColors.codeSurface}" stroke="${darkColors.codeBorder}" stroke-width="2" />
-  <text x="112" y="388" fill="${accent}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="16" font-weight="800">@${coderName} · ${rankBadge}</text>
-
-  <!-- 12-Week Cozy Pixel Garden Mini-Card -->
-  <rect x="496" y="356" width="300" height="50" rx="10" fill="${darkColors.codeSurface}" stroke="${darkColors.codeBorder}" stroke-width="2" />
-  <text x="510" y="376" fill="${darkColors.textPrimary}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="900" letter-spacing="0.8">12W PIXEL GARDEN</text>
-  <text x="510" y="395" fill="${gardenColors[3]}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="900">${gardenStatCaption}</text>
-  ${gardenTilesSvg}
-
+    <!-- Bottom Bonsai Growth Emblem + Stamps Telemetry -->
+    <rect x="20" y="218" width="238" height="66" rx="12" fill="${darkColors.codeBg}" stroke="${darkColors.codeBorder}" stroke-width="2" />
+    <g transform="translate(26, 221) scale(0.7)">
+      ${passportBonsaiSvg}
+    </g>
+    <text x="92" y="241" fill="#6EE7B7" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="10" font-weight="900" letter-spacing="0.8">BONSAI STAGE ${passportBonsai.stageNumber}/5</text>
+    <text x="92" y="259" fill="${darkColors.textPrimary}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="12.5" font-weight="900">${escapeXml(passportBonsai.label)}</text>
+    <text x="92" y="275" fill="${darkColors.textSecondary}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="9.5" font-weight="800">${passportStampsBadge}</text>
+  </g>`
+    : `
   <!-- Right Side: Retro Devy CRT Terminal Emblem -->
   <g transform="translate(812, 108)">
     <!-- Twin Retro Signal Antennas -->
@@ -258,7 +281,55 @@ export function buildShareCardSvg(payload: ShareCardPayload): string {
     <rect x="38" y="213" width="138" height="14" rx="4" fill="${accent}" stroke="#111111" stroke-width="2" />
     <circle cx="212" cy="220" r="7" fill="${accent}" stroke="#111111" stroke-width="2" />
     <text x="226" y="225" fill="${darkColors.textPrimary}" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="13" font-weight="900">VHS</text>
-  </g>
+  </g>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <pattern id="devyDots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="4" cy="4" r="1.4" fill="${darkColors.textPrimary}" fill-opacity="0.10" />
+    </pattern>
+  </defs>
+
+  <!-- Outer Canvas -->
+  <rect width="1200" height="630" fill="${darkColors.bg}" />
+  <rect width="1200" height="630" fill="url(#devyDots)" />
+
+  <!-- Decorative Ambient Corner Glows -->
+  <circle cx="1050" cy="110" r="210" fill="${accent}" fill-opacity="0.12" />
+  <circle cx="160" cy="540" r="180" fill="#FF90E8" fill-opacity="0.09" />
+
+  <!-- Main Neo-Brutalist Card Hard Shadow -->
+  <rect x="54" y="50" width="1104" height="540" rx="28" fill="#000000" />
+  <!-- Main Card Shell -->
+  <rect x="44" y="40" width="1104" height="540" rx="28" fill="${darkColors.surface}" stroke="${isPassportCard ? passportRarity.foilPrimary : darkColors.border}" stroke-width="4" />
+
+  <!-- Top Colored Ribbon -->
+  <path d="M48 68 C48 53 60 44 74 44 L1118 44 C1132 44 1144 53 1144 68 L1144 76 L48 76 Z" fill="${accent}" />
+  <line x1="44" y1="76" x2="1148" y2="76" stroke="#111111" stroke-width="3" />
+
+  <!-- Header Brand Pill + Level Pill -->
+  <rect x="92" y="106" width="218" height="38" rx="10" fill="${darkColors.surfaceElevated}" stroke="${darkColors.border}" stroke-width="2.5" />
+  <circle cx="114" cy="125" r="7" fill="${accent}" stroke="#111111" stroke-width="2" />
+  <text x="132" y="131" fill="${darkColors.textPrimary}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="16" font-weight="900" letter-spacing="1.4">DEVY STUDIO</text>
+
+  <rect x="326" y="106" width="268" height="38" rx="10" fill="${accent}" stroke="#111111" stroke-width="2.5" />
+  <text x="344" y="131" fill="#111111" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="15" font-weight="900" letter-spacing="1">${eyebrow}</text>
+
+  <!-- Headline & Personalized Identity -->
+  ${headlineSvg}
+  <text x="92" y="${subtitleY}" fill="${darkColors.textSecondary}" font-family="'Plus Jakarta Sans', 'Inter', system-ui, sans-serif" font-size="24" font-weight="700">${subtitle}</text>
+
+  <!-- Coder Handle Pill -->
+  <rect x="92" y="360" width="390" height="44" rx="10" fill="${darkColors.codeSurface}" stroke="${darkColors.codeBorder}" stroke-width="2" />
+  <text x="110" y="387" fill="${accent}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="13.5" font-weight="800">@${coderName} · ${rankBadge}</text>
+
+  <!-- 12-Week Cozy Pixel Garden Mini-Card -->
+  <rect x="496" y="356" width="300" height="50" rx="10" fill="${darkColors.codeSurface}" stroke="${darkColors.codeBorder}" stroke-width="2" />
+  <text x="510" y="376" fill="${darkColors.textPrimary}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="900" letter-spacing="0.8">12W PIXEL GARDEN</text>
+  <text x="510" y="395" fill="${gardenColors[3]}" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="900">${gardenStatCaption}</text>
+  ${gardenTilesSvg}
+
+  ${rightEmblemSvg}
 
   <!-- 3 Neo-Brutalist Stat Cards -->
   <!-- Stat 1: Streak -->

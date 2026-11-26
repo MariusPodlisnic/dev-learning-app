@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
   getLevelAvatarIcon,
@@ -23,14 +23,19 @@ import {
   getActivityHeatmapMap,
   mergeStreakBaselineIntoHeatmap,
 } from "../utils/activityHeatmap";
+import { getArcadeRecordsState } from "../utils/arcadeRecords";
+import { buildAstralPassportData } from "../utils/astralPassport";
+import { STORAGE_MINIBUILDS_DONE_KEY } from "../utils/miniBuilds";
 import { exportShareCardPng } from "../utils/shareCardImage";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
 import { playKeyClick } from "../utils/soundEffects";
+import { readLocalJson } from "../utils/storage";
 import {
   getOnboardingState,
   subscribeOnboarding,
 } from "../utils/userOnboarding";
 import ActivityHeatmapCard from "./ActivityHeatmapCard";
+import AstralDevPassportCard from "./AstralDevPassportCard";
 import { Lesson } from "./RoadmapTree";
 
 interface ProfileStatsModalProps {
@@ -226,12 +231,54 @@ export default function ProfileStatsModal({
     userEmail,
   });
 
+  const passport = useMemo(() => {
+    const arcadeRecords = getArcadeRecordsState();
+    const solvedBugsMap = readLocalJson<Record<string, boolean>>(
+      "devlearn_solved_bugs_v1",
+      {},
+    );
+    const solvedBugCount = Object.values(solvedBugsMap).filter(Boolean).length;
+    const miniBuildsMap = readLocalJson<Record<string, boolean>>(
+      STORAGE_MINIBUILDS_DONE_KEY,
+      {},
+    );
+    const completedMiniBuildsCount =
+      Object.values(miniBuildsMap).filter(Boolean).length;
+
+    return buildAstralPassportData({
+      displayName,
+      userEmail,
+      rankLevel: rank.level,
+      rankTitle: rank.title,
+      rankAccent: rank.accent,
+      isPremium,
+      xpPoints,
+      streakCount,
+      lessons,
+      completedLessons,
+      blitzBestHits: arcadeRecords.blitzBestHits,
+      solvedBugCount,
+      completedMiniBuildsCount,
+    });
+  }, [
+    displayName,
+    userEmail,
+    rank.level,
+    rank.title,
+    rank.accent,
+    isPremium,
+    xpPoints,
+    streakCount,
+    lessons,
+    completedLessons,
+  ]);
+
   function buildProfileShareData() {
     const url = buildChallengeUrl({ ref: "profile_card" });
     const message = [
-      `💻 Devy Developer Card`,
-      `🏅 Level ${rank.level}: ${rank.title}`,
-      `⚡ ${xpPoints} XP · 🔥 ${streakCount}d streak · ✓ ${totalCompleted}/${totalLessons} modules solved`,
+      `✦ Devy Astral Dev Passport (${passport.serialNumber})`,
+      `🏅 Level ${rank.level}: ${rank.title} · ${passport.rarity.tier}`,
+      `⚡ ${xpPoints} XP · 🔥 ${streakCount}d streak · ✓ ${totalCompleted}/${totalLessons} stars · 🌿 ${passport.bonsai.label}`,
       `Join me on Devy 👉 ${url}`,
     ].join("\n");
     return { url, message };
@@ -241,7 +288,7 @@ export default function ProfileStatsModal({
     playKeyClick();
     const { message } = buildProfileShareData();
     const outcome = await shareOrCopyText({
-      title: `Devy Rank: ${rank.title}`,
+      title: `Devy Passport: ${rank.title}`,
       message,
       channel: "profile_card",
     });
@@ -258,7 +305,7 @@ export default function ProfileStatsModal({
     const outcome = await exportShareCardPng({
       payload: {
         variant: "profile_card",
-        eyebrow: `DEVELOPER CARD · LVL ${rank.level}`,
+        eyebrow: `ASTRAL PASSPORT · LVL ${rank.level}`,
         headline: displayName || rank.title,
         subtitle: displayName
           ? `LVL ${rank.level} · ${rank.title} — ${isPremium ? "PRO MEMBER ★" : "PYTHON STUDIO"}`
@@ -280,8 +327,9 @@ export default function ProfileStatsModal({
           streakCount,
           lastActiveDate,
         ),
+        passport,
       },
-      fallbackTitle: `Devy Rank: ${rank.title}`,
+      fallbackTitle: `Devy Passport: ${rank.title}`,
       fallbackMessage: message,
       channel: "profile_card",
     });
@@ -390,6 +438,57 @@ export default function ProfileStatsModal({
         style={styles.scrollBody}
         showsVerticalScrollIndicator={false}
       >
+        {/* Collectible Holographic Astral Dev Passport Card */}
+        <AstralDevPassportCard
+          passport={passport}
+          avatarIcon={rank.avatarIcon}
+          isMaxLevel={rank.isMaxLevel}
+        />
+
+        <View style={styles.shareActionsRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Save visual PNG developer card"
+            disabled={pngFeedback === "saving"}
+            style={({ pressed }) => [
+              styles.pngCardBtn,
+              (pngFeedback === "downloaded" || pngFeedback === "shared") &&
+                styles.shareCardBtnDone,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={handleSaveDevCardPng}
+          >
+            <Text style={styles.shareCardBtnText}>
+              {pngFeedback === "saving"
+                ? "RENDERING PNG..."
+                : pngFeedback === "downloaded"
+                  ? "✓ PNG SAVED!"
+                  : pngFeedback === "shared"
+                    ? "✓ PNG SHARED!"
+                    : "🖼️ SAVE PNG CARD"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Copy or share developer card text"
+            style={({ pressed }) => [
+              styles.shareCardBtn,
+              shareFeedback !== "idle" && styles.shareCardBtnDone,
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+            onPress={handleShareDevCard}
+          >
+            <Text style={styles.shareCardBtnText}>
+              {shareFeedback === "copied"
+                ? "✓ COPIED!"
+                : shareFeedback === "shared"
+                  ? "✓ SHARED!"
+                  : "📤 COPY TEXT ↗"}
+            </Text>
+          </Pressable>
+        </View>
+
         {/* Level XP Progress Bar */}
         <View style={styles.levelProgressBox}>
           <View style={styles.levelProgressHeader}>
@@ -451,50 +550,6 @@ export default function ProfileStatsModal({
           streakCount={streakCount}
           lastActiveDate={lastActiveDate}
         />
-
-        <View style={styles.shareActionsRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Save visual PNG developer card"
-            disabled={pngFeedback === "saving"}
-            style={({ pressed }) => [
-              styles.pngCardBtn,
-              (pngFeedback === "downloaded" || pngFeedback === "shared") &&
-                styles.shareCardBtnDone,
-              pressed && { transform: [{ translateY: 1 }] },
-            ]}
-            onPress={handleSaveDevCardPng}
-          >
-            <Text style={styles.shareCardBtnText}>
-              {pngFeedback === "saving"
-                ? "RENDERING PNG..."
-                : pngFeedback === "downloaded"
-                  ? "✓ PNG SAVED!"
-                  : pngFeedback === "shared"
-                    ? "✓ PNG SHARED!"
-                    : "🖼️ SAVE PNG CARD"}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Copy or share developer card text"
-            style={({ pressed }) => [
-              styles.shareCardBtn,
-              shareFeedback !== "idle" && styles.shareCardBtnDone,
-              pressed && { transform: [{ translateY: 1 }] },
-            ]}
-            onPress={handleShareDevCard}
-          >
-            <Text style={styles.shareCardBtnText}>
-              {shareFeedback === "copied"
-                ? "✓ COPIED!"
-                : shareFeedback === "shared"
-                  ? "✓ SHARED!"
-                  : "📤 COPY TEXT ↗"}
-            </Text>
-          </Pressable>
-        </View>
 
         {/* Track Mastery Breakdown */}
         <Text style={styles.sectionHeading}>TRACK MASTERY</Text>
@@ -634,13 +689,13 @@ const createStyles = (StudioColors: StudioThemeColors) =>
   StyleSheet.create({
   card: {
     backgroundColor: StudioColors.surface,
-    padding: 24,
+    padding: 22,
     borderRadius: 14,
     borderWidth: 2,
     borderColor: StudioColors.border,
-    width: 450,
+    width: 500,
     maxWidth: "94%",
-    maxHeight: "88%",
+    maxHeight: "90%",
     overflow: "hidden",
     position: "relative",
     ...HardShadow,

@@ -103,9 +103,27 @@ test("buildShareCardSvg produces valid 1200x630 themed SVGs across all 3 variant
   });
   assert.ok(streakSvg.includes("STREAK MILESTONE"));
 
+  const { buildAstralPassportData } = loadTsModule("src/utils/astralPassport.ts");
+  const passport = buildAstralPassportData({
+    displayName: "Alex",
+    rankLevel: 5,
+    rankTitle: "System Shaper",
+    rankAccent: "#C4B5FD",
+    isPremium: true,
+    xpPoints: 3200,
+    streakCount: 14,
+    lessons: [
+      { id: "py-1", track: "python_basics", lesson_order: 1, title: "L1" },
+      { id: "alg-1", track: "algorithms", lesson_order: 1, title: "A1" },
+      { id: "sys-1", track: "system_design", lesson_order: 1, title: "S1" },
+    ],
+    completedLessons: { "py-1": true },
+    blitzBestHits: 12,
+  });
+
   const profileSvg = buildShareCardSvg({
     variant: "profile_card",
-    eyebrow: "DEVELOPER CARD · LVL 5",
+    eyebrow: "ASTRAL PASSPORT · LVL 5",
     headline: "Alex",
     rankLevel: 5,
     rankTitle: "System Shaper",
@@ -113,10 +131,15 @@ test("buildShareCardSvg produces valid 1200x630 themed SVGs across all 3 variant
     streakCount: 14,
     metric3Label: "SOLVED",
     metric3Value: "24/64",
+    passport,
   });
   assert.ok(profileSvg.includes("DEVELOPER CARD"));
   assert.ok(profileSvg.includes("24/64"));
   assert.ok(profileSvg.includes("[ &gt;_ DEVY ]"));
   assert.ok(profileSvg.includes("RANK LVL 5"));
+  assert.ok(profileSvg.includes("ASTRAL PASSPORT"));
+  assert.ok(profileSvg.includes("SERPENS · 100%"));
+  assert.ok(profileSvg.includes("BONSAI STAGE 4/5"));
+  assert.ok(profileSvg.includes(passport.serialNumber));
   assert.ok(profileSvg.includes("DEVY STUDIO"));
 });
