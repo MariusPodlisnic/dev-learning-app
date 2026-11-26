@@ -223,6 +223,53 @@ export function ArcadeLiveCrtDeck({
           ctx.fillStyle = lit ? "#6EE7B7" : "rgba(255,255,255,0.14)";
           ctx.fillRect(82 + seg * 38, cy + 5, 32, 10);
         }
+      } else if (cart.id === "refactor") {
+        // Big-O Golf CRT preview: slow O(n^2) curve morphing down into crisp O(n) green line + par flag
+        const morph = 0.5 + 0.5 * Math.sin(t * 2.1);
+        ctx.strokeStyle = "rgba(251, 113, 133, 0.55)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i <= 18; i += 1) {
+          const fx = i / 18;
+          const px = 22 + fx * (W - 76);
+          const py = H - 28 - fx * fx * (H - 54);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = "#B8FF3B";
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        for (let i = 0; i <= 18; i += 1) {
+          const fx = i / 18;
+          const px = 22 + fx * (W - 76);
+          const py = H - 28 - (fx * 0.35 + fx * fx * (1 - morph) * 0.55) * (H - 54);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // Golf flag at target par
+        const flagX = W - 44;
+        ctx.strokeStyle = "#E2E8F0";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(flagX, H - 26);
+        ctx.lineTo(flagX, 34);
+        ctx.stroke();
+        ctx.fillStyle = "#FB923C";
+        ctx.beginPath();
+        ctx.moveTo(flagX, 34);
+        ctx.lineTo(flagX + 20, 42);
+        ctx.lineTo(flagX, 50);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#B8FF3B";
+        ctx.font = "900 10px 'JetBrains Mono', ui-monospace, monospace";
+        ctx.textAlign = "left";
+        ctx.fillText("O(n^2) -> O(n) · EAGLE PAR", 20, 26);
       } else {
         const fullCmd = ">>> [n*n for n in range(4)]";
         const chars = Math.floor((t * 9) % (fullCmd.length + 10));

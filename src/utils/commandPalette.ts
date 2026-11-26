@@ -238,6 +238,17 @@ export function buildCommandPaletteItems(
       featured: true,
       action: { type: "view_mode", mode: "minibuilds" },
     },
+    {
+      id: "arc-refactor",
+      group: "ARCADE",
+      title: "Code Refactor & Big-O Golf",
+      subtitle: "CART-07 · Optimize O(n²) Python under Line Par to score Gold Eagles",
+      keywords: ["refactor", "golf", "big-o", "optimize", "par", "eagle", "complexity"],
+      icon: "bolt",
+      badge: "CART-07",
+      featured: true,
+      action: { type: "view_mode", mode: "refactor" },
+    },
 
     // AUDIO, FOCUS & STUDIO CONTROLS
     {

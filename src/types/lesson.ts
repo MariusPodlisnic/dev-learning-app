@@ -75,6 +75,7 @@ export type ViewMode =
   | "detective"
   | "minibuilds"
   | "playground"
+  | "refactor"
   | "algolab"
   | "achievements"
   | "league";
@@ -85,7 +86,8 @@ export type ArcadeGameMode =
   | "flashcards"
   | "detective"
   | "minibuilds"
-  | "playground";
+  | "playground"
+  | "refactor";
 
 export function isArcadeGameMode(mode: ViewMode): mode is ArcadeGameMode {
   return (
@@ -94,7 +96,8 @@ export function isArcadeGameMode(mode: ViewMode): mode is ArcadeGameMode {
     mode === "flashcards" ||
     mode === "detective" ||
     mode === "minibuilds" ||
-    mode === "playground"
+    mode === "playground" ||
+    mode === "refactor"
   );
 }
 

@@ -49,7 +49,7 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
     id: "feat-arcade",
     icon: "nav_arcade",
     accent: "#FF90E8",
-    tag: "6 CARTRIDGES",
+    tag: "7 CARTRIDGES",
     title: "Cozy Mini-Game Arcade",
     description:
       "Play 60s Syntax Blitz, Bug Hunt Incidents, Output Detective, Rapid Flashcards, Python Playground, and playable Cozy Mini-Builds.",

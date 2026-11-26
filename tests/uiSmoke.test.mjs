@@ -1293,7 +1293,8 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(hubText.includes("Output Detective"));
   assert.ok(hubText.includes("Cozy Mini-Builds"));
   assert.ok(hubText.includes("Python Playground"));
-  assert.ok(hubText.includes("SANDBOX & BUILDS (2)"));
+  assert.ok(hubText.includes("Code Refactor Golf"));
+  assert.ok(hubText.includes("SANDBOX & BUILDS (3)"));
 
   const subNavText = visibleText(
     renderThemed(
@@ -1310,6 +1311,7 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(subNavText.includes("DETECTIVE"));
   assert.ok(subNavText.includes("MINI-BUILDS"));
   assert.ok(subNavText.includes("PLAYGROUND"));
+  assert.ok(subNavText.includes("BIG-O GOLF"));
 
   const detectiveText = visibleText(
     renderThemed(
@@ -1653,4 +1655,29 @@ test("LoftWorkshopPanel renders companion, window, keycap, and mug customization
   assert.ok(workshopText.includes("Shiba Pup"));
   assert.ok(workshopText.includes("ACTIVE ✓"));
   assert.ok(workshopText.includes("1200 XP"));
+});
+
+test("RefactorGolfArena renders CART-07 Big-O Golf scorecard, holes, and live par telemetry", () => {
+  const { default: RefactorGolfArena } = loadTsModule(
+    "src/components/RefactorGolfArena.tsx",
+  );
+  const golfText = visibleText(
+    renderThemed(
+      React.createElement(RefactorGolfArena, {
+        pyodideReady: true,
+        isPremium: false,
+        onRequirePro: () => {},
+        onVerifyRefactor: async () => ({
+          allPassed: true,
+          results: [],
+          stdout: "",
+        }),
+        onAwardGolfXp: () => {},
+      }),
+    ),
+  );
+  assert.ok(golfText.includes("CART-07 · CODE REFACTOR & BIG-O GOLF"));
+  assert.ok(golfText.includes("Two-Sum Hash Lookup"));
+  assert.ok(golfText.includes("LINE PAR"));
+  assert.ok(golfText.includes("GRADE & BENCHMARK"));
 });

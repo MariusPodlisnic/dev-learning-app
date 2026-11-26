@@ -233,7 +233,7 @@ export default function HomeMenuScreen({
       {
         id: "portal-arcade",
         title: "Mini-Game Arcade",
-        tag: "6 CARTRIDGES",
+        tag: "7 CARTRIDGES",
         stat:
           arcadeRecords.blitzBestHits > 0
             ? `BEST BLITZ: ${arcadeRecords.blitzBestHits} HITS · ${getBlitzRankFromHits(arcadeRecords.blitzBestHits)}`

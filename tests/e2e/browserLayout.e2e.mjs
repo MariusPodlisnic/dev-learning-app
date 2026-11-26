@@ -353,10 +353,10 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.waitForSelector("text=Devy Mini-Game Arcade", { timeout: 10000 });
     const arcadeAlign = await page.evaluate(() => {
       const filterLabels = [
-        "ALL GAMES (6)",
+        "ALL GAMES (7)",
         "QUICK SPRINTS (2)",
         "MEMORY & RECALL (2)",
-        "SANDBOX & BUILDS (2)",
+        "SANDBOX & BUILDS (3)",
       ];
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       const ys = {};
@@ -391,6 +391,13 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.getByLabel("Snippet name input").fill("Studio Banner");
     await page.getByLabel("Save current playground snippet").click();
     await page.waitForSelector("text=Studio Banner", { timeout: 5000 });
+
+    // Switch to Code Refactor Golf (CART-07) and verify live Big-O Par updates when loading optimal solution
+    await page.getByLabel("Switch to Code Refactor Golf").click();
+    await page.waitForSelector("text=CART-07 · CODE REFACTOR & BIG-O GOLF", { timeout: 10000 });
+    await page.waitForSelector("text=Hole 01: Two-Sum Hash Lookup", { timeout: 5000 });
+    await page.getByLabel("Load optimal reference refactor").click();
+    await page.waitForSelector("text=LIVE PAR: 8/8 LINES · O(n)", { timeout: 5000 });
 
     // Switch to Output Detective (CART-04), answer case 1, inspect trace breakdown, advance to case 2
     await page.getByLabel("Switch to Output Detective").click();
@@ -576,6 +583,10 @@ test("Mobile viewport (390x844): PWA manifest, compact header, Quick Jump, Pixel
     await page.getByLabel("Switch to Python Playground").click();
     await page.waitForSelector("text=PLAYGROUND.PY · FREE PYTHON 3.11 SCRATCHPAD", { timeout: 10000 });
     await assertZeroMobileOverflow(page, "Python Playground");
+
+    await page.getByLabel("Switch to Code Refactor Golf").click();
+    await page.waitForSelector("text=CART-07 · CODE REFACTOR & BIG-O GOLF", { timeout: 10000 });
+    await assertZeroMobileOverflow(page, "Code Refactor Golf");
 
     // Mobile bottom thumb nav -> Code Studio fits cleanly at 390px
     await page.getByLabel("Code Studio", { exact: true }).click();

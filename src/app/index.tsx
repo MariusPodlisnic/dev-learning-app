@@ -117,6 +117,9 @@ const MiniBuildsArena = React.lazy(
 const PythonScratchpad = React.lazy(
   () => import("../components/PythonScratchpad"),
 );
+const RefactorGolfArena = React.lazy(
+  () => import("../components/RefactorGolfArena"),
+);
 const SyntaxBlitzArena = React.lazy(
   () => import("../components/SyntaxBlitzArena"),
 );
@@ -508,6 +511,8 @@ export default function HomeScreen() {
       mode === "flashcards" ||
       mode === "detective" ||
       mode === "minibuilds" ||
+      mode === "playground" ||
+      mode === "refactor" ||
       mode === "algolab" ||
       mode === "achievements" ||
       mode === "league"
@@ -1021,7 +1026,9 @@ export default function HomeScreen() {
                 ? "Output Detective | Devy"
                 : viewMode === "minibuilds"
                   ? "Cozy Mini-Builds | Devy"
-                  : viewMode === "algolab"
+                  : viewMode === "refactor"
+                    ? "Code Refactor & Big-O Golf | Devy"
+                    : viewMode === "algolab"
                 ? "Pro Algorithm Visual Lab | Devy"
                 : viewMode === "league"
                   ? "Weekly League Leaderboard | Devy"
@@ -1055,6 +1062,8 @@ export default function HomeScreen() {
               ? "#38BDF8"
               : viewMode === "minibuilds" || viewMode === "algolab"
                 ? StudioColors.violet
+                : viewMode === "refactor"
+                  ? "#FB923C"
               : TrackThemes[activeTrack]?.stickerBg || StudioColors.yellow;
 
   if (showShowcase) {
@@ -1236,6 +1245,7 @@ export default function HomeScreen() {
         viewMode === "detective" ||
         viewMode === "minibuilds" ||
         viewMode === "playground" ||
+        viewMode === "refactor" ||
         viewMode === "algolab" ||
         viewMode === "achievements" ||
         viewMode === "league" ? (
@@ -1268,7 +1278,9 @@ export default function HomeScreen() {
                                 ? "Booting Mini-Builds Workbench..."
                                 : viewMode === "playground"
                                   ? "Opening playground.py..."
-                                  : viewMode === "algolab"
+                                  : viewMode === "refactor"
+                                    ? "Teeing up Refactor Golf..."
+                                    : viewMode === "algolab"
                                     ? "Loading Algorithm Lab..."
                                     : viewMode === "league"
                                       ? "Loading Weekly League..."
@@ -1370,6 +1382,25 @@ export default function HomeScreen() {
                 onRunPython={(script) =>
                   executePlaygroundPython(pyodideRef.current, script)
                 }
+              />
+            ) : viewMode === "refactor" ? (
+              <RefactorGolfArena
+                pyodideReady={pyodideReady}
+                isPremium={effectiveIsPremium}
+                onRequirePro={() =>
+                  openPaywall({
+                    source: "arena",
+                    lessonTitle: "Pro Code Refactor & Big-O Golf Holes",
+                  })
+                }
+                onVerifyRefactor={(userCode, harness) =>
+                  executeBugPatchVerification(
+                    pyodideRef.current,
+                    userCode,
+                    harness,
+                  )
+                }
+                onAwardGolfXp={(earned) => handleAwardFlashcardXp(earned)}
               />
             ) : viewMode === "algolab" ? (
               <AlgorithmVisualizerLab

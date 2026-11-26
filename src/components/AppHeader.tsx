@@ -108,6 +108,8 @@ function getModeAccent(viewMode: ViewMode): {
       return { primary: StudioColors.violet, secondary: StudioColors.mint };
     case "playground":
       return { primary: StudioColors.yellow, secondary: StudioColors.mint };
+    case "refactor":
+      return { primary: "#FB923C", secondary: StudioColors.lime };
     case "algolab":
       return { primary: StudioColors.violet, secondary: StudioColors.pink };
     case "achievements":

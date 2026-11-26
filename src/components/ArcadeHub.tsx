@@ -20,6 +20,11 @@ import {
 } from "../utils/arcadeRecords";
 import { readCompletedMiniBuilds } from "../utils/miniBuilds";
 import {
+  readRefactorGolfRecords,
+  REFACTOR_GOLF_HOLES,
+  subscribeRefactorGolfRecords,
+} from "../utils/refactorGolf";
+import {
   readSavedSnippets,
   subscribeScratchpadSnippets,
 } from "../utils/scratchpadSnippets";
@@ -128,6 +133,20 @@ export const ARCADE_CARTRIDGES: readonly ArcadeCartridgeMeta[] = [
     highlightTag: "FREE SANDBOX",
     xpLabel: "SANDBOX",
   },
+  {
+    id: "refactor",
+    category: "builds",
+    code: "CART-07",
+    title: "Code Refactor Golf",
+    shortTitle: "BIG-O GOLF",
+    tagline:
+      "Optimize working O(n²) Python into crisp linear code under Line Par to score Gold Eagles in live Python 3.11.",
+    durationBadge: "3 MIN · 6 HOLES",
+    icon: "bolt",
+    accent: "#FB923C",
+    highlightTag: "BIG-O GOLF",
+    xpLabel: "+55–90 XP",
+  },
 ] as const;
 
 interface ArcadeHubProps {
@@ -221,6 +240,9 @@ export default function ArcadeHub({
   const [savedSnippetCount, setSavedSnippetCount] = useState<number>(
     () => readSavedSnippets().length,
   );
+  const [refactorRecords, setRefactorRecords] = useState(() =>
+    readRefactorGolfRecords(),
+  );
   const shippedMiniBuildsCount = useMemo(
     () => Object.values(readCompletedMiniBuilds()).filter(Boolean).length,
     [],
@@ -231,9 +253,11 @@ export default function ArcadeHub({
     const unsubSnippets = subscribeScratchpadSnippets((list) =>
       setSavedSnippetCount(list.length),
     );
+    const unsubRefactor = subscribeRefactorGolfRecords(setRefactorRecords);
     return () => {
       unsubRecords();
       unsubSnippets();
+      unsubRefactor();
     };
   }, []);
 
@@ -273,6 +297,15 @@ export default function ArcadeHub({
       return savedSnippetCount > 0
         ? `${savedSnippetCount} SAVED ${savedSnippetCount === 1 ? "SNIPPET" : "SNIPPETS"} · 5 TEMPLATES`
         : "5 TEMPLATES · SAVED SNIPPETS";
+    }
+    if (cartId === "refactor") {
+      const cleared = Object.keys(refactorRecords).length;
+      const eagles = Object.values(refactorRecords).filter(
+        (r) => r && r.bestMedal === "eagle",
+      ).length;
+      return cleared > 0
+        ? `${cleared}/${REFACTOR_GOLF_HOLES.length} HOLES · ${eagles} EAGLES`
+        : "6 HOLES · O(n²) → O(n) PAR";
     }
     return arcadeRecords.flashcardsMasteredTotal > 0
       ? `${arcadeRecords.flashcardsMasteredTotal} MASTERED · ${arcadeRecords.flashcardsRoundsCleared} ${arcadeRecords.flashcardsRoundsCleared === 1 ? "ROUND" : "ROUNDS"}`
