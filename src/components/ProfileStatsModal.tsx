@@ -25,6 +25,11 @@ import {
 } from "../utils/activityHeatmap";
 import { getArcadeRecordsState } from "../utils/arcadeRecords";
 import { buildAstralPassportData } from "../utils/astralPassport";
+import {
+  getLoftCustomizationState,
+  subscribeLoftCustomization,
+  type LoftCustomizationState,
+} from "../utils/loftCustomization";
 import { STORAGE_MINIBUILDS_DONE_KEY } from "../utils/miniBuilds";
 import { exportShareCardPng } from "../utils/shareCardImage";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
@@ -213,11 +218,18 @@ export default function ProfileStatsModal({
   const [displayName, setDisplayName] = useState<string>(
     () => getOnboardingState().displayName,
   );
+  const [loftCustomization, setLoftCustomization] =
+    useState<LoftCustomizationState>(() => getLoftCustomizationState());
 
   useEffect(() => {
-    return subscribeOnboarding((state) => {
+    const unsubOnboarding = subscribeOnboarding((state) => {
       setDisplayName(state.displayName);
     });
+    const unsubLoft = subscribeLoftCustomization(setLoftCustomization);
+    return () => {
+      unsubOnboarding();
+      unsubLoft();
+    };
   }, []);
   const rank = getDeveloperRank(xpPoints);
   const totalLessons = lessons.length;
@@ -259,6 +271,7 @@ export default function ProfileStatsModal({
       blitzBestHits: arcadeRecords.blitzBestHits,
       solvedBugCount,
       completedMiniBuildsCount,
+      companionId: loftCustomization.companion,
     });
   }, [
     displayName,
@@ -271,6 +284,7 @@ export default function ProfileStatsModal({
     streakCount,
     lessons,
     completedLessons,
+    loftCustomization.companion,
   ]);
 
   function buildProfileShareData() {

@@ -268,7 +268,7 @@ export default function AstralDevPassportCard({
           </Text>
           <Text style={styles.footerDot}>·</Text>
           <Text style={styles.footerStatText}>
-            🔥 {passport.streakCount}D STREAK
+            ★ {passport.companionLabel.toUpperCase()}
           </Text>
           <Text style={styles.footerDot}>·</Text>
           <Text style={styles.footerStatText}>

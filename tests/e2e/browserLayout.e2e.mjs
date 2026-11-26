@@ -153,9 +153,15 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     assert.ok(metrics.boxes.leaderboard.x < metrics.boxes.pro.x);
     assert.ok(metrics.boxes.pro.x < metrics.boxes.save.x);
 
-    // HOME Main Menu showcases the interactive Living Lo-Fi Dev Loft & portal-linked room highlights
+    // HOME Main Menu showcases the interactive Living Lo-Fi Dev Loft, Cozy Loft Workshop, & portal highlights
     await page.getByLabel("Interactive studio loft: LIVING LO-FI DEV LOFT").waitFor({ timeout: 10000 });
     await page.waitForSelector("text=OPEN SKILL MAP", { timeout: 5000 });
+    await page.getByLabel("Open Cozy Loft Workshop").click();
+    await page.waitForSelector("text=LOFT WORKSHOP", { timeout: 5000 });
+    await page.waitForSelector("text=Midnight Cat", { timeout: 5000 });
+    await page.getByLabel("Workshop tab WINDOW").click();
+    await page.waitForSelector("text=Starry Observatory", { timeout: 5000 });
+    await page.getByLabel("Close Loft Workshop").click();
     await page.getByLabel("Open Mini-Game Arcade", { exact: true }).hover();
     await page.getByLabel("Interactive studio loft: RETRO ARCADE CABINET").waitFor({ timeout: 5000 });
     await page.getByLabel("Open Code Studio", { exact: true }).hover();

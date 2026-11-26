@@ -1,6 +1,11 @@
 import type { StudioPaletteId } from "../constants/theme";
 import type { Lesson } from "../types/lesson";
 import { resolveCodexEntries } from "./constellationCodex";
+import {
+  getCompanionMeta,
+  getLoftCustomizationState,
+  type LoftCompanionId,
+} from "./loftCustomization";
 import { getLoftThemeColors } from "./loftGeometry";
 import { computeLoftMilestoneTrophies } from "./loftMilestones";
 
@@ -81,6 +86,8 @@ export interface AstralPassportData {
   totalLessons: number;
   codexIlluminated: number;
   codexTotal: number;
+  companionId: LoftCompanionId;
+  companionLabel: string;
   rarity: PassportRarityInfo;
   bonsai: PassportBonsaiInfo;
   constellations: readonly PassportConstellationWing[];
@@ -111,6 +118,7 @@ export interface BuildAstralPassportInput {
   blitzBestHits?: number;
   solvedBugCount?: number;
   completedMiniBuildsCount?: number;
+  companionId?: LoftCompanionId;
 }
 
 const WING_TEMPLATES: readonly {
@@ -353,6 +361,7 @@ export function buildAstralPassportData(
     blitzBestHits = 0,
     solvedBugCount = 0,
     completedMiniBuildsCount = 0,
+    companionId,
   } = input;
 
   const totalLessons = lessons.length;
@@ -446,6 +455,9 @@ export function buildAstralPassportData(
     (userEmail ? userEmail.split("@")[0] : "") ||
     "Devy Voyager";
 
+  const activeCompanionId = companionId || getLoftCustomizationState().companion;
+  const companionMeta = getCompanionMeta(activeCompanionId);
+
   return {
     serialNumber: buildPassportSerial(displayName || userEmail || "", rankLevel),
     handle,
@@ -459,6 +471,8 @@ export function buildAstralPassportData(
     totalLessons,
     codexIlluminated,
     codexTotal,
+    companionId: companionMeta.id,
+    companionLabel: companionMeta.label,
     rarity: computePassportRarity(rankLevel),
     bonsai: computePassportBonsaiStage(streakCount, totalSolved),
     constellations,

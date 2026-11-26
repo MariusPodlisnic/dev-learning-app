@@ -36,6 +36,15 @@ import {
   type Point2D,
 } from "../utils/loftGeometry";
 import {
+  getCompanionMeta,
+  getKeycapSetMeta,
+  getLoftCustomizationState,
+  getMugStyleMeta,
+  subscribeLoftCustomization,
+  updateLoftCustomization,
+  type LoftCustomizationState,
+} from "../utils/loftCustomization";
+import {
   getLoftSkyVisuals,
   getNextLoftSkyMode,
   resolveLoftSkyPhase,
@@ -44,6 +53,7 @@ import {
   type LoftSkyMode,
 } from "../utils/loftMilestones";
 import { playKeyClick, playSuccessChime } from "../utils/soundEffects";
+import LoftWorkshopPanel from "./LoftWorkshopPanel";
 import { StudioIcon, Text } from "./StudioIcon";
 
 const DEFAULT_MILESTONES: LoftMilestoneTrophies = {
@@ -59,6 +69,7 @@ const DEFAULT_MILESTONES: LoftMilestoneTrophies = {
 interface HomeLoftStageProps {
   activeZone: LoftHighlightZone;
   streakCount?: number;
+  totalXp?: number;
   compact?: boolean;
   milestones?: LoftMilestoneTrophies;
   recentVictoryLessonId?: string | null;
@@ -236,6 +247,7 @@ function drawFloorShadow(
 export default function HomeLoftStage({
   activeZone,
   streakCount = 0,
+  totalXp = 0,
   compact = false,
   milestones = DEFAULT_MILESTONES,
   recentVictoryLessonId = null,
@@ -249,13 +261,22 @@ export default function HomeLoftStage({
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [skyMode, setSkyMode] = useState<LoftSkyMode>("auto");
+  const [workshopOpen, setWorkshopOpen] = useState<boolean>(false);
   const [devOpen, setDevOpen] = useState<boolean>(false);
+  const [devUnlockWorkshop, setDevUnlockWorkshop] = useState<boolean>(false);
+  const [customization, setCustomization] = useState<LoftCustomizationState>(
+    () => getLoftCustomizationState(),
+  );
   const [devOverrides, setDevOverrides] = useState<{
     serpensPoster?: boolean;
     fairyLights?: boolean;
     arcadeTrophy?: boolean;
     holoPrism?: boolean;
   }>({});
+
+  useEffect(() => {
+    return subscribeLoftCustomization(setCustomization);
+  }, []);
 
   const effectiveMilestones: LoftMilestoneTrophies = useMemo(() => {
     const serpensPoster = devOverrides.serpensPoster ?? milestones.serpensPoster;
@@ -296,6 +317,7 @@ export default function HomeLoftStage({
     streakCount: number;
     skyPhase: LoftResolvedSkyPhase;
     milestones: LoftMilestoneTrophies;
+    customization: LoftCustomizationState;
     lampOn: boolean;
     rainOn: boolean;
     lofiPlaying: boolean;
@@ -330,6 +352,7 @@ export default function HomeLoftStage({
     streakCount,
     skyPhase: resolvedSkyPhase,
     milestones: effectiveMilestones,
+    customization,
     lampOn: true,
     rainOn: true,
     lofiPlaying: getLofiRadioState().isPlaying,
@@ -366,9 +389,11 @@ export default function HomeLoftStage({
     stateRef.current.streakCount = streakCount;
     stateRef.current.skyPhase = resolvedSkyPhase;
     stateRef.current.milestones = effectiveMilestones;
+    stateRef.current.customization = customization;
     stateRef.current.showToast = showToast;
   }, [
     activeZone,
+    customization,
     effectiveMilestones,
     paletteId,
     resolvedSkyPhase,
@@ -557,23 +582,27 @@ export default function HomeLoftStage({
           st.showToast(st.rainOn ? "COZY WINDOW RAIN: ON" : "CLEAR STARRY SKY");
         }
       } else if (hit === "mug") {
+        const mugMeta = getMugStyleMeta(st.customization.mugStyle);
         st.steamBoost = 1.5;
         playKeyClick();
-        spawnParticles(pt.x, pt.y - 8, "spark", 4, pal.accentSecondary);
+        spawnParticles(pt.x, pt.y - 8, "spark", 4, mugMeta.drinkColor);
         if (st.cat.activity !== "coding") {
           commandLoftCatTo(st.cat, "coding");
-          st.showToast("FRESH BREW · CAT HOPPED OVER TO CODE!");
+          st.showToast(`${mugMeta.sipToast} · BUDDY HOPPED OVER!`);
         } else {
-          st.showToast("FRESH HOT BREW AT YOUR DESK");
+          st.showToast(mugMeta.sipToast);
         }
       } else if (hit === "cat") {
+        const compMeta = getCompanionMeta(st.customization.companion);
         st.catHappy = 2.2;
         playSuccessChime();
         spawnParticles(pt.x, pt.y - 12, "heart", 6, pal.accentPink);
         st.showToast(
-          st.cat.phase === "walking"
-            ? "CAT IS EXPLORING THE LOFT (^ ω ^)"
-            : LOFT_CAT_STATIONS[st.cat.activity].petToast,
+          st.customization.companion !== "midnight_cat"
+            ? compMeta.petToast
+            : st.cat.phase === "walking"
+              ? "CAT IS EXPLORING THE LOFT (^ ω ^)"
+              : LOFT_CAT_STATIONS[st.cat.activity].petToast,
         );
       } else if (hit === "bonsai") {
         playKeyClick();
@@ -645,9 +674,13 @@ export default function HomeLoftStage({
         st.smoothMy * 3.5,
       );
 
-      // Helper: renders the expressive autonomous Loft Cat at its live 3D isometric position
+      // Helper: renders the expressive autonomous Loft Companion at its live 3D isometric position
       const drawDynamicLoftCat = () => {
         const cat = st.cat;
+        const compMeta = getCompanionMeta(st.customization.companion);
+        const compId = compMeta.id;
+        const coatCol = compMeta.coatColor;
+        const pawCol = compMeta.pawColor;
         const catScale = Math.max(0.75, Math.min(1.06, m.halfW / 245));
         const isWalking = cat.phase === "walking";
         const walkBounce = isWalking ? Math.abs(Math.sin(cat.walkPhase)) * 4.2 : 0;
@@ -733,14 +766,14 @@ export default function HomeLoftStage({
             ctx.lineTo(kp.x, kp.y - Math.max(0, -tap) * 0.9);
             ctx.stroke();
 
-            ctx.strokeStyle = "#2E344E";
+            ctx.strokeStyle = coatCol;
             ctx.lineWidth = 4.4 * catScale;
             ctx.beginPath();
             ctx.moveTo(sh.x, sh.y);
             ctx.lineTo(kp.x, kp.y - Math.max(0, -tap) * 0.9);
             ctx.stroke();
 
-            ctx.fillStyle = "#3A4262";
+            ctx.fillStyle = pawCol;
             ctx.strokeStyle = "#090B10";
             ctx.lineWidth = 1.4 * catScale;
             ctx.beginPath();
@@ -887,44 +920,45 @@ export default function HomeLoftStage({
             ? -1
             : 1;
 
-        // 1. Expressive Tail (dangles gracefully off the windowsill when window-gazing!)
-        if (catIsWindowGazing) {
-          // Tail hangs down off the front edge of the wooden windowsill, swinging lazily like a pendulum!
-          const swing = Math.sin(t * 2.1) * 8;
-          ctx.strokeStyle = "#090B10";
-          ctx.lineWidth = 7.6;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(10, 7);
-          ctx.quadraticCurveTo(18 + swing * 0.4, 21, 12 + swing, 34);
-          ctx.stroke();
-          ctx.strokeStyle = "#2A2F46";
-          ctx.lineWidth = 4.8;
-          ctx.beginPath();
-          ctx.moveTo(10, 7);
-          ctx.quadraticCurveTo(18 + swing * 0.4, 21, 12 + swing, 34);
-          ctx.stroke();
-        } else if (!isRearView) {
-          const tailSpeed = isWalking ? 8.5 : catIsListening ? 5.1 : 2.6;
-          const tailAmp = isWalking ? 7 : 5.5;
-          ctx.strokeStyle = "#2A2F46";
-          ctx.lineWidth = 5.4;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(flipX * -12, 6);
-          ctx.quadraticCurveTo(
-            flipX * -29,
-            3 + Math.sin(t * tailSpeed) * tailAmp,
-            flipX * -26,
-            (isWalking ? -15 : -10) + Math.cos(t * tailSpeed) * 4,
-          );
-          ctx.stroke();
+        // 1. Expressive Tail (omitted for owl/duck, fluffy curled tail for Shiba, swinging tail for Cats!)
+        if (compId !== "pixel_owl" && compId !== "robo_duck") {
+          if (catIsWindowGazing) {
+            const swing = Math.sin(t * 2.1) * 8;
+            ctx.strokeStyle = "#090B10";
+            ctx.lineWidth = 7.6;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(10, 7);
+            ctx.quadraticCurveTo(18 + swing * 0.4, 21, 12 + swing, 34);
+            ctx.stroke();
+            ctx.strokeStyle = coatCol;
+            ctx.lineWidth = 4.8;
+            ctx.beginPath();
+            ctx.moveTo(10, 7);
+            ctx.quadraticCurveTo(18 + swing * 0.4, 21, 12 + swing, 34);
+            ctx.stroke();
+          } else if (!isRearView) {
+            const tailSpeed = isWalking ? 8.5 : catIsListening ? 5.1 : 2.6;
+            const tailAmp = isWalking ? 7 : 5.5;
+            ctx.strokeStyle = coatCol;
+            ctx.lineWidth = compId === "shiba_pup" ? 6.6 : 5.4;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(flipX * -12, 6);
+            ctx.quadraticCurveTo(
+              flipX * (compId === "shiba_pup" ? -26 : -29),
+              (compId === "shiba_pup" ? -4 : 3) + Math.sin(t * tailSpeed) * tailAmp,
+              flipX * (compId === "shiba_pup" ? -19 : -26),
+              (isWalking ? -15 : -11) + Math.cos(t * tailSpeed) * 4,
+            );
+            ctx.stroke();
+          }
         }
 
         // 2. Trotting Legs when Walking
         if (isWalking) {
           const stride = Math.sin(cat.walkPhase) * 6;
-          ctx.fillStyle = "#1E2235";
+          ctx.fillStyle = pawCol;
           ctx.strokeStyle = "#090B10";
           ctx.lineWidth = 1.6;
           const paws: [number, number][] = [
@@ -941,7 +975,7 @@ export default function HomeLoftStage({
           }
         }
 
-        // 3. Cat Body (tilts naturally into keyboard / arcade / window / music beat!)
+        // 3. Companion Body (tilts naturally into keyboard / arcade / window / music beat!)
         ctx.save();
         if (catIsListening) {
           ctx.rotate(Math.sin(t * 2.55) * 0.08);
@@ -953,7 +987,7 @@ export default function HomeLoftStage({
           ctx.rotate(-0.1);
         }
 
-        ctx.fillStyle = "#2A2F46";
+        ctx.fillStyle = coatCol;
         ctx.strokeStyle = "#090B10";
         ctx.lineWidth = 2.1;
         ctx.beginPath();
@@ -969,9 +1003,35 @@ export default function HomeLoftStage({
         ctx.fill();
         ctx.stroke();
 
-        // Back fur stripes when viewed from behind, or cozy belly patch when facing front
-        if (isRearView) {
-          ctx.strokeStyle = "rgba(15, 19, 34, 0.5)";
+        // Species markings on body (Calico spots / Owl wings / Shiba cream belly / Cat stripes)
+        if (compId === "calico_cat") {
+          ctx.fillStyle = "#EA8C3A";
+          ctx.beginPath();
+          ctx.ellipse(-8, 3, 6.5, 5, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#2E2925";
+          ctx.beginPath();
+          ctx.ellipse(9, 6, 5.2, 4.2, 0.3, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (compId === "pixel_owl" || compId === "robo_duck") {
+          const wingCol = compId === "pixel_owl" ? "#372A54" : "#EAB308";
+          ctx.fillStyle = wingCol;
+          ctx.strokeStyle = "#090B10";
+          ctx.lineWidth = 1.5;
+          for (const side of [-1, 1]) {
+            ctx.beginPath();
+            ctx.ellipse(side * 15, 4, 5.2, 8.8, side * 0.22, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+          if (!isRearView) {
+            ctx.fillStyle = compMeta.bellyColor;
+            ctx.beginPath();
+            ctx.ellipse(0, 7, 9.5, 6.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (isRearView) {
+          ctx.strokeStyle = "rgba(15, 19, 34, 0.38)";
           ctx.lineWidth = 2.2;
           ctx.lineCap = "round";
           for (const sy of [-2, 3, 8]) {
@@ -981,15 +1041,15 @@ export default function HomeLoftStage({
             ctx.stroke();
           }
         } else {
-          ctx.fillStyle = "rgba(196, 181, 253, 0.16)";
+          ctx.fillStyle = compMeta.bellyColor;
           ctx.beginPath();
-          ctx.ellipse(flipX * 2, 7, 9, 6.5, 0, 0, Math.PI * 2);
+          ctx.ellipse(flipX * 2, 7, 9.5, 6.8, 0, 0, Math.PI * 2);
           ctx.fill();
         }
 
         // Music station beat-tapping front paw
         if (catIsListening) {
-          ctx.fillStyle = "#363D5C";
+          ctx.fillStyle = pawCol;
           ctx.strokeStyle = "#090B10";
           ctx.lineWidth = 1.6;
           const pawTap = musicBeat * 3.2;
@@ -1000,7 +1060,7 @@ export default function HomeLoftStage({
         }
 
         // Foreground curled tail when facing away at PC or Arcade!
-        if (isFacingAwayRight) {
+        if (isFacingAwayRight && compId !== "pixel_owl" && compId !== "robo_duck") {
           const tailSpd = catIsPlayingArcade ? 9.5 : 2.8;
           const tailAmp = catIsPlayingArcade ? 8.5 : 4.5;
           ctx.strokeStyle = "#090B10";
@@ -1015,7 +1075,7 @@ export default function HomeLoftStage({
             (catIsPlayingArcade ? -4 : 2) + Math.cos(t * tailSpd) * 4,
           );
           ctx.stroke();
-          ctx.strokeStyle = "#2A2F46";
+          ctx.strokeStyle = coatCol;
           ctx.lineWidth = 4.8;
           ctx.beginPath();
           ctx.moveTo(-6, 10);
@@ -1050,58 +1110,91 @@ export default function HomeLoftStage({
         );
         ctx.rotate(headTilt);
 
-        // Pointed Ears (no bright front pink triangles when facing away — authentic dark ear backs!)
+        // Ears / Owl Ear Tufts / Robo-Duck Chrome Antenna
         const earTwitch =
           catIsWindowGazing && Math.sin(t * 3.4) > 0.82 ? 2.6 : 0;
-        for (const side of [-1, 1]) {
-          const twitch = side === -1 ? earTwitch : 0;
-          ctx.fillStyle = "#2A2F46";
-          ctx.strokeStyle = "#090B10";
-          ctx.lineWidth = 2;
+        if (compId === "robo_duck") {
+          // Chrome telemetry antenna on duck head
+          ctx.strokeStyle = "#CBD5E1";
+          ctx.lineWidth = 2.4;
           ctx.beginPath();
-          ctx.moveTo(side * 6, -10);
-          ctx.lineTo(side * (17 + twitch), -23 - twitch * 0.6);
-          ctx.lineTo(side * 18, -5);
-          ctx.closePath();
+          ctx.moveTo(0, -13);
+          ctx.lineTo(0, -24);
+          ctx.stroke();
+          ctx.fillStyle = "#38BDF8";
+          ctx.strokeStyle = "#090B10";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.arc(0, -25, 3.6, 0, Math.PI * 2);
           ctx.fill();
           ctx.stroke();
-
-          if (!isRearView) {
-            ctx.fillStyle = pal.accentPink;
+        } else {
+          for (const side of [-1, 1]) {
+            const twitch = side === -1 ? earTwitch : 0;
+            ctx.fillStyle =
+              compId === "calico_cat" && side === 1 ? "#EA8C3A" : coatCol;
+            ctx.strokeStyle = "#090B10";
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(side * 9, -10);
-            ctx.lineTo(side * (15 + twitch * 0.7), -18 - twitch * 0.5);
-            ctx.lineTo(side * 15, -8);
+            ctx.moveTo(side * 6, -10);
+            ctx.lineTo(
+              side * (compId === "pixel_owl" ? 19 + twitch : 17 + twitch),
+              (compId === "shiba_pup" ? -20 : -23) - twitch * 0.6,
+            );
+            ctx.lineTo(side * 18, -5);
             ctx.closePath();
             ctx.fill();
-          } else {
-            // Soft screen / moonlight rim-light along the edge facing the monitor, arcade, or window!
-            const rimFacing =
-              (isFacingAwayRight && side === 1) ||
-              (isFacingAwayLeft && side === -1);
-            if (rimFacing) {
-              ctx.strokeStyle = catIsCoding
-                ? pal.accentCyan
-                : catIsPlayingArcade
-                  ? pal.accentPink
-                  : pal.skyGlow;
-              ctx.lineWidth = 1.6;
+            ctx.stroke();
+
+            if (!isRearView) {
+              ctx.fillStyle = compMeta.earInnerColor;
               ctx.beginPath();
-              ctx.moveTo(side * 9, -12);
-              ctx.lineTo(side * (16 + twitch), -21.5 - twitch * 0.6);
-              ctx.stroke();
+              ctx.moveTo(side * 9, -10);
+              ctx.lineTo(side * (15 + twitch * 0.7), -18 - twitch * 0.5);
+              ctx.lineTo(side * 15, -8);
+              ctx.closePath();
+              ctx.fill();
+            } else {
+              const rimFacing =
+                (isFacingAwayRight && side === 1) ||
+                (isFacingAwayLeft && side === -1);
+              if (rimFacing) {
+                ctx.strokeStyle = catIsCoding
+                  ? pal.accentCyan
+                  : catIsPlayingArcade
+                    ? pal.accentPink
+                    : pal.skyGlow;
+                ctx.lineWidth = 1.6;
+                ctx.beginPath();
+                ctx.moveTo(side * 9, -12);
+                ctx.lineTo(side * (16 + twitch), -21.5 - twitch * 0.6);
+                ctx.stroke();
+              }
             }
           }
         }
 
         // Rounded Head
-        ctx.fillStyle = "#2A2F46";
+        ctx.fillStyle = coatCol;
         ctx.strokeStyle = "#090B10";
         ctx.lineWidth = 2.1;
         ctx.beginPath();
         ctx.ellipse(0, 0, 18, 15, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
+
+        // Species head details (Calico cheek patch, Shiba cream cheeks, Owl/Duck beak!)
+        if (!isRearView && compId === "calico_cat") {
+          ctx.fillStyle = "#EA8C3A";
+          ctx.beginPath();
+          ctx.ellipse(10, -5, 6.5, 5, 0.25, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (!isRearView && compId === "shiba_pup") {
+          ctx.fillStyle = "#FFF3DC";
+          ctx.beginPath();
+          ctx.ellipse(0, 6.2, 13.5, 7.2, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
         // Ambient Rim-Light Glow + Peeking Whiskers on Head Edge Facing PC Monitor / Arcade Screen / Moonlit Window!
         if (isRearView) {
@@ -1185,13 +1278,46 @@ export default function HomeLoftStage({
             }
           } else {
             const lookX = isWalking ? flipX * 1.5 : 0;
-            ctx.fillStyle = pal.accent;
+            ctx.fillStyle =
+              compId === "pixel_owl"
+                ? "#FDE047"
+                : compId === "robo_duck"
+                  ? "#38BDF8"
+                  : pal.accent;
+            const eyeR = compId === "pixel_owl" ? 2.8 : 2.1;
             ctx.beginPath();
-            ctx.arc(-5.5 + lookX, 0, 2.1, 0, Math.PI * 2);
+            ctx.arc(-5.5 + lookX, 0, eyeR, 0, Math.PI * 2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(5.5 + lookX, 0, 2.1, 0, Math.PI * 2);
+            ctx.arc(5.5 + lookX, 0, eyeR, 0, Math.PI * 2);
             ctx.fill();
+          }
+
+          // Species snout / beak accent right beneath the visor
+          if (compId === "shiba_pup") {
+            ctx.fillStyle = "#1E1B18";
+            ctx.beginPath();
+            ctx.ellipse(0, 7.2, 2.8, 1.9, 0, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (compId === "pixel_owl") {
+            ctx.fillStyle = "#F59E0B";
+            ctx.strokeStyle = "#090B10";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(-3.2, 5.2);
+            ctx.lineTo(3.2, 5.2);
+            ctx.lineTo(0, 9.8);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          } else if (compId === "robo_duck") {
+            ctx.fillStyle = "#F97316";
+            ctx.strokeStyle = "#090B10";
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.ellipse(0, 7.6, 7.4, 3.3, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
           }
         } else {
           // Cute subtle back-of-head tabby tufts when looking at PC / Arcade / Window
@@ -1589,51 +1715,200 @@ export default function HomeLoftStage({
         }
       }
 
-      // Layered isometric distant skyline silhouettes + glowing windows
-      for (let b = 0; b < 7; b += 1) {
-        const bv0 = vMin + (b / 7) * (vMax - vMin);
-        const bv1 = bv0 + (vMax - vMin) / 7 + 0.01;
-        const bh = 0.14 + ((b * 19) % 13) * 0.015;
+      // Window World Scenic Backdrop (Neo-Tokyo / Starry Observatory / Alpine Peaks / Sakura Courtyard)
+      const windowWorld = st.customization.windowWorld;
+      if (windowWorld === "starry_observatory") {
+        // Cosmic nebula ribbon + twin domed observatory silhouettes + shooting star streak
+        ctx.save();
+        const nebStart = projectIso(m, 0, vMin, zMin + 0.34);
+        const nebEnd = projectIso(m, 0, vMax, zMin + 0.18);
+        const nebGrad = ctx.createLinearGradient(nebStart.x, nebStart.y, nebEnd.x, nebEnd.y);
+        nebGrad.addColorStop(0, "rgba(56, 189, 248, 0.24)");
+        nebGrad.addColorStop(0.5, "rgba(196, 181, 253, 0.28)");
+        nebGrad.addColorStop(1, "rgba(244, 114, 182, 0.20)");
+        ctx.strokeStyle = nebGrad;
+        ctx.lineWidth = 18;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(nebStart.x, nebStart.y);
+        ctx.quadraticCurveTo(
+          (nebStart.x + nebEnd.x) * 0.5,
+          (nebStart.y + nebEnd.y) * 0.5 - 14 + Math.sin(t * 0.8) * 3,
+          nebEnd.x,
+          nebEnd.y,
+        );
+        ctx.stroke();
+
+        // Twin Observatory Domes on ridge
+        for (const [dv, dz, dr] of [
+          [vMin + 0.14, zMin + 0.14, 16],
+          [vMax - 0.16, zMin + 0.12, 12],
+        ] as const) {
+          const dp = projectIso(m, 0, dv, dz);
+          ctx.fillStyle = "rgba(12, 16, 32, 0.88)";
+          ctx.beginPath();
+          ctx.arc(dp.x, dp.y, dr, Math.PI, 0);
+          ctx.lineTo(dp.x + dr, dp.y + 18);
+          ctx.lineTo(dp.x - dr, dp.y + 18);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#38BDF8";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(dp.x + 2, dp.y - dr + 2);
+          ctx.lineTo(dp.x + dr * 0.65, dp.y - dr - 7);
+          ctx.stroke();
+        }
+
+        // Periodic shooting star streak
+        const meteorPhase = (t * 0.32) % 1;
+        if (meteorPhase < 0.35) {
+          const mf = meteorPhase / 0.35;
+          const mp1 = projectIso(m, 0, vMin + 0.08 + mf * 0.38, zMax - 0.06 - mf * 0.16);
+          const mp2 = projectIso(m, 0, vMin + 0.02 + mf * 0.38, zMax - 0.03 - mf * 0.16);
+          ctx.strokeStyle = "#FFDE59";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(mp2.x, mp2.y);
+          ctx.lineTo(mp1.x, mp1.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      } else if (windowWorld === "alpine_cabin") {
+        // Layered snow-capped mountain silhouettes + shimmering emerald aurora
+        ctx.save();
+        const aurL = projectIso(m, 0, vMin + 0.04, zMax - 0.11);
+        const aurR = projectIso(m, 0, vMax - 0.04, zMax - 0.17);
+        ctx.strokeStyle = "rgba(110, 231, 183, 0.32)";
+        ctx.lineWidth = 11;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(aurL.x, aurL.y);
+        ctx.quadraticCurveTo(
+          (aurL.x + aurR.x) * 0.5,
+          (aurL.y + aurR.y) * 0.5 - 10 + Math.sin(t * 1.1) * 4,
+          aurR.x,
+          aurR.y,
+        );
+        ctx.stroke();
+
+        const peaks: [number, number, number][] = [
+          [vMin + 0.08, zMin + 0.25, 0.14],
+          [vMin + 0.28, zMin + 0.31, 0.16],
+          [vMax - 0.11, zMin + 0.23, 0.15],
+        ];
+        for (const [pv, pz, halfSpan] of peaks) {
+          const pTop = projectIso(m, 0, pv, pz);
+          const pL = projectIso(m, 0, pv - halfSpan, zMin - 0.04);
+          const pR = projectIso(m, 0, pv + halfSpan, zMin - 0.04);
+          ctx.fillStyle = "rgba(15, 32, 46, 0.88)";
+          ctx.beginPath();
+          ctx.moveTo(pTop.x, pTop.y);
+          ctx.lineTo(pR.x, pR.y);
+          ctx.lineTo(pL.x, pL.y);
+          ctx.closePath();
+          ctx.fill();
+
+          // Snow cap
+          const sL = projectIso(m, 0, pv - halfSpan * 0.36, pz - 0.08);
+          const sR = projectIso(m, 0, pv + halfSpan * 0.36, pz - 0.08);
+          ctx.fillStyle = "rgba(226, 242, 255, 0.85)";
+          ctx.beginPath();
+          ctx.moveTo(pTop.x, pTop.y);
+          ctx.lineTo(sR.x, sR.y);
+          ctx.lineTo(sL.x, sL.y);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      } else if (windowWorld === "sakura_kyoto") {
+        // Tiered Kyoto Pagoda silhouette + warm glowing paper lanterns + drifting pink petals
+        ctx.save();
+        for (let tier = 0; tier < 3; tier += 1) {
+          const tz = zMin + 0.09 + tier * 0.075;
+          const span = 0.11 - tier * 0.022;
+          const centerV = vMax - 0.16;
+          drawIsoQuad(
+            ctx,
+            m,
+            [
+              [0, centerV - span, tz],
+              [0, centerV + span, tz],
+              [0, centerV + span * 0.72, tz + 0.036],
+              [0, centerV - span * 0.72, tz + 0.036],
+            ],
+            "rgba(24, 14, 34, 0.86)",
+          );
+        }
+        // Warm glowing courtyard lanterns
+        for (let k = 0; k < 3; k += 1) {
+          const lp = projectIso(m, 0, vMin + 0.1 + k * 0.12, zMin + 0.11 + (k % 2) * 0.03);
+          ctx.fillStyle = "#FB923C";
+          ctx.beginPath();
+          ctx.arc(lp.x, lp.y, 4.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "rgba(253, 186, 116, 0.25)";
+          ctx.beginPath();
+          ctx.arc(lp.x, lp.y, 10, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Drifting pink cherry blossom petals
+        ctx.fillStyle = "#F9A8D4";
+        for (let p = 0; p < 12; p += 1) {
+          const pf = (t * 0.14 + p * 0.19) % 1;
+          const pv = vMin + ((p * 0.17 + pf * 0.35) % 1) * (vMax - vMin);
+          const pz = zMax - pf * (zMax - zMin);
+          const pp = projectIso(m, 0, pv, pz);
+          ctx.beginPath();
+          ctx.ellipse(pp.x, pp.y, 2.8, 1.5, t + p, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      } else {
+        // Default: Neo-Tokyo Skyline silhouettes + glowing windows + commuter train
+        for (let b = 0; b < 7; b += 1) {
+          const bv0 = vMin + (b / 7) * (vMax - vMin);
+          const bv1 = bv0 + (vMax - vMin) / 7 + 0.01;
+          const bh = 0.14 + ((b * 19) % 13) * 0.015;
+          drawIsoQuad(
+            ctx,
+            m,
+            [
+              [0, bv0, zMin + bh],
+              [0, bv1, zMin + bh],
+              [0, bv1, zMin - 0.04],
+              [0, bv0, zMin - 0.04],
+            ],
+            sky.sunMode === "day" ? "rgba(18, 34, 62, 0.68)" : "rgba(9, 11, 22, 0.78)",
+          );
+          if (sky.cityLightAlpha > 0.18) {
+            ctx.save();
+            ctx.globalAlpha = sky.cityLightAlpha;
+            for (let row = 0; row < 2; row += 1) {
+              if ((b + row) % 2 === 0) {
+                const lp = projectIso(m, 0, bv0 + 0.024, zMin + bh - 0.045 - row * 0.04);
+                ctx.fillStyle = b % 3 === 0 ? pal.accent : "#FFE89E";
+                ctx.fillRect(lp.x, lp.y, 2.8, 3.2);
+              }
+            }
+            ctx.restore();
+          }
+        }
+
+        const trainFrac = ((t * 0.16) % 1.4) - 0.2;
+        const tv0 = vMin + trainFrac * (vMax - vMin);
         drawIsoQuad(
           ctx,
           m,
           [
-            [0, bv0, zMin + bh],
-            [0, bv1, zMin + bh],
-            [0, bv1, zMin - 0.04],
-            [0, bv0, zMin - 0.04],
+            [0, tv0, zMin + 0.115],
+            [0, tv0 + 0.13, zMin + 0.115],
+            [0, tv0 + 0.13, zMin + 0.088],
+            [0, tv0, zMin + 0.088],
           ],
-          sky.sunMode === "day" ? "rgba(18, 34, 62, 0.68)" : "rgba(9, 11, 22, 0.78)",
+          pal.accentSecondary,
         );
-        // Glowing tiny city apartment lights
-        if (sky.cityLightAlpha > 0.18) {
-          ctx.save();
-          ctx.globalAlpha = sky.cityLightAlpha;
-          for (let row = 0; row < 2; row += 1) {
-            if ((b + row) % 2 === 0) {
-              const lp = projectIso(m, 0, bv0 + 0.024, zMin + bh - 0.045 - row * 0.04);
-              ctx.fillStyle = b % 3 === 0 ? pal.accent : "#FFE89E";
-              ctx.fillRect(lp.x, lp.y, 2.8, 3.2);
-            }
-          }
-          ctx.restore();
-        }
       }
-
-      // Tiny illuminated distant commuter train gliding across the window!
-      const trainFrac = ((t * 0.16) % 1.4) - 0.2;
-      const tv0 = vMin + trainFrac * (vMax - vMin);
-      drawIsoQuad(
-        ctx,
-        m,
-        [
-          [0, tv0, zMin + 0.115],
-          [0, tv0 + 0.13, zMin + 0.115],
-          [0, tv0 + 0.13, zMin + 0.088],
-          [0, tv0, zMin + 0.088],
-        ],
-        pal.accentSecondary,
-      );
 
       // STRICTLY CLIPPED RAIN STREAKS (Generated in window UV coordinates!)
       if (st.rainOn) {
@@ -2299,8 +2574,35 @@ export default function HomeLoftStage({
         ctx.stroke();
       }
 
-      // Mechanical Keyboard + Wireless Mouse sitting flat on desk mat
-      drawIsoBox(ctx, m, 0.21, 0.205, 0.287, 0.175, 0.075, 0.018, "#2C3347", "#1F2434", "#151926", "#090B10", 1.3);
+      // Mechanical Keyboard + Wireless Mouse sitting flat on desk mat (Workshop Keycap Set!)
+      const keycapMeta = getKeycapSetMeta(st.customization.keycaps);
+      drawIsoBox(
+        ctx,
+        m,
+        0.21,
+        0.205,
+        0.287,
+        0.175,
+        0.075,
+        0.018,
+        keycapMeta.caseTop,
+        keycapMeta.caseLeft,
+        keycapMeta.caseRight,
+        "#090B10",
+        1.3,
+      );
+      // Alpha keycap rows strip
+      drawIsoQuad(
+        ctx,
+        m,
+        [
+          [0.248, 0.216, 0.306],
+          [0.342, 0.216, 0.306],
+          [0.342, 0.264, 0.306],
+          [0.248, 0.264, 0.306],
+        ],
+        keycapMeta.alphaHighlight,
+      );
       // Glowing Esc & Enter accent keycaps
       drawIsoQuad(
         ctx,
@@ -2311,7 +2613,7 @@ export default function HomeLoftStage({
           [0.242, 0.232, 0.306],
           [0.218, 0.232, 0.306],
         ],
-        pal.accentPink,
+        keycapMeta.escColor,
       );
       drawIsoQuad(
         ctx,
@@ -2322,7 +2624,7 @@ export default function HomeLoftStage({
           [0.378, 0.268, 0.306],
           [0.348, 0.268, 0.306],
         ],
-        pal.accentSecondary,
+        keycapMeta.enterColor,
       );
       // Wireless Mouse
       drawIsoBox(ctx, m, 0.415, 0.225, 0.287, 0.036, 0.052, 0.015, "#D9DDE8", "#A7B0C4", "#7C859C", "#090B10", 1.1);
@@ -2419,8 +2721,23 @@ export default function HomeLoftStage({
         ];
       }
 
-      // Steaming Ceramic Coffee / Matcha Mug (clickable!)
-      drawIsoBox(ctx, m, 0.11, 0.20, 0.287, 0.044, 0.044, 0.062, "#F6F1E7", "#DDD6C8", "#C2B9A8", "#090B10", 1.4);
+      // Steaming Ceramic Coffee / Matcha Mug (clickable + Workshop Mug Style!)
+      const mugMeta = getMugStyleMeta(st.customization.mugStyle);
+      drawIsoBox(
+        ctx,
+        m,
+        0.11,
+        0.20,
+        0.287,
+        0.044,
+        0.044,
+        0.062,
+        mugMeta.bodyTop,
+        mugMeta.bodyLeft,
+        mugMeta.bodyRight,
+        "#090B10",
+        1.4,
+      );
       drawIsoQuad(
         ctx,
         m,
@@ -2430,7 +2747,7 @@ export default function HomeLoftStage({
           [0.147, 0.237, 0.35],
           [0.117, 0.237, 0.35],
         ],
-        pal.accent,
+        mugMeta.drinkColor,
       );
       const mugCenter = projectIso(m, 0.132, 0.222, 0.34);
       st.hitZones.mug = [
@@ -3053,6 +3370,31 @@ export default function HomeLoftStage({
             <View style={styles.topRightHud}>
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel="Open Cozy Loft Workshop"
+                style={[
+                  styles.hudPill,
+                  workshopOpen && {
+                    backgroundColor: StudioColors.lime,
+                    borderColor: StudioColors.ink,
+                  },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  setWorkshopOpen((prev) => !prev);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.hudPillText,
+                    { color: workshopOpen ? StudioColors.ink : StudioColors.lime },
+                  ]}
+                >
+                  ✦ WORKSHOP
+                </Text>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
                 accessibilityLabel="Inspect loft milestone keepsakes"
                 style={[
                   styles.hudPill,
@@ -3226,6 +3568,26 @@ export default function HomeLoftStage({
                       🎉 CAT WIN HOP
                     </Text>
                   </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Dev unlock all Loft Workshop items"
+                    style={[
+                      styles.devBtn,
+                      devUnlockWorkshop && styles.devBtnOn,
+                      { borderColor: StudioColors.lime },
+                    ]}
+                    onPress={() => {
+                      playSuccessChime();
+                      setDevUnlockWorkshop((prev) => !prev);
+                      setWorkshopOpen(true);
+                      showToast("DEV: ALL WORKSHOP ITEMS UNLOCKED ✦");
+                    }}
+                  >
+                    <Text style={[styles.devBtnText, { color: StudioColors.lime }]}>
+                      ✦ UNLOCK WORKSHOP
+                    </Text>
+                  </Pressable>
                 </View>
               </View>
             ) : null}
@@ -3245,11 +3607,24 @@ export default function HomeLoftStage({
         {Platform.OS === "web" && !toastMsg ? (
           <View pointerEvents="none" style={styles.bottomHintHud}>
             <Text style={styles.bottomHintText}>
-              CLICK LAMP · WINDOW RAIN · MUG · PET CAT
+              CLICK LAMP · WINDOW · MUG · {getCompanionMeta(customization.companion).hintVerb}
             </Text>
           </View>
         ) : null}
       </View>
+
+      {workshopOpen ? (
+        <LoftWorkshopPanel
+          customization={customization}
+          totalXp={totalXp}
+          devUnlockAll={devUnlockWorkshop}
+          onSelectPatch={(patch, label) => {
+            updateLoftCustomization(patch);
+            showToast(`LOFT EQUIPPED: ${label} ✦`);
+          }}
+          onClose={() => setWorkshopOpen(false)}
+        />
+      ) : null}
     </View>
   );
 }

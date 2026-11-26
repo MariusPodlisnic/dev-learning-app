@@ -1626,3 +1626,31 @@ test("StudioCodeEditor renders inline character diff spotlight and SuccessModal 
   assert.ok(winText.includes("Functions, Slicing & Safe Dicts"));
   assert.ok(winText.includes("OPEN CODEX →"));
 });
+
+test("LoftWorkshopPanel renders companion, window, keycap, and mug customization slots cleanly", () => {
+  const { default: LoftWorkshopPanel } = loadTsModule(
+    "src/components/LoftWorkshopPanel.tsx",
+  );
+  const { DEFAULT_LOFT_CUSTOMIZATION } = loadTsModule(
+    "src/utils/loftCustomization.ts",
+  );
+  const workshopText = visibleText(
+    renderThemed(
+      React.createElement(LoftWorkshopPanel, {
+        customization: DEFAULT_LOFT_CUSTOMIZATION,
+        totalXp: 750,
+        onSelectPatch: () => {},
+        onClose: () => {},
+      }),
+    ),
+  );
+  assert.ok(workshopText.includes("LOFT WORKSHOP"));
+  assert.ok(workshopText.includes("COMPANION"));
+  assert.ok(workshopText.includes("WINDOW"));
+  assert.ok(workshopText.includes("KEYCAPS"));
+  assert.ok(workshopText.includes("MUG"));
+  assert.ok(workshopText.includes("Midnight Cat"));
+  assert.ok(workshopText.includes("Shiba Pup"));
+  assert.ok(workshopText.includes("ACTIVE ✓"));
+  assert.ok(workshopText.includes("1200 XP"));
+});

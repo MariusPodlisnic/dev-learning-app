@@ -393,6 +393,7 @@ export default function HomeMenuScreen({
             <HomeLoftStage
               activeZone={activeZone}
               streakCount={streakCount}
+              totalXp={totalXp}
               compact={isPhone}
               milestones={loftMilestones}
               recentVictoryLessonId={recentVictoryLessonId}
