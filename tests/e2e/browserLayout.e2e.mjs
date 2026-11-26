@@ -488,6 +488,26 @@ test("Showcase route (/explore) renders Lo-Fi Arcade Orbit showcase cleanly and 
     // Clicking Begin Your Adventure warps and teleports directly to HOME
     await page.getByLabel("Begin Your Adventure", { exact: true }).click();
     await page.getByTestId("home-loft-stage").waitFor({ timeout: 10000 });
+
+    // Opening a URL-seeded Ghost Duel link bypasses Showcase directly into the duel arena with live Ghost Pace Bar
+    const duelPayload = btoa(
+      JSON.stringify({
+        v: 1,
+        m: "detective",
+        n: "Nova",
+        s: "det-20261121",
+        sc: 5,
+        t: 90,
+      }),
+    )
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+    const baseOrigin = new URL(page.url()).origin;
+    await page.goto(`${baseOrigin}/?duel=${duelPayload}`, { waitUntil: "networkidle" });
+    await page.getByTestId("ghost-duel-pace-bar").waitFor({ timeout: 10000 });
+    await page.waitForSelector("text=VS @NOVA", { timeout: 5000 });
+    await page.waitForSelector("text=CASE 1 OF 6", { timeout: 5000 });
     assert.deepEqual(pageErrors, []);
   } finally {
     await session.close();

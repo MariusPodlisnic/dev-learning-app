@@ -16,7 +16,16 @@ import {
 } from "../constants/curriculumData/syntaxBlitzCards";
 import { createSyntaxBlitzStyles } from "./syntaxBlitzStyles";
 import { recordBlitzRun } from "../utils/arcadeRecords";
+import {
+  buildGhostDuelUrl,
+  type GhostDuelChallenge,
+} from "../utils/ghostDuel";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
+import { getOnboardingState } from "../utils/userOnboarding";
+import {
+  GhostDuelPaceBar,
+  GhostDuelVerdictCard,
+} from "./GhostDuelBanner";
 import {
   readLocalJson,
   readLocalJsonAsync,
@@ -53,6 +62,8 @@ interface SyntaxBlitzArenaProps {
   isPremium: boolean;
   onRequirePro: () => void;
   onAwardBlitzXp: (xpEarned: number) => void;
+  activeDuel?: GhostDuelChallenge | null;
+  onClearDuel?: () => void;
 }
 
 function shuffleCards(cards: BlitzCardItem[]): BlitzCardItem[] {
@@ -113,6 +124,8 @@ export default function SyntaxBlitzArena({
   isPremium,
   onRequirePro,
   onAwardBlitzXp,
+  activeDuel = null,
+  onClearDuel,
 }: SyntaxBlitzArenaProps) {
   const styles = useThemedStyles(createSyntaxBlitzStyles);
   const [selectedDeck, setSelectedDeck] =
@@ -142,6 +155,10 @@ export default function SyntaxBlitzArena({
   } | null>(null);
   const [answerGrid, setAnswerGrid] = useState<("🟩" | "🟥")[]>([]);
   const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
+  const [duelShareFeedback, setDuelShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
+  const [activeRoundSeed, setActiveRoundSeed] = useState<string>(
+    () => activeDuel?.seed || `${getDailyDateKey()}:python_basics`,
+  );
   const [bonusSecondsToast, setBonusSecondsToast] = useState<boolean>(false);
   const [roundTargetBest, setRoundTargetBest] = useState<number>(0);
   const [newBestAchieved, setNewBestAchieved] = useState<boolean>(false);
@@ -289,10 +306,19 @@ export default function SyntaxBlitzArena({
     }
 
     const pool = filterBlitzPool(BLITZ_CARDS, deckKey, isPremium);
+    const seedForRound =
+      activeDuel && activeDuel.mode === "blitz"
+        ? activeDuel.seed
+        : modeOverride === "daily"
+          ? `${todayDateKey}:${deckKey}`
+          : `blitz-${todayDateKey}-r${roundId + 1}-${deckKey}`;
+    setActiveRoundSeed(seedForRound);
     const queue =
-      modeOverride === "daily"
-        ? buildSeededDeck(pool, `${todayDateKey}:${deckKey}`)
-        : shuffleCards(pool);
+      activeDuel && activeDuel.mode === "blitz"
+        ? buildSeededDeck(pool, activeDuel.seed)
+        : modeOverride === "daily"
+          ? buildSeededDeck(pool, seedForRound)
+          : buildSeededDeck(pool, seedForRound);
 
     const targetBest = modeOverride === "daily" ? dailyBestXp : highScore;
     roundTargetBestRef.current = targetBest;
@@ -571,6 +597,35 @@ export default function SyntaxBlitzArena({
     }
   }
 
+  async function handleChallengeFriendDuel() {
+    playSuccessChime();
+    const myHandle = getOnboardingState().displayName || "Devy Challenger";
+    const duel: GhostDuelChallenge = {
+      v: 1,
+      mode: "blitz",
+      challenger: myHandle,
+      seed: activeRoundSeed || `${todayDateKey}:${selectedDeck}`,
+      targetScore: correctCount,
+      targetTimeSec: BLITZ_ROUND_SECONDS,
+      track: selectedDeck,
+    };
+    const duelUrl = buildGhostDuelUrl(duel);
+    const message = [
+      `⚔️ Devy 60s Speed Blitz — Ghost Duel Challenge!`,
+      `👻 Beat @${myHandle}'s score: ${correctCount} hits (${maxCombo}x max streak) on the exact same deck!`,
+      `Accept the duel 👉 ${duelUrl}`,
+    ].join("\n");
+    const outcome = await shareOrCopyText({
+      title: `Devy Speed Blitz Ghost Duel vs @${myHandle}`,
+      message,
+      channel: "ghost_duel_blitz",
+    });
+    if (outcome !== "failed") {
+      setDuelShareFeedback(outcome);
+      setTimeout(() => setDuelShareFeedback("idle"), 2600);
+    }
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -602,6 +657,20 @@ export default function SyntaxBlitzArena({
           </Text>
         </View>
       </View>
+
+      {/* Active Async Ghost Duel Pace Bar */}
+      {activeDuel && activeDuel.mode === "blitz" && gameState !== "finished" ? (
+        <GhostDuelPaceBar
+          challenge={activeDuel}
+          playerScore={correctCount}
+          progressRatio={
+            gameState === "playing"
+              ? (BLITZ_ROUND_SECONDS - timeLeft) / BLITZ_ROUND_SECONDS
+              : 0
+          }
+          onDismiss={onClearDuel}
+        />
+      ) : null}
 
       {/* Replay Mode Switcher */}
       <View style={styles.blitzModeRow}>
@@ -1138,7 +1207,36 @@ export default function SyntaxBlitzArena({
             </View>
           ) : null}
 
+          {activeDuel && activeDuel.mode === "blitz" ? (
+            <GhostDuelVerdictCard
+              challenge={activeDuel}
+              playerScore={correctCount}
+              playerTimeSec={BLITZ_ROUND_SECONDS - timeLeft}
+              onDismiss={onClearDuel}
+            />
+          ) : null}
+
           <View style={styles.scoreboardActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Challenge a friend with Ghost Duel link"
+              style={({ pressed }) => [
+                styles.shareScoreBtn,
+                { backgroundColor: StudioColors.pink },
+                duelShareFeedback !== "idle" && styles.shareScoreBtnDone,
+                pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
+              ]}
+              onPress={handleChallengeFriendDuel}
+            >
+              <Text style={styles.shareScoreBtnText}>
+                {duelShareFeedback === "copied"
+                  ? "✓ DUEL LINK COPIED!"
+                  : duelShareFeedback === "shared"
+                    ? "✓ DUEL SHARED!"
+                    : "⚔️ CHALLENGE A FRIEND (GHOST) ↗"}
+              </Text>
+            </Pressable>
+
             <Pressable
               style={({ pressed }) => [
                 styles.shareScoreBtn,

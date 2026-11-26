@@ -1681,3 +1681,41 @@ test("RefactorGolfArena renders CART-07 Big-O Golf scorecard, holes, and live pa
   assert.ok(golfText.includes("LINE PAR"));
   assert.ok(golfText.includes("GRADE & BENCHMARK"));
 });
+
+test("GhostDuelPaceBar and GhostDuelVerdictCard render live duel pace and rematch controls", () => {
+  const { GhostDuelPaceBar, GhostDuelVerdictCard } = loadTsModule(
+    "src/components/GhostDuelBanner.tsx",
+  );
+  const duel = {
+    v: 1,
+    mode: "blitz",
+    challenger: "Nova",
+    seed: "blitz-seed-1",
+    targetScore: 10,
+    targetTimeSec: 60,
+  };
+  const paceText = visibleText(
+    renderThemed(
+      React.createElement(GhostDuelPaceBar, {
+        challenge: duel,
+        playerScore: 7,
+        progressRatio: 0.5,
+      }),
+    ),
+  );
+  assert.ok(paceText.includes("GHOST DUEL"));
+  assert.ok(paceText.includes("VS @NOVA"));
+  assert.ok(paceText.includes("+2 AHEAD OF GHOST"));
+
+  const verdictText = visibleText(
+    renderThemed(
+      React.createElement(GhostDuelVerdictCard, {
+        challenge: duel,
+        playerScore: 12,
+        playerTimeSec: 60,
+      }),
+    ),
+  );
+  assert.ok(verdictText.includes("GHOST DEFEATED"));
+  assert.ok(verdictText.includes("SEND REMATCH LINK"));
+});

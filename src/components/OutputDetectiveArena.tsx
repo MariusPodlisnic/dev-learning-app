@@ -10,17 +10,28 @@ import {
 import { useThemedStyles } from "../constants/themeContext";
 import { recordDetectiveRound } from "../utils/arcadeRecords";
 import {
+  buildGhostDuelUrl,
+  type GhostDuelChallenge,
+  seedStringToInt,
+} from "../utils/ghostDuel";
+import {
   buildDetectiveSession,
   computeDetectiveXp,
   type DetectiveTrack,
 } from "../utils/outputDetective";
+import { shareOrCopyText } from "../utils/shareUtils";
 import {
   playErrorBuzz,
   playKeyClick,
   playSuccessChime,
   playVictoryFanfare,
 } from "../utils/soundEffects";
+import { getOnboardingState } from "../utils/userOnboarding";
 import { renderHighlightedPython } from "./FormattedText";
+import {
+  GhostDuelPaceBar,
+  GhostDuelVerdictCard,
+} from "./GhostDuelBanner";
 import { StudioIcon, type StudioIconName, Text } from "./StudioIcon";
 
 interface OutputDetectiveArenaProps {
@@ -28,6 +39,8 @@ interface OutputDetectiveArenaProps {
   onRequirePro: () => void;
   onAwardDetectiveXp: (xpEarned: number) => void;
   onBackToArcade?: () => void;
+  activeDuel?: GhostDuelChallenge | null;
+  onClearDuel?: () => void;
 }
 
 const OPTION_LETTERS = ["A", "B", "C", "D"] as const;
@@ -48,6 +61,8 @@ export default function OutputDetectiveArena({
   onRequirePro,
   onAwardDetectiveXp,
   onBackToArcade,
+  activeDuel = null,
+  onClearDuel,
 }: OutputDetectiveArenaProps) {
   const styles = useThemedStyles(createStyles);
 
@@ -60,6 +75,14 @@ export default function OutputDetectiveArena({
   const [maxStreak, setMaxStreak] = useState<number>(0);
   const [isSummary, setIsSummary] = useState<boolean>(false);
   const [awardedXp, setAwardedXp] = useState<number>(0);
+  const [duelShareFeedback, setDuelShareFeedback] = useState<
+    "idle" | "copied" | "shared"
+  >("idle");
+
+  const effectiveSeed =
+    activeDuel && activeDuel.mode === "detective"
+      ? seedStringToInt(activeDuel.seed)
+      : sessionSeed;
 
   const session = useMemo(
     () =>
@@ -67,9 +90,9 @@ export default function OutputDetectiveArena({
         track,
         isPremium,
         count: 6,
-        seed: sessionSeed,
+        seed: effectiveSeed,
       }),
-    [isPremium, sessionSeed, track],
+    [effectiveSeed, isPremium, track],
   );
 
   const activeCase = session.cases[caseIdx] || session.cases[0];
@@ -134,6 +157,38 @@ export default function OutputDetectiveArena({
       : accuracyPct >= 67
         ? "A-RANK LEAD DETECTIVE"
         : "B-RANK JUNIOR SLEUTH";
+
+  async function handleChallengeFriendDuel() {
+    playSuccessChime();
+    const myHandle = getOnboardingState().displayName || "Devy Sleuth";
+    const duel: GhostDuelChallenge = {
+      v: 1,
+      mode: "detective",
+      challenger: myHandle,
+      seed:
+        activeDuel?.mode === "detective"
+          ? activeDuel.seed
+          : `det-${effectiveSeed}`,
+      targetScore: correctCount,
+      targetTimeSec: 90,
+      track,
+    };
+    const duelUrl = buildGhostDuelUrl(duel);
+    const message = [
+      `⚔️ Devy Output Detective — Ghost Duel Challenge!`,
+      `👻 Beat @${myHandle}'s score: ${correctCount}/${totalCases} cases solved on the exact same 6 code traces!`,
+      `Accept the duel 👉 ${duelUrl}`,
+    ].join("\n");
+    const outcome = await shareOrCopyText({
+      title: `Devy Output Detective Duel vs @${myHandle}`,
+      message,
+      channel: "ghost_duel_detective",
+    });
+    if (outcome !== "failed") {
+      setDuelShareFeedback(outcome);
+      setTimeout(() => setDuelShareFeedback("idle"), 2600);
+    }
+  }
 
   return (
     <ScrollView
@@ -222,6 +277,19 @@ export default function OutputDetectiveArena({
           </View>
         </View>
 
+        {activeDuel && activeDuel.mode === "detective" && !isSummary ? (
+          <GhostDuelPaceBar
+            challenge={activeDuel}
+            playerScore={correctCount}
+            progressRatio={
+              totalCases > 0
+                ? (caseIdx + (selectedOpt !== null ? 1 : 0)) / totalCases
+                : 0
+            }
+            onDismiss={onClearDuel}
+          />
+        ) : null}
+
         {isSummary ? (
           /* Round Summary Card */
           <View style={styles.summaryCard}>
@@ -269,7 +337,35 @@ export default function OutputDetectiveArena({
                 </View>
               </View>
 
+              {activeDuel && activeDuel.mode === "detective" ? (
+                <GhostDuelVerdictCard
+                  challenge={activeDuel}
+                  playerScore={correctCount}
+                  playerTimeSec={90}
+                  onDismiss={onClearDuel}
+                />
+              ) : null}
+
               <View style={styles.summaryBtnsRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Challenge a friend to Output Detective Ghost Duel"
+                  style={({ pressed }) => [
+                    styles.primaryBtn,
+                    { backgroundColor: StudioColors.pink },
+                    pressed && { transform: [{ translateY: 1 }] },
+                  ]}
+                  onPress={handleChallengeFriendDuel}
+                >
+                  <Text style={styles.primaryBtnText}>
+                    {duelShareFeedback === "copied"
+                      ? "✓ DUEL LINK COPIED!"
+                      : duelShareFeedback === "shared"
+                        ? "✓ DUEL SHARED!"
+                        : "⚔️ CHALLENGE A FRIEND ↗"}
+                  </Text>
+                </Pressable>
+
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Start new detective casebook"

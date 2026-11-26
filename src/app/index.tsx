@@ -74,6 +74,10 @@ import {
 } from "../types/lesson";
 import { applyAmbientPreset } from "../utils/ambientSoundscapes";
 import {
+  decodeGhostDuelToken,
+  type GhostDuelChallenge,
+} from "../utils/ghostDuel";
+import {
   captureLandingAttribution,
   trackFunnelMilestone,
 } from "../utils/attribution";
@@ -300,6 +304,8 @@ export default function HomeScreen() {
   const [recentLoftVictoryId, setRecentLoftVictoryId] = useState<string | null>(
     null,
   );
+  const [activeGhostDuel, setActiveGhostDuel] =
+    useState<GhostDuelChallenge | null>(null);
   const prevStudioCompletedRef = useRef<Record<string, boolean>>({});
 
   const pyodideRef = useRef<any>(null);
@@ -390,6 +396,7 @@ export default function HomeScreen() {
     mode?: string;
     track?: string;
     paywall?: string;
+    duel?: string;
     utm_source?: string;
     utm_medium?: string;
     utm_campaign?: string;
@@ -404,6 +411,7 @@ export default function HomeScreen() {
       searchParams.mode ||
       searchParams.track ||
       searchParams.paywall ||
+      searchParams.duel ||
       searchParams.code,
   );
   const [showShowcase, setShowShowcase] = useState<boolean>(!hasShowcaseBypass);
@@ -493,8 +501,20 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (handledDeepLinkRef.current) return;
-    const { lesson, mode, track, paywall } = searchParams;
-    if (!lesson && !mode && !track && !paywall) return;
+    const { lesson, mode, track, paywall, duel } = searchParams;
+    if (!lesson && !mode && !track && !paywall && !duel) return;
+
+    if (duel) {
+      const decoded = decodeGhostDuelToken(duel);
+      if (decoded) {
+        handledDeepLinkRef.current = true;
+        queueMicrotask(() => {
+          setActiveGhostDuel(decoded);
+          setViewMode(decoded.mode);
+        });
+        return;
+      }
+    }
 
     if (paywall === "1") {
       handledDeepLinkRef.current = true;
@@ -1318,6 +1338,10 @@ export default function HomeScreen() {
                 onAwardBugHuntXp={handleAwardBugHuntXp}
                 solvedIncidents={solvedIncidents}
                 renderHighlightedPython={renderHighlightedPython}
+                activeDuel={
+                  activeGhostDuel?.mode === "bughunt" ? activeGhostDuel : null
+                }
+                onClearDuel={() => setActiveGhostDuel(null)}
               />
             ) : viewMode === "blitz" ? (
               <SyntaxBlitzArena
@@ -1329,6 +1353,10 @@ export default function HomeScreen() {
                   })
                 }
                 onAwardBlitzXp={handleAwardBlitzXp}
+                activeDuel={
+                  activeGhostDuel?.mode === "blitz" ? activeGhostDuel : null
+                }
+                onClearDuel={() => setActiveGhostDuel(null)}
               />
             ) : viewMode === "flashcards" ? (
               <FlashcardsArena
@@ -1353,6 +1381,10 @@ export default function HomeScreen() {
                 }
                 onAwardDetectiveXp={(earned) => handleAwardFlashcardXp(earned)}
                 onBackToArcade={() => setViewMode("arcade")}
+                activeDuel={
+                  activeGhostDuel?.mode === "detective" ? activeGhostDuel : null
+                }
+                onClearDuel={() => setActiveGhostDuel(null)}
               />
             ) : viewMode === "minibuilds" ? (
               <MiniBuildsArena

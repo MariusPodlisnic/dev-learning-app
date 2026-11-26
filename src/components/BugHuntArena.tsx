@@ -24,7 +24,16 @@ import {
   type BugIncident,
 } from "../constants/curriculumData/bugHuntIncidents";
 import { computePythonAutoEdit } from "../utils/editorHelpers";
+import {
+  buildGhostDuelUrl,
+  type GhostDuelChallenge,
+} from "../utils/ghostDuel";
 import { buildChallengeUrl, shareOrCopyText } from "../utils/shareUtils";
+import { getOnboardingState } from "../utils/userOnboarding";
+import {
+  GhostDuelPaceBar,
+  GhostDuelVerdictCard,
+} from "./GhostDuelBanner";
 import { getPythonRuntimeStatus } from "../utils/pyodideRunner";
 import { playKeyClick } from "../utils/soundEffects";
 import {
@@ -74,6 +83,8 @@ interface BugHuntArenaProps {
   onAwardBugHuntXp: (xpEarned: number, incidentId: string) => void;
   solvedIncidents: Record<string, boolean>;
   renderHighlightedPython: (source: string) => React.ReactNode;
+  activeDuel?: GhostDuelChallenge | null;
+  onClearDuel?: () => void;
 }
 
 export default function BugHuntArena({
@@ -84,10 +95,26 @@ export default function BugHuntArena({
   onAwardBugHuntXp,
   solvedIncidents,
   renderHighlightedPython,
+  activeDuel = null,
+  onClearDuel,
 }: BugHuntArenaProps) {
   const styles = useThemedStyles(createStyles);
   // null = Mission Select Lobby; number = Active Game Mission
-  const [activeMissionIdx, setActiveMissionIdx] = useState<number | null>(null);
+  const initialDuelMissionIdx =
+    activeDuel && activeDuel.mode === "bughunt"
+      ? (() => {
+          const found = BUG_INCIDENTS.findIndex(
+            (inc) => inc.id === activeDuel.seed || inc.codeId === activeDuel.seed,
+          );
+          if (found < 0) return null;
+          const inc = BUG_INCIDENTS[found];
+          if (TrackThemes[inc.track]?.isPro && !isPremium) return null;
+          return found;
+        })()
+      : null;
+  const [activeMissionIdx, setActiveMissionIdx] = useState<number | null>(
+    initialDuelMissionIdx,
+  );
   const [trackFilter, setTrackFilter] = useState<
     "all" | "python_basics" | "algorithms" | "system_design" | "review"
   >("all");
@@ -130,8 +157,16 @@ export default function BugHuntArena({
     };
   }, []);
 
-  const [code, setCode] = useState<string>("");
-  const [secondsLeft, setSecondsLeft] = useState<number>(60);
+  const [code, setCode] = useState<string>(() =>
+    initialDuelMissionIdx !== null
+      ? BUG_INCIDENTS[initialDuelMissionIdx].buggyCode
+      : "",
+  );
+  const [secondsLeft, setSecondsLeft] = useState<number>(() =>
+    initialDuelMissionIdx !== null
+      ? getBugHuntTimeLimit(BUG_INCIDENTS[initialDuelMissionIdx].timeLimitSec, false)
+      : 60,
+  );
   const [showHint, setShowHint] = useState<boolean>(false);
   const [isDeploying, setIsDeploying] = useState<boolean>(false);
 
@@ -142,6 +177,7 @@ export default function BugHuntArena({
   >("playing");
   const [earnedXp, setEarnedXp] = useState<number>(0);
   const [shareFeedback, setShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
+  const [duelShareFeedback, setDuelShareFeedback] = useState<"idle" | "copied" | "shared">("idle");
 
   function startMission(index: number, options?: { isDaily?: boolean }) {
     const inc = BUG_INCIDENTS[index];
@@ -544,6 +580,37 @@ export default function BugHuntArena({
     }
   }
 
+  async function handleChallengeFriendDuel() {
+    if (!currentIncident) return;
+    playKeyClick();
+    const myHandle = getOnboardingState().displayName || "Devy Responder";
+    const elapsedSec = Math.max(1, activeTimeLimitSec - secondsLeft);
+    const duel: GhostDuelChallenge = {
+      v: 1,
+      mode: "bughunt",
+      challenger: myHandle,
+      seed: currentIncident.id,
+      targetScore: secondsLeft,
+      targetTimeSec: elapsedSec,
+      track: currentIncident.track,
+    };
+    const duelUrl = buildGhostDuelUrl(duel);
+    const message = [
+      `⚔️ Devy Bug Hunt — Ghost Duel (${currentIncident.codeId}: ${currentIncident.title})`,
+      `👻 @${myHandle} patched this production bug in ${elapsedSec}s! Can you beat that time?`,
+      `Accept the duel 👉 ${duelUrl}`,
+    ].join("\n");
+    const outcome = await shareOrCopyText({
+      title: `Devy Bug Hunt Ghost Duel — ${currentIncident.title}`,
+      message,
+      channel: "ghost_duel_bughunt",
+    });
+    if (outcome !== "failed") {
+      setDuelShareFeedback(outcome);
+      setTimeout(() => setDuelShareFeedback("idle"), 2600);
+    }
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -592,6 +659,22 @@ export default function BugHuntArena({
         />
       </View>
 
+      {activeDuel &&
+      activeDuel.mode === "bughunt" &&
+      patchStatus !== "resolved" ? (
+        <GhostDuelPaceBar
+          challenge={activeDuel}
+          playerScore={Math.max(0, activeTimeLimitSec - secondsLeft)}
+          progressRatio={
+            activeTimeLimitSec > 0
+              ? (activeTimeLimitSec - secondsLeft) / activeTimeLimitSec
+              : 0
+          }
+          elapsedSec={Math.max(0, activeTimeLimitSec - secondsLeft)}
+          onDismiss={onClearDuel}
+        />
+      ) : null}
+
       {/* Brief Goal + Optional Hint */}
       <View style={styles.goalCard}>
         <View style={styles.goalLeft}>
@@ -628,41 +711,69 @@ export default function BugHuntArena({
 
       {/* Win / Timeout / Fail Feedback Banner */}
       {patchStatus === "resolved" && (
-        <View style={styles.winBanner}>
-          <View>
-            <Text style={styles.winTitle}>
-              ✓ Defect Resolved (+{earnedXp} XP)
-            </Text>
-            <Text style={styles.winSub}>
-              All assertions passed with {formattedTime} remaining on the clock.
-            </Text>
-          </View>
-          <View style={styles.winActions}>
-            <Pressable
-              style={[
-                styles.sharePatchBtn,
-                shareFeedback !== "idle" && styles.sharePatchBtnDone,
-              ]}
-              onPress={handleSharePatch}
-            >
-              <Text style={styles.sharePatchBtnText}>
-                {shareFeedback === "copied"
-                  ? "✓ COPIED!"
-                  : shareFeedback === "shared"
-                    ? "✓ SHARED!"
-                    : "📤 SHARE FIX ↗"}
+        <>
+          {activeDuel && activeDuel.mode === "bughunt" ? (
+            <GhostDuelVerdictCard
+              challenge={activeDuel}
+              playerScore={secondsLeft}
+              playerTimeSec={Math.max(1, activeTimeLimitSec - secondsLeft)}
+              onDismiss={onClearDuel}
+            />
+          ) : null}
+          <View style={styles.winBanner}>
+            <View>
+              <Text style={styles.winTitle}>
+                ✓ Defect Resolved (+{earnedXp} XP)
               </Text>
-            </Pressable>
-            <Pressable
-              style={styles.nextBtn}
-              onPress={() =>
-                startMission((activeMissionIdx + 1) % BUG_INCIDENTS.length)
-              }
-            >
-              <Text style={styles.nextBtnText}>Next Mission →</Text>
-            </Pressable>
+              <Text style={styles.winSub}>
+                All assertions passed with {formattedTime} remaining on the clock.
+              </Text>
+            </View>
+            <View style={styles.winActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Challenge a friend to Bug Hunt Ghost Duel"
+                style={[
+                  styles.sharePatchBtn,
+                  { backgroundColor: StudioColors.pink },
+                  duelShareFeedback !== "idle" && styles.sharePatchBtnDone,
+                ]}
+                onPress={handleChallengeFriendDuel}
+              >
+                <Text style={styles.sharePatchBtnText}>
+                  {duelShareFeedback === "copied"
+                    ? "✓ DUEL COPIED!"
+                    : duelShareFeedback === "shared"
+                      ? "✓ DUEL SHARED!"
+                      : "⚔️ DUEL FRIEND ↗"}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.sharePatchBtn,
+                  shareFeedback !== "idle" && styles.sharePatchBtnDone,
+                ]}
+                onPress={handleSharePatch}
+              >
+                <Text style={styles.sharePatchBtnText}>
+                  {shareFeedback === "copied"
+                    ? "✓ COPIED!"
+                    : shareFeedback === "shared"
+                      ? "✓ SHARED!"
+                      : "📤 SHARE FIX ↗"}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={styles.nextBtn}
+                onPress={() =>
+                  startMission((activeMissionIdx + 1) % BUG_INCIDENTS.length)
+                }
+              >
+                <Text style={styles.nextBtnText}>Next Mission →</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        </>
       )}
 
       {patchStatus === "timeout" && (
