@@ -125,16 +125,7 @@ return True`,
     analogyTitle: "Matching Russian Nesting Dolls",
     analogyText:
       "Every closing bracket `)`, `}`, `]` must match the most recently opened bracket sitting on top of the stack.",
-    cheatSheet: `stack = []
-pairs = {")": "(", "}": "{", "]": "["}
-for ch in s:
-    if ch in pairs:
-        if not stack or stack[-1] != pairs[ch]:
-            return False
-        stack.pop()
-    else:
-        stack.append(ch)
-return len(stack) == 0`,
+    cheatSheet: "stack = []\nmatching = {\")\": \"(\", \"]\": \"[\", \"}\": \"{\"}\n\n# On closer: check 'if not stack or stack[-1] != matching[ch]:'\n# On opener: stack.append(ch)\n# At end: len(stack) == 0",
     commonPitfall: {
       title: "Popping from an empty stack or returning True with unclosed openers",
       wrongCode: "if ch in pairs:\n    if stack.pop() != pairs[ch]: return False",
@@ -196,16 +187,7 @@ return len(stack) == 0`,
     analogyTitle: "Guessing a Number by Halving",
     analogyText:
       "Check the middle page. If the target is bigger, discard the entire left half (`low = mid + 1`); if smaller, discard the right half (`high = mid - 1`).",
-    cheatSheet: `low, high = 0, len(nums) - 1
-while low <= high:
-    mid = (low + high) // 2
-    if nums[mid] == target:
-        return mid
-    elif nums[mid] < target:
-        low = mid + 1
-    else:
-        high = mid - 1
-return -1`,
+    cheatSheet: "low, high = 0, len(arr) - 1\nwhile low <= high:\n    mid = (low + high) // 2\n    # Compare arr[mid] against key -> return mid, low = mid + 1, or high = mid - 1",
     commonPitfall: {
       title: "Using while low < high instead of low <= high or forgetting +/- 1",
       wrongCode: "while low < high:\n    low = mid  # Can infinite-loop on 2 elements!",
@@ -256,64 +238,6 @@ return -1`,
   {
     matchTrack: "algorithms",
     matchOrder: 5,
-    matchKeywords: ["kadane", "subarray", "contiguous", "linear", "maxsubarray"],
-    realWorldUse:
-      "Used in financial analytics and server burst telemetry to find the strongest continuous rally window in a single linear scan.",
-    analogyTitle: "Drop Baggage That Drags Your Total Negative",
-    analogyText:
-      "At each number `x`, ask: is extending my running streak (`current + x`) better than starting fresh right at `x`? Always pick `max(x, current + x)` and keep `best = max(best, current)`.",
-    cheatSheet: `current = best = nums[0]
-for x in nums[1:]:
-    current = max(x, current + x)
-    best = max(best, current)`,
-    commonPitfall: {
-      title: "Clamping current to 0 and failing all-negative arrays",
-      wrongCode: "current = max(0, current + x)\nbest = max(best, current)  # Returns 0 on [-5, -2] instead of -2!",
-      rightCode: "current = max(x, current + x)\nbest = max(best, current)",
-      explanation:
-        "Initializing `current = best = nums[0]` and comparing `max(x, current + x)` naturally handles negative-only lists.",
-    },
-    guidedCode: `class Solution:
-    def maxSubArray(self, nums: list) -> int:
-        if not nums:
-            return 0
-        current = best = nums[0]
-        for x in nums[1:]:
-            # 👉 Extend current subarray or restart at x, then update best:
-            current = max(x, current + x)
-            best = max(best, current)
-        return best`,
-    solutionCode: `class Solution:
-    def maxSubArray(self, nums: list) -> int:
-        if not nums:
-            return 0
-        current = best = nums[0]
-        for x in nums[1:]:
-            current = max(x, current + x)
-            best = max(best, current)
-        return best`,
-    proInsights: {
-      timeComplexity: "O(n)",
-      spaceComplexity: "O(1)",
-      tradeoff:
-        "Kadane's dynamic state transition computes the optimal contiguous sum in O(1) memory, beating O(n^2) prefix-difference scans.",
-      followUp:
-        "How would you also track the `(start_idx, end_idx)` bounds of the winning subarray?",
-    },
-    quiz: {
-      question: "Given `nums = [-2, 5, -1, 3]`, what happens when Kadane's algorithm reaches `5`?",
-      options: [
-        "Because `5 > (-2 + 5)`, it resets cleanly and starts a fresh subarray at `5`",
-        "It throws away `5` because the list started negative",
-        "It sorts the array descending first",
-      ],
-      correctIndex: 0,
-      explanation: "`max(5, 3) = 5` drops the negative prefix automatically!",
-    },
-  },
-  {
-    matchTrack: "algorithms",
-    matchOrder: 6,
     matchKeywords: ["frequency", "count", "most", "active", "tally"],
     realWorldUse: "Used by Spotify Wrapped to tally your most-played artist.",
     analogyTitle: "Tally Marks in a Dictionary",
@@ -356,61 +280,7 @@ print(count_messages(["alex", "sam", "alex", "mia", "alex"]))`,
   },
   {
     matchTrack: "algorithms",
-    matchOrder: 7,
-    matchKeywords: ["sliding", "window", "subarray", "consecutive", "spike"],
-    realWorldUse:
-      "Used in fitness apps to find your best 3-day streak of steps.",
-    analogyTitle: "Sliding a Window Across a List",
-    analogyText:
-      "As your window moves 1 step right, add the new number entering on the right and subtract the old number leaving on the left!",
-    cheatSheet: `window_sum = sum(nums[:k])
-best = window_sum
-for i in range(k, len(nums)):
-    window_sum += nums[i] - nums[i - k]
-    best = max(best, window_sum)`,
-    guidedCode: `def max_window_sum(visitors, k):
-    window_sum = sum(visitors[:k])
-    best = window_sum
-    for i in range(k, len(visitors)):
-        # 👉 Add entering visitors[i], subtract leaving visitors[i - k]:
-        window_sum += visitors[i] - visitors[i - k]
-        best = max(best, window_sum)
-    return best
-
-print(max_window_sum([10, 40, 30, 50, 20], 3))`,
-    solutionCode: `def max_window_sum(visitors, k):
-    window_sum = sum(visitors[:k])
-    best = window_sum
-    for i in range(k, len(visitors)):
-        window_sum += visitors[i] - visitors[i - k]
-        best = max(best, window_sum)
-    return best
-
-print(max_window_sum([10, 40, 30, 50, 20], 3))`,
-    proInsights: {
-      timeComplexity: "O(n)",
-      spaceComplexity: "O(1)",
-      tradeoff:
-        "Updating the running sum in O(1) per slide avoids recomputing `sum(visitors[i-k+1:i+1])` (`O(n * k)` total).",
-      followUp:
-        "What if `k` wasn't fixed and you needed the shortest subarray with sum >= target? Switch to a dynamic variable-width window.",
-    },
-    quiz: {
-      question:
-        "How do we update a sliding window sum when moving 1 step right?",
-      options: [
-        "Add the new right number and subtract the old left number",
-        "Delete the list",
-        "Multiply by 0",
-      ],
-      correctIndex: 0,
-      explanation:
-        "Adding the entering value and subtracting the leaving value updates the sum in 1 step!",
-    },
-  },
-  {
-    matchTrack: "algorithms",
-    matchOrder: 8,
+    matchOrder: 6,
     matchKeywords: ["stack", "bracket", "valid", "parentheses", "lifo"],
     realWorldUse:
       "Used by code editors to check that every opening `(` has a matching closing `)`.",
@@ -471,6 +341,118 @@ print(is_balanced("(()"))`,
   },
   {
     matchTrack: "algorithms",
+    matchOrder: 7,
+    matchKeywords: ["sliding", "window", "subarray", "consecutive", "spike"],
+    realWorldUse:
+      "Used in fitness apps to find your best 3-day streak of steps.",
+    analogyTitle: "Sliding a Window Across a List",
+    analogyText:
+      "As your window moves 1 step right, add the new number entering on the right and subtract the old number leaving on the left!",
+    cheatSheet: `window_sum = sum(nums[:k])
+best = window_sum
+for i in range(k, len(nums)):
+    window_sum += nums[i] - nums[i - k]
+    best = max(best, window_sum)`,
+    guidedCode: `def max_window_sum(visitors, k):
+    window_sum = sum(visitors[:k])
+    best = window_sum
+    for i in range(k, len(visitors)):
+        # 👉 Add entering visitors[i], subtract leaving visitors[i - k]:
+        window_sum += visitors[i] - visitors[i - k]
+        best = max(best, window_sum)
+    return best
+
+print(max_window_sum([10, 40, 30, 50, 20], 3))`,
+    solutionCode: `def max_window_sum(visitors, k):
+    window_sum = sum(visitors[:k])
+    best = window_sum
+    for i in range(k, len(visitors)):
+        window_sum += visitors[i] - visitors[i - k]
+        best = max(best, window_sum)
+    return best
+
+print(max_window_sum([10, 40, 30, 50, 20], 3))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Updating the running sum in O(1) per slide avoids recomputing `sum(visitors[i-k+1:i+1])` (`O(n * k)` total).",
+      followUp:
+        "What if `k` wasn't fixed and you needed the shortest subarray with sum >= target? Switch to a dynamic variable-width window.",
+    },
+    quiz: {
+      question:
+        "How do we update a sliding window sum when moving 1 step right?",
+      options: [
+        "Add the new right number and subtract the old left number",
+        "Delete the list",
+        "Multiply by 0",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Adding the entering value and subtracting the leaving value updates the sum in 1 step!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 8,
+    matchKeywords: ["kadane", "subarray", "contiguous", "linear", "maxsubarray"],
+    realWorldUse:
+      "Used in financial analytics and server burst telemetry to find the strongest continuous rally window in a single linear scan.",
+    analogyTitle: "Drop Baggage That Drags Your Total Negative",
+    analogyText:
+      "At each number `x`, ask: is extending my running streak (`current + x`) better than starting fresh right at `x`? Always pick `max(x, current + x)` and keep `best = max(best, current)`.",
+    cheatSheet: `current = best = nums[0]
+for x in nums[1:]:
+    current = max(x, current + x)
+    best = max(best, current)`,
+    commonPitfall: {
+      title: "Clamping current to 0 and failing all-negative arrays",
+      wrongCode: "current = max(0, current + x)\nbest = max(best, current)  # Returns 0 on [-5, -2] instead of -2!",
+      rightCode: "current = max(x, current + x)\nbest = max(best, current)",
+      explanation:
+        "Initializing `current = best = nums[0]` and comparing `max(x, current + x)` naturally handles negative-only lists.",
+    },
+    guidedCode: `class Solution:
+    def maxSubArray(self, nums: list) -> int:
+        if not nums:
+            return 0
+        current = best = nums[0]
+        for x in nums[1:]:
+            # 👉 Extend current subarray or restart at x, then update best:
+            current = max(x, current + x)
+            best = max(best, current)
+        return best`,
+    solutionCode: `class Solution:
+    def maxSubArray(self, nums: list) -> int:
+        if not nums:
+            return 0
+        current = best = nums[0]
+        for x in nums[1:]:
+            current = max(x, current + x)
+            best = max(best, current)
+        return best`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Kadane's dynamic state transition computes the optimal contiguous sum in O(1) memory, beating O(n^2) prefix-difference scans.",
+      followUp:
+        "How would you also track the `(start_idx, end_idx)` bounds of the winning subarray?",
+    },
+    quiz: {
+      question: "Given `nums = [-2, 5, -1, 3]`, what happens when Kadane's algorithm reaches `5`?",
+      options: [
+        "Because `5 > (-2 + 5)`, it resets cleanly and starts a fresh subarray at `5`",
+        "It throws away `5` because the list started negative",
+        "It sorts the array descending first",
+      ],
+      correctIndex: 0,
+      explanation: "`max(5, 3) = 5` drops the negative prefix automatically!",
+    },
+  },
+  {
+    matchTrack: "algorithms",
     matchOrder: 9,
     matchKeywords: ["cheapest", "flight", "filtered", "minimum", "sentinel"],
     realWorldUse:
@@ -478,13 +460,7 @@ print(is_balanced("(()"))`,
     analogyTitle: "Filtered Linear Scan with a Sentinel Floor",
     analogyText:
       "Blindly calling `min(prices)` crashes on `None` or picks corrupted `$0` glitches. Walk the array once with `best = None`, skip invalid fares (`p is None or p <= 0`), and keep the smallest valid fare—returning `-1` if nothing valid remains.",
-    cheatSheet: `def find_cheapest_flight(prices):
-    best = None
-    for p in prices:
-        if p is not None and p > 0:
-            if best is None or p < best:
-                best = p
-    return best if best is not None else -1`,
+    cheatSheet: "best = None\nfor val in items:\n    if val is not None and val > 0:\n        if best is None or val < best:\n            best = val\n# Return best if found, otherwise fallback -1",
     commonPitfall: {
       title: "Calling min(prices) directly without filtering None or <= 0",
       wrongCode: "return min(prices)  # TypeError on None or returns 0!",
@@ -538,6 +514,57 @@ print(find_cheapest_flight([320, 0, 195, None, 160, 410]))`,
   {
     matchTrack: "algorithms",
     matchOrder: 10,
+    matchKeywords: ["mutual", "set intersection", "sorted", "friends", "dedup"],
+    realWorldUse:
+      "Used by Instagram, LinkedIn, and Discord to compute mutual connections across millions of profiles without quadratic slowdowns.",
+    analogyTitle: "Hash-Set Intersection `&` + Canonical Sort",
+    analogyText:
+      "Scanning `list_a` and checking `in list_b` takes O(n * m) time and leaks duplicates. Converting both to sets (`set(a) & set(b)`) runs in O(n + m) linear time and dedupes automatically before `sorted(...)` locks in deterministic output.",
+    cheatSheet: "overlap = set(group_a) & set(group_b)\nordered = sorted(overlap)  # Sorted unique intersection",
+    commonPitfall: {
+      title: "Filtering list_a against list_b without deduplicating or hashing",
+      wrongCode:
+        "return [f for f in friends_a if f in friends_b]  # O(n*m) & keeps duplicates!",
+      rightCode:
+        "return sorted(set(friends_a) & set(friends_b))  # O(n + m) & deduped!",
+      explanation:
+        "List membership (`in list`) is O(m) per check and duplicates in `friends_a` would appear twice unless you convert to `set`.",
+    },
+    guidedCode: `def find_mutual_friends(friends_a, friends_b):
+    # 👉 Step 1: Convert both lists to sets and intersect with '&'
+    mutual = set(friends_a) & set(friends_b)
+    # 👉 Step 2: Return deterministically sorted list
+    return sorted(mutual)
+
+print(find_mutual_friends(["Sam", "Mia", "Leo", "Sam"], ["Mia", "Zoe", "Sam"]))`,
+    solutionCode: `def find_mutual_friends(friends_a, friends_b):
+    return sorted(set(friends_a) & set(friends_b))
+
+print(find_mutual_friends(["Sam", "Mia", "Leo", "Sam"], ["Mia", "Zoe", "Sam"]))`,
+    proInsights: {
+      timeComplexity: "O(n + m + k log k)",
+      spaceComplexity: "O(n + m)",
+      tradeoff:
+        "Set intersection reduces overlap cost from O(n * m) to O(n + m); sorting only the `k` mutual results (`k log k`) is much cheaper than sorting full friend lists first.",
+      followUp:
+        "If `friends_a` has 10M entries and `friends_b` has 200 entries, only hash the smaller list into a `set` to minimize RAM usage.",
+    },
+    quiz: {
+      question:
+        "Why does `sorted(set(a) & set(b))` outperform `[x for x in a if x in b]` on large friend lists?",
+      options: [
+        "Set lookups are O(1) average instead of O(m) linear scans, and duplicates are removed automatically",
+        "Sets store items in alphabetical order natively without sorting",
+        "`&` runs across GPU cores in Python",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Hash tables drop overlap detection from O(n * m) to O(n + m) while eliminating duplicates automatically.",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 11,
     matchKeywords: ["binary search", "lower bound", "insert", "bisect"],
     realWorldUse:
       "Powering log-timestamp lookups, sorted database B-Tree inserts, and autocomplete prefix boundaries in O(log n) time.",
@@ -609,58 +636,6 @@ print(find_insert_pos([10, 25, 42, 70, 99], 50))`,
   },
   {
     matchTrack: "algorithms",
-    matchOrder: 11,
-    matchKeywords: ["mutual", "set intersection", "sorted", "friends", "dedup"],
-    realWorldUse:
-      "Used by Instagram, LinkedIn, and Discord to compute mutual connections across millions of profiles without quadratic slowdowns.",
-    analogyTitle: "Hash-Set Intersection `&` + Canonical Sort",
-    analogyText:
-      "Scanning `list_a` and checking `in list_b` takes O(n * m) time and leaks duplicates. Converting both to sets (`set(a) & set(b)`) runs in O(n + m) linear time and dedupes automatically before `sorted(...)` locks in deterministic output.",
-    cheatSheet: `def find_mutual_friends(friends_a, friends_b):
-    return sorted(set(friends_a) & set(friends_b))`,
-    commonPitfall: {
-      title: "Filtering list_a against list_b without deduplicating or hashing",
-      wrongCode:
-        "return [f for f in friends_a if f in friends_b]  # O(n*m) & keeps duplicates!",
-      rightCode:
-        "return sorted(set(friends_a) & set(friends_b))  # O(n + m) & deduped!",
-      explanation:
-        "List membership (`in list`) is O(m) per check and duplicates in `friends_a` would appear twice unless you convert to `set`.",
-    },
-    guidedCode: `def find_mutual_friends(friends_a, friends_b):
-    # 👉 Step 1: Convert both lists to sets and intersect with '&'
-    mutual = set(friends_a) & set(friends_b)
-    # 👉 Step 2: Return deterministically sorted list
-    return sorted(mutual)
-
-print(find_mutual_friends(["Sam", "Mia", "Leo", "Sam"], ["Mia", "Zoe", "Sam"]))`,
-    solutionCode: `def find_mutual_friends(friends_a, friends_b):
-    return sorted(set(friends_a) & set(friends_b))
-
-print(find_mutual_friends(["Sam", "Mia", "Leo", "Sam"], ["Mia", "Zoe", "Sam"]))`,
-    proInsights: {
-      timeComplexity: "O(n + m + k log k)",
-      spaceComplexity: "O(n + m)",
-      tradeoff:
-        "Set intersection reduces overlap cost from O(n * m) to O(n + m); sorting only the `k` mutual results (`k log k`) is much cheaper than sorting full friend lists first.",
-      followUp:
-        "If `friends_a` has 10M entries and `friends_b` has 200 entries, only hash the smaller list into a `set` to minimize RAM usage.",
-    },
-    quiz: {
-      question:
-        "Why does `sorted(set(a) & set(b))` outperform `[x for x in a if x in b]` on large friend lists?",
-      options: [
-        "Set lookups are O(1) average instead of O(m) linear scans, and duplicates are removed automatically",
-        "Sets store items in alphabetical order natively without sorting",
-        "`&` runs across GPU cores in Python",
-      ],
-      correctIndex: 0,
-      explanation:
-        "Hash tables drop overlap detection from O(n * m) to O(n + m) while eliminating duplicates automatically.",
-    },
-  },
-  {
-    matchTrack: "algorithms",
     matchOrder: 12,
     matchKeywords: ["prefix sum", "range", "queries", "o(1)", "subarray"],
     realWorldUse:
@@ -722,6 +697,77 @@ print(range_sums([10, 20, 15, 5], [[0, 2], [1, 3]]))`,
   {
     matchTrack: "algorithms",
     matchOrder: 13,
+    matchKeywords: ["vip", "gatekeeper", "dedup", "set lookup", "batch"],
+    realWorldUse:
+      "Used at API auth gateways, concert check-in scanners, and SIEM allowlist filters to verify large arrival streams while keeping order and ignoring duplicate scans.",
+    analogyTitle: "O(1) Set Allowlist + Seen-Set Deduplicator",
+    analogyText:
+      "Convert `vip_list` into `vip_set = set(vip_list)` once so every check is O(1), then keep a second `seen = set()` as you scan `arrivals` so repeat badge taps are ignored without breaking arrival order!",
+    cheatSheet: `vip_set = set(vip_list)
+seen = set()
+accepted = []
+for guest in arrivals:
+    if guest in vip_set and guest not in seen:
+        seen.add(guest)
+        accepted.append(guest)
+return accepted`,
+    commonPitfall: {
+      title: "Using set(vip_list) & set(arrivals) directly (destroys arrival order)",
+      wrongCode:
+        "return list(set(vip_list) & set(arrivals))  # Loses arrival order!",
+      rightCode:
+        "vip_set, seen, out = set(vip_list), set(), []\nfor g in arrivals:\n    if g in vip_set and g not in seen:\n        seen.add(g); out.append(g)",
+      explanation:
+        "Intersecting sets scrambles order because Python sets are unordered; iterating `arrivals` with a `seen` guard preserves exact order in O(n + m).",
+    },
+    guidedCode: `def filter_valid_badges(vip_list, arrivals):
+    # 👉 Step 1: Hash vip_list for O(1) membership lookups
+    vip_set = set(vip_list)
+    seen = set()
+    admitted = []
+    # 👉 Step 2: Scan arrivals in order, admitting each valid VIP once
+    for name in arrivals:
+        if name in vip_set and name not in seen:
+            seen.add(name)
+            admitted.append(name)
+    return admitted
+
+print(filter_valid_badges(["Aria", "Kai", "Nova"], ["Leo", "Kai", "Aria", "Kai"]))`,
+    solutionCode: `def filter_valid_badges(vip_list, arrivals):
+    vip_set = set(vip_list)
+    seen = set()
+    admitted = []
+    for name in arrivals:
+        if name in vip_set and name not in seen:
+            seen.add(name)
+            admitted.append(name)
+    return admitted
+
+print(filter_valid_badges(["Aria", "Kai", "Nova"], ["Leo", "Kai", "Aria", "Kai"]))`,
+    proInsights: {
+      timeComplexity: "O(n + m)",
+      spaceComplexity: "O(n + m)",
+      tradeoff:
+        "Pre-hashing `vip_list` once drops total runtime from O(n * m) down to O(n + m), while `seen` guarantees order-preserving deduplication.",
+      followUp:
+        "If arrivals must stream forever without holding all past visitors in `seen`, what time-window or Bloom filter strategy replaces unbounded memory?",
+    },
+    quiz: {
+      question:
+        "Why don't we simply return `list(set(vip_list) & set(arrivals))` here?",
+      options: [
+        "Sets are unordered, so `&` loses the first-seen arrival order of guests",
+        "Python raises a `TypeError` when intersecting two string sets",
+        "Sets cannot store more than 100 strings",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Scanning `arrivals` linearly while checking `vip_set` and `seen` preserves deterministic arrival order in O(n + m) time.",
+    },
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 14,
     matchKeywords: ["runner up", "top two", "second largest", "single pass", "distinct"],
     realWorldUse:
       "Used in auction second-price bidding (Vickrey auctions), tournament brackets, and telemetry peak trackers without sorting.",
@@ -785,7 +831,7 @@ print(find_top_two_scores([120, 450, 450, 310, 290]))`,
   },
   {
     matchTrack: "algorithms",
-    matchOrder: 14,
+    matchOrder: 15,
     matchKeywords: ["tie-breaker", "multi-key", "leaderboard", "lambda", "tuple key"],
     realWorldUse:
       "Used in esports rankings, e-commerce search ranking (relevance, price, rating), and SQL multi-column `ORDER BY` clauses.",
@@ -851,7 +897,7 @@ print(rank_leaderboard(sample))`,
   },
   {
     matchTrack: "algorithms",
-    matchOrder: 15,
+    matchOrder: 16,
     matchKeywords: ["parity", "two pointer", "partition", "in-place", "swap"],
     realWorldUse:
       "Used in memory allocators, quicksort partitioning (Lomuto/Hoare), and packet schedulers to segregate traffic classes in O(1) extra memory.",
@@ -933,78 +979,68 @@ print(all(x % 2 == 0 for x in res[:2]) and all(x % 2 == 1 for x in res[2:]))`,
   },
   {
     matchTrack: "algorithms",
-    matchOrder: 16,
-    matchKeywords: ["vip", "gatekeeper", "dedup", "set lookup", "batch"],
+    matchOrder: 17,
+    matchKeywords: ["duplicate", "early exit", "seen", "first repeat"],
     realWorldUse:
-      "Used at API auth gateways, concert check-in scanners, and SIEM allowlist filters to verify large arrival streams while keeping order and ignoring duplicate scans.",
-    analogyTitle: "O(1) Set Allowlist + Seen-Set Deduplicator",
+      "Used in event ingestion pipelines (idempotency keys), fraud detectors, and log parsers to pinpoint the exact first duplicate record without scanning the entire backlog.",
+    analogyTitle: "Memory Gate with Immediate Early Exit",
     analogyText:
-      "Convert `vip_list` into `vip_set = set(vip_list)` once so every check is O(1), then keep a second `seen = set()` as you scan `arrivals` so repeat badge taps are ignored without breaking arrival order!",
-    cheatSheet: `vip_set = set(vip_list)
-seen = set()
-accepted = []
-for guest in arrivals:
-    if guest in vip_set and guest not in seen:
-        seen.add(guest)
-        accepted.append(guest)
-return accepted`,
+      "Walk through `names` one by one with `seen = set()`. The moment `n in seen`, return `n` immediately—you don't even have to look at the rest of the list! If the loop finishes cleanly, return `None`.",
+    cheatSheet: `seen = set()
+for name in names:
+    if name in seen:
+        return name
+    seen.add(name)
+return None`,
     commonPitfall: {
-      title: "Using set(vip_list) & set(arrivals) directly (destroys arrival order)",
+      title: "Using len(set(names)) != len(names) which throws away WHICH duplicate happened first",
       wrongCode:
-        "return list(set(vip_list) & set(arrivals))  # Loses arrival order!",
+        "return len(names) != len(set(names))  # Only returns True/False!",
       rightCode:
-        "vip_set, seen, out = set(vip_list), set(), []\nfor g in arrivals:\n    if g in vip_set and g not in seen:\n        seen.add(g); out.append(g)",
+        "seen = set()\nfor n in names:\n    if n in seen:\n        return n\n    seen.add(n)",
       explanation:
-        "Intersecting sets scrambles order because Python sets are unordered; iterating `arrivals` with a `seen` guard preserves exact order in O(n + m).",
+        "`set(names)` forgets which item repeated first; streaming through `seen` returns the exact first repeated value at the earliest index.",
     },
-    guidedCode: `def filter_valid_badges(vip_list, arrivals):
-    # 👉 Step 1: Hash vip_list for O(1) membership lookups
-    vip_set = set(vip_list)
+    guidedCode: `def first_duplicate(names):
     seen = set()
-    admitted = []
-    # 👉 Step 2: Scan arrivals in order, admitting each valid VIP once
-    for name in arrivals:
-        if name in vip_set and name not in seen:
-            seen.add(name)
-            admitted.append(name)
-    return admitted
+    for n in names:
+        # 👉 Step 1: Return immediately if this name was already seen
+        if n in seen:
+            return n
+        # 👉 Step 2: Otherwise record it in O(1)
+        seen.add(n)
+    return None
 
-print(filter_valid_badges(["Aria", "Kai", "Nova"], ["Leo", "Kai", "Aria", "Kai"]))`,
-    solutionCode: `def filter_valid_badges(vip_list, arrivals):
-    vip_set = set(vip_list)
+print(first_duplicate(["aria", "kai", "mia", "kai", "aria"]), first_duplicate(["aria", "kai"]))`,
+    solutionCode: `def first_duplicate(names):
     seen = set()
-    admitted = []
-    for name in arrivals:
-        if name in vip_set and name not in seen:
-            seen.add(name)
-            admitted.append(name)
-    return admitted
+    for n in names:
+        if n in seen:
+            return n
+        seen.add(n)
+    return None
 
-print(filter_valid_badges(["Aria", "Kai", "Nova"], ["Leo", "Kai", "Aria", "Kai"]))`,
+print(first_duplicate(["aria", "kai", "mia", "kai", "aria"]), first_duplicate(["aria", "kai"]))`,
     proInsights: {
-      timeComplexity: "O(n + m)",
-      spaceComplexity: "O(n + m)",
+      timeComplexity: "O(n) worst-case, O(k) early exit",
+      spaceComplexity: "O(n)",
       tradeoff:
-        "Pre-hashing `vip_list` once drops total runtime from O(n * m) down to O(n + m), while `seen` guarantees order-preserving deduplication.",
+        "Short-circuiting on the first collision makes best-case runtime O(1) even on million-item streams whenever duplicates occur near the front.",
       followUp:
-        "If arrivals must stream forever without holding all past visitors in `seen`, what time-window or Bloom filter strategy replaces unbounded memory?",
+        "Why does `['aria', 'kai', 'mia', 'kai', 'aria']` return `'kai'` instead of `'aria'`? Because `'kai'` completes its second appearance at index 3 before `'aria'` repeats at index 4!",
     },
     quiz: {
       question:
-        "Why don't we simply return `list(set(vip_list) & set(arrivals))` here?",
-      options: [
-        "Sets are unordered, so `&` loses the first-seen arrival order of guests",
-        "Python raises a `TypeError` when intersecting two string sets",
-        "Sets cannot store more than 100 strings",
-      ],
+        'For `["a", "b", "c", "b", "a"]`, what does `first_duplicate` return?',
+      options: ['"b"', '"a"', "None"],
       correctIndex: 0,
       explanation:
-        "Scanning `arrivals` linearly while checking `vip_set` and `seen` preserves deterministic arrival order in O(n + m) time.",
+        '`"b"` is seen twice by index 3, before `"a"` repeats at index 4!',
     },
   },
   {
     matchTrack: "algorithms",
-    matchOrder: 17,
+    matchOrder: 18,
     matchKeywords: ["palindrome", "two pointer", "isalnum", "sanitizer", "o(1)"],
     realWorldUse:
       "Classic interview question testing O(1)-space character normalization, used in fuzzy identifier matching and DNA strand symmetry checks.",
@@ -1076,67 +1112,6 @@ print(is_palindrome("A man, a plan, a canal: Panama"), is_palindrome("race a car
       correctIndex: 0,
       explanation:
         "`.isalnum()` returns `True` only for letters and digits (`A-Z`, `a-z`, `0-9`), so punctuation and spaces are skipped!",
-    },
-  },
-  {
-    matchTrack: "algorithms",
-    matchOrder: 18,
-    matchKeywords: ["duplicate", "early exit", "seen", "first repeat"],
-    realWorldUse:
-      "Used in event ingestion pipelines (idempotency keys), fraud detectors, and log parsers to pinpoint the exact first duplicate record without scanning the entire backlog.",
-    analogyTitle: "Memory Gate with Immediate Early Exit",
-    analogyText:
-      "Walk through `names` one by one with `seen = set()`. The moment `n in seen`, return `n` immediately—you don't even have to look at the rest of the list! If the loop finishes cleanly, return `None`.",
-    cheatSheet: `seen = set()
-for name in names:
-    if name in seen:
-        return name
-    seen.add(name)
-return None`,
-    commonPitfall: {
-      title: "Using len(set(names)) != len(names) which throws away WHICH duplicate happened first",
-      wrongCode:
-        "return len(names) != len(set(names))  # Only returns True/False!",
-      rightCode:
-        "seen = set()\nfor n in names:\n    if n in seen:\n        return n\n    seen.add(n)",
-      explanation:
-        "`set(names)` forgets which item repeated first; streaming through `seen` returns the exact first repeated value at the earliest index.",
-    },
-    guidedCode: `def first_duplicate(names):
-    seen = set()
-    for n in names:
-        # 👉 Step 1: Return immediately if this name was already seen
-        if n in seen:
-            return n
-        # 👉 Step 2: Otherwise record it in O(1)
-        seen.add(n)
-    return None
-
-print(first_duplicate(["aria", "kai", "mia", "kai", "aria"]), first_duplicate(["aria", "kai"]))`,
-    solutionCode: `def first_duplicate(names):
-    seen = set()
-    for n in names:
-        if n in seen:
-            return n
-        seen.add(n)
-    return None
-
-print(first_duplicate(["aria", "kai", "mia", "kai", "aria"]), first_duplicate(["aria", "kai"]))`,
-    proInsights: {
-      timeComplexity: "O(n) worst-case, O(k) early exit",
-      spaceComplexity: "O(n)",
-      tradeoff:
-        "Short-circuiting on the first collision makes best-case runtime O(1) even on million-item streams whenever duplicates occur near the front.",
-      followUp:
-        "Why does `['aria', 'kai', 'mia', 'kai', 'aria']` return `'kai'` instead of `'aria'`? Because `'kai'` completes its second appearance at index 3 before `'aria'` repeats at index 4!",
-    },
-    quiz: {
-      question:
-        'For `["a", "b", "c", "b", "a"]`, what does `first_duplicate` return?',
-      options: ['"b"', '"a"', "None"],
-      correctIndex: 0,
-      explanation:
-        '`"b"` is seen twice by index 3, before `"a"` repeats at index 4!',
     },
   },
   {
@@ -1522,9 +1497,7 @@ print(top_k_frequent([1, 1, 1, 2, 2, 3], 2))`,
     analogyTitle: "Sorted Filing Cabinets with Left/Right Pruning",
     analogyText:
       "Every BST node splits values: everything smaller goes left, everything larger goes right. If `node['val'] <= low`, no need to open the left cabinet at all!",
-    cheatSheet: `def range_sum_bst(root, low, high):
-    if root is None:
-        return 0`,
+    cheatSheet: "if node is None:\n    return 0\n# Prune left when node[\"val\"] <= low\n# Prune right when node[\"val\"] >= high",
     commonPitfall: {
       title: "Exploring both left and right even when root['val'] is already out of bounds",
       wrongCode:

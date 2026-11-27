@@ -13,16 +13,11 @@ export const CHAPTER_RECAP_LESSONS = [
     is_free: true,
     is_recap: true,
     recap_chapter: 1,
-    recap_topics: [
-      "Variables & Types",
-      "Lists & Loops",
-      "if / elif / else",
-      "Functions & Return",
-    ],
+    recap_topics: ["Variables & Types","Functions & Return","if / elif / else","Lists & Loops"],
     description:
       "Conclusive Chapter I capstone: loop through party member scores, sum total XP, count Gold-tier members with conditionals, and return a structured summary.",
     content:
-      'Welcome to the **Chapter I Boss Challenge**!\n\nTo clear Chapter I, combine everything you learned in Modules 01–04 into one clean function:\n1. **Variables & Types:** Track `total_xp = 0` and `gold_count = 0`.\n2. **Lists & Loops:** Loop over each integer `score` inside `scores` (`for score in scores:`).\n3. **Conditionals:** Add `score` to `total_xp`, and if `score >= 100`, add `1` to `gold_count`.\n4. **Functions & Return:** After the loop, set `squad_rank = "Elite"` if `gold_count >= 2` else `"Squad"`, and `return (total_xp, gold_count, squad_rank)`.\n\n```python\ndef audit_guild_party(scores):\n    total_xp = 0\n    gold_count = 0\n    for score in scores:\n        total_xp += score\n        if score >= 100:\n            gold_count += 1\n    if gold_count >= 2:\n        squad_rank = "Elite"\n    else:\n        squad_rank = "Squad"\n    return (total_xp, gold_count, squad_rank)\n```',
+      "Welcome to the **Chapter I Boss Challenge**!\n\nCombine everything from Modules 01–04 (`Variables`, `Functions & Return`, `Conditionals`, and `Lists & Loops`) into one clean function:\n1. Start two counters (`total_xp = 0` and `gold_count = 0`) before looping.\n2. Loop over every score in `scores`, adding it to `total_xp` and checking `if score >= 100:`.\n3. After the loop, pick `\"Elite\"` vs `\"Squad\"` with an `if / else` check and return your 3-value tuple!\n\n```python\n# Sibling pattern: summarize daily quest gems\ndef summarize_gems(drops):\n    total = 0\n    rare = 0\n    for gem in drops:\n        total += gem\n        if gem >= 50:\n            rare += 1\n    tier = \"Master\" if rare >= 3 else \"Starter\"\n    return (total, rare, tier)\n```",
     assignment:
       'Complete `audit_guild_party(scores)` where `scores` is a list of member XP numbers. Sum all scores into `total_xp`, count how many scores are `>= 100` (`gold_count`), set `squad_rank` to `"Elite"` if `gold_count >= 2` (or `"Squad"` otherwise), and return `(total_xp, gold_count, squad_rank)`.',
     constraints: [
@@ -147,7 +142,7 @@ __run_tests__()`,
     description:
       "Conclusive Chapter III capstone: normalize raw tags, deduplicate and sort them A–Z with sorted(set(...)), slice the first 3 with [:3], and join into a digest.",
     content:
-      'Welcome to the **Chapter III Boss Challenge**!\n\nCombine **Handle Cleaning, Deduplication (`sorted(set(...))`), Slicing (`[:3]`), and Joining (`.join()`)**:\n1. Loop through `tags`, clean each tag with `t = tag.strip().lower()`, and append non-empty tags (`if t != "":`) to `cleaned`.\n2. Remove duplicates and sort A–Z using `unique_tags = sorted(set(cleaned))`.\n3. Slice the first 3 tags with `unique_tags[:3]` and join them with `" | "` using `" | ".join(...)`.\n\n```python\ndef build_trending_digest(tags):\n    cleaned = []\n    for tag in tags:\n        t = tag.strip().lower()\n        if t != "":\n            cleaned.append(t)\n    unique_tags = sorted(set(cleaned))\n    return " | ".join(unique_tags[:3])\n```',
+      "Welcome to the **Chapter III Boss Challenge**!\n\nCombine **String Cleaning (`.strip().lower()`), Set Deduplication (`sorted(set(...))`), Slicing (`[:3]`), and Joining (`.join()`)**:\n1. Clean each raw string and ignore empty entries (`\"\"`).\n2. Deduplicate and sort A–Z with `sorted(set(...))`.\n3. Slice the top items and join them with your separator!\n\n```python\n# Sibling pattern: format top 2 unique cleaned badges\ndef top_two_badges(raw_badges):\n    valid = []\n    for item in raw_badges:\n        clean = item.strip().lower()\n        if clean != \"\":\n            valid.append(clean)\n    top_two = sorted(set(valid))[:2]\n    return \", \".join(top_two)\n```",
     assignment:
       'Complete `build_trending_digest(tags)`: normalize non-empty tags with `.strip().lower()`, deduplicate and sort A–Z with `sorted(set(...))`, slice the first 3 (`[:3]`), and return `" | ".join(top_three)`.',
     constraints: [

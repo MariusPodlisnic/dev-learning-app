@@ -10,12 +10,7 @@ export const PYTHON_BASICS_ENRICHMENTS: EnrichedLessonData[] = [
     analogyTitle: "Think of Variables Like Labeled Sticky Notes",
     analogyText:
       'Imagine putting a sticky note that says `total_hp` on a box and dropping `100 + bonus_hp` inside. Whenever you ask Python for `total_hp`, it hands you back that calculated number.\n\n• **Strings (`"Aria"`)** are words wrapped in quotes.\n• **Numbers (`100`)** are written without quotes so you can add them.\n• **Booleans (`True` / `False`)** are simple capitalized ON/OFF switches.\n• **`return (name, total_hp, is_online)`** packages all 3 values together in parentheses and sends them back!',
-    cheatSheet: `# Inside def create_hero_profile(name, bonus_hp):
-total_hp = 100 + bonus_hp   # Math with numbers
-is_online = True            # Boolean switch (capital T)
-
-# Send back all 3 values in parentheses:
-return (name, total_hp, is_online)`,
+    cheatSheet: "pet_name = \"Mochi\"          # String (in quotes)\nenergy = 50 + bonus         # Integer math (no quotes)\nis_awake = True             # Boolean (capital T / F)\n\n# Bundle multiple values in parentheses:\nreturn (pet_name, energy, is_awake)",
     commonPitfall: {
       title: "Wrapping numbers in quotes when you want to do math",
       wrongCode: 'points = "50"  # This is text, not a number!',
@@ -45,42 +40,39 @@ return (name, total_hp, is_online)`,
   {
     matchTrack: "python_basics",
     matchOrder: 2,
-    matchKeywords: ["list", "loop", "for", "array"],
+    matchKeywords: ["function", "def", "return"],
     realWorldUse:
-      "Used by Spotify to play each song in your playlist, and by shopping apps to add up item prices.",
-    analogyTitle: "Lists Are Playlists, Loops Are Auto-Play",
+      "Used to save a recipe of code once — like `double_points(score)` — so you can reuse it anywhere.",
+    analogyTitle: "Functions Are Little Vending Machines",
     analogyText:
-      "A **List** keeps multiple items in order inside square brackets `[10, 20, 30]`.\n\nA **`for` loop** is like hitting Auto-Play: Python picks up the first item, runs your indented code on it, and repeats for every item in the list.",
-    cheatSheet: `def sum_prices(prices):
-    total = 0
-    for price in prices:
-        total += price * 2
-    return total`,
+      "1. **`def`** names your machine and what input goes in the parentheses `( )`.\n2. **`return`** hands back the finished answer!",
+    cheatSheet: `def double_number(n):
+    return n * 2
+
+answer = double_number(21)
+print(answer)  # Prints 42`,
     commonPitfall: {
-      title: "Forgetting to indent the line inside the for loop",
-      wrongCode: "for p in prices:\ntotal = total + p  # IndentationError!",
-      rightCode: "for p in prices:\n    total = total + p  # Indented 4 spaces!",
+      title: "Using print() inside a function when the test expects return",
+      wrongCode: "def add_five(n):\n    print(n + 5)   # Returns None!",
+      rightCode: "def add_five(n):\n    return n + 5  # Hands back the number!",
       explanation:
-        "Any line that should repeat inside the loop must be indented by 4 spaces (or 1 Tab).",
+        "`return` sends the value back to the caller so the rest of the program can use it.",
     },
-    solutionCode: `def sum_doubled_xp(quests):
-    total = 0
-    for xp in quests:
-        total += xp * 2
-    return total`,
+    solutionCode: `def calc_final_score(base_pts, streak_bonus, multiplier):
+    return (base_pts + streak_bonus) * multiplier`,
     proInsights: {
-      timeComplexity: "O(n)",
+      timeComplexity: "O(1)",
       spaceComplexity: "O(1)",
       tradeoff:
-        "Accumulating directly in one `for` loop uses O(1) memory instead of building an extra doubled list first.",
+        "Grouping `(base_pts + streak_bonus)` in parentheses guarantees addition happens before `* multiplier`.",
     },
     quiz: {
       question:
-        'If `fruits = ["apple", "banana", "cherry"]`, how many times will `for f in fruits:` run?',
-      options: ["1 time", "3 times (once per item)", "Forever"],
-      correctIndex: 1,
+        "Which keyword sends the final result back out of a function?",
+      options: ["return", "give_back", "stop"],
+      correctIndex: 0,
       explanation:
-        "A `for` loop runs once for every item inside the list — 3 items means 3 runs!",
+        "`return` hands the calculated value back to wherever the function was called!",
     },
   },
   {
@@ -133,39 +125,42 @@ else:
   {
     matchTrack: "python_basics",
     matchOrder: 4,
-    matchKeywords: ["function", "def", "return"],
+    matchKeywords: ["list", "loop", "for", "array"],
     realWorldUse:
-      "Used to save a recipe of code once — like `double_points(score)` — so you can reuse it anywhere.",
-    analogyTitle: "Functions Are Little Vending Machines",
+      "Used by Spotify to play each song in your playlist, and by shopping apps to add up item prices.",
+    analogyTitle: "Lists Are Playlists, Loops Are Auto-Play",
     analogyText:
-      "1. **`def`** names your machine and what input goes in the parentheses `( )`.\n2. **`return`** hands back the finished answer!",
-    cheatSheet: `def double_number(n):
-    return n * 2
-
-answer = double_number(21)
-print(answer)  # Prints 42`,
+      "A **List** keeps multiple items in order inside square brackets `[10, 20, 30]`.\n\nA **`for` loop** is like hitting Auto-Play: Python picks up the first item, runs your indented code on it, and repeats for every item in the list.",
+    cheatSheet: `def sum_prices(prices):
+    total = 0
+    for price in prices:
+        total += price
+    return total`,
     commonPitfall: {
-      title: "Using print() inside a function when the test expects return",
-      wrongCode: "def add_five(n):\n    print(n + 5)   # Returns None!",
-      rightCode: "def add_five(n):\n    return n + 5  # Hands back the number!",
+      title: "Forgetting to indent the line inside the for loop",
+      wrongCode: "for p in prices:\ntotal = total + p  # IndentationError!",
+      rightCode: "for p in prices:\n    total = total + p  # Indented 4 spaces!",
       explanation:
-        "`return` sends the value back to the caller so the rest of the program can use it.",
+        "Any line that should repeat inside the loop must be indented by 4 spaces (or 1 Tab).",
     },
-    solutionCode: `def calc_final_score(base_pts, streak_bonus, multiplier):
-    return (base_pts + streak_bonus) * multiplier`,
+    solutionCode: `def sum_doubled_xp(quests):
+    total = 0
+    for xp in quests:
+        total += xp * 2
+    return total`,
     proInsights: {
-      timeComplexity: "O(1)",
+      timeComplexity: "O(n)",
       spaceComplexity: "O(1)",
       tradeoff:
-        "Grouping `(base_pts + streak_bonus)` in parentheses guarantees addition happens before `* multiplier`.",
+        "Accumulating directly in one `for` loop uses O(1) memory instead of building an extra doubled list first.",
     },
     quiz: {
       question:
-        "Which keyword sends the final result back out of a function?",
-      options: ["return", "give_back", "stop"],
-      correctIndex: 0,
+        'If `fruits = ["apple", "banana", "cherry"]`, how many times will `for f in fruits:` run?',
+      options: ["1 time", "3 times (once per item)", "Forever"],
+      correctIndex: 1,
       explanation:
-        "`return` hands the calculated value back to wherever the function was called!",
+        "A `for` loop runs once for every item inside the list — 3 items means 3 runs!",
     },
   },
   {
@@ -1115,9 +1110,7 @@ print(passed)  # {'Aria': 92}`,
     analogyTitle: "State + Guarded Controls Inside One Capsule",
     analogyText:
       "Each `WalletAccount` instance holds its own `self.balance`. Instead of letting callers overwrite `w.balance` directly into negative numbers, `withdraw()` enforces `0 < amount <= self.balance` first.",
-    cheatSheet: `class WalletAccount:
-    def __init__(self, balance=0):
-        self.balance = balance`,
+    cheatSheet: "class InventoryBag:\n    def __init__(self, slots=0):\n        self.slots = slots\n\n    def add(self, count):\n        if count > 0:\n            self.slots += count\n        return self.slots",
     commonPitfall: {
       title: "Subtracting amount BEFORE verifying balance >= amount",
       wrongCode:
@@ -1212,12 +1205,7 @@ def extract_error_codes(log_text):
     analogyTitle: "Gift Wrap Around Any Function",
     analogyText:
       "A decorator accepts a function `fn`, puts a counter sleeve around it (`wrapper(*args, **kwargs)`), increments `wrapper.calls`, and returns the inner result untouched.",
-    cheatSheet: `def count_calls(fn):
-    def wrapper(*args, **kwargs):
-        wrapper.calls += 1
-        return fn(*args, **kwargs)
-    wrapper.calls = 0
-    return wrapper`,
+    cheatSheet: "def track_invocations(target_fn):\n    def inner(*args, **kwargs):\n        inner.runs += 1\n        return target_fn(*args, **kwargs)\n    inner.runs = 0\n    return inner",
     commonPitfall: {
       title: "Calling `fn(...)` instead of returning the `wrapper` function object",
       wrongCode:

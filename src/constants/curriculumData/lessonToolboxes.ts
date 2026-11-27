@@ -89,6 +89,84 @@ const PYTHON_BASICS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 2,
     tools: [
       {
+        toolName: "def & return — Reusable Functions",
+        badge: "FUNCTIONS",
+        purpose:
+          "Packages code into a named command that takes inputs (parameters) and hands back a result.",
+        syntaxPattern: "def function_name(param):\n    return result",
+        variations: [
+          {
+            label: "1. Function with 1 input and return",
+            code: "def double(n):\n    return n * 2\n\nprint(double(15))",
+            output: "30",
+            note: "`return` sends the calculated value back to wherever the function was called.",
+          },
+          {
+            label: "2. Function with 2 inputs",
+            code: "def add_bonus(base, bonus):\n    return base + bonus\n\nprint(add_bonus(100, 25))",
+            output: "125",
+            note: "Separate multiple input parameters with commas inside the parentheses.",
+          },
+          {
+            label: "3. Function with a default parameter",
+            code: 'def greet(name="Player"):\n    return f"Hi {name}"\n\nprint(greet())',
+            output: "Hi Player",
+            note: "If no argument is passed, Python uses the default value after '='.",
+          },
+          {
+            label: "4. return vs. print() inside a function",
+            code: "ans = double(10)  # ans is 20 because double() used return",
+            output: "20",
+            note: "If a function only uses print() without return, calling it gives back None!",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 3,
+    tools: [
+      {
+        toolName: "if / elif / else — Decision Branching",
+        badge: "CONTROL FLOW",
+        purpose:
+          "Runs different blocks of code depending on whether a condition is True or False.",
+        syntaxPattern: "if condition:\n    ...\nelse:\n    ...",
+        variations: [
+          {
+            label: "1. Basic if / else fork",
+            code: 'if score >= 80:\n    print("Pass")\nelse:\n    print("Retry")',
+            output: "Pass (when score is 80+)",
+            note: "Both if and else headers must end with a colon (:) and indent the next line.",
+          },
+          {
+            label: "2. Multi-way check with elif",
+            code: 'if xp >= 100:\n    rank = "Gold"\nelif xp >= 50:\n    rank = "Silver"\nelse:\n    rank = "Bronze"',
+            output: "Picks the FIRST matching branch",
+            note: "elif ('else if') lets you test additional conditions in order.",
+          },
+          {
+            label: "3. Comparison operators",
+            code: "x == 10  # equal to\nx != 10  # not equal to\nx >= 10  # greater or equal",
+            output: "True or False",
+            note: "Always use double equals (==) to compare values; single (=) is only for creating variables.",
+          },
+          {
+            label: "4. Combine conditions with and / or",
+            code: "if age >= 18 and has_ticket:\n    print('Enter')",
+            output: "Enter (only if BOTH are True)",
+            note: "`and` requires both sides to be True; `or` requires at least one side to be True.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 4,
+    tools: [
+      {
         toolName: "for ... in — Loop Over a Collection",
         badge: "LOOP CONTROL",
         purpose:
@@ -145,84 +223,6 @@ const PYTHON_BASICS_TOOLBOXES: LessonToolboxEntry[] = [
             code: "print(len([10, 20, 30]))",
             output: "3",
             note: "len(my_list) returns the total number of items.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    matchTrack: "python_basics",
-    matchOrder: 3,
-    tools: [
-      {
-        toolName: "if / elif / else — Decision Branching",
-        badge: "CONTROL FLOW",
-        purpose:
-          "Runs different blocks of code depending on whether a condition is True or False.",
-        syntaxPattern: "if condition:\n    ...\nelse:\n    ...",
-        variations: [
-          {
-            label: "1. Basic if / else fork",
-            code: 'if score >= 80:\n    print("Pass")\nelse:\n    print("Retry")',
-            output: "Pass (when score is 80+)",
-            note: "Both if and else headers must end with a colon (:) and indent the next line.",
-          },
-          {
-            label: "2. Multi-way check with elif",
-            code: 'if xp >= 100:\n    rank = "Gold"\nelif xp >= 50:\n    rank = "Silver"\nelse:\n    rank = "Bronze"',
-            output: "Picks the FIRST matching branch",
-            note: "elif ('else if') lets you test additional conditions in order.",
-          },
-          {
-            label: "3. Comparison operators",
-            code: "x == 10  # equal to\nx != 10  # not equal to\nx >= 10  # greater or equal",
-            output: "True or False",
-            note: "Always use double equals (==) to compare values; single (=) is only for creating variables.",
-          },
-          {
-            label: "4. Combine conditions with and / or",
-            code: "if age >= 18 and has_ticket:\n    print('Enter')",
-            output: "Enter (only if BOTH are True)",
-            note: "`and` requires both sides to be True; `or` requires at least one side to be True.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    matchTrack: "python_basics",
-    matchOrder: 4,
-    tools: [
-      {
-        toolName: "def & return — Reusable Functions",
-        badge: "FUNCTIONS",
-        purpose:
-          "Packages code into a named command that takes inputs (parameters) and hands back a result.",
-        syntaxPattern: "def function_name(param):\n    return result",
-        variations: [
-          {
-            label: "1. Function with 1 input and return",
-            code: "def double(n):\n    return n * 2\n\nprint(double(15))",
-            output: "30",
-            note: "`return` sends the calculated value back to wherever the function was called.",
-          },
-          {
-            label: "2. Function with 2 inputs",
-            code: "def add_bonus(base, bonus):\n    return base + bonus\n\nprint(add_bonus(100, 25))",
-            output: "125",
-            note: "Separate multiple input parameters with commas inside the parentheses.",
-          },
-          {
-            label: "3. Function with a default parameter",
-            code: 'def greet(name="Player"):\n    return f"Hi {name}"\n\nprint(greet())',
-            output: "Hi Player",
-            note: "If no argument is passed, Python uses the default value after '='.",
-          },
-          {
-            label: "4. return vs. print() inside a function",
-            code: "ans = double(10)  # ans is 20 because double() used return",
-            output: "20",
-            note: "If a function only uses print() without return, calling it gives back None!",
           },
         ],
       },

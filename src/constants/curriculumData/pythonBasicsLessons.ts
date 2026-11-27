@@ -11,7 +11,7 @@ export const PYTHON_BASICS_EXPANSION_LESSONS = [
     description:
       "Store text strings, integer numbers, and boolean switches in variables and return a formatted summary.",
     content:
-      'In Python, a **variable** is a named label that stores a value in memory using `=`:\n\n• **Strings (`"Aria"`)**: Text wrapped in quotes.\n• **Integers (`100`)**: Whole numbers written without quotes so you can do math.\n• **Booleans (`True` / `False`)**: Capitalized ON/OFF switches.\n\n**How Devy Challenges Work:**\n1. The starter line `def create_hero_profile(name, bonus_hp):` gives you `name` and `bonus_hp` ready to use.\n2. **Delete `pass`** and write your lines **indented by 4 spaces**.\n3. Use **`return (name, total_hp, is_online)`** to send your answer back (parentheses group multiple values together into a tuple).\n\n```python\ndef create_hero_profile(name, bonus_hp):\n    total_hp = 100 + bonus_hp\n    is_online = True\n    return (name, total_hp, is_online)\n```',
+      "In Python, a **variable** is a named label that stores a value using `=`:\n\n• **Strings (`\"Nova\"`)**: Words wrapped in quotes.\n• **Integers (`50`)**: Whole numbers written *without* quotes so you can add or subtract them.\n• **Booleans (`True` / `False`)**: Capitalized ON/OFF switches.\n\n**How Devy Challenges Work (30-Second Guide):**\n1. Think of `def ...:` as a vending machine: Devy drops the test inputs (inside `( )`) into your function.\n2. **Delete `pass`** and keep your lines **indented by 4 spaces**.\n3. Use **`return (item1, item2, item3)`** to hand back a neat bundle of answers!\n\n```python\n# Sibling example: build a pet companion card\ndef build_pet_card(pet_name, bonus_energy):\n    energy = 50 + bonus_energy\n    is_awake = True\n    return (pet_name, energy, is_awake)\n```",
     assignment:
       "Complete `create_hero_profile(name, bonus_hp)`: delete `pass`, calculate `total_hp = 100 + bonus_hp`, set `is_online = True`, and `return (name, total_hp, is_online)`.",
     constraints: [
@@ -54,13 +54,119 @@ except Exception as e:
     ],
   },
   {
+    id: "exp-py-04",
+    title: "Functions & Return: Combo Score Multiplier",
+    track: "python_basics",
+    category: "FUNCTIONS",
+    difficulty: "Easy",
+    tree_row: 2,
+    lesson_order: 2,
+    is_free: true,
+    description:
+      "Write reusable functions with parameters and hand back calculated values using return.",
+    content:
+      "A **function** packages reusable logic with **`def`**, accepts inputs inside parentheses `( )`, and sends back its result with **`return`**:\n\n```python\ndef calc_combo(base_pts, multiplier):\n    return base_pts * multiplier\n\nprint(calc_combo(150, 3))  # 450\n```\n\nNote: `print()` only displays text on screen (`returns None`), whereas **`return`** actually hands the value back to the caller!",
+    assignment:
+      "Complete `calc_final_score(base_pts, streak_bonus, multiplier)` so it adds `base_pts + streak_bonus`, multiplies the sum by `multiplier`, and returns the result.",
+    constraints: [
+      "Group `(base_pts + streak_bonus)` in parentheses before multiplying by `multiplier`",
+      "Use `return` (not `print`) inside the function body",
+    ],
+    examples: [
+      {
+        input: "base_pts = 100, streak_bonus = 25, multiplier = 2",
+        output: "250",
+        explanation: "(100 + 25) * 2 = 125 * 2 = 250.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def calc_final_score(base_pts, streak_bonus, multiplier):
+    pass`,
+    expected_output: "250",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = calc_final_score(100, 25, 2)
+    results.append({"id": 1, "input": "100, 25, 2", "expected": "250", "actual": str(r1), "passed": r1 == 250})
+    r2 = calc_final_score(50, 10, 3)
+    results.append({"id": 2, "input": "50, 10, 3", "expected": "180", "actual": str(r2), "passed": r2 == 180})
+    r3 = calc_final_score(20, 0, 0)
+    results.append({"id": 3, "input": "20, 0, 0", "expected": "0", "actual": str(r3), "passed": r3 == 0})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "base + bonus", value: "100 + 25 = 125", type: "int", address: "0x10" },
+      { label: "* multiplier", value: "125 * 2 = 250", type: "int", address: "0x14" },
+    ],
+    hints: [
+      "Use parentheses `(base_pts + streak_bonus) * multiplier` so addition happens before multiplication.",
+      "Return the calculated number with `return (base_pts + streak_bonus) * multiplier`.",
+    ],
+  },
+  {
+    id: "exp-py-03",
+    title: "Conditionals: Ranked Tier Evaluator",
+    track: "python_basics",
+    category: "IF / ELIF / ELSE",
+    difficulty: "Easy",
+    tree_row: 3,
+    lesson_order: 3,
+    is_free: true,
+    description:
+      "Branch your code's decisions cleanly using if, elif, and else comparison blocks.",
+    content:
+      'Use **`if`**, **`elif`** (else-if), and **`else`** to test conditions in order from top to bottom. Python runs the **first** branch that evaluates to `True` and skips the rest:\n\n```python\n# Sibling example: classify weather comfort from temperature\ndef weather_badge(temp_c):\n    if temp_c >= 30:\n        return "HOT"\n    elif temp_c >= 18:\n        return "COZY"\n    else:\n        return "CHILLY"\n```',
+    assignment:
+      'Complete `get_rank_tier(score)`: return `"GOLD"` if `score >= 1000`, `"SILVER"` if `score >= 500`, or `"BRONZE"` otherwise.',
+    constraints: [
+      'Check `if score >= 1000:` first and return `"GOLD"`',
+      'Use `elif score >= 500:` to return `"SILVER"`',
+      'Return `"BRONZE"` in the `else:` fallback',
+    ],
+    examples: [
+      {
+        input: "score = 750",
+        output: "SILVER",
+        explanation: "750 is less than 1000 but >= 500, so it lands in SILVER.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(1)" },
+    initial_code: `def get_rank_tier(score):
+    pass`,
+    expected_output: "SILVER",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = get_rank_tier(750)
+    results.append({"id": 1, "input": "750", "expected": "SILVER", "actual": str(r1), "passed": r1 == "SILVER"})
+    r2 = get_rank_tier(1200)
+    results.append({"id": 2, "input": "1200", "expected": "GOLD", "actual": str(r2), "passed": r2 == "GOLD"})
+    r3 = get_rank_tier(200)
+    results.append({"id": 3, "input": "200", "expected": "BRONZE", "actual": str(r3), "passed": r3 == "BRONZE"})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "score >= 1000", value: "750 >= 1000 -> False", type: "bool", address: "if" },
+      { label: "score >= 500", value: "750 >= 500 -> True ✓", type: "bool", address: "elif" },
+      { label: "return", value: '"SILVER"', type: "str", address: "out" },
+    ],
+    hints: [
+      'Check the highest threshold (`score >= 1000`) first before `elif score >= 500:`.',
+      'Remember the colon `:` at the end of `if`, `elif`, and `else`.',
+    ],
+  },
+  {
     id: "exp-py-02",
     title: "Lists & Loops: XP Batch Calculator",
     track: "python_basics",
     category: "LISTS & LOOPS",
     difficulty: "Easy",
-    tree_row: 2,
-    lesson_order: 2,
+    tree_row: 4,
+    lesson_order: 4,
     is_free: true,
     description:
       "Store ordered collections of data in a list and iterate over every item using a for loop.",
@@ -105,112 +211,6 @@ except Exception as e:
     hints: [
       "Write `for xp in quests:` and indent the next line by 4 spaces.",
       "Inside the loop, write `total += xp * 2`, then `return total` unindented at the bottom.",
-    ],
-  },
-  {
-    id: "exp-py-03",
-    title: "Conditionals: Ranked Tier Evaluator",
-    track: "python_basics",
-    category: "IF / ELIF / ELSE",
-    difficulty: "Easy",
-    tree_row: 3,
-    lesson_order: 3,
-    is_free: true,
-    description:
-      "Branch your code's decisions cleanly using if, elif, and else comparison blocks.",
-    content:
-      'Use **`if`**, **`elif`** (else-if), and **`else`** to test conditions in order from top to bottom. Python runs the **first** branch that evaluates to `True` and skips the rest:\n\n```python\nif score >= 1000:\n    rank = "GOLD"\nelif score >= 500:\n    rank = "SILVER"\nelse:\n    rank = "BRONZE"\n```',
-    assignment:
-      'Complete `get_rank_tier(score)`: return `"GOLD"` if `score >= 1000`, `"SILVER"` if `score >= 500`, or `"BRONZE"` otherwise.',
-    constraints: [
-      'Check `if score >= 1000:` first and return `"GOLD"`',
-      'Use `elif score >= 500:` to return `"SILVER"`',
-      'Return `"BRONZE"` in the `else:` fallback',
-    ],
-    examples: [
-      {
-        input: "score = 750",
-        output: "SILVER",
-        explanation: "750 is less than 1000 but >= 500, so it lands in SILVER.",
-      },
-    ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def get_rank_tier(score):
-    pass`,
-    expected_output: "SILVER",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = get_rank_tier(750)
-    results.append({"id": 1, "input": "750", "expected": "SILVER", "actual": str(r1), "passed": r1 == "SILVER"})
-    r2 = get_rank_tier(1200)
-    results.append({"id": 2, "input": "1200", "expected": "GOLD", "actual": str(r2), "passed": r2 == "GOLD"})
-    r3 = get_rank_tier(200)
-    results.append({"id": 3, "input": "200", "expected": "BRONZE", "actual": str(r3), "passed": r3 == "BRONZE"})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "memory",
-    visual_data: [
-      { label: "score >= 1000", value: "750 >= 1000 -> False", type: "bool", address: "if" },
-      { label: "score >= 500", value: "750 >= 500 -> True ✓", type: "bool", address: "elif" },
-      { label: "return", value: '"SILVER"', type: "str", address: "out" },
-    ],
-    hints: [
-      'Check the highest threshold (`score >= 1000`) first before `elif score >= 500:`.',
-      'Remember the colon `:` at the end of `if`, `elif`, and `else`.',
-    ],
-  },
-  {
-    id: "exp-py-04",
-    title: "Functions & Return: Combo Score Multiplier",
-    track: "python_basics",
-    category: "FUNCTIONS",
-    difficulty: "Easy",
-    tree_row: 4,
-    lesson_order: 4,
-    is_free: true,
-    description:
-      "Write reusable functions with parameters and hand back calculated values using return.",
-    content:
-      "A **function** packages reusable logic with **`def`**, accepts inputs inside parentheses `( )`, and sends back its result with **`return`**:\n\n```python\ndef calc_combo(base_pts, multiplier):\n    return base_pts * multiplier\n\nprint(calc_combo(150, 3))  # 450\n```\n\nNote: `print()` only displays text on screen (`returns None`), whereas **`return`** actually hands the value back to the caller!",
-    assignment:
-      "Complete `calc_final_score(base_pts, streak_bonus, multiplier)` so it adds `base_pts + streak_bonus`, multiplies the sum by `multiplier`, and returns the result.",
-    constraints: [
-      "Group `(base_pts + streak_bonus)` in parentheses before multiplying by `multiplier`",
-      "Use `return` (not `print`) inside the function body",
-    ],
-    examples: [
-      {
-        input: "base_pts = 100, streak_bonus = 25, multiplier = 2",
-        output: "250",
-        explanation: "(100 + 25) * 2 = 125 * 2 = 250.",
-      },
-    ],
-    complexities: { time: "O(1)", space: "O(1)" },
-    initial_code: `def calc_final_score(base_pts, streak_bonus, multiplier):
-    pass`,
-    expected_output: "250",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = calc_final_score(100, 25, 2)
-    results.append({"id": 1, "input": "100, 25, 2", "expected": "250", "actual": str(r1), "passed": r1 == 250})
-    r2 = calc_final_score(50, 10, 3)
-    results.append({"id": 2, "input": "50, 10, 3", "expected": "180", "actual": str(r2), "passed": r2 == 180})
-    r3 = calc_final_score(20, 0, 0)
-    results.append({"id": 3, "input": "20, 0, 0", "expected": "0", "actual": str(r3), "passed": r3 == 0})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "memory",
-    visual_data: [
-      { label: "base + bonus", value: "100 + 25 = 125", type: "int", address: "0x10" },
-      { label: "* multiplier", value: "125 * 2 = 250", type: "int", address: "0x14" },
-    ],
-    hints: [
-      "Use parentheses `(base_pts + streak_bonus) * multiplier` so addition happens before multiplication.",
-      "Return the calculated number with `return (base_pts + streak_bonus) * multiplier`.",
     ],
   },
   {
@@ -387,7 +387,7 @@ except Exception as e:
     description:
       "Prevent ZeroDivisionError crashes using a try / except safety block.",
     content:
-      "Dividing by `0` raises a **`ZeroDivisionError`** and crashes your program. Wrap risky math inside **`try:`** and return a safe fallback inside **`except ZeroDivisionError:`**:\n\n```python\ntry:\n    return wins / matches\nexcept ZeroDivisionError:\n    return 0.0\n```",
+      "Dividing by `0` normally crashes Python with a **`ZeroDivisionError`**. Wrap risky division inside **`try:`** and provide a safe fallback inside **`except ZeroDivisionError:`**:\n\n```python\n# Sibling example: average coins per chest without crashing on 0 chests\ndef avg_coins(total_coins, chests):\n    try:\n        return total_coins / chests\n    except ZeroDivisionError:\n        return 0.0\n```",
     assignment:
       "Complete `safe_win_rate(wins, matches)`: inside a `try:` block return `wins / matches`, and if `matches` is `0` catch `ZeroDivisionError` and return `0.0`.",
     constraints: [
@@ -1109,7 +1109,7 @@ except Exception as e:
     title: "Mini-App: RPG Critical Hit Calculator",
     track: "python_basics",
     category: "MINI-APP",
-    difficulty: "Easy",
+    difficulty: "Medium",
     tree_row: 17,
     lesson_order: 21,
     is_free: true,
@@ -1169,7 +1169,7 @@ except Exception as e:
     title: "Mini-App: Password Strength Checker",
     track: "python_basics",
     category: "MINI-APP",
-    difficulty: "Easy",
+    difficulty: "Medium",
     tree_row: 17,
     lesson_order: 22,
     is_free: true,
@@ -1230,7 +1230,7 @@ except Exception as e:
     title: "Mini-App: Restaurant Bill & Tip Splitter",
     track: "python_basics",
     category: "MINI-APP",
-    difficulty: "Easy",
+    difficulty: "Medium",
     tree_row: 18,
     lesson_order: 23,
     is_free: true,
@@ -1289,7 +1289,7 @@ except Exception as e:
     title: "Mini-App: Emoji Mood Chat Bot",
     track: "python_basics",
     category: "MINI-APP",
-    difficulty: "Easy",
+    difficulty: "Medium",
     tree_row: 18,
     lesson_order: 24,
     is_free: true,
@@ -1408,7 +1408,7 @@ except Exception as e:
     description:
       "Model real entities cleanly with classes, `__init__` state, and validation methods.",
     content:
-      "In **Object-Oriented Programming (OOP)**, a `class` bundles state (`self.balance`) together with safe methods that modify it:\n\n```python\nclass Counter:\n    def __init__(self, start=0):\n        self.value = start\n    def inc(self, step):\n        self.value += step\n```",
+      "In **Object-Oriented Programming (OOP)**, a `class` bundles state (`self.energy`) together with methods that safely read or update it:\n\n```python\nclass StaminaBar:\n    def __init__(self, stamina=100):\n        self.stamina = stamina\n\n    def recharge(self, pts):\n        if pts > 0:\n            self.stamina += pts\n        return self.stamina\n\n    def spend(self, pts):\n        if 0 < pts <= self.stamina:\n            self.stamina -= pts\n            return True\n        return False\n```",
     assignment:
       "Implement `class WalletAccount` with `__init__(self, balance=0)` storing `self.balance`, `deposit(self, amount)` returning `self.balance` after adding positive amounts, and `withdraw(self, amount)` returning `True` (and deducting) if `0 < amount <= self.balance`, else `False`.",
     constraints: [
@@ -1523,7 +1523,7 @@ except Exception as e:
     description:
       "Wrap functions with decorators to count invocations cleanly like logging and test harnesses.",
     content:
-      "A Python **decorator** wraps a function `fn` and returns an inner `wrapper(*args, **kwargs)` function that runs extra logic before/after calling `fn`:\n\n```python\ndef with_calls(fn):\n    def wrapper(*args, **kwargs):\n        wrapper.calls += 1\n        return fn(*args, **kwargs)\n    wrapper.calls = 0\n    return wrapper\n```",
+      "A Python **decorator** takes a function `fn` and returns an inner `wrapper(*args, **kwargs)` function that runs extra bookkeeping before or after calling `fn`:\n\n```python\n# Sibling example: attach a .last_result attribute onto a wrapper\ndef remember_last(fn):\n    def wrapper(*args, **kwargs):\n        result = fn(*args, **kwargs)\n        wrapper.last_result = result\n        return result\n    wrapper.last_result = None\n    return wrapper\n```",
     assignment:
       "Complete `count_calls(fn)`: return a wrapper function storing `.calls = 0` that increments `wrapper.calls += 1` every time it is called and returns `fn(*args, **kwargs)`.",
     constraints: [

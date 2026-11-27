@@ -127,12 +127,14 @@ export function remapProgressKeysForLessons(
 
   const aliasToLessonId = new Map<string, string>();
   for (const l of lessons) {
-    const legacySlug = deriveLegacyExpSlug(l);
     if (l.slug && l.slug !== l.id) {
       aliasToLessonId.set(l.slug, l.id);
     }
-    if (legacySlug !== l.id) {
-      aliasToLessonId.set(legacySlug, l.id);
+    if (!l.slug && !l.id.startsWith("exp-") && !l.is_recap) {
+      const legacySlug = deriveLegacyExpSlug(l);
+      if (legacySlug !== l.id) {
+        aliasToLessonId.set(legacySlug, l.id);
+      }
     }
     const trackOrderKey = `${l.track}:${l.lesson_order}`;
     if (trackOrderKey !== l.id) {

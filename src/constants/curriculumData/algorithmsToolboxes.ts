@@ -130,40 +130,9 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
-
-  // ============================================================================
-  // CHAPTER II: STACKS, LINKED LISTS & TREES (Modules 05 - 08)
-  // ============================================================================
   {
     matchTrack: "algorithms",
     matchOrder: 5,
-    tools: [
-      {
-        toolName: "Node Traversal & Pointer Swapping",
-        badge: "LINKED LIST",
-        purpose:
-          "Navigates and rewires reference links between objects using temporary pointer variables.",
-        syntaxPattern: "curr = head\nprev = None\nwhile curr:\n    nxt = curr.next\n    curr.next = prev\n    prev = curr\n    curr = nxt",
-        variations: [
-          {
-            label: "1. Three-way pointer rotation",
-            code: "a, b = 1, 2\na, b = b, a\nprint('a:', a, 'b:', b)",
-            output: "a: 2 b: 1",
-            note: "Python tuple assignment safely swaps reference variables in 1 step.",
-          },
-          {
-            label: "2. Walking a sequence until None / empty",
-            code: "items = ['node_1', 'node_2', None]\nfor item in items:\n    if item is None: break\n    print(item)",
-            output: "node_1\nnode_2",
-            note: "LinkedList loops stop when current pointer hits None.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    matchTrack: "algorithms",
-    matchOrder: 6,
     tools: [
       {
         toolName: "dict.get(key, 0) + 1 — Frequency Tally",
@@ -189,6 +158,39 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
             code: 'tallies = {"sam": 4, "mia": 8}\nbest = max(tallies, key=tallies.get)\nprint(best)',
             output: "mia",
             note: "max(d, key=d.get) finds the key that has the largest value.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 6,
+    tools: [
+      {
+        toolName: "List as a Stack (LIFO: .append() & .pop())",
+        badge: "STACK LIFO",
+        purpose:
+          "Enforces Last-In First-Out order to pair matching brackets, undo actions, or backtrack DFS paths.",
+        syntaxPattern: "stack = []\nstack.append(item)  # Push to top\ntop = stack.pop()   # Pop from top\nis_empty = len(stack) == 0",
+        variations: [
+          {
+            label: "1. Push an open bracket to stack",
+            code: 'stack = []\nstack.append("(")\nprint(stack)',
+            output: "['(']",
+            note: ".append() adds onto the top (end) of the stack in O(1) time.",
+          },
+          {
+            label: "2. Pop matching bracket from top",
+            code: "stack = ['(']\npopped = stack.pop()\nprint('popped:', popped, 'empty:', len(stack) == 0)",
+            output: "popped: ( empty: True",
+            note: ".pop() removes and returns the most recently appended element.",
+          },
+          {
+            label: "3. Safe guard before popping",
+            code: "stack = []\nif not stack:\n    print('Stack underflow! Cannot pop.')",
+            output: "Stack underflow! Cannot pop.",
+            note: "Always verify stack is not empty ('if not stack:') before calling .pop().",
           },
         ],
       },
@@ -232,38 +234,28 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 8,
     tools: [
       {
-        toolName: "List as a Stack (LIFO: .append() & .pop())",
-        badge: "STACK LIFO",
+        toolName: "Node Traversal & Pointer Swapping",
+        badge: "LINKED LIST",
         purpose:
-          "Enforces Last-In First-Out order to pair matching brackets, undo actions, or backtrack DFS paths.",
-        syntaxPattern: "stack = []\nstack.append(item)  # Push to top\ntop = stack.pop()   # Pop from top\nis_empty = len(stack) == 0",
+          "Navigates and rewires reference links between objects using temporary pointer variables.",
+        syntaxPattern: "curr = head\nprev = None\nwhile curr:\n    nxt = curr.next\n    curr.next = prev\n    prev = curr\n    curr = nxt",
         variations: [
           {
-            label: "1. Push an open bracket to stack",
-            code: 'stack = []\nstack.append("(")\nprint(stack)',
-            output: "['(']",
-            note: ".append() adds onto the top (end) of the stack in O(1) time.",
+            label: "1. Three-way pointer rotation",
+            code: "a, b = 1, 2\na, b = b, a\nprint('a:', a, 'b:', b)",
+            output: "a: 2 b: 1",
+            note: "Python tuple assignment safely swaps reference variables in 1 step.",
           },
           {
-            label: "2. Pop matching bracket from top",
-            code: "stack = ['(']\npopped = stack.pop()\nprint('popped:', popped, 'empty:', len(stack) == 0)",
-            output: "popped: ( empty: True",
-            note: ".pop() removes and returns the most recently appended element.",
-          },
-          {
-            label: "3. Safe guard before popping",
-            code: "stack = []\nif not stack:\n    print('Stack underflow! Cannot pop.')",
-            output: "Stack underflow! Cannot pop.",
-            note: "Always verify stack is not empty ('if not stack:') before calling .pop().",
+            label: "2. Walking a sequence until None / empty",
+            code: "items = ['node_1', 'node_2', None]\nfor item in items:\n    if item is None: break\n    print(item)",
+            output: "node_1\nnode_2",
+            note: "LinkedList loops stop when current pointer hits None.",
           },
         ],
       },
     ],
   },
-
-  // ============================================================================
-  // CHAPTER III: BINARY SEARCH, SETS & PREFIX SUMS (Modules 09 - 12)
-  // ============================================================================
   {
     matchTrack: "algorithms",
     matchOrder: 9,
@@ -297,6 +289,33 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
     matchOrder: 10,
     tools: [
       {
+        toolName: "sorted(set(a) & set(b)) — Deduplicated Set Intersection",
+        badge: "HASH SET O(N + M)",
+        purpose:
+          "Computes unique overlapping items across two collections in linear average time and sorts the result canonically.",
+        syntaxPattern: "mutual = sorted(set(list_a) & set(list_b))",
+        variations: [
+          {
+            label: "1. Deduplicated sorted mutual elements",
+            code: 'a = ["Sam", "Mia", "Leo", "Sam"]\nb = ["Mia", "Zoe", "Sam"]\nprint(sorted(set(a) & set(b)))',
+            output: "['Mia', 'Sam']",
+            note: "Eliminates duplicate 'Sam' and avoids slow O(n * m) nested list scans.",
+          },
+          {
+            label: "2. Preserving list_a order when needed",
+            code: 'b_set = {"Mia", "Zoe", "Sam"}\nseen = set()\nout = [x for x in ["Sam", "Mia", "Sam"] if x in b_set and not (x in seen or seen.add(x))]\nprint(out)',
+            output: "['Sam', 'Mia']",
+            note: "Hash the second list into a set and track seen items to keep arrival order.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 11,
+    tools: [
+      {
         toolName: "Lower-Bound Binary Search (`lo < hi`) — Insertion Index",
         badge: "BINARY SEARCH O(LOG N)",
         purpose:
@@ -315,33 +334,6 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
             code: "import bisect\nprint(bisect.bisect_left([10, 25, 42, 70, 99], 50))",
             output: "3",
             note: "Python's C-backed bisect_left implements this exact loop.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    matchTrack: "algorithms",
-    matchOrder: 11,
-    tools: [
-      {
-        toolName: "sorted(set(a) & set(b)) — Deduplicated Set Intersection",
-        badge: "HASH SET O(N + M)",
-        purpose:
-          "Computes unique overlapping items across two collections in linear average time and sorts the result canonically.",
-        syntaxPattern: "mutual = sorted(set(list_a) & set(list_b))",
-        variations: [
-          {
-            label: "1. Deduplicated sorted mutual elements",
-            code: 'a = ["Sam", "Mia", "Leo", "Sam"]\nb = ["Mia", "Zoe", "Sam"]\nprint(sorted(set(a) & set(b)))',
-            output: "['Mia', 'Sam']",
-            note: "Eliminates duplicate 'Sam' and avoids slow O(n * m) nested list scans.",
-          },
-          {
-            label: "2. Preserving list_a order when needed",
-            code: 'b_set = {"Mia", "Zoe", "Sam"}\nseen = set()\nout = [x for x in ["Sam", "Mia", "Sam"] if x in b_set and not (x in seen or seen.add(x))]\nprint(out)',
-            output: "['Sam', 'Mia']",
-            note: "Hash the second list into a set and track seen items to keep arrival order.",
           },
         ],
       },
@@ -375,13 +367,37 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
-
-  // ============================================================================
-  // CHAPTER IV: PODIUM TRACKING, TIE-BREAKERS & PARTITIONING (Modules 13 - 16)
-  // ============================================================================
   {
     matchTrack: "algorithms",
     matchOrder: 13,
+    tools: [
+      {
+        toolName: "Allowlist Set + Seen Guard — Ordered O(n+m) Filter",
+        badge: "HASH SET GATEKEEPER",
+        purpose:
+          "Checks large arrival streams against an allowlist in O(1) per lookup while preserving order and deduplicating repeats.",
+        syntaxPattern:
+          "vip_set, seen, out = set(vip_list), set(), []\nfor x in arrivals:\n    if x in vip_set and x not in seen:\n        seen.add(x); out.append(x)",
+        variations: [
+          {
+            label: "1. Preserve first-arrival order & dedup repeats",
+            code: 'vips = set(["Aria", "Kai", "Nova"])\nseen, out = set(), []\nfor g in ["Leo", "Kai", "Aria", "Kai"]:\n    if g in vips and g not in seen:\n        seen.add(g); out.append(g)\nprint(out)',
+            output: "['Kai', 'Aria']",
+            note: "Second 'Kai' is dropped while first-seen order ['Kai', 'Aria'] stays intact.",
+          },
+          {
+            label: "2. Why set intersection alone loses order",
+            code: 'print(len(set(["Kai", "Aria"]) & set(["Aria", "Kai"])))',
+            output: "2",
+            note: "Python sets have non-deterministic iteration order; iterate arrivals linearly instead.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 14,
     tools: [
       {
         toolName: "Two-Variable Podium Tracker (`first, second`) — Single Pass",
@@ -409,7 +425,7 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
   },
   {
     matchTrack: "algorithms",
-    matchOrder: 14,
+    matchOrder: 15,
     tools: [
       {
         toolName: "Tuple Key `lambda p: (-p['score'], p['time'], p['name'])`",
@@ -437,7 +453,7 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
   },
   {
     matchTrack: "algorithms",
-    matchOrder: 15,
+    matchOrder: 16,
     tools: [
       {
         toolName: "Two-Pointer In-Place Swap (`l, r`) — O(1) Parity Partition",
@@ -465,67 +481,7 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
   },
   {
     matchTrack: "algorithms",
-    matchOrder: 16,
-    tools: [
-      {
-        toolName: "Allowlist Set + Seen Guard — Ordered O(n+m) Filter",
-        badge: "HASH SET GATEKEEPER",
-        purpose:
-          "Checks large arrival streams against an allowlist in O(1) per lookup while preserving order and deduplicating repeats.",
-        syntaxPattern:
-          "vip_set, seen, out = set(vip_list), set(), []\nfor x in arrivals:\n    if x in vip_set and x not in seen:\n        seen.add(x); out.append(x)",
-        variations: [
-          {
-            label: "1. Preserve first-arrival order & dedup repeats",
-            code: 'vips = set(["Aria", "Kai", "Nova"])\nseen, out = set(), []\nfor g in ["Leo", "Kai", "Aria", "Kai"]:\n    if g in vips and g not in seen:\n        seen.add(g); out.append(g)\nprint(out)',
-            output: "['Kai', 'Aria']",
-            note: "Second 'Kai' is dropped while first-seen order ['Kai', 'Aria'] stays intact.",
-          },
-          {
-            label: "2. Why set intersection alone loses order",
-            code: 'print(len(set(["Kai", "Aria"]) & set(["Aria", "Kai"])))',
-            output: "2",
-            note: "Python sets have non-deterministic iteration order; iterate arrivals linearly instead.",
-          },
-        ],
-      },
-    ],
-  },
-
-  // ============================================================================
-  // CHAPTER V: TWO-POINTER STRINGS, SETS & INVERTED INDICES (Modules 17 - 20)
-  // ============================================================================
-  {
-    matchTrack: "algorithms",
     matchOrder: 17,
-    tools: [
-      {
-        toolName: "Inward Two Pointers + `.isalnum()` — O(1) Palindrome Check",
-        badge: "TWO POINTERS O(1) SPACE",
-        purpose:
-          "Validates messy phrases case-insensitively while skipping punctuation and spaces without allocating a cleaned copy string.",
-        syntaxPattern:
-          "while l < r:\n    while l < r and not text[l].isalnum(): l += 1\n    while l < r and not text[r].isalnum(): r -= 1\n    if text[l].lower() != text[r].lower(): return False",
-        variations: [
-          {
-            label: "1. Checking alphanumeric characters and case folding",
-            code: 'for ch in ["A", ",", "9"]:\n    print(ch, ch.isalnum(), ch.lower())',
-            output: "A True a\n, False ,\n9 True 9",
-            note: ".isalnum() keeps letters & digits while ignoring spaces and punctuation.",
-          },
-          {
-            label: "2. Punctuation-only phrase edge case",
-            code: 's = ".,!"\nl, r = 0, len(s) - 1\nwhile l < r and not s[l].isalnum(): l += 1\nprint(l >= r)',
-            output: "True",
-            note: "When zero alphanumeric characters remain, pointers meet cleanly and return True.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    matchTrack: "algorithms",
-    matchOrder: 18,
     tools: [
       {
         toolName: "`seen = set()` Early Exit — First Repeated Item",
@@ -546,6 +502,34 @@ export const ALGORITHMS_TOOLBOXES: LessonToolboxEntry[] = [
             code: 'def f(xs):\n    s = set()\n    for x in xs:\n        if x in s: return x\n        s.add(x)\n    return None\nprint(f(["aria", "kai"]))',
             output: "None",
             note: "Reaching the end without collisions returns None.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "algorithms",
+    matchOrder: 18,
+    tools: [
+      {
+        toolName: "Inward Two Pointers + `.isalnum()` — O(1) Palindrome Check",
+        badge: "TWO POINTERS O(1) SPACE",
+        purpose:
+          "Validates messy phrases case-insensitively while skipping punctuation and spaces without allocating a cleaned copy string.",
+        syntaxPattern:
+          "while l < r:\n    while l < r and not text[l].isalnum(): l += 1\n    while l < r and not text[r].isalnum(): r -= 1\n    if text[l].lower() != text[r].lower(): return False",
+        variations: [
+          {
+            label: "1. Checking alphanumeric characters and case folding",
+            code: 'for ch in ["A", ",", "9"]:\n    print(ch, ch.isalnum(), ch.lower())',
+            output: "A True a\n, False ,\n9 True 9",
+            note: ".isalnum() keeps letters & digits while ignoring spaces and punctuation.",
+          },
+          {
+            label: "2. Punctuation-only phrase edge case",
+            code: 's = ".,!"\nl, r = 0, len(s) - 1\nwhile l < r and not s[l].isalnum(): l += 1\nprint(l >= r)',
+            output: "True",
+            note: "When zero alphanumeric characters remain, pointers meet cleanly and return True.",
           },
         ],
       },

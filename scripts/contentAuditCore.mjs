@@ -283,6 +283,9 @@ export function auditCurriculumAndSolutions() {
     }
   }
 
+  const { buildOrganizedLearnView } = loadTsModule(
+    "src/utils/lessonContent.ts",
+  );
   for (const lesson of merged) {
     const exactMatch = LESSON_ENRICHMENTS.find(
       (e) =>
@@ -293,6 +296,55 @@ export function auditCurriculumAndSolutions() {
     }
     if (!exactMatch?.quiz) {
       errors.push(`${lesson.id}: missing exact enrichment quiz`);
+    }
+    if (exactMatch?.solutionCode) {
+      const view = buildOrganizedLearnView(lesson.content, exactMatch);
+      const fnMatch = (lesson.initial_code || "").match(/def\s+([A-Za-z0-9_]+)/);
+      const fnName = fnMatch ? fnMatch[1] : "";
+      if (fnName && fnName !== "__init__") {
+        if (view.singleExampleCode.includes(`def ${fnName}`)) {
+          errors.push(
+            `${lesson.id}: Learn example code spoils target function 'def ${fnName}'`,
+          );
+        }
+        if (view.cheatSheetCode.includes(`def ${fnName}`)) {
+          errors.push(
+            `${lesson.id}: Cheat Sheet code spoils target function 'def ${fnName}'`,
+          );
+        }
+      }
+      const stripCodeBody = (codeStr) =>
+        (codeStr || "")
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(
+            (s) =>
+              s.length > 0 &&
+              !s.startsWith("def ") &&
+              !s.startsWith("class ") &&
+              !s.startsWith("#"),
+          );
+      const solBody = stripCodeBody(exactMatch.solutionCode);
+      const exBody = stripCodeBody(view.singleExampleCode);
+      const csBody = stripCodeBody(view.cheatSheetCode);
+      if (
+        solBody.length > 0 &&
+        exBody.length === solBody.length &&
+        solBody.every((ln, idx) => ln === exBody[idx])
+      ) {
+        errors.push(
+          `${lesson.id}: Learn example body is identical to solutionCode`,
+        );
+      }
+      if (
+        solBody.length > 0 &&
+        csBody.length === solBody.length &&
+        solBody.every((ln, idx) => ln === csBody[idx])
+      ) {
+        errors.push(
+          `${lesson.id}: Cheat Sheet body is identical to solutionCode`,
+        );
+      }
     }
   }
 

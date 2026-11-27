@@ -116,13 +116,9 @@ for raw_handle, raw_score in entries:
     analogyTitle: "Clean -> Deduplicate & Sort -> Slice Top 3 -> Join",
     analogyText:
       "Clean each non-empty tag with `.strip().lower()`, deduplicate and sort alphabetically with `sorted(set(cleaned))`, slice `[:3]`, and join with `' | '`.",
-    cheatSheet: `cleaned = []
-for raw in tags:
-    tag = raw.strip().lower()
-    if tag != "":
-        cleaned.append(tag)
-unique_tags = sorted(set(cleaned))
-return " | ".join(unique_tags[:3])`,
+    cheatSheet: `valid = [raw.strip().lower() for raw in items if raw.strip() != ""]
+top_items = sorted(set(valid))[:2]
+summary = ", ".join(top_items)`,
     commonPitfall: {
       title: "Forgetting to skip empty whitespace-only tags after .strip()",
       wrongCode:

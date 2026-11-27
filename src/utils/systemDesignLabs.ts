@@ -65,63 +65,74 @@ function inferArchetype(lesson: {
   const hay = `${lesson.title || ""} ${lesson.category || ""}`.toLowerCase();
 
   if (
-    order === 2 ||
-    order === 18 ||
-    order === 19 ||
-    order === 24 ||
+    hay.includes("gateway") ||
+    hay.includes("token bucket") ||
+    hay.includes("sliding window") ||
+    hay.includes("rate limit")
+  ) {
+    return "rate_limiter";
+  }
+  if (
     hay.includes("cache") ||
     hay.includes("lru") ||
     hay.includes("ttl") ||
-    hay.includes("pagination")
+    hay.includes("pagination") ||
+    order === 2 ||
+    order === 18 ||
+    order === 19 ||
+    order === 24
   ) {
     return "cache_layer";
   }
   if (
-    order === 4 ||
-    order === 5 ||
-    order === 12 ||
-    order === 23 ||
     hay.includes("shard") ||
     hay.includes("hash") ||
     hay.includes("ring") ||
-    hay.includes("cdn")
+    hay.includes("cdn") ||
+    hay.includes("round-robin") ||
+    order === 4 ||
+    order === 5 ||
+    order === 12 ||
+    order === 23
   ) {
     return "sharding_ring";
   }
   if (
-    order === 7 ||
-    order === 9 ||
-    order === 11 ||
-    order === 13 ||
     hay.includes("circuit") ||
     hay.includes("backoff") ||
     hay.includes("failover") ||
     hay.includes("alarm") ||
-    hay.includes("jitter")
+    hay.includes("incident") ||
+    hay.includes("jitter") ||
+    order === 6 ||
+    order === 9 ||
+    order === 11 ||
+    order === 14
   ) {
     return "resilience_circuit";
   }
   if (
-    order === 6 ||
-    order === 10 ||
-    order === 16 ||
-    order === 20 ||
     hay.includes("queue") ||
     hay.includes("dlq") ||
     hay.includes("batch") ||
     hay.includes("autoscale") ||
-    hay.includes("pub/sub")
+    hay.includes("pub/sub") ||
+    order === 8 ||
+    order === 10 ||
+    order === 16 ||
+    order === 17
   ) {
     return "queue_pipeline";
   }
   if (
-    order === 8 ||
-    order === 14 ||
-    order === 17 ||
     hay.includes("quorum") ||
     hay.includes("rollout") ||
     hay.includes("consensus") ||
-    hay.includes("flag")
+    hay.includes("flag") ||
+    hay.includes("scoped api key") ||
+    order === 7 ||
+    order === 15 ||
+    order === 18
   ) {
     return "quorum_rollout";
   }

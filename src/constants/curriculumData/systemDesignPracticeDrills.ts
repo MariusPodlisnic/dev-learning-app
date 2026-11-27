@@ -596,7 +596,7 @@ __run_tests__()`,
   ],
 
   // 13: Flap-Guarded Alarm
-  13: [
+  14: [
     {
       id: "sys-13-d2",
       title: "Practice 2/3: Peak Breach Streak Length",
@@ -653,7 +653,7 @@ __run_tests__()`,
   ],
 
   // 14: Feature Flag Rollout
-  14: [
+  15: [
     {
       id: "sys-14-d2",
       title: "Practice 2/3: Beta Allowlist Override Flag",
@@ -715,7 +715,7 @@ __run_tests__()`,
   ],
 
   // 15: Gateway Upload Guard
-  15: [
+  13: [
     {
       id: "sys-15-d2",
       title: "Practice 2/3: Required JSON Payload Schema Checker",
@@ -844,7 +844,7 @@ __run_tests__()`,
   ],
 
   // 17: Scoped API Key Authorizer
-  17: [
+  18: [
     {
       id: "sys-17-d2",
       title: "Practice 2/3: Audit Reason Code Auth Gate",
@@ -913,7 +913,7 @@ __run_tests__()`,
   ],
 
   // 18: Pagination Metadata Engine
-  18: [
+  19: [
     {
       id: "sys-18-d2",
       title: "Practice 2/3: Keyset Cursor Paginator",
@@ -979,7 +979,7 @@ __run_tests__()`,
   ],
 
   // 19: Cache-Aside Read-Through
-  19: [
+  20: [
     {
       id: "sys-19-d2",
       title: "Practice 2/3: Write-Through Cache Invalidation",
@@ -1042,7 +1042,7 @@ __run_tests__()`,
   ],
 
   // 20: Chunked Batch Splitter
-  20: [
+  17: [
     {
       id: "sys-20-d2",
       title: "Practice 2/2: Payload-Byte-Bounded Batching",

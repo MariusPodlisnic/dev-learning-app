@@ -10,10 +10,7 @@ export const SYSTEM_DESIGN_ENRICHMENTS: EnrichedLessonData[] = [
     analogyTitle: "An API Bouncer Counting Wristbands",
     analogyText:
       "Each client bucket holds `tokens`. When a request arrives, check `if tokens > 0:` — if true, subtract 1 token and return `(True, tokens - 1)`; if empty, reject with `(False, 0)`!",
-    cheatSheet: `def allow_request(tokens):
-    if tokens > 0:
-        return (True, tokens - 1)
-    return (False, 0)`,
+    cheatSheet: "if quota_left > 0:\n    return (True, quota_left - 1)\nreturn (False, 0)  # Throttled (429)",
     commonPitfall: {
       title: "Checking tokens >= 0 or forgetting to subtract 1 token",
       wrongCode: "if tokens >= 0:\n    return (True, tokens)  # Never drains or blocks at 0!",
@@ -59,8 +56,7 @@ export const SYSTEM_DESIGN_ENRICHMENTS: EnrichedLessonData[] = [
     analogyTitle: "Keeping Hot Snacks on Your Desk",
     analogyText:
       "Check if `key` is in `cache` (**Cache Hit** in microseconds). On a **Cache Miss**, return `-1` safely with `cache.get(key, -1)` so the caller knows to query the database!",
-    cheatSheet: `def get_cached_user(cache, key):
-    return cache.get(key, -1)`,
+    cheatSheet: "# Safe O(1) dictionary lookup with miss sentinel:\nvalue = cache_dict.get(lookup_key, -1)",
     commonPitfall: {
       title: "Indexing cache[key] directly on a missing key",
       wrongCode: "return cache[key]  # Raises KeyError on cache miss!",
@@ -101,8 +97,7 @@ export const SYSTEM_DESIGN_ENRICHMENTS: EnrichedLessonData[] = [
     analogyTitle: "Clock-Bucket Routing with Modulo (%)",
     analogyText:
       "Computing `request_id % num_shards` always produces a shard index from `0` to `num_shards - 1`, routing the same ID to the same shard every time.",
-    cheatSheet: `def get_shard(request_id, num_shards):
-    return request_id % num_shards`,
+    cheatSheet: "# Modulo maps any integer >= 0 into 0 .. bucket_count - 1:\nbucket_idx = item_id % bucket_count",
     commonPitfall: {
       title: "Using integer division // instead of modulo %",
       wrongCode: "return request_id // num_shards  # Out of shard bounds!",
@@ -305,7 +300,7 @@ print(has_quorum([True, True, False, True, False]))`,
     analogyTitle: "Magazine Subscriptions Instead of Polling Everyone",
     analogyText:
       "Producers publish `(topic, payload)` events into one shared stream; each worker filters cleanly for `topic == target_topic` while keeping FIFO ordering.",
-    cheatSheet: `return [payload for topic, payload in events if topic == target_topic]`,
+    cheatSheet: "# Unpack (name, body) pairs and filter in arrival order:\nmatched = [body for name, body in stream if name == subscribed_name]",
     commonPitfall: {
       title: "Mutating or dropping arrival order by converting events into a set",
       wrongCode: "return list({payload for t, payload in events if t == target_topic})",
@@ -351,9 +346,7 @@ print(has_quorum([True, True, False, True, False]))`,
     analogyTitle: "Exponential Backoff + Capped Jitter Shield",
     analogyText:
       "Each failed retry doubles the wait (`base_ms * (2 ** attempt)`), mixes in `jitter_ms` so millions of clients don't wake up at the exact same millisecond, and clamps with `min(..., max_ms)` so wait times stay bounded.",
-    cheatSheet: `def compute_backoff(attempt, base_ms, max_ms, jitter_ms):
-    delay = base_ms * (2 ** attempt) + jitter_ms
-    return max(0, min(delay, max_ms))`,
+    cheatSheet: "raw_wait = initial_ms * (2 ** retry_idx) + jitter\nclamped = max(0, min(raw_wait, ceiling_ms))",
     commonPitfall: {
       title: "Skipping the 2 ** attempt exponent or forgetting the max_ms ceiling",
       wrongCode:
@@ -612,6 +605,69 @@ print(pick_cdn_server(pops, "eu"))`,
   {
     matchTrack: "system_design",
     matchOrder: 13,
+    matchKeywords: ["payload", "upload", "mime", "validation", "gateway"],
+    realWorldUse:
+      "Used by Discord, Stripe, and S3 upload gateways to reject empty payloads, oversized files, and banned executables (`.exe`) before touching backend storage.",
+    analogyTitle: "Multi-Rule Border Check at the API Gateway",
+    analogyText:
+      "Check constraints in priority order: first reject empty payloads (`size_mb <= 0` -> `'EMPTY_FILE'`), then oversized uploads (`size_mb > max_mb` -> `'TOO_LARGE'`), then unsupported MIME types (`content_type not in allowed_types` -> `'BAD_TYPE'`).",
+    cheatSheet: "# Guard-clause pipeline:\nif amount <= 0:\n    return {\"ok\": False, \"reason\": \"EMPTY_...\"}\nif kind not in allowlist:\n    return {\"ok\": False, \"reason\": \"BAD_...\"}",
+    commonPitfall: {
+      title: "Only checking size_mb <= max_mb and letting 0-byte or malicious .exe files pass",
+      wrongCode:
+        "return size_mb <= max_mb  # Accepts 0 MB files & application/x-msdownload!",
+      rightCode:
+        "if size_mb <= 0: return {'ok': False, 'reason': 'EMPTY_FILE'}\n# then TOO_LARGE and BAD_TYPE checks",
+      explanation:
+        "Gateways validate size bounds AND MIME allowlists explicitly, returning structured failure reasons so clients know what to fix.",
+    },
+    guidedCode: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
+    # 👉 Step 1: Reject empty/zero-byte payloads
+    if size_mb <= 0:
+        return {"ok": False, "reason": "EMPTY_FILE"}
+    # 👉 Step 2: Reject payloads exceeding max_mb
+    if size_mb > max_mb:
+        return {"ok": False, "reason": "TOO_LARGE"}
+    # 👉 Step 3: Enforce MIME allowlist before returning OK
+    if content_type not in allowed_types:
+        return {"ok": False, "reason": "BAD_TYPE"}
+    return {"ok": True, "reason": "OK"}
+
+print(validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"]))`,
+    solutionCode: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
+    if size_mb <= 0:
+        return {"ok": False, "reason": "EMPTY_FILE"}
+    if size_mb > max_mb:
+        return {"ok": False, "reason": "TOO_LARGE"}
+    if content_type not in allowed_types:
+        return {"ok": False, "reason": "BAD_TYPE"}
+    return {"ok": True, "reason": "OK"}
+
+print(validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"]))`,
+    proInsights: {
+      timeComplexity: "O(1) with small allowlist (or set)",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Failing fast at the gateway saves bandwidth and worker RAM, though `Content-Type` headers alone can be spoofed—verify file magic bytes asynchronously.",
+      followUp:
+        "How do pre-signed S3 upload policies enforce `content-length-range` directly at object storage without routing bytes through your API?",
+    },
+    quiz: {
+      question:
+        'Why should `size_mb <= 0` be rejected with `"EMPTY_FILE"` instead of just checking `size_mb <= max_mb`?',
+      options: [
+        "0-byte uploads are valid under `<= max_mb` (`0 <= 25`), which causes empty broken files in storage",
+        "Negative sizes automatically convert to MB in Python",
+        "`<=` throws a `TypeError` when comparing zero",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Both bounds matter (`0 < size_mb <= max_mb`) so broken empty files and oversized uploads are caught cleanly!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 14,
     matchKeywords: ["alarm", "flapping", "consecutive", "ram", "streak"],
     realWorldUse:
       "Used by Datadog, Prometheus Alertmanager (`for: 2m`), and AWS CloudWatch (`datapoints to alarm`) to ignore brief 1-sample spikes and prevent pager fatigue.",
@@ -682,7 +738,7 @@ print(evaluate_ram_alarm([95, 70, 88, 92], 90, 2), evaluate_ram_alarm([95, 70, 9
   },
   {
     matchTrack: "system_design",
-    matchOrder: 14,
+    matchOrder: 15,
     matchKeywords: ["feature flag", "rollout", "percentage", "kill switch", "modulo"],
     realWorldUse:
       "Used by LaunchDarkly, Statsig, and Instagram to roll out risky features to 10% -> 25% -> 100% of users consistently across reloads without flipping randomly.",
@@ -739,76 +795,6 @@ print(is_feature_enabled(cfg, "ai_search", 110), is_feature_enabled(cfg, "ai_sea
       correctIndex: 0,
       explanation:
         "Because 0-indexed buckets `0..24` are already 25 buckets, strict `< rollout_pct` guarantees `0%` turns off all users and `25%` matches exactly 25 out of 100.",
-    },
-  },
-  {
-    matchTrack: "system_design",
-    matchOrder: 15,
-    matchKeywords: ["payload", "upload", "mime", "validation", "gateway"],
-    realWorldUse:
-      "Used by Discord, Stripe, and S3 upload gateways to reject empty payloads, oversized files, and banned executables (`.exe`) before touching backend storage.",
-    analogyTitle: "Multi-Rule Border Check at the API Gateway",
-    analogyText:
-      "Check constraints in priority order: first reject empty payloads (`size_mb <= 0` -> `'EMPTY_FILE'`), then oversized uploads (`size_mb > max_mb` -> `'TOO_LARGE'`), then unsupported MIME types (`content_type not in allowed_types` -> `'BAD_TYPE'`).",
-    cheatSheet: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
-    if size_mb <= 0:
-        return {"ok": False, "reason": "EMPTY_FILE"}
-    if size_mb > max_mb:
-        return {"ok": False, "reason": "TOO_LARGE"}
-    if content_type not in allowed_types:
-        return {"ok": False, "reason": "BAD_TYPE"}
-    return {"ok": True, "reason": "OK"}`,
-    commonPitfall: {
-      title: "Only checking size_mb <= max_mb and letting 0-byte or malicious .exe files pass",
-      wrongCode:
-        "return size_mb <= max_mb  # Accepts 0 MB files & application/x-msdownload!",
-      rightCode:
-        "if size_mb <= 0: return {'ok': False, 'reason': 'EMPTY_FILE'}\n# then TOO_LARGE and BAD_TYPE checks",
-      explanation:
-        "Gateways validate size bounds AND MIME allowlists explicitly, returning structured failure reasons so clients know what to fix.",
-    },
-    guidedCode: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
-    # 👉 Step 1: Reject empty/zero-byte payloads
-    if size_mb <= 0:
-        return {"ok": False, "reason": "EMPTY_FILE"}
-    # 👉 Step 2: Reject payloads exceeding max_mb
-    if size_mb > max_mb:
-        return {"ok": False, "reason": "TOO_LARGE"}
-    # 👉 Step 3: Enforce MIME allowlist before returning OK
-    if content_type not in allowed_types:
-        return {"ok": False, "reason": "BAD_TYPE"}
-    return {"ok": True, "reason": "OK"}
-
-print(validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"]))`,
-    solutionCode: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
-    if size_mb <= 0:
-        return {"ok": False, "reason": "EMPTY_FILE"}
-    if size_mb > max_mb:
-        return {"ok": False, "reason": "TOO_LARGE"}
-    if content_type not in allowed_types:
-        return {"ok": False, "reason": "BAD_TYPE"}
-    return {"ok": True, "reason": "OK"}
-
-print(validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"]))`,
-    proInsights: {
-      timeComplexity: "O(1) with small allowlist (or set)",
-      spaceComplexity: "O(1)",
-      tradeoff:
-        "Failing fast at the gateway saves bandwidth and worker RAM, though `Content-Type` headers alone can be spoofed—verify file magic bytes asynchronously.",
-      followUp:
-        "How do pre-signed S3 upload policies enforce `content-length-range` directly at object storage without routing bytes through your API?",
-    },
-    quiz: {
-      question:
-        'Why should `size_mb <= 0` be rejected with `"EMPTY_FILE"` instead of just checking `size_mb <= max_mb`?',
-      options: [
-        "0-byte uploads are valid under `<= max_mb` (`0 <= 25`), which causes empty broken files in storage",
-        "Negative sizes automatically convert to MB in Python",
-        "`<=` throws a `TypeError` when comparing zero",
-      ],
-      correctIndex: 0,
-      explanation:
-        "Both bounds matter (`0 < size_mb <= max_mb`) so broken empty files and oversized uploads are caught cleanly!",
     },
   },
   {
@@ -870,6 +856,62 @@ print(scale_workers(12, 5, 10), scale_workers(0, 5, 10), scale_workers(100, 5, 8
   {
     matchTrack: "system_design",
     matchOrder: 17,
+    matchKeywords: ["batch", "chunk", "slice", "step", "notifications"],
+    realWorldUse:
+      "Used by Firebase Cloud Messaging, SendGrid bulk mailers, and SQL `INSERT` chunkers to split huge user lists into safe fixed-size payload batches.",
+    analogyTitle: "Stepped Slicing with `range(0, len(user_ids), batch_size)`",
+    analogyText:
+      "First guard `batch_size <= 0` (otherwise `range(..., 0)` throws `ValueError`!). Then step `i` by `batch_size` and slice `user_ids[i : i + batch_size]`—Python automatically clamps the final slice so partial trailing batches stay intact!",
+    cheatSheet: `if batch_size <= 0:
+    return []
+return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]`,
+    commonPitfall: {
+      title: "Crashing on batch_size <= 0 or dropping the partial final batch",
+      wrongCode:
+        "return [user_ids[i:i+batch_size] for i in range(0, len(user_ids), batch_size)]  # Crashes when batch_size == 0!",
+      rightCode:
+        "if batch_size <= 0:\n    return []\nreturn [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]",
+      explanation:
+        "Stepping `range()` by `0` raises `ValueError`; guarding `batch_size <= 0` first keeps the chunker crash-proof while preserving trailing batches.",
+    },
+    guidedCode: `def build_batches(user_ids, batch_size):
+    # 👉 Step 1: Guard against zero or negative batch sizes
+    if batch_size <= 0:
+        return []
+    # 👉 Step 2: Slice user_ids in fixed steps of batch_size
+    return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]
+
+print(build_batches([1, 2, 3, 4, 5], 2))`,
+    solutionCode: `def build_batches(user_ids, batch_size):
+    if batch_size <= 0:
+        return []
+    return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]
+
+print(build_batches([1, 2, 3, 4, 5], 2))`,
+    proInsights: {
+      timeComplexity: "O(n)",
+      spaceComplexity: "O(n)",
+      tradeoff:
+        "Stepped slicing preserves every trailing item without losing partial batches; if streaming millions of IDs, `yield` slices via a generator (or `itertools.batched` in Python 3.12+) to hold only 1 batch in memory at a time.",
+      followUp:
+        "Why should downstream batch receivers make each batch request idempotent (using a `batch_id`) in case a partial network timeout retries an entire 100-item chunk?",
+    },
+    quiz: {
+      question:
+        "What does `[1, 2, 3, 4, 5][4 : 4 + 2]` evaluate to in Python when `4 + 2` goes past the end of the list?",
+      options: [
+        "`[5]` — Python slice endpoints clamp safely without `IndexError`",
+        "`IndexError: list index out of range`",
+        "`[5, None]`",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Python slices automatically stop at `len(list)`, making stepped slicing `[i : i + batch_size]` naturally handle trailing partial batches!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 18,
     matchKeywords: ["api key", "auth", "expiry", "rbac", "scopes"],
     realWorldUse:
       "Used by Stripe, GitHub Personal Access Tokens, and OpenAI gateways to enforce key existence, revocation (`active`), TTL expiration, and RBAC permission scopes in one check.",
@@ -944,7 +986,7 @@ print(authorize_request(keys, "k1", "write", 50), authorize_request(keys, "k1", 
   },
   {
     matchTrack: "system_design",
-    matchOrder: 18,
+    matchOrder: 19,
     matchKeywords: ["pagination", "slice", "has_next", "total_pages", "offset"],
     realWorldUse:
       "Used in REST and GraphQL API responses (`GitHub`, `Stripe`, `Shopify`) so frontends know both the current page slice and whether a 'Next Page' button should render.",
@@ -1015,7 +1057,7 @@ print(paginate_items(["a", "b", "c", "d", "e"], 2, 2))`,
   },
   {
     matchTrack: "system_design",
-    matchOrder: 19,
+    matchOrder: 20,
     matchKeywords: ["cache-aside", "read-through", "redis", "cache warming"],
     realWorldUse:
       "The #1 Redis caching architecture in production backends (Instagram, Airbnb, Slack): hit RAM first, populate Redis on DB read, and avoid caching missing rows unnecessarily.",
@@ -1084,62 +1126,6 @@ print(fetch_user_profile(c, d, 42), fetch_user_profile(c, d, 42))`,
       correctIndex: 0,
       explanation:
         "Read #1 populates the cache (`source: 'db'`) so Read #2 and beyond become fast RAM hits (`source: 'cache'`)!",
-    },
-  },
-  {
-    matchTrack: "system_design",
-    matchOrder: 20,
-    matchKeywords: ["batch", "chunk", "slice", "step", "notifications"],
-    realWorldUse:
-      "Used by Firebase Cloud Messaging, SendGrid bulk mailers, and SQL `INSERT` chunkers to split huge user lists into safe fixed-size payload batches.",
-    analogyTitle: "Stepped Slicing with `range(0, len(user_ids), batch_size)`",
-    analogyText:
-      "First guard `batch_size <= 0` (otherwise `range(..., 0)` throws `ValueError`!). Then step `i` by `batch_size` and slice `user_ids[i : i + batch_size]`—Python automatically clamps the final slice so partial trailing batches stay intact!",
-    cheatSheet: `if batch_size <= 0:
-    return []
-return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]`,
-    commonPitfall: {
-      title: "Crashing on batch_size <= 0 or dropping the partial final batch",
-      wrongCode:
-        "return [user_ids[i:i+batch_size] for i in range(0, len(user_ids), batch_size)]  # Crashes when batch_size == 0!",
-      rightCode:
-        "if batch_size <= 0:\n    return []\nreturn [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]",
-      explanation:
-        "Stepping `range()` by `0` raises `ValueError`; guarding `batch_size <= 0` first keeps the chunker crash-proof while preserving trailing batches.",
-    },
-    guidedCode: `def build_batches(user_ids, batch_size):
-    # 👉 Step 1: Guard against zero or negative batch sizes
-    if batch_size <= 0:
-        return []
-    # 👉 Step 2: Slice user_ids in fixed steps of batch_size
-    return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]
-
-print(build_batches([1, 2, 3, 4, 5], 2))`,
-    solutionCode: `def build_batches(user_ids, batch_size):
-    if batch_size <= 0:
-        return []
-    return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]
-
-print(build_batches([1, 2, 3, 4, 5], 2))`,
-    proInsights: {
-      timeComplexity: "O(n)",
-      spaceComplexity: "O(n)",
-      tradeoff:
-        "Stepped slicing preserves every trailing item without losing partial batches; if streaming millions of IDs, `yield` slices via a generator (or `itertools.batched` in Python 3.12+) to hold only 1 batch in memory at a time.",
-      followUp:
-        "Why should downstream batch receivers make each batch request idempotent (using a `batch_id`) in case a partial network timeout retries an entire 100-item chunk?",
-    },
-    quiz: {
-      question:
-        "What does `[1, 2, 3, 4, 5][4 : 4 + 2]` evaluate to in Python when `4 + 2` goes past the end of the list?",
-      options: [
-        "`[5]` — Python slice endpoints clamp safely without `IndexError`",
-        "`IndexError: list index out of range`",
-        "`[5, None]`",
-      ],
-      correctIndex: 0,
-      explanation:
-        "Python slices automatically stop at `len(list)`, making stepped slicing `[i : i + batch_size]` naturally handle trailing partial batches!",
     },
   },
   {

@@ -112,10 +112,6 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
-
-  // ============================================================================
-  // CHAPTER II: MESSAGING & DISTRIBUTED CONSENSUS (Modules 05 - 08)
-  // ============================================================================
   {
     matchTrack: "system_design",
     matchOrder: 5,
@@ -224,10 +220,6 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
-
-  // ============================================================================
-  // CHAPTER III: RESILIENCE, FAILOVER & GLOBAL EDGE (Modules 09 - 12)
-  // ============================================================================
   {
     matchTrack: "system_design",
     matchOrder: 9,
@@ -340,13 +332,37 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
-
-  // ============================================================================
-  // CHAPTER IV: OBSERVABILITY, ROLLOUTS & AUTOSCALING (Modules 13 - 16)
-  // ============================================================================
   {
     matchTrack: "system_design",
     matchOrder: 13,
+    tools: [
+      {
+        toolName: "Ordered Size + MIME Allowlist Validator — Gateway Guard",
+        badge: "API GATEWAY",
+        purpose:
+          "Validates empty uploads (`<= 0`), max payload size, and allowed MIME types before returning `{ok, reason}`.",
+        syntaxPattern:
+          "if size_mb <= 0: return {'ok': False, 'reason': 'EMPTY_FILE'}\nif size_mb > max_mb: return {'ok': False, 'reason': 'TOO_LARGE'}\nif content_type not in allowed_types: return {'ok': False, 'reason': 'BAD_TYPE'}",
+        variations: [
+          {
+            label: "1. Structured gateway rejection reasons",
+            code: 'def check(sz, mx, mime, ok):\n    if sz <= 0: return "EMPTY_FILE"\n    if sz > mx: return "TOO_LARGE"\n    if mime not in ok: return "BAD_TYPE"\n    return "OK"\nprint(check(0, 25, "image/png", ["image/png"]), check(30, 25, "image/png", ["image/png"]))',
+            output: "EMPTY_FILE TOO_LARGE",
+            note: "Returns actionable machine-readable status codes for clients.",
+          },
+          {
+            label: "2. Rejecting disallowed executable uploads",
+            code: 'print("application/x-msdownload" in ["image/png", "image/jpeg"])',
+            output: "False",
+            note: "Strict allowlist blocks arbitrary binaries even when small.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 14,
     tools: [
       {
         toolName: "Consecutive Streak Counter — Flap-Guarded Alarm",
@@ -374,7 +390,7 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
   },
   {
     matchTrack: "system_design",
-    matchOrder: 14,
+    matchOrder: 15,
     tools: [
       {
         toolName: "Kill-Switch + `user_id % 100 < rollout_pct` — Canary Flag",
@@ -395,34 +411,6 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
             code: 'cfg = {"enabled": False, "rollout_pct": 100}\nprint(bool(cfg["enabled"] and (42 % 100) < cfg["rollout_pct"]))',
             output: "False",
             note: "Toggling enabled=False disables the feature instantly for everyone.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    matchTrack: "system_design",
-    matchOrder: 15,
-    tools: [
-      {
-        toolName: "Ordered Size + MIME Allowlist Validator — Gateway Guard",
-        badge: "API GATEWAY",
-        purpose:
-          "Validates empty uploads (`<= 0`), max payload size, and allowed MIME types before returning `{ok, reason}`.",
-        syntaxPattern:
-          "if size_mb <= 0: return {'ok': False, 'reason': 'EMPTY_FILE'}\nif size_mb > max_mb: return {'ok': False, 'reason': 'TOO_LARGE'}\nif content_type not in allowed_types: return {'ok': False, 'reason': 'BAD_TYPE'}",
-        variations: [
-          {
-            label: "1. Structured gateway rejection reasons",
-            code: 'def check(sz, mx, mime, ok):\n    if sz <= 0: return "EMPTY_FILE"\n    if sz > mx: return "TOO_LARGE"\n    if mime not in ok: return "BAD_TYPE"\n    return "OK"\nprint(check(0, 25, "image/png", ["image/png"]), check(30, 25, "image/png", ["image/png"]))',
-            output: "EMPTY_FILE TOO_LARGE",
-            note: "Returns actionable machine-readable status codes for clients.",
-          },
-          {
-            label: "2. Rejecting disallowed executable uploads",
-            code: 'print("application/x-msdownload" in ["image/png", "image/jpeg"])',
-            output: "False",
-            note: "Strict allowlist blocks arbitrary binaries even when small.",
           },
         ],
       },
@@ -456,13 +444,37 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
-
-  // ============================================================================
-  // CHAPTER V: AUTH, PAGINATION, REDIS CACHE & BATCHING (Modules 17 - 20)
-  // ============================================================================
   {
     matchTrack: "system_design",
     matchOrder: 17,
+    tools: [
+      {
+        toolName: "`[ids[i : i + sz] for i in range(0, len(ids), sz)]` — Chunker",
+        badge: "BATCH WORKERS",
+        purpose:
+          "Splits arbitrary lists into fixed-size sublists (preserving partial trailing batches) while guarding `batch_size <= 0`.",
+        syntaxPattern:
+          "if batch_size <= 0: return []\nreturn [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]",
+        variations: [
+          {
+            label: "1. Splitting into batches including trailing partial chunk",
+            code: "ids = [1, 2, 3, 4, 5]\nprint([ids[i:i+2] for i in range(0, len(ids), 2)])",
+            output: "[[1, 2], [3, 4], [5]]",
+            note: "Python slice bounds clamp automatically at len(ids) for the final chunk.",
+          },
+          {
+            label: "2. Invalid batch_size <= 0 guard",
+            code: "def chunk(xs, b):\n    return [] if b <= 0 else [xs[i:i+b] for i in range(0, len(xs), b)]\nprint(chunk([1, 2], 0))",
+            output: "[]",
+            note: "Prevents ValueError from range(..., step=0).",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 18,
     tools: [
       {
         toolName: "4-Gate Token Check (Exists, Active, TTL, Scope) — API Auth",
@@ -490,7 +502,7 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
   },
   {
     matchTrack: "system_design",
-    matchOrder: 18,
+    matchOrder: 19,
     tools: [
       {
         toolName: "Pagination Envelope (`items`, `has_next`, `total_pages`)",
@@ -518,7 +530,7 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
   },
   {
     matchTrack: "system_design",
-    matchOrder: 19,
+    matchOrder: 20,
     tools: [
       {
         toolName: "Cache-Aside Read-Through (`f'user:{id}:profile'`)",
@@ -539,34 +551,6 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
             code: 'c, d = {}, {42: "Aria"}\nprint(99 in d, len(c))',
             output: "False 0",
             note: "Nonexistent user IDs return 'miss' without filling RAM.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    matchTrack: "system_design",
-    matchOrder: 20,
-    tools: [
-      {
-        toolName: "`[ids[i : i + sz] for i in range(0, len(ids), sz)]` — Chunker",
-        badge: "BATCH WORKERS",
-        purpose:
-          "Splits arbitrary lists into fixed-size sublists (preserving partial trailing batches) while guarding `batch_size <= 0`.",
-        syntaxPattern:
-          "if batch_size <= 0: return []\nreturn [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]",
-        variations: [
-          {
-            label: "1. Splitting into batches including trailing partial chunk",
-            code: "ids = [1, 2, 3, 4, 5]\nprint([ids[i:i+2] for i in range(0, len(ids), 2)])",
-            output: "[[1, 2], [3, 4], [5]]",
-            note: "Python slice bounds clamp automatically at len(ids) for the final chunk.",
-          },
-          {
-            label: "2. Invalid batch_size <= 0 guard",
-            code: "def chunk(xs, b):\n    return [] if b <= 0 else [xs[i:i+b] for i in range(0, len(xs), b)]\nprint(chunk([1, 2], 0))",
-            output: "[]",
-            note: "Prevents ValueError from range(..., step=0).",
           },
         ],
       },

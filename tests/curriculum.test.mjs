@@ -345,3 +345,58 @@ test("enrichment solutionCode passes its matching lesson hidden_tests", () => {
     );
   }
 });
+
+test("every chapter ramps monotonically in difficulty and has zero Learn/CheatSheet spoilers", () => {
+  const { getLessonEnrichment } = loadTsModule("src/constants/curriculum.ts");
+  const { buildOrganizedLearnView } = loadTsModule("src/utils/lessonContent.ts");
+  const { TRACK_CHAPTERS, isLessonInChapter } = loadTsModule(
+    "src/constants/certificates.ts",
+  );
+  const merged = mergeCurriculumLessons([]);
+  const diffRank = { Easy: 1, Medium: 2, Hard: 3 };
+
+  // Beginner Python Ch. I teaches Variables -> Functions -> Conditionals -> Lists & Loops
+  const pyCore = merged.filter(
+    (l) => l.track === "python_basics" && !l.is_recap && l.lesson_order <= 4,
+  );
+  assert.deepEqual(
+    pyCore.map((l) => l.id),
+    ["exp-py-01", "exp-py-04", "exp-py-03", "exp-py-02"],
+  );
+
+  // Within every chapter across all 3 tracks, non-recap lessons never drop in difficulty
+  for (const [trackKey, chapters] of Object.entries(TRACK_CHAPTERS)) {
+    const trackLessons = merged.filter((l) => l.track === trackKey);
+    for (const ch of chapters) {
+      const chCore = trackLessons.filter(
+        (l) => !l.is_recap && isLessonInChapter(l, ch),
+      );
+      for (let i = 1; i < chCore.length; i++) {
+        assert.ok(
+          diffRank[chCore[i - 1].difficulty] <= diffRank[chCore[i].difficulty],
+          `${trackKey} Ch.${ch.roman} regressed difficulty from ${chCore[i - 1].id} (${chCore[i - 1].difficulty}) to ${chCore[i].id} (${chCore[i].difficulty})`,
+        );
+      }
+    }
+  }
+
+  // Zero target-function spoilers in Learn example or Cheat Sheet across all 100 modules
+  for (const lesson of merged) {
+    const enrich = getLessonEnrichment(lesson);
+    const view = buildOrganizedLearnView(lesson.content, enrich);
+    const fnMatch = (lesson.initial_code || "").match(/def\s+([A-Za-z0-9_]+)/);
+    const fnName = fnMatch ? fnMatch[1] : "";
+    if (fnName && fnName !== "__init__") {
+      assert.equal(
+        view.singleExampleCode.includes(`def ${fnName}`),
+        false,
+        `${lesson.id} Learn example spoils target function ${fnName}`,
+      );
+      assert.equal(
+        view.cheatSheetCode.includes(`def ${fnName}`),
+        false,
+        `${lesson.id} Cheat Sheet spoils target function ${fnName}`,
+      );
+    }
+  }
+});

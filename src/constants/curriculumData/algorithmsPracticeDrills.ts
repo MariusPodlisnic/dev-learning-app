@@ -251,7 +251,7 @@ __run_tests__()`,
   ],
 
   // 05: Linear / Subarray Optimization (if present in DB)
-  5: [
+  8: [
     {
       id: "alg-05-d2",
       title: "Practice 2/2: Maximum Contiguous Subarray",
@@ -282,7 +282,7 @@ __run_tests__()`,
   ],
 
   // 06: Frequency Counter
-  6: [
+  5: [
     {
       id: "alg-06-d2",
       title: "Practice 2/3: Top Active User Tie-Breaker",
@@ -401,7 +401,7 @@ __run_tests__()`,
   ],
 
   // 08: Balanced Brackets Linter
-  8: [
+  6: [
     {
       id: "alg-08-d2",
       title: "Practice 2/3: Max Nesting Depth Analyzer",
@@ -494,7 +494,7 @@ __run_tests__()`,
   ],
 
   // 10: Lower-Bound Binary Search
-  10: [
+  11: [
     {
       id: "alg-10-d2",
       title: "Practice 2/3: First Element Greater Than Target",
@@ -551,7 +551,7 @@ __run_tests__()`,
   ],
 
   // 11: Set Intersection
-  11: [
+  10: [
     {
       id: "alg-11-d2",
       title: "Practice 2/2: Exclusive List Difference",
@@ -639,7 +639,7 @@ __run_tests__()`,
   ],
 
   // 13: Runner-Up / Top-K Distinct
-  13: [
+  14: [
     {
       id: "alg-13-d2",
       title: "Practice 2/3: Second Lowest Distinct Price",
@@ -697,7 +697,7 @@ __run_tests__()`,
   ],
 
   // 14: Multi-Key Sorting
-  14: [
+  15: [
     {
       id: "alg-14-d2",
       title: "Practice 2/3: Priority Task Queue Sorter",
@@ -765,7 +765,7 @@ __run_tests__()`,
   ],
 
   // 15: Two-Pointer In-Place Partition
-  15: [
+  16: [
     {
       id: "alg-15-d2",
       title: "Practice 2/3: Move Zeros In-Place",
@@ -823,7 +823,7 @@ __run_tests__()`,
   ],
 
   // 16: Batch Gatekeeper
-  16: [
+  13: [
     {
       id: "alg-16-d2",
       title: "Practice 2/2: Banned Account Request Filter",
@@ -856,7 +856,7 @@ __run_tests__()`,
   ],
 
   // 17: Palindrome Sanitizer
-  17: [
+  18: [
     {
       id: "alg-17-d2",
       title: "Practice 2/3: Almost-Palindrome (1 Skip Allowed)",
@@ -917,7 +917,7 @@ __run_tests__()`,
   ],
 
   // 18: Early-Exit First Duplicate
-  18: [
+  17: [
     {
       id: "alg-18-d2",
       title: "Practice 2/2: First Non-Repeating Character",

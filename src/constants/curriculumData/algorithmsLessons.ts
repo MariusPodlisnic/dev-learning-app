@@ -11,7 +11,7 @@ export const ALGORITHMS_EXPANSION_LESSONS = [
     description:
       "Find the indices of two numbers in an array that add up to a specific target in O(n) time.",
     content:
-      "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nA brute-force double loop checks every pair in **O(n²)** time. Instead, walk through `nums` once with a dictionary `seen = {}` that remembers each visited number's index:\n\n1. Use `for i, num in enumerate(nums):` to get both the index `i` and value `num`.\n2. Calculate `needed = target - num`.\n3. If `needed in seen:`, return `[seen[needed], i]` immediately!\n4. Otherwise store `seen[num] = i` and continue.\n\n```python\nclass Solution:\n    def twoSum(self, nums, target):\n        seen = {}\n        for i, num in enumerate(nums):\n            needed = target - num\n            if needed in seen:\n                return [seen[needed], i]\n            seen[num] = i\n```",
+      "Given an array of integers `nums` and an integer `target`, return indices of the two numbers that add up to `target`.\n\nA brute-force double loop checks every pair in **O(n²)** time. Instead, walk through the list once with a dictionary that remembers each visited value's index:\n\n```python\n# Sibling pattern: match two item weights to a box limit\nseen_at = {}\nfor idx, weight in enumerate(weights):\n    missing = limit - weight\n    if missing in seen_at:\n        print([seen_at[missing], idx])\n    seen_at[weight] = idx\n```",
     assignment:
       "Implement `twoSum(self, nums, target)` inside `class Solution` to return `[index1, index2]` of the two elements summing to `target`.",
     constraints: [
@@ -76,7 +76,7 @@ __run_tests__()`,
     description:
       "Check whether a word reads the same forward and backward using two converging pointers.",
     content:
-      "A **palindrome** is a word like `\"racecar\"` or `\"level\"` that reads the exact same forward and backward.\n\nWith the **Two-Pointer** pattern, you place one index at the start (`left = 0`) and one at the end (`right = len(s) - 1`), then step them toward each other while `left < right`:\n\n```python\nclass Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            if s[left] != s[right]:\n                return False\n            left += 1\n            right -= 1\n        return True\n```",
+      "A **palindrome** is a word like `\"racecar\"` or `\"level\"` that reads the exact same forward and backward.\n\nWith the **Two-Pointer** pattern, place `left = 0` at the start and `right = len(seq) - 1` at the end, then step them inward while `left < right`:\n\n```python\n# Sibling pattern: check if a list of numbers is symmetric\ndef is_symmetric_array(arr):\n    left, right = 0, len(arr) - 1\n    while left < right:\n        if arr[left] != arr[right]:\n            return False\n        left += 1\n        right -= 1\n    return True\n```",
     assignment:
       "Complete `isPalindrome(self, s: str) -> bool` inside `class Solution` to return `True` if `s` reads the same forward and backward, else `False`.",
     constraints: [
@@ -137,7 +137,7 @@ __run_tests__()`,
     description:
       "Validate nested round, square, and curly brackets in a single linear pass using a LIFO stack.",
     content:
-      "Code editors and compilers validate nested brackets using a **Last-In, First-Out (LIFO) Stack** (`stack = []`).\n\n• Store matching pairs in a dictionary: `pairs = {\")\": \"(\", \"]\": \"[\", \"}\": \"{\"}`.\n• When you see an opening bracket (`(`, `[`, `{`), push it with `stack.append(ch)`.\n• When you see a closing bracket (`ch in pairs`), check that `stack` is not empty and `stack[-1] == pairs[ch]`, then remove the top opener with `stack.pop()`.\n\n```python\nclass Solution:\n    def isValid(self, s: str) -> bool:\n        stack = []\n        pairs = {\")\": \"(\", \"]\": \"[\", \"}\": \"{\"}\n        for ch in s:\n            if ch in pairs:\n                if not stack or stack[-1] != pairs[ch]:\n                    return False\n                stack.pop()\n            else:\n                stack.append(ch)\n        return len(stack) == 0\n```",
+      "Code editors and compilers validate nested brackets using a **Last-In, First-Out (LIFO) Stack** (`stack = []`).\n\n• Map each closer to its matching opener: `pairs = {\")\": \"(\", \"]\": \"[\", \"}\": \"{\"}`.\n• Push openers onto `stack`, and whenever a closer arrives, verify `stack` is non-empty and `stack[-1] == pairs[ch]` before calling `stack.pop()`:\n\n```python\n# Sibling pattern: match \"<\" and \">\" HTML angle tags\ndef check_angles(text):\n    stack = []\n    for ch in text:\n        if ch == \"<\":\n            stack.append(ch)\n        elif ch == \">\":\n            if not stack:\n                return False\n            stack.pop()\n    return len(stack) == 0\n```",
     assignment:
       "Complete `isValid(self, s: str) -> bool` inside `class Solution` to return `True` only if every opening bracket closes cleanly in matching LIFO order.",
     constraints: [
@@ -197,7 +197,7 @@ __run_tests__()`,
     description:
       "Locate a target index inside a sorted array in O(log n) time by halving the search space.",
     content:
-      "**Binary Search** finds an item in a sorted list by cutting the search range in half on every step:\n1. Start with `low = 0` and `high = len(nums) - 1`.\n2. Loop `while low <= high:` and pick the middle index `mid = (low + high) // 2`.\n3. If `nums[mid] == target`, return `mid`. If `nums[mid] < target`, search the right half (`low = mid + 1`); otherwise search the left half (`high = mid - 1`).\n\n```python\nclass Solution:\n    def search(self, nums: list, target: int) -> int:\n        low = 0\n        high = len(nums) - 1\n        while low <= high:\n            mid = (low + high) // 2\n            if nums[mid] == target:\n                return mid\n            elif nums[mid] < target:\n                low = mid + 1\n            else:\n                high = mid - 1\n        return -1\n```",
+      "**Binary Search** finds a value in a sorted list in **O(log n)** time by cutting the search interval in half on every step:\n1. Start with `low = 0` and `high = len(items) - 1`.\n2. Loop `while low <= high:` and inspect `mid = (low + high) // 2`.\n3. Narrow right (`low = mid + 1`) if `items[mid]` is too small, or left (`high = mid - 1`) if too big:\n\n```python\n# Sibling pattern: check if a sorted Guest ID list contains guest_id\ndef has_sorted_id(ids, guest_id):\n    low, high = 0, len(ids) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if ids[mid] == guest_id:\n            return True\n        elif ids[mid] < guest_id:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return False\n```",
     assignment:
       "Complete `search(self, nums: list, target: int) -> int` inside `class Solution` to return the index of `target` in sorted `nums`, or `-1` if absent.",
     constraints: [
@@ -245,18 +245,173 @@ __run_tests__()`,
     ],
   },
   {
+    id: "exp-alg-06",
+    title: "Frequency Counter (Most Active User)",
+    track: "algorithms",
+    category: "HASH MAPS",
+    difficulty: "Easy",
+    tree_row: 5,
+    lesson_order: 5,
+    is_free: false,
+    description:
+      "Count how many times each username appears in a single O(n) pass using a dictionary.",
+    content:
+      "When chat apps track who sent the most messages, or Spotify counts your top artist plays, scanning the list repeatedly for every user would be O(n²) slow.\n\nInstead, keep a single **frequency map** `counts = {}` and update each user in O(1) average time using `.get()`:\n\n```python\ncounts[user] = counts.get(user, 0) + 1\n```",
+    assignment:
+      "Complete `count_messages(users)` so it returns a dictionary mapping each username to the exact number of times it appears in `users`.",
+    constraints: [
+      "Return an empty dictionary `{}` when `users` is empty",
+      "Accumulate counts in O(n) time without calling `users.count()` inside a loop",
+    ],
+    examples: [
+      {
+        input: 'users = ["alex", "sam", "alex", "mia", "alex"]',
+        output: "{'alex': 3, 'sam': 1, 'mia': 1}",
+        explanation: "'alex' appears 3 times; 'sam' and 'mia' each appear once.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(k)" },
+    initial_code: `def count_messages(users):
+    pass`,
+    expected_output: "{'alex': 3, 'sam': 1, 'mia': 1}",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [(["alex", "sam", "alex", "mia", "alex"], {"alex": 3, "sam": 1, "mia": 1}), (["kai"], {"kai": 1}), ([], {})]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = count_messages(inp[:])
+        results.append({"id": idx + 1, "input": f"count_messages({inp})", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: '"alex"', value: "count: 3", address: "bucket 0x1A" },
+      { label: '"sam"', value: "count: 1", address: "bucket 0x2F" },
+      { label: '"mia"', value: "count: 1", address: "bucket 0x4C" },
+    ],
+    hints: [
+      "Create `counts = {}` before your `for` loop.",
+      "Update `counts[u] = counts.get(u, 0) + 1` inside the loop and `return counts`.",
+    ],
+  },
+  {
+    id: "exp-alg-08",
+    title: "Balanced Brackets Linter (Stack)",
+    track: "algorithms",
+    category: "STACKS",
+    difficulty: "Easy",
+    tree_row: 7,
+    lesson_order: 6,
+    is_free: false,
+    description:
+      "Validate that every '(' has a matching ')' in proper order using a stack.",
+    content:
+      "How does a linter verify `calc((a + b) * c)` has balanced parentheses while ignoring letters, spaces, and operators?\n\nScan character by character: push `'('` onto a list, pop whenever `')'` arrives (returning `False` immediately if the stack is already empty), and skip every non-parenthesis character:\n\n```python\n# Sibling pattern: verify square array brackets '[' and ']' in a snippet\ndef check_square_brackets(expr):\n    openers = []\n    for ch in expr:\n        if ch == \"[\":\n            openers.append(ch)\n        elif ch == \"]\":\n            if not openers:\n                return False\n            openers.pop()\n    return len(openers) == 0\n```",
+    assignment:
+      "Complete `is_balanced(code_str)` so it returns `True` if every `'('` and `')'` in `code_str` is properly balanced, otherwise `False`.",
+    constraints: [
+      "Ignore characters other than `'('` and `')'`",
+      "Return `False` immediately on an extra `')'` with an empty stack",
+    ],
+    examples: [
+      {
+        input: 'code_str = "(())"',
+        output: "True",
+        explanation: "Two openers matched by two closers.",
+      },
+      {
+        input: 'code_str = "(()"',
+        output: "False",
+        explanation: "One '(' remains unclosed on the stack.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def is_balanced(code_str):
+    pass`,
+    expected_output: "True",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [("(())", True), ("(()", False), (")(", False), ("print((1 + 2))", True)]
+    for idx, (inp, exp) in enumerate(cases):
+        actual = is_balanced(inp)
+        results.append({"id": idx + 1, "input": f"is_balanced({repr(inp)})", "expected": str(exp), "actual": str(actual), "passed": actual is exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "stack",
+    visual_data: [
+      { label: "push '('", value: "stack = ['(']", address: "step 1" },
+      { label: "push '('", value: "stack = ['(', '(']", address: "step 2" },
+      { label: "pop ')' -> pop ')'", value: "stack = [] ✓", address: "step 4" },
+    ],
+    hints: [
+      'Check `if ch == "(": stack.append(ch)` and `elif ch == ")":`.',
+      "Return `False` inside `elif ch == ')':` if `not stack`, else `stack.pop()`.",
+    ],
+  },
+  {
+    id: "exp-alg-07",
+    title: "Sliding Window Traffic Spike",
+    track: "algorithms",
+    category: "SLIDING WINDOW",
+    difficulty: "Medium",
+    tree_row: 7,
+    lesson_order: 7,
+    is_free: false,
+    description:
+      "Find the highest total traffic over any K consecutive days in O(n) time.",
+    content:
+      "Suppose an analytics dashboard asks: *Which `k` consecutive hours had the highest combined request count?*\n\nInstead of re-summing `k` elements from scratch at every index, slide a fixed window of size `k` — add the entering right element `arr[i]` and subtract the leaving left element `arr[i - k]`:\n\n```python\n# Sibling pattern: minimum sum of k consecutive latency readings\ndef min_k_latency(pings, k):\n    win = sum(pings[:k])\n    lowest = win\n    for i in range(k, len(pings)):\n        win += pings[i] - pings[i - k]\n        lowest = min(lowest, win)\n    return lowest\n```",
+    assignment:
+      "Complete `max_window_sum(visitors, k)` so it returns the maximum sum of any `k` consecutive integers in `visitors`.",
+    constraints: [
+      "Compute the first window in O(k), then slide in O(1) per element",
+      "Handle cases where `k == 1` or `k == len(visitors)` cleanly",
+    ],
+    examples: [
+      {
+        input: "visitors = [10, 40, 30, 50, 20], k = 3",
+        output: "120",
+        explanation: "[40, 30, 50] is the busiest 3-day window with total 120.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def max_window_sum(visitors, k):
+    pass`,
+    expected_output: "120",
+    hidden_tests: `import json
+def __run_tests__():
+    results = []
+    cases = [(([10, 40, 30, 50, 20], 3), 120), (([5, 5, 5, 5], 2), 10), (([100, 1, 1, 200], 1), 200)]
+    for idx, ((arr, k), exp) in enumerate(cases):
+        actual = max_window_sum(arr[:], k)
+        results.append({"id": idx + 1, "input": f"max_window_sum({arr}, {k})", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+    visual_type: "sliding_window",
+    visual_data: [
+      { label: "Window [0..2]", value: "10 + 40 + 30 = 80", address: "win_1" },
+      { label: "Slide [1..3]", value: "80 + 50 - 10 = 120 ✓", address: "win_2" },
+      { label: "Slide [2..4]", value: "120 + 20 - 40 = 100", address: "win_3" },
+    ],
+    hints: [
+      "Initialize `window_sum = sum(visitors[:k])` and `best = window_sum`.",
+      "Loop `for i in range(k, len(visitors)):` updating `window_sum += visitors[i] - visitors[i - k]`.",
+    ],
+  },
+  {
     id: "exp-alg-05",
     title: "Maximum Subarray Sum (Kadane O(n))",
     track: "algorithms",
     category: "LINEAR PASS O(N)",
     difficulty: "Medium",
-    tree_row: 5,
-    lesson_order: 5,
+    tree_row: 8,
+    lesson_order: 8,
     is_free: false,
     description:
       "Find the contiguous subarray with the largest sum in a single linear pass using Kadane's algorithm.",
     content:
-      "Given an integer array `nums` (which may include negative values), checking every start/end subarray takes O(n²) time.\n\n**Kadane's Algorithm** computes the best subarray sum ending at each element in a single O(n) pass:\n• If `not nums: return 0`.\n• Track `current = nums[0]` (best streak ending here) and `best = nums[0]` (best streak seen overall).\n• Loop `for n in nums[1:]:`: either extend the running streak (`current + n`) or start fresh at `n` (`current = max(n, current + n)`), then update `best = max(best, current)`.\n\n```python\nclass Solution:\n    def maxSubArray(self, nums: list) -> int:\n        if not nums:\n            return 0\n        current = nums[0]\n        best = nums[0]\n        for n in nums[1:]:\n            current = max(n, current + n)\n            best = max(best, current)\n        return best\n```",
+      "Given an integer array `nums` (which may include negative dips), checking every start/end subarray takes **O(n²)** time.\n\n**Kadane's Algorithm** tracks the best running streak ending at each element in a single **O(n)** pass — at each step, either extend the running sum (`running + x`) or restart fresh at `x`:\n\n```python\n# Sibling pattern: best contiguous XP streak (non-empty list)\ndef best_xp_streak(deltas):\n    running = deltas[0]\n    record = deltas[0]\n    for d in deltas[1:]:\n        running = max(d, running + d)\n        record = max(record, running)\n    return record\n```",
     assignment:
       "Complete `maxSubArray(self, nums: list) -> int` inside `class Solution` to return the largest possible sum of any non-empty contiguous subarray (return `0` if `nums` is empty).",
     constraints: [
@@ -304,173 +459,18 @@ __run_tests__()`,
     ],
   },
   {
-    id: "exp-alg-06",
-    title: "Frequency Counter (Most Active User)",
-    track: "algorithms",
-    category: "HASH MAPS",
-    difficulty: "Easy",
-    tree_row: 6,
-    lesson_order: 6,
-    is_free: false,
-    description:
-      "Count how many times each username appears in a single O(n) pass using a dictionary.",
-    content:
-      "When chat apps track who sent the most messages, or Spotify counts your top artist plays, scanning the list repeatedly for every user would be O(n²) slow.\n\nInstead, keep a single **frequency map** `counts = {}` and update each user in O(1) average time using `.get()`:\n\n```python\ncounts[user] = counts.get(user, 0) + 1\n```",
-    assignment:
-      "Complete `count_messages(users)` so it returns a dictionary mapping each username to the exact number of times it appears in `users`.",
-    constraints: [
-      "Return an empty dictionary `{}` when `users` is empty",
-      "Accumulate counts in O(n) time without calling `users.count()` inside a loop",
-    ],
-    examples: [
-      {
-        input: 'users = ["alex", "sam", "alex", "mia", "alex"]',
-        output: "{'alex': 3, 'sam': 1, 'mia': 1}",
-        explanation: "'alex' appears 3 times; 'sam' and 'mia' each appear once.",
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(k)" },
-    initial_code: `def count_messages(users):
-    pass`,
-    expected_output: "{'alex': 3, 'sam': 1, 'mia': 1}",
-    hidden_tests: `import json
-def __run_tests__():
-    results = []
-    cases = [(["alex", "sam", "alex", "mia", "alex"], {"alex": 3, "sam": 1, "mia": 1}), (["kai"], {"kai": 1}), ([], {})]
-    for idx, (inp, exp) in enumerate(cases):
-        actual = count_messages(inp[:])
-        results.append({"id": idx + 1, "input": f"count_messages({inp})", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
-    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
-__run_tests__()`,
-    visual_type: "hashmap",
-    visual_data: [
-      { label: '"alex"', value: "count: 3", address: "bucket 0x1A" },
-      { label: '"sam"', value: "count: 1", address: "bucket 0x2F" },
-      { label: '"mia"', value: "count: 1", address: "bucket 0x4C" },
-    ],
-    hints: [
-      "Create `counts = {}` before your `for` loop.",
-      "Update `counts[u] = counts.get(u, 0) + 1` inside the loop and `return counts`.",
-    ],
-  },
-  {
-    id: "exp-alg-07",
-    title: "Sliding Window Traffic Spike",
-    track: "algorithms",
-    category: "SLIDING WINDOW",
-    difficulty: "Medium",
-    tree_row: 7,
-    lesson_order: 7,
-    is_free: false,
-    description:
-      "Find the highest total traffic over any K consecutive days in O(n) time.",
-    content:
-      "Suppose an analytics dashboard asks: *Which `k` consecutive days had the highest combined visitor count?*\n\nInstead of re-summing `k` days from scratch at every index, maintain one running `window_sum`:\n1. Sum the first `k` items: `window_sum = sum(visitors[:k])` and `best = window_sum`.\n2. Slide one step at a time (`for i in range(k, len(visitors)):`): add the entering item `visitors[i]` and subtract the leaving item `visitors[i - k]`.\n\n```python\ndef max_window_sum(visitors, k):\n    window_sum = sum(visitors[:k])\n    best = window_sum\n    for i in range(k, len(visitors)):\n        window_sum += visitors[i] - visitors[i - k]\n        best = max(best, window_sum)\n    return best\n```",
-    assignment:
-      "Complete `max_window_sum(visitors, k)` so it returns the maximum sum of any `k` consecutive integers in `visitors`.",
-    constraints: [
-      "Compute the first window in O(k), then slide in O(1) per element",
-      "Handle cases where `k == 1` or `k == len(visitors)` cleanly",
-    ],
-    examples: [
-      {
-        input: "visitors = [10, 40, 30, 50, 20], k = 3",
-        output: "120",
-        explanation: "[40, 30, 50] is the busiest 3-day window with total 120.",
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(1)" },
-    initial_code: `def max_window_sum(visitors, k):
-    pass`,
-    expected_output: "120",
-    hidden_tests: `import json
-def __run_tests__():
-    results = []
-    cases = [(([10, 40, 30, 50, 20], 3), 120), (([5, 5, 5, 5], 2), 10), (([100, 1, 1, 200], 1), 200)]
-    for idx, ((arr, k), exp) in enumerate(cases):
-        actual = max_window_sum(arr[:], k)
-        results.append({"id": idx + 1, "input": f"max_window_sum({arr}, {k})", "expected": str(exp), "actual": str(actual), "passed": actual == exp})
-    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
-__run_tests__()`,
-    visual_type: "sliding_window",
-    visual_data: [
-      { label: "Window [0..2]", value: "10 + 40 + 30 = 80", address: "win_1" },
-      { label: "Slide [1..3]", value: "80 + 50 - 10 = 120 ✓", address: "win_2" },
-      { label: "Slide [2..4]", value: "120 + 20 - 40 = 100", address: "win_3" },
-    ],
-    hints: [
-      "Initialize `window_sum = sum(visitors[:k])` and `best = window_sum`.",
-      "Loop `for i in range(k, len(visitors)):` updating `window_sum += visitors[i] - visitors[i - k]`.",
-    ],
-  },
-  {
-    id: "exp-alg-08",
-    title: "Balanced Brackets Linter (Stack)",
-    track: "algorithms",
-    category: "STACKS",
-    difficulty: "Easy",
-    tree_row: 7,
-    lesson_order: 8,
-    is_free: false,
-    description:
-      "Validate that every '(' has a matching ')' in proper order using a stack.",
-    content:
-      "How does Python know instantly if `print((1 + 2)` is missing a closing parenthesis while ignoring letters and numbers?\n\nIt scans characters with a **Stack** (`stack = []`):\n• When `ch == '('`, push it onto `stack` with `stack.append(ch)`.\n• When `ch == ')'`, return `False` immediately if `not stack`, otherwise `stack.pop()`.\n• Ignore all other characters, and return `len(stack) == 0` at the end.\n\n```python\ndef is_balanced(code_str):\n    stack = []\n    for ch in code_str:\n        if ch == \"(\":\n            stack.append(ch)\n        elif ch == \")\":\n            if not stack:\n                return False\n            stack.pop()\n    return len(stack) == 0\n```",
-    assignment:
-      "Complete `is_balanced(code_str)` so it returns `True` if every `'('` and `')'` in `code_str` is properly balanced, otherwise `False`.",
-    constraints: [
-      "Ignore characters other than `'('` and `')'`",
-      "Return `False` immediately on an extra `')'` with an empty stack",
-    ],
-    examples: [
-      {
-        input: 'code_str = "(())"',
-        output: "True",
-        explanation: "Two openers matched by two closers.",
-      },
-      {
-        input: 'code_str = "(()"',
-        output: "False",
-        explanation: "One '(' remains unclosed on the stack.",
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def is_balanced(code_str):
-    pass`,
-    expected_output: "True",
-    hidden_tests: `import json
-def __run_tests__():
-    results = []
-    cases = [("(())", True), ("(()", False), (")(", False), ("print((1 + 2))", True)]
-    for idx, (inp, exp) in enumerate(cases):
-        actual = is_balanced(inp)
-        results.append({"id": idx + 1, "input": f"is_balanced({repr(inp)})", "expected": str(exp), "actual": str(actual), "passed": actual is exp})
-    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
-__run_tests__()`,
-    visual_type: "stack",
-    visual_data: [
-      { label: "push '('", value: "stack = ['(']", address: "step 1" },
-      { label: "push '('", value: "stack = ['(', '(']", address: "step 2" },
-      { label: "pop ')' -> pop ')'", value: "stack = [] ✓", address: "step 4" },
-    ],
-    hints: [
-      'Check `if ch == "(": stack.append(ch)` and `elif ch == ")":`.',
-      "Return `False` inside `elif ch == ')':` if `not stack`, else `stack.pop()`.",
-    ],
-  },
-  {
     id: "exp-alg-09",
     title: "Filtered Linear Scan: Cheapest Valid Flight",
     track: "algorithms",
     category: "LINEAR SCAN O(N)",
     difficulty: "Easy",
-    tree_row: 8,
+    tree_row: 6,
     lesson_order: 9,
     is_free: false,
     description:
       "Scan flight quotes in one O(n) pass while filtering out sold-out or invalid entries (<= 0 or None).",
     content:
-      "Real flight APIs often include `None` or `0` placeholders for sold-out flights alongside valid fares like `[320, 0, 195, None, 160]`.\n\nIf you call `min(prices)` blindly, Python either crashes on `None` (`TypeError`) or picks `0`! Instead, maintain a running minimum:\n\n```python\nbest = None\nfor p in prices:\n    if p is not None and p > 0:\n        if best is None or p < best:\n            best = p\nreturn best if best is not None else -1\n```",
+      "Real APIs often mix `None` or `0` placeholders alongside valid positive numbers like `[320, 0, 195, None, 160]`.\n\nCalling `min(prices)` blindly either crashes on `None` (`TypeError`) or picks `0`! Instead, guard valid entries first and update a running `best` tracker:\n\n```python\n# Sibling pattern: smallest positive ping time (or -1 if all offline)\ndef fastest_valid_ping(pings):\n    fastest = None\n    for ms in pings:\n        if ms is not None and ms > 0:\n            if fastest is None or ms < fastest:\n                fastest = ms\n    return fastest if fastest is not None else -1\n```",
     assignment:
       "Complete `find_cheapest_flight(prices)` to return the lowest valid price (`p is not None and p > 0`), or `-1` if no valid price exists.",
     constraints: [
@@ -519,13 +519,66 @@ except Exception as e:
     ],
   },
   {
+    id: "exp-alg-11",
+    title: "Set Intersection: Sorted Mutual Friends",
+    track: "algorithms",
+    category: "HASH SET INTERSECTION",
+    difficulty: "Easy",
+    tree_row: 9,
+    lesson_order: 10,
+    is_free: false,
+    description:
+      "Compute deduplicated, sorted mutual friends between two social graphs in O(n + m) set time.",
+    content:
+      "Checking `x in list_b` inside a loop costs **O(n × m)** time and leaves duplicates if an item appears twice.\n\nConverting both collections to Python `set`s (`set(a) & set(b)`) computes the exact unique overlap in linear hash-set time, ready to sort cleanly with `sorted(...)`:\n\n```python\n# Sibling pattern: sorted shared skills between two candidates\ndef shared_skills(dev_a, dev_b):\n    overlap = set(dev_a) & set(dev_b)\n    return sorted(overlap)\n```",
+    assignment:
+      "Complete `find_mutual_friends(friends_a, friends_b)` so it returns a sorted, duplicate-free list of names present in both inputs.",
+    constraints: [
+      "Eliminate duplicate names in the output",
+      "Return the mutual names sorted alphabetically",
+    ],
+    examples: [
+      {
+        input: 'friends_a = ["Sam", "Mia", "Leo", "Sam"], friends_b = ["Mia", "Zoe", "Sam"]',
+        output: "['Mia', 'Sam']",
+        explanation: "Both lists contain Mia and Sam; sorted without duplicates.",
+      },
+    ],
+    complexities: { time: "O(n + m + k log k)", space: "O(n + m)" },
+    initial_code: `def find_mutual_friends(friends_a, friends_b):
+    pass`,
+    expected_output: "['Mia', 'Sam']",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = find_mutual_friends(["Sam", "Mia", "Leo", "Sam"], ["Mia", "Zoe", "Sam"])
+    results.append({"id": 1, "input": "duplicate Sam + unsorted", "expected": "['Mia', 'Sam']", "actual": str(r1), "passed": r1 == ["Mia", "Sam"]})
+    r2 = find_mutual_friends(["Ava"], ["Zoe"])
+    results.append({"id": 2, "input": "disjoint lists", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    r3 = find_mutual_friends(["Kai", "Aria"], ["Aria", "Kai"])
+    results.append({"id": 3, "input": "all mutual", "expected": "['Aria', 'Kai']", "actual": str(r3), "passed": r3 == ["Aria", "Kai"]})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "set(A)", value: "{'Leo', 'Mia', 'Sam'}", address: "O(n)" },
+      { label: "set(B)", value: "{'Mia', 'Sam', 'Zoe'}", address: "O(m)" },
+      { label: "sorted(A & B)", value: "['Mia', 'Sam'] ✓", address: "deduped" },
+    ],
+    hints: [
+      "Use `&` between two sets: `set(friends_a) & set(friends_b)`.",
+      "Wrap the result in `sorted(...)` to return an alphabetically ordered list.",
+    ],
+  },
+  {
     id: "exp-alg-10",
     title: "Binary Search: Lower-Bound Insertion Index",
     track: "algorithms",
     category: "DIVIDE & CONQUER",
     difficulty: "Medium",
-    tree_row: 8,
-    lesson_order: 10,
+    tree_row: 6,
+    lesson_order: 11,
     is_free: false,
     description:
       "Implement O(log n) binary search to find a target's index, or the sorted index where it should be inserted.",
@@ -577,65 +630,12 @@ except Exception as e:
     ],
   },
   {
-    id: "exp-alg-11",
-    title: "Set Intersection: Sorted Mutual Friends",
-    track: "algorithms",
-    category: "HASH SET INTERSECTION",
-    difficulty: "Easy",
-    tree_row: 9,
-    lesson_order: 11,
-    is_free: false,
-    description:
-      "Compute deduplicated, sorted mutual friends between two social graphs in O(n + m) set time.",
-    content:
-      "Checking `f in friends_b` on a plain list costs **O(n × m)** time and can produce duplicate names if either list has repeats.\n\nConvert to sets (`set(friends_a) & set(friends_b)`) so intersection runs in linear hash-set time, then sort alphabetically with `sorted(...)`!",
-    assignment:
-      "Complete `find_mutual_friends(friends_a, friends_b)` so it returns a sorted, duplicate-free list of names present in both inputs.",
-    constraints: [
-      "Eliminate duplicate names in the output",
-      "Return the mutual names sorted alphabetically",
-    ],
-    examples: [
-      {
-        input: 'friends_a = ["Sam", "Mia", "Leo", "Sam"], friends_b = ["Mia", "Zoe", "Sam"]',
-        output: "['Mia', 'Sam']",
-        explanation: "Both lists contain Mia and Sam; sorted without duplicates.",
-      },
-    ],
-    complexities: { time: "O(n + m + k log k)", space: "O(n + m)" },
-    initial_code: `def find_mutual_friends(friends_a, friends_b):
-    pass`,
-    expected_output: "['Mia', 'Sam']",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = find_mutual_friends(["Sam", "Mia", "Leo", "Sam"], ["Mia", "Zoe", "Sam"])
-    results.append({"id": 1, "input": "duplicate Sam + unsorted", "expected": "['Mia', 'Sam']", "actual": str(r1), "passed": r1 == ["Mia", "Sam"]})
-    r2 = find_mutual_friends(["Ava"], ["Zoe"])
-    results.append({"id": 2, "input": "disjoint lists", "expected": "[]", "actual": str(r2), "passed": r2 == []})
-    r3 = find_mutual_friends(["Kai", "Aria"], ["Aria", "Kai"])
-    results.append({"id": 3, "input": "all mutual", "expected": "['Aria', 'Kai']", "actual": str(r3), "passed": r3 == ["Aria", "Kai"]})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "hashmap",
-    visual_data: [
-      { label: "set(A)", value: "{'Leo', 'Mia', 'Sam'}", address: "O(n)" },
-      { label: "set(B)", value: "{'Mia', 'Sam', 'Zoe'}", address: "O(m)" },
-      { label: "sorted(A & B)", value: "['Mia', 'Sam'] ✓", address: "deduped" },
-    ],
-    hints: [
-      "Use `&` between two sets: `set(friends_a) & set(friends_b)`.",
-      "Wrap the result in `sorted(...)` to return an alphabetically ordered list.",
-    ],
-  },
-  {
     id: "exp-alg-12",
     title: "Prefix Sum Engine: O(1) Range Queries",
     track: "algorithms",
     category: "PREFIX SUMS",
     difficulty: "Medium",
-    tree_row: 10,
+    tree_row: 11,
     lesson_order: 12,
     is_free: false,
     description:
@@ -683,13 +683,66 @@ except Exception as e:
     ],
   },
   {
+    id: "exp-alg-16",
+    title: "O(1) Batch Gatekeeper: VIP Badge Filter",
+    track: "algorithms",
+    category: "HASH SET LOOKUP",
+    difficulty: "Easy",
+    tree_row: 14,
+    lesson_order: 13,
+    is_free: false,
+    description:
+      "Validate thousands of arriving badges against a VIP allowlist in O(n + m) time using a set while preserving arrival order.",
+    content:
+      "When 50,000 concert guests scan badges against a 10,000-name VIP list, checking `name in vip_list` on a `list` takes **O(n × m)** (~500 million comparisons!).\n\nConvert `vip_list` to a `set` **once** before the loop (`allowed = set(vip_list)`), then filter `arrivals` in O(1) per guest while keeping deduplicated arrival order!",
+    assignment:
+      "Complete `filter_valid_badges(vip_list, arrivals)` to return unique valid VIP names from `arrivals` in the exact order they first arrived.",
+    constraints: [
+      "Build `allowed = set(vip_list)` once for O(1) lookups",
+      "Preserve first-arrival order and ignore duplicate scans",
+    ],
+    examples: [
+      {
+        input: 'vip_list = ["Aria", "Kai", "Nova"], arrivals = ["Leo", "Kai", "Aria", "Kai"]',
+        output: "['Kai', 'Aria']",
+        explanation: "Leo isn't VIP; Kai and Aria are admitted in arrival order without duplicating Kai.",
+      },
+    ],
+    complexities: { time: "O(n + m)", space: "O(n + m)" },
+    initial_code: `def filter_valid_badges(vip_list, arrivals):
+    pass`,
+    expected_output: "['Kai', 'Aria']",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = filter_valid_badges(["Aria", "Kai", "Nova"], ["Leo", "Kai", "Aria", "Kai"])
+    results.append({"id": 1, "input": "arrivals with duplicate Kai", "expected": "['Kai', 'Aria']", "actual": str(r1), "passed": r1 == ["Kai", "Aria"]})
+    r2 = filter_valid_badges(["Mia"], ["Zoe", "Bob"])
+    results.append({"id": 2, "input": "no matching VIPs", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    r3 = filter_valid_badges([], ["Aria", "Kai"])
+    results.append({"id": 3, "input": "empty VIP list", "expected": "[]", "actual": str(r3), "passed": r3 == []})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "Leo", value: "not in allowed -> REJECT", address: "O(1)" },
+      { label: "Kai (#1)", value: "in allowed -> ADMIT ✓", address: "added to seen" },
+      { label: "Kai (#2)", value: "already in seen -> SKIP", address: "deduped" },
+    ],
+    hints: [
+      "Loop `for name in arrivals:` and check `if name in allowed and name not in seen:`.",
+      "Append `name` to `admitted` and add `name` to `seen`.",
+    ],
+  },
+  {
     id: "exp-alg-13",
     title: "Single-Pass Runner-Up: Top-2 Distinct Scores",
     track: "algorithms",
     category: "LINEAR SCAN O(N)",
     difficulty: "Medium",
-    tree_row: 11,
-    lesson_order: 13,
+    tree_row: 10,
+    lesson_order: 14,
     is_free: false,
     description:
       "Track the first and second highest distinct scores in a single O(n) pass without sorting.",
@@ -740,8 +793,8 @@ except Exception as e:
     track: "algorithms",
     category: "CUSTOM SORTING",
     difficulty: "Medium",
-    tree_row: 11,
-    lesson_order: 14,
+    tree_row: 10,
+    lesson_order: 15,
     is_free: false,
     description:
       "Rank players by highest score first, breaking ties by fastest completion time, then alphabetically by name.",
@@ -797,7 +850,7 @@ except Exception as e:
     category: "TWO POINTERS",
     difficulty: "Medium",
     tree_row: 12,
-    lesson_order: 15,
+    lesson_order: 16,
     is_free: false,
     description:
       "Partition player IDs in O(n) time and O(1) extra space so all even IDs appear before all odd IDs.",
@@ -855,56 +908,55 @@ except Exception as e:
     ],
   },
   {
-    id: "exp-alg-16",
-    title: "O(1) Batch Gatekeeper: VIP Badge Filter",
+    id: "exp-alg-18",
+    title: "Early-Exit First Duplicate Detector",
     track: "algorithms",
-    category: "HASH SET LOOKUP",
+    category: "HASH SET TRACKING",
     difficulty: "Easy",
-    tree_row: 13,
-    lesson_order: 16,
+    tree_row: 15,
+    lesson_order: 17,
     is_free: false,
     description:
-      "Validate thousands of arriving badges against a VIP allowlist in O(n + m) time using a set while preserving arrival order.",
+      "Stream usernames through a hash set and return the very first duplicate immediately on collision.",
     content:
-      "When 50,000 concert guests scan badges against a 10,000-name VIP list, checking `name in vip_list` on a `list` takes **O(n × m)** (~500 million comparisons!).\n\nConvert `vip_list` to a `set` **once** before the loop (`allowed = set(vip_list)`), then filter `arrivals` in O(1) per guest while keeping deduplicated arrival order!",
+      "Comparing `len(names) == len(set(names))` reads the entire dataset even if items #0 and #1 are identical.\n\nMaintaining a `seen = set()` as you iterate lets you **short-circuit and return the exact colliding username** the instant it appears a second time (or `None` if all usernames are unique)!",
     assignment:
-      "Complete `filter_valid_badges(vip_list, arrivals)` to return unique valid VIP names from `arrivals` in the exact order they first arrived.",
+      "Complete `first_duplicate(names)` so it returns the first username that repeats while scanning left to right, or `None` if every username is unique.",
     constraints: [
-      "Build `allowed = set(vip_list)` once for O(1) lookups",
-      "Preserve first-arrival order and ignore duplicate scans",
+      "Return the duplicate with the smallest second-occurrence index",
+      "Return `None` when no duplicates exist",
     ],
     examples: [
       {
-        input: 'vip_list = ["Aria", "Kai", "Nova"], arrivals = ["Leo", "Kai", "Aria", "Kai"]',
-        output: "['Kai', 'Aria']",
-        explanation: "Leo isn't VIP; Kai and Aria are admitted in arrival order without duplicating Kai.",
+        input: 'names = ["aria", "kai", "mia", "kai", "aria"]',
+        output: "kai",
+        explanation: "'kai' repeats at index 3 before 'aria' repeats at index 4.",
       },
     ],
-    complexities: { time: "O(n + m)", space: "O(n + m)" },
-    initial_code: `def filter_valid_badges(vip_list, arrivals):
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def first_duplicate(names):
     pass`,
-    expected_output: "['Kai', 'Aria']",
+    expected_output: "kai",
     hidden_tests: `import json
 results = []
 try:
-    r1 = filter_valid_badges(["Aria", "Kai", "Nova"], ["Leo", "Kai", "Aria", "Kai"])
-    results.append({"id": 1, "input": "arrivals with duplicate Kai", "expected": "['Kai', 'Aria']", "actual": str(r1), "passed": r1 == ["Kai", "Aria"]})
-    r2 = filter_valid_badges(["Mia"], ["Zoe", "Bob"])
-    results.append({"id": 2, "input": "no matching VIPs", "expected": "[]", "actual": str(r2), "passed": r2 == []})
-    r3 = filter_valid_badges([], ["Aria", "Kai"])
-    results.append({"id": 3, "input": "empty VIP list", "expected": "[]", "actual": str(r3), "passed": r3 == []})
+    r1 = first_duplicate(["aria", "kai", "mia", "kai", "aria"])
+    results.append({"id": 1, "input": "['aria','kai','mia','kai','aria']", "expected": "kai", "actual": str(r1), "passed": r1 == "kai"})
+    r2 = first_duplicate(["aria", "kai"])
+    results.append({"id": 2, "input": "all unique", "expected": "None", "actual": str(r2), "passed": r2 is None})
+    r3 = first_duplicate([])
+    results.append({"id": 3, "input": "[]", "expected": "None", "actual": str(r3), "passed": r3 is None})
     print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
 except Exception as e:
     print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
     visual_type: "hashmap",
     visual_data: [
-      { label: "Leo", value: "not in allowed -> REJECT", address: "O(1)" },
-      { label: "Kai (#1)", value: "in allowed -> ADMIT ✓", address: "added to seen" },
-      { label: "Kai (#2)", value: "already in seen -> SKIP", address: "deduped" },
+      { label: "idx 0..2", value: "seen = {'aria', 'kai', 'mia'}", address: "O(1) insert" },
+      { label: "idx 3: 'kai'", value: "COLLISION -> return 'kai' ✓", address: "early exit" },
     ],
     hints: [
-      "Loop `for name in arrivals:` and check `if name in allowed and name not in seen:`.",
-      "Append `name` to `admitted` and add `name` to `seen`.",
+      "Loop `for name in names:`: if `name in seen: return name`, else `seen.add(name)`.",
+      "Return `None` after the loop ends.",
     ],
   },
   {
@@ -913,8 +965,8 @@ except Exception as e:
     track: "algorithms",
     category: "STRING TWO POINTERS",
     difficulty: "Medium",
-    tree_row: 14,
-    lesson_order: 17,
+    tree_row: 15,
+    lesson_order: 18,
     is_free: false,
     description:
       "Validate messy phrases as palindromes in O(n) time and O(1) space by skipping punctuation and ignoring case.",
@@ -961,64 +1013,12 @@ except Exception as e:
     ],
   },
   {
-    id: "exp-alg-18",
-    title: "Early-Exit First Duplicate Detector",
-    track: "algorithms",
-    category: "HASH SET TRACKING",
-    difficulty: "Easy",
-    tree_row: 14,
-    lesson_order: 18,
-    is_free: false,
-    description:
-      "Stream usernames through a hash set and return the very first duplicate immediately on collision.",
-    content:
-      "Comparing `len(names) == len(set(names))` reads the entire dataset even if items #0 and #1 are identical.\n\nMaintaining a `seen = set()` as you iterate lets you **short-circuit and return the exact colliding username** the instant it appears a second time (or `None` if all usernames are unique)!",
-    assignment:
-      "Complete `first_duplicate(names)` so it returns the first username that repeats while scanning left to right, or `None` if every username is unique.",
-    constraints: [
-      "Return the duplicate with the smallest second-occurrence index",
-      "Return `None` when no duplicates exist",
-    ],
-    examples: [
-      {
-        input: 'names = ["aria", "kai", "mia", "kai", "aria"]',
-        output: "kai",
-        explanation: "'kai' repeats at index 3 before 'aria' repeats at index 4.",
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def first_duplicate(names):
-    pass`,
-    expected_output: "kai",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = first_duplicate(["aria", "kai", "mia", "kai", "aria"])
-    results.append({"id": 1, "input": "['aria','kai','mia','kai','aria']", "expected": "kai", "actual": str(r1), "passed": r1 == "kai"})
-    r2 = first_duplicate(["aria", "kai"])
-    results.append({"id": 2, "input": "all unique", "expected": "None", "actual": str(r2), "passed": r2 is None})
-    r3 = first_duplicate([])
-    results.append({"id": 3, "input": "[]", "expected": "None", "actual": str(r3), "passed": r3 is None})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "hashmap",
-    visual_data: [
-      { label: "idx 0..2", value: "seen = {'aria', 'kai', 'mia'}", address: "O(1) insert" },
-      { label: "idx 3: 'kai'", value: "COLLISION -> return 'kai' ✓", address: "early exit" },
-    ],
-    hints: [
-      "Loop `for name in names:`: if `name in seen: return name`, else `seen.add(name)`.",
-      "Return `None` after the loop ends.",
-    ],
-  },
-  {
     id: "exp-alg-19",
     title: "Closest Pair Minimum Absolute Difference",
     track: "algorithms",
     category: "SORT & ADJACENT SCAN",
     difficulty: "Medium",
-    tree_row: 15,
+    tree_row: 16,
     lesson_order: 19,
     is_free: false,
     description:
@@ -1071,7 +1071,7 @@ except Exception as e:
     track: "algorithms",
     category: "ZIP & INVERTED INDEX",
     difficulty: "Medium",
-    tree_row: 16,
+    tree_row: 13,
     lesson_order: 20,
     is_free: false,
     description:
@@ -1124,7 +1124,7 @@ except Exception as e:
     track: "algorithms",
     category: "GREEDY SCAN O(N)",
     difficulty: "Medium",
-    tree_row: 17,
+    tree_row: 18,
     lesson_order: 21,
     is_free: false,
     description:
@@ -1183,7 +1183,7 @@ except Exception as e:
     track: "algorithms",
     category: "HASH MAP BUCKETING",
     difficulty: "Medium",
-    tree_row: 17,
+    tree_row: 18,
     lesson_order: 22,
     is_free: false,
     description:
@@ -1240,7 +1240,7 @@ except Exception as e:
     track: "algorithms",
     category: "INTERVAL SWEEP O(N LOG N)",
     difficulty: "Medium",
-    tree_row: 18,
+    tree_row: 17,
     lesson_order: 23,
     is_free: false,
     description:
@@ -1294,7 +1294,7 @@ except Exception as e:
     track: "algorithms",
     category: "FREQUENCY RANKING",
     difficulty: "Hard",
-    tree_row: 18,
+    tree_row: 17,
     lesson_order: 24,
     is_free: false,
     description:
@@ -1353,7 +1353,7 @@ except Exception as e:
     description:
       "Traverse a Binary Search Tree with pruned DFS recursion to sum all node values within [low, high].",
     content:
-      'Represent each BST node cleanly as a dict `{"val": int, "left": node|None, "right": node|None}`.\n\nBecause BST values strictly satisfy `left < node["val"] < right`, we can **prune** entire branches during DFS:\n• If `node is None`: return `0`\n• Add `node["val"]` when `low <= node["val"] <= high`\n• Recurse `left` only if `node["val"] > low`, and recurse `right` only if `node["val"] < high`!',
+      "Represent each Binary Search Tree node as `{\"val\": int, \"left\": node|None, \"right\": node|None}`.\n\nBecause every left value is `< node[\"val\"]` and every right value is `> node[\"val\"]`, DFS can **prune** whole subtrees that fall outside `[low, high]`:\n\n```python\n# Sibling pattern: count BST nodes strictly inside [lo, hi]\ndef count_in_range(node, lo, hi):\n    if node is None:\n        return 0\n    hits = 1 if lo <= node[\"val\"] <= hi else 0\n    if node[\"val\"] > lo:\n        hits += count_in_range(node[\"left\"], lo, hi)\n    if node[\"val\"] < hi:\n        hits += count_in_range(node[\"right\"], lo, hi)\n    return hits\n```",
     assignment:
       'Complete `range_sum_bst(root, low, high)`: return the sum of all node values in the inclusive range `[low, high]` using BST DFS pruning.',
     constraints: [

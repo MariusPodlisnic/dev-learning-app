@@ -11,7 +11,7 @@ export const SYSTEM_DESIGN_EXPANSION_LESSONS = [
     description:
       "Build a Token Bucket rate-limit check that consumes 1 token when capacity remains and blocks requests once drained.",
     content:
-      "APIs like Stripe, GitHub, and Cloudflare protect backend databases using the **Token Bucket** pattern:\n• Each client bucket holds an integer `tokens` count.\n• When `allow_request(tokens)` runs, if `tokens > 0`, allow the request and spend 1 token by returning `(True, tokens - 1)`.\n• Otherwise the bucket is empty — reject the request with `(False, 0)` (HTTP 429 Too Many Requests).\n\n```python\ndef allow_request(tokens):\n    if tokens > 0:\n        return (True, tokens - 1)\n    return (False, 0)\n```",
+      "APIs like Stripe, GitHub, and Cloudflare protect backend databases using the **Token Bucket** pattern:\n• Each client bucket tracks remaining `tokens`.\n• When capacity remains (`> 0`), admit the request and deduct `1` token; once empty (`0`), reject with `False` (HTTP 429 Too Many Requests):\n\n```python\n# Sibling pattern: spend 1 arcade credit if available\ndef spend_credit(credits):\n    if credits > 0:\n        return (True, credits - 1)\n    return (False, 0)\n```",
     assignment:
       "Complete `allow_request(tokens)`: if `tokens > 0`, return `(True, tokens - 1)`; otherwise return `(False, 0)`.",
     constraints: [
@@ -72,7 +72,7 @@ __run_tests__()`,
     description:
       "Serve hot keys in O(1) from an in-memory cache dictionary and return a clean -1 sentinel on cache misses.",
     content:
-      "High-scale feeds avoid hammering SQL databases on every profile render by checking an in-memory key-value `cache` dictionary first:\n• **Cache Hit:** `key` exists in `cache` — return the cached value in O(1).\n• **Cache Miss:** `key` does not exist — safely return `-1` with `cache.get(key, -1)` instead of crashing with `KeyError`.\n\n```python\ndef get_cached_user(cache, key):\n    return cache.get(key, -1)\n```",
+      "High-scale apps avoid hitting SQL on every read by checking an in-memory key-value `cache` dictionary first:\n• **Cache Hit:** key exists in RAM — return its value in **O(1)**.\n• **Cache Miss:** key is absent — `dict.get(key, default)` safely returns a fallback sentinel instead of raising `KeyError`:\n\n```python\n# Sibling pattern: look up a cached session role or None\ndef read_session_role(session_cache, token_id):\n    return session_cache.get(token_id, None)\n```",
     assignment:
       "Complete `get_cached_user(cache, key)` so it returns the value for `key` from `cache`, or `-1` on a cache miss.",
     constraints: [
@@ -130,7 +130,7 @@ __run_tests__()`,
     description:
       "Map incoming request IDs deterministically across backend partitions using modulo hashing.",
     content:
-      "Distributed databases and API gateways split millions of keys across independent shards (`0 .. num_shards - 1`) so no single node saturates.\n\nUsing modulo hashing (`request_id % num_shards`), the exact same `request_id` deterministically maps to the same shard in O(1) time without needing a lookup table!\n\n```python\ndef get_shard(request_id, num_shards):\n    return request_id % num_shards\n```",
+      "Distributed databases and API gateways split millions of keys across `num_shards` independent partitions (`0 .. num_shards - 1`) so no single machine saturates.\n\nModulo hashing (`id % count`) deterministically maps the same key to the exact same partition index in **O(1)** time:\n\n```python\n# Sibling pattern: assign an order ID to a worker lane (0 .. num_lanes - 1)\ndef assign_lane(order_id, num_lanes):\n    return order_id % num_lanes\n```",
     assignment:
       "Complete `get_shard(request_id, num_shards)` so it returns the integer shard index `request_id % num_shards`.",
     constraints: [
@@ -182,7 +182,7 @@ __run_tests__()`,
     description:
       "Distribute incoming API traffic evenly across servers using modulo cycling.",
     content:
-      "When millions of users open an app at once, a single server would crash. A **Load Balancer** sits in front and distributes traffic evenly in **Round-Robin** order:\n\nRequest 0 -> Server 0, Request 1 -> Server 1, Request 2 -> Server 2, Request 3 -> Server 0 again!\n\nUse the remainder operator (`%`) to wrap `request_index` around `len(servers)`:\n\n```python\ndef route_request(servers, request_index):\n    slot = request_index % len(servers)\n    return servers[slot]\n```",
+      "When thousands of requests arrive per second, a **Load Balancer** spreads traffic evenly across healthy servers in **Round-Robin** order (`0, 1, 2, 0, 1, 2...`).\n\nWrapping the counter with `% len(pool)` cycles cleanly back to index `0` without ever going out of bounds:\n\n```python\n# Sibling pattern: cycle support tickets across an on-call team\ndef pick_agent(agents, ticket_number):\n    idx = ticket_number % len(agents)\n    return agents[idx]\n```",
     assignment:
       "Complete `route_request(servers, request_index)` so it returns the server name chosen by Round-Robin cycling.",
     constraints: [
@@ -233,7 +233,7 @@ __run_tests__()`,
     description:
       "Partition millions of users evenly across database shards deterministically.",
     content:
-      "When a database grows to billions of messages (like Discord or WhatsApp), one machine runs out of disk and memory. Engineers split users across multiple **Database Shards**.\n\nA deterministic shard key maps every `user_id` to the exact same shard hostname every time using `%` and an f-string:\n\n```python\ndef get_user_shard(user_id, num_shards):\n    shard_id = user_id % num_shards\n    return f\"shard_{shard_id}\"\n```",
+      "When a table outgrows a single machine, engineers partition rows across named **Database Shards** (`db_0`, `db_1`, ...).\n\nCombining `%` modulo routing with an f-string builds deterministic shard hostnames in **O(1)** time:\n\n```python\n# Sibling pattern: route a guild ID to a named Redis node\ndef get_redis_node(guild_id, total_nodes):\n    slot = guild_id % total_nodes\n    return f\"redis_node_{slot}\"\n```",
     assignment:
       'Complete `get_user_shard(user_id, num_shards)` to compute `user_id % num_shards` and return `f"shard_{shard_id}"`.',
     constraints: [
@@ -390,7 +390,7 @@ __run_tests__()`,
     description:
       "Consume an ordered event stream and dispatch matching payloads for a subscribed topic.",
     content:
-      "Event-driven architectures (Kafka, RabbitMQ, SNS) decouple producers from consumers using **Topics**.\n\nA billing worker subscribing to `\"payments\"` scans an incoming stream of `(topic_name, payload)` events in arrival order and collects only payloads whose topic equals `target_topic`.",
+      "Event-driven architectures (Kafka, RabbitMQ, SNS) decouple services using named **Topics**.\n\nA consumer subscribed to one topic scans incoming `(topic_name, message)` tuples in order and keeps only payloads matching its subscription:\n\n```python\n# Sibling pattern: extract log messages matching a severity level\ndef collect_by_level(logs, wanted_level):\n    return [msg for level, msg in logs if level == wanted_level]\n```",
     assignment:
       "Complete `filter_topic_events(events, target_topic)`: given a list of `(topic, payload)` tuples in arrival order, return a list of `payload` values matching `target_topic` (preserving original order).",
     constraints: [
@@ -441,7 +441,7 @@ __run_tests__()`,
     description:
       "Compute exponential retry wait time (base * 2^attempt) plus jitter while capping safely at max_ms.",
     content:
-      "When a downstream microservice temporarily drops requests, retrying immediately causes a **thundering herd**.\n\n**Capped Exponential Backoff + Jitter** doubles the wait each attempt and adds randomized jitter, while strictly capping at `max_ms`:\n\n```python\ndelay = base_ms * (2 ** attempt) + jitter_ms\nreturn min(max_ms, delay)\n```",
+      "When a downstream service blips, retrying immediately causes a **thundering herd**.\n\n**Capped Exponential Backoff + Jitter** doubles the base wait on each retry (`base * (2 ** retry)`), adds jitter, and clamps the result between `0` and a ceiling:\n\n```python\n# Sibling pattern: double reconnect wait (in seconds) up to a ceiling\ndef next_reconnect_sec(retry_num, base_sec, cap_sec):\n    raw = base_sec * (2 ** retry_num)\n    return max(0, min(raw, cap_sec))\n```",
     assignment:
       "Complete `compute_backoff(attempt, base_ms, max_ms, jitter_ms)` to compute `base_ms * (2 ** attempt) + jitter_ms` capped cleanly at `max_ms` (and never below `0`).",
     constraints: [
@@ -653,13 +653,69 @@ except Exception as e:
     ],
   },
   {
+    id: "exp-sys-15",
+    title: "API Gateway Payload & MIME Validator",
+    track: "system_design",
+    category: "API GATEWAY",
+    difficulty: "Easy",
+    tree_row: 12,
+    lesson_order: 13,
+    is_free: false,
+    description:
+      "Validate upload size bounds (0 < size <= max_mb) and allowed MIME types at the gateway before touching storage.",
+    content:
+      "An **API Gateway** validates incoming uploads at the edge before wasting backend RAM or storage bandwidth.\n\nUse ordered **guard clauses** (`if ...: return ...`) to reject empty payloads, oversized files, and disallowed MIME types before returning success:\n\n```python\n# Sibling pattern: validate a webhook payload at the edge\ndef check_webhook(bytes_len, limit_bytes, fmt, valid_fmts):\n    if bytes_len <= 0:\n        return {\"accepted\": False, \"code\": \"EMPTY\"}\n    if bytes_len > limit_bytes:\n        return {\"accepted\": False, \"code\": \"OVERSIZE\"}\n    if fmt not in valid_fmts:\n        return {\"accepted\": False, \"code\": \"UNSUPPORTED\"}\n    return {\"accepted\": True, \"code\": \"OK\"}\n```",
+    assignment:
+      "Complete `validate_upload(size_mb, max_mb, content_type, allowed_types)` enforcing size bounds and MIME allowlists with structured status responses.",
+    constraints: [
+      "Check empty/non-positive size (`<= 0`) first, then `> max_mb`, then `content_type`",
+      'Return `{"ok": bool, "reason": str}`',
+    ],
+    examples: [
+      {
+        input: 'validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"])',
+        output: "{'ok': True, 'reason': 'OK'}",
+        explanation: "Size is within (0, 25] and content_type is allowed.",
+      },
+    ],
+    complexities: { time: "O(k) allowed types", space: "O(1)" },
+    initial_code: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
+    pass`,
+    expected_output: "{'ok': True, 'reason': 'OK'}",
+    hidden_tests: `import json
+results = []
+try:
+    types = ["image/png", "image/jpeg"]
+    r1 = validate_upload(10, 25, "image/png", types)
+    results.append({"id": 1, "input": "10MB image/png", "expected": "{'ok': True, 'reason': 'OK'}", "actual": str(r1), "passed": r1 == {"ok": True, "reason": "OK"}})
+    r2 = validate_upload(0, 25, "image/png", types)
+    results.append({"id": 2, "input": "0MB empty", "expected": "EMPTY_FILE", "actual": str(r2), "passed": r2 == {"ok": False, "reason": "EMPTY_FILE"}})
+    r3 = validate_upload(30, 25, "image/png", types)
+    results.append({"id": 3, "input": "30MB > 25MB", "expected": "TOO_LARGE", "actual": str(r3), "passed": r3 == {"ok": False, "reason": "TOO_LARGE"}})
+    r4 = validate_upload(5, 25, "application/exe", types)
+    results.append({"id": 4, "input": "disallowed .exe", "expected": "BAD_TYPE", "actual": str(r4), "passed": r4 == {"ok": False, "reason": "BAD_TYPE"}})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "size > 0", value: "reject 0MB / negative", type: "guard", address: "rule 1" },
+      { label: "size <= max_mb", value: "reject > 25MB", type: "guard", address: "rule 2" },
+      { label: "MIME allowlist", value: "reject .exe -> 415", type: "guard", address: "rule 3" },
+    ],
+    hints: [
+      "Return early on each failing check in order: `EMPTY_FILE`, `TOO_LARGE`, `BAD_TYPE`.",
+      "If all 3 guards pass, return `{\"ok\": True, \"reason\": \"OK\"}`.",
+    ],
+  },
+  {
     id: "exp-sys-13",
     title: "Flap-Guarded RAM Incident Detector",
     track: "system_design",
     category: "OBSERVABILITY",
     difficulty: "Medium",
     tree_row: 11,
-    lesson_order: 13,
+    lesson_order: 14,
     is_free: false,
     description:
       "Trigger a 'WARN' alert only when consecutive RAM samples stay at or above threshold, ignoring brief 1-tick spikes.",
@@ -712,7 +768,7 @@ except Exception as e:
     category: "FEATURE FLAGS",
     difficulty: "Medium",
     tree_row: 11,
-    lesson_order: 14,
+    lesson_order: 15,
     is_free: false,
     description:
       "Evaluate staged percentage rollouts (e.g. 25% of users) deterministically using user_id % 100 and a kill-switch.",
@@ -760,68 +816,12 @@ except Exception as e:
     ],
   },
   {
-    id: "exp-sys-15",
-    title: "API Gateway Payload & MIME Validator",
-    track: "system_design",
-    category: "API GATEWAY",
-    difficulty: "Easy",
-    tree_row: 12,
-    lesson_order: 15,
-    is_free: false,
-    description:
-      "Validate upload size bounds (0 < size <= max_mb) and allowed MIME types at the gateway before touching storage.",
-    content:
-      "An API Gateway rejects bad uploads early with descriptive reasons before allocating memory or S3 streams:\n\n1. If `size_mb <= 0`: return `{\"ok\": False, \"reason\": \"EMPTY_FILE\"}`\n2. If `size_mb > max_mb`: return `{\"ok\": False, \"reason\": \"TOO_LARGE\"}`\n3. If `content_type not in allowed_types`: return `{\"ok\": False, \"reason\": \"BAD_TYPE\"}`\n4. Otherwise return `{\"ok\": True, \"reason\": \"OK\"}`!",
-    assignment:
-      "Complete `validate_upload(size_mb, max_mb, content_type, allowed_types)` enforcing size bounds and MIME allowlists with structured status responses.",
-    constraints: [
-      "Check empty/non-positive size (`<= 0`) first, then `> max_mb`, then `content_type`",
-      'Return `{"ok": bool, "reason": str}`',
-    ],
-    examples: [
-      {
-        input: 'validate_upload(10, 25, "image/png", ["image/png", "image/jpeg"])',
-        output: "{'ok': True, 'reason': 'OK'}",
-        explanation: "Size is within (0, 25] and content_type is allowed.",
-      },
-    ],
-    complexities: { time: "O(k) allowed types", space: "O(1)" },
-    initial_code: `def validate_upload(size_mb, max_mb, content_type, allowed_types):
-    pass`,
-    expected_output: "{'ok': True, 'reason': 'OK'}",
-    hidden_tests: `import json
-results = []
-try:
-    types = ["image/png", "image/jpeg"]
-    r1 = validate_upload(10, 25, "image/png", types)
-    results.append({"id": 1, "input": "10MB image/png", "expected": "{'ok': True, 'reason': 'OK'}", "actual": str(r1), "passed": r1 == {"ok": True, "reason": "OK"}})
-    r2 = validate_upload(0, 25, "image/png", types)
-    results.append({"id": 2, "input": "0MB empty", "expected": "EMPTY_FILE", "actual": str(r2), "passed": r2 == {"ok": False, "reason": "EMPTY_FILE"}})
-    r3 = validate_upload(30, 25, "image/png", types)
-    results.append({"id": 3, "input": "30MB > 25MB", "expected": "TOO_LARGE", "actual": str(r3), "passed": r3 == {"ok": False, "reason": "TOO_LARGE"}})
-    r4 = validate_upload(5, 25, "application/exe", types)
-    results.append({"id": 4, "input": "disallowed .exe", "expected": "BAD_TYPE", "actual": str(r4), "passed": r4 == {"ok": False, "reason": "BAD_TYPE"}})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "memory",
-    visual_data: [
-      { label: "size > 0", value: "reject 0MB / negative", type: "guard", address: "rule 1" },
-      { label: "size <= max_mb", value: "reject > 25MB", type: "guard", address: "rule 2" },
-      { label: "MIME allowlist", value: "reject .exe -> 415", type: "guard", address: "rule 3" },
-    ],
-    hints: [
-      "Return early on each failing check in order: `EMPTY_FILE`, `TOO_LARGE`, `BAD_TYPE`.",
-      "If all 3 guards pass, return `{\"ok\": True, \"reason\": \"OK\"}`.",
-    ],
-  },
-  {
     id: "exp-sys-16",
     title: "Queue-Depth Worker Autoscaler",
     track: "system_design",
     category: "AUTOSCALING",
     difficulty: "Medium",
-    tree_row: 13,
+    tree_row: 14,
     lesson_order: 16,
     is_free: false,
     description:
@@ -869,13 +869,66 @@ except Exception as e:
     ],
   },
   {
+    id: "exp-sys-20",
+    title: "Chunked Notification Batch Splitter",
+    track: "system_design",
+    category: "BATCH PROCESSING",
+    difficulty: "Easy",
+    tree_row: 16,
+    lesson_order: 17,
+    is_free: false,
+    description:
+      "Split a list of user IDs into fixed-size worker batches including any smaller trailing partial batch.",
+    content:
+      "Email and push-notification services (like AWS SES or APNs) limit bulk requests to `batch_size` recipients per API call.\n\nUse `range(0, len(user_ids), batch_size)` to slice consecutive chunks `[user_ids[i : i + batch_size] ...]` without dropping the trailing partial chunk! Guard against `batch_size <= 0` by returning `[]`.",
+    assignment:
+      "Complete `build_batches(user_ids, batch_size)` to return a list of sublist batches of at most `batch_size` items each (or `[]` if `batch_size <= 0`).",
+    constraints: [
+      "Include any trailing partial batch at the end",
+      "Return `[]` safely when `user_ids` is empty or `batch_size <= 0`",
+    ],
+    examples: [
+      {
+        input: "user_ids = [1, 2, 3, 4, 5], batch_size = 2",
+        output: "[[1, 2], [3, 4], [5]]",
+        explanation: "Two full batches of 2 plus one partial batch [5].",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def build_batches(user_ids, batch_size):
+    pass`,
+    expected_output: "[[1, 2], [3, 4], [5]]",
+    hidden_tests: `import json
+results = []
+try:
+    r1 = build_batches([1, 2, 3, 4, 5], 2)
+    results.append({"id": 1, "input": "[1,2,3,4,5], batch=2", "expected": "[[1, 2], [3, 4], [5]]", "actual": str(r1), "passed": r1 == [[1, 2], [3, 4], [5]]})
+    r2 = build_batches([10, 20], 5)
+    results.append({"id": 2, "input": "[10,20], batch=5", "expected": "[[10, 20]]", "actual": str(r2), "passed": r2 == [[10, 20]]})
+    r3 = build_batches([1, 2], 0)
+    results.append({"id": 3, "input": "batch_size=0 guard", "expected": "[]", "actual": str(r3), "passed": r3 == []})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "Batch #1", value: "[1, 2]", address: "0:2" },
+      { label: "Batch #2", value: "[3, 4]", address: "2:4" },
+      { label: "Batch #3", value: "[5] (trailing partial ✓)", address: "4:6" },
+    ],
+    hints: [
+      "First check `if batch_size <= 0: return []`.",
+      "Then `return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]`.",
+    ],
+  },
+  {
     id: "exp-sys-17",
     title: "Scoped API Key & Expiry Authorizer",
     track: "system_design",
     category: "AUTH & SECURITY",
     difficulty: "Medium",
-    tree_row: 14,
-    lesson_order: 17,
+    tree_row: 15,
+    lesson_order: 18,
     is_free: false,
     description:
       "Enforce API key existence, revocation status, TTL expiry, and RBAC permission scopes in one gateway check.",
@@ -929,8 +982,8 @@ except Exception as e:
     track: "system_design",
     category: "API PAGINATION",
     difficulty: "Medium",
-    tree_row: 14,
-    lesson_order: 18,
+    tree_row: 15,
+    lesson_order: 19,
     is_free: false,
     description:
       "Slice an items list by (page, page_size) and compute accurate has_next and total_pages metadata.",
@@ -982,8 +1035,8 @@ except Exception as e:
     track: "system_design",
     category: "REDIS PATTERNS",
     difficulty: "Medium",
-    tree_row: 15,
-    lesson_order: 19,
+    tree_row: 13,
+    lesson_order: 20,
     is_free: false,
     description:
       "Implement the Cache-Aside pattern: check Redis key user:{id}:profile first, populate from DB on miss, and avoid caching None.",
@@ -1032,65 +1085,12 @@ except Exception as e:
     ],
   },
   {
-    id: "exp-sys-20",
-    title: "Chunked Notification Batch Splitter",
-    track: "system_design",
-    category: "BATCH PROCESSING",
-    difficulty: "Easy",
-    tree_row: 16,
-    lesson_order: 20,
-    is_free: false,
-    description:
-      "Split a list of user IDs into fixed-size worker batches including any smaller trailing partial batch.",
-    content:
-      "Email and push-notification services (like AWS SES or APNs) limit bulk requests to `batch_size` recipients per API call.\n\nUse `range(0, len(user_ids), batch_size)` to slice consecutive chunks `[user_ids[i : i + batch_size] ...]` without dropping the trailing partial chunk! Guard against `batch_size <= 0` by returning `[]`.",
-    assignment:
-      "Complete `build_batches(user_ids, batch_size)` to return a list of sublist batches of at most `batch_size` items each (or `[]` if `batch_size <= 0`).",
-    constraints: [
-      "Include any trailing partial batch at the end",
-      "Return `[]` safely when `user_ids` is empty or `batch_size <= 0`",
-    ],
-    examples: [
-      {
-        input: "user_ids = [1, 2, 3, 4, 5], batch_size = 2",
-        output: "[[1, 2], [3, 4], [5]]",
-        explanation: "Two full batches of 2 plus one partial batch [5].",
-      },
-    ],
-    complexities: { time: "O(n)", space: "O(n)" },
-    initial_code: `def build_batches(user_ids, batch_size):
-    pass`,
-    expected_output: "[[1, 2], [3, 4], [5]]",
-    hidden_tests: `import json
-results = []
-try:
-    r1 = build_batches([1, 2, 3, 4, 5], 2)
-    results.append({"id": 1, "input": "[1,2,3,4,5], batch=2", "expected": "[[1, 2], [3, 4], [5]]", "actual": str(r1), "passed": r1 == [[1, 2], [3, 4], [5]]})
-    r2 = build_batches([10, 20], 5)
-    results.append({"id": 2, "input": "[10,20], batch=5", "expected": "[[10, 20]]", "actual": str(r2), "passed": r2 == [[10, 20]]})
-    r3 = build_batches([1, 2], 0)
-    results.append({"id": 3, "input": "batch_size=0 guard", "expected": "[]", "actual": str(r3), "passed": r3 == []})
-    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
-except Exception as e:
-    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
-    visual_type: "array",
-    visual_data: [
-      { label: "Batch #1", value: "[1, 2]", address: "0:2" },
-      { label: "Batch #2", value: "[3, 4]", address: "2:4" },
-      { label: "Batch #3", value: "[5] (trailing partial ✓)", address: "4:6" },
-    ],
-    hints: [
-      "First check `if batch_size <= 0: return []`.",
-      "Then `return [user_ids[i : i + batch_size] for i in range(0, len(user_ids), batch_size)]`.",
-    ],
-  },
-  {
     id: "exp-sys-21",
     title: "Architecture Capstone: Sliding Window Log Limiter",
     track: "system_design",
     category: "API GATEWAY",
     difficulty: "Medium",
-    tree_row: 17,
+    tree_row: 18,
     lesson_order: 21,
     is_free: false,
     description:
@@ -1144,7 +1144,7 @@ except Exception as e:
     track: "system_design",
     category: "TRAFFIC SHAPING",
     difficulty: "Medium",
-    tree_row: 17,
+    tree_row: 18,
     lesson_order: 22,
     is_free: false,
     description:
@@ -1197,7 +1197,7 @@ except Exception as e:
     track: "system_design",
     category: "DISTRIBUTED ROUTING",
     difficulty: "Medium",
-    tree_row: 18,
+    tree_row: 19,
     lesson_order: 23,
     is_free: false,
     description:
@@ -1256,7 +1256,7 @@ except Exception as e:
     track: "system_design",
     category: "CACHING ARCHITECTURE",
     difficulty: "Hard",
-    tree_row: 18,
+    tree_row: 19,
     lesson_order: 24,
     is_free: false,
     description:

@@ -156,7 +156,7 @@ const TWO_SUM_SANITIZED_PATCH = {
   description:
     "Find the indices of two numbers in an array that add up to a specific target in O(n) time.",
   content:
-    "Given an array of integers `nums` and an integer `target`, find the two indices whose values add up to `target`.\n\nA brute-force double loop checks every pair in **O(n²)** time. Instead, walk through `nums` once with a dictionary `seen = {}` that maps each visited value to its index:\n\n```python\nseen = {}\nfor i, num in enumerate(nums):\n    needed = target - num\n    if needed in seen:\n        return [seen[needed], i]\n    seen[num] = i\n```\n\nChecking `if needed in seen:` takes **O(1)** instant hash-table lookup time!",
+    "Given an array of integers `nums` and an integer `target`, find the two indices whose values add up to `target`.\n\nA brute-force double loop checks every pair in **O(n²)** time. Instead, walk through the list once with a dictionary `seen = {}` that remembers each visited value's index:\n\n```python\n# Sibling pattern: find two item prices adding up to a gift card\nseen_index = {}\nfor idx, price in enumerate(prices):\n    complement = gift_card - price\n    if complement in seen_index:\n        print([seen_index[complement], idx])\n    seen_index[price] = idx\n```\n\nChecking `if complement in seen_index:` takes **O(1)** instant hash-table lookup time!",
   assignment:
     "Implement `twoSum(self, nums, target)` inside the `Solution` class to return `[index1, index2]` of the two numbers that add up to `target`.",
   expected_output: "[0, 1]",
@@ -398,14 +398,22 @@ export function mergeCurriculumLessons<
   }
 
   for (const exp of EXPANSION_LESSONS) {
-    const existingIdx = merged.findIndex(
+    let existingIdx = merged.findIndex(
       (item) =>
         item.id === exp.id ||
         item.slug === exp.id ||
         (item.track === exp.track &&
-          (item.lesson_order === exp.lesson_order ||
-            item.title.toLowerCase() === exp.title.toLowerCase())),
+          item.title.toLowerCase() === exp.title.toLowerCase()),
     );
+    if (existingIdx === -1) {
+      existingIdx = merged.findIndex(
+        (item) =>
+          item.track === exp.track &&
+          item.lesson_order === exp.lesson_order &&
+          !item.id.startsWith("exp-") &&
+          !item.slug?.startsWith("exp-"),
+      );
+    }
     if (existingIdx === -1) {
       merged.push({
         ...exp,
