@@ -68,7 +68,10 @@ function inferArchetype(lesson: {
     hay.includes("gateway") ||
     hay.includes("token bucket") ||
     hay.includes("sliding window") ||
-    hay.includes("rate limit")
+    hay.includes("rate limit") ||
+    hay.includes("webhook") ||
+    hay.includes("hmac") ||
+    order === 25
   ) {
     return "rate_limiter";
   }
@@ -77,10 +80,12 @@ function inferArchetype(lesson: {
     hay.includes("lru") ||
     hay.includes("ttl") ||
     hay.includes("pagination") ||
+    hay.includes("idempotency") ||
     order === 2 ||
     order === 18 ||
     order === 19 ||
-    order === 24
+    order === 24 ||
+    order === 26
   ) {
     return "cache_layer";
   }
@@ -90,10 +95,13 @@ function inferArchetype(lesson: {
     hay.includes("ring") ||
     hay.includes("cdn") ||
     hay.includes("round-robin") ||
+    hay.includes("base62") ||
+    hay.includes("shortener") ||
     order === 4 ||
     order === 5 ||
     order === 12 ||
-    order === 23
+    order === 23 ||
+    order === 27
   ) {
     return "sharding_ring";
   }
@@ -104,10 +112,13 @@ function inferArchetype(lesson: {
     hay.includes("alarm") ||
     hay.includes("incident") ||
     hay.includes("jitter") ||
+    hay.includes("saga") ||
+    hay.includes("rollback") ||
     order === 6 ||
     order === 9 ||
     order === 11 ||
-    order === 14
+    order === 14 ||
+    order === 28
   ) {
     return "resilience_circuit";
   }

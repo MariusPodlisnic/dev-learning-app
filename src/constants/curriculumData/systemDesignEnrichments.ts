@@ -1369,4 +1369,217 @@ print(read_ttl_cache(store, "u1", 80), read_ttl_cache(store, "u1", 100))`,
         "Passive/lazy eviction on read guarantees stale values are never returned while reclaiming memory opportunistically.",
     },
   },
+  {
+    matchTrack: "system_design",
+    matchOrder: 25,
+    matchKeywords: ["webhook", "hmac", "replay guard", "verify_webhook_hmac"],
+    realWorldUse:
+      "Used by Polar, Stripe, GitHub, and Slack so your backend knows for certain an event came from them and wasn't forged or replayed.",
+    analogyTitle: "Webhooks Need Both a Wax Seal AND a Fresh Postmark",
+    analogyText:
+      "An HMAC-SHA256 digest is a cryptographic wax seal forged with your shared secret. Adding `abs(now_ts - timestamp) <= 300` checks the postmark so an attacker can't re-send last week's valid receipt!",
+    cheatSheet: `import hashlib, hmac
+
+msg = f"{ts}.{raw_body}".encode()
+digest = hmac.new(secret_key.encode(), msg, hashlib.sha256).hexdigest()
+ok = hmac.compare_digest(digest, incoming_hex)`,
+    commonPitfall: {
+      title: "Comparing HMAC strings with == instead of hmac.compare_digest",
+      wrongCode: "return expected_hex == signature_hex  # Leaks timing info!",
+      rightCode: "return hmac.compare_digest(expected_hex, signature_hex)",
+      explanation:
+        "Regular `==` stops on the first mismatched character, letting attackers guess bytes via microsecond response-time differences.",
+    },
+    solutionCode: `import hashlib
+import hmac
+
+def verify_webhook_hmac(payload, timestamp, signature_hex, secret, now_ts, tolerance_sec=300):
+    if not secret or not signature_hex:
+        return False
+    if abs(now_ts - timestamp) > tolerance_sec:
+        return False
+    signed = f"{timestamp}.{payload}".encode()
+    expected = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature_hex)
+
+_sig = hmac.new(b"sec", b"990.{}", hashlib.sha256).hexdigest()
+print(verify_webhook_hmac("{}", 990, _sig, "sec", 1000))`,
+    proInsights: {
+      timeComplexity: "O(n) payload bytes",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Checking timestamp drift before hashing drops stale replay traffic in O(1) without spending CPU on SHA-256.",
+    },
+    quiz: {
+      question:
+        "Why should webhook verifiers always use `hmac.compare_digest(a, b)` instead of `a == b`?",
+      options: [
+        "It compares every byte in constant time so attackers cannot exploit timing side-channels",
+        "It automatically decrypts the JSON payload",
+        "Python forbids `==` on hexadecimal strings",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`hmac.compare_digest` takes the same time regardless of where a mismatch occurs, preventing byte-by-byte timing attacks.",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 26,
+    matchKeywords: ["idempotency", "payment ledger", "process_idempotent_charge"],
+    realWorldUse:
+      "Powers Stripe, Polar, and Adyen checkout APIs so flaky mobile retries never double-charge a customer's card.",
+    analogyTitle: "An Idempotency Key Is a Stamped Ticket Number",
+    analogyText:
+      "If a customer hands the cashier Ticket #42 twice for the same $39 item, the cashier hands back the first receipt (`REPLAYED`) instead of swiping their card again — unless someone tries to sneak a $99 item onto Ticket #42 (`CONFLICT`)!",
+    cheatSheet: `if req_key in ledger:
+    saved = ledger[req_key]
+    if saved["cents"] != cents:
+        return ("CONFLICT", None)
+    return ("REPLAYED", saved["id"])`,
+    commonPitfall: {
+      title: "Returning REPLAYED without verifying the request parameters match",
+      wrongCode: 'if idem_key in store:\n    return ("REPLAYED", store[idem_key]["charge_id"])',
+      rightCode:
+        'if store[idem_key]["amount"] != amount_cents:\n    return ("CONFLICT", None)',
+      explanation:
+        "If a client bug accidentally reuses an idempotency key for a different amount, silently returning the old receipt hides a serious billing bug!",
+    },
+    solutionCode: `def process_idempotent_charge(store, idem_key, amount_cents):
+    if idem_key in store:
+        existing = store[idem_key]
+        if existing["amount"] != amount_cents:
+            return ("CONFLICT", None)
+        return ("REPLAYED", existing["charge_id"])
+    charge_id = f"ch_{len(store) + 1}"
+    store[idem_key] = {"amount": amount_cents, "charge_id": charge_id}
+    return ("CREATED", charge_id)
+
+_db = {}
+print(process_idempotent_charge(_db, "k1", 3900), process_idempotent_charge(_db, "k1", 3900))`,
+    proInsights: {
+      timeComplexity: "O(1) hash lookup",
+      spaceComplexity: "O(k) active keys",
+      tradeoff:
+        "Production ledgers store idempotency keys in Redis/Postgres with a 24-hour TTL so memory stays bounded while covering all retry windows.",
+    },
+    quiz: {
+      question:
+        "What should an idempotent payment endpoint do when a client reuses an existing `Idempotency-Key` with a DIFFERENT `amount_cents`?",
+      options: [
+        "Reject with a CONFLICT error without mutating the original charge",
+        "Overwrite the original charge silently",
+        "Charge the difference between the two amounts",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Stripe's idempotency spec returns HTTP 409 Conflict whenever a key is reused with altered parameters.",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 27,
+    matchKeywords: ["base62", "url shortener", "encode_base62"],
+    realWorldUse:
+      "Used by Bitly, YouTube video IDs, and Snowflake/nanoid slugs to pack 64-bit numbers into short, URL-safe strings.",
+    analogyTitle: "Base62 Counts With 62 Digits Instead of 10",
+    analogyText:
+      "Decimal only uses `0–9` (10 symbols), so numbers grow wide fast. Base62 uses `0–9`, `a–z`, and `A–Z` (62 symbols) — packing **3.5 trillion** unique links into just 7 URL-safe characters!",
+    cheatSheet: `ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+# Peel remainders with divmod(n, 62), then reverse at the end!`,
+    commonPitfall: {
+      title: "Forgetting the num == 0 base case or forgetting to reverse digits",
+      wrongCode: "while num > 0: ...  # Returns '' instead of '0' when num == 0!",
+      rightCode: 'if num == 0:\n    return "0"',
+      explanation:
+        "When `num == 0`, `while num > 0:` never executes — handle `0` upfront, and reverse remainder digits so the highest place value leads.",
+    },
+    solutionCode: `def encode_base62(num):
+    alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    if num == 0:
+        return "0"
+    chars = []
+    while num > 0:
+        num, rem = divmod(num, 62)
+        chars.append(alphabet[rem])
+    return "".join(reversed(chars))
+
+print(encode_base62(125), encode_base62(61))`,
+    proInsights: {
+      timeComplexity: "O(log_62(n)) — at most 11 steps for 64-bit ints",
+      spaceComplexity: "O(log_62(n))",
+      tradeoff:
+        "Deterministic Base62 over an auto-increment/Snowflake ID guarantees zero hash collisions without needing DB retry loops.",
+    },
+    quiz: {
+      question:
+        "Roughly how many unique URLs can a 7-character Base62 slug represent (`62^7`)?",
+      options: [
+        "Over 3.5 trillion unique URLs",
+        "About 434 unique URLs (`62 * 7`)",
+        "Exactly 10 million unique URLs",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`62 ** 7 = 3,521,614,606,208` (~3.52 trillion), enough for years of global traffic in 7 characters!",
+    },
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 28,
+    matchKeywords: ["saga", "rollback", "distributed transactions", "run_checkout_saga"],
+    realWorldUse:
+      "Used by Uber, Airbnb, and Stripe Connect to keep independent microservices consistent without slow cross-service locks.",
+    analogyTitle: "Rewinding Footsteps in Reverse Order",
+    analogyText:
+      "If you book a Flight (`✓`), reserve a Hotel (`✓`), and then the Rental Car fails (`✕`), you undo them in reverse (`Hotel` first, then `Flight`) — never undoing the car that never succeeded!",
+    cheatSheet: `done = []
+for svc, ok in stages:
+    if not ok:
+        # Reverse LIFO undo: done[::-1]
+        return ("ABORT", svc, done[::-1])
+    done.append(svc)`,
+    commonPitfall: {
+      title: "Including the failed step itself in rolled_back or undoing forward instead of reverse",
+      wrongCode: "rolled_back = completed + [service_name]  # Failed step never committed!",
+      rightCode: "rolled_back = completed[::-1]  # Undo only committed steps, LIFO!",
+      explanation:
+        "Only previously committed steps need compensating rollbacks, and later steps often depend on earlier ones so unwind LIFO.",
+    },
+    solutionCode: `def run_checkout_saga(steps):
+    completed = []
+    for service_name, succeeded in steps:
+        if not succeeded:
+            return {
+                "ok": False,
+                "failed_at": service_name,
+                "rolled_back": completed[::-1],
+            }
+        completed.append(service_name)
+    return {
+        "ok": True,
+        "completed": completed,
+        "rolled_back": [],
+    }
+
+print(run_checkout_saga([("inventory", True), ("payment", True), ("shipping", False)]))`,
+    proInsights: {
+      timeComplexity: "O(n) stages",
+      spaceComplexity: "O(n) history",
+      tradeoff:
+        "Sagas trade strict ACID isolation (eventual consistency during rollback) for dramatically higher availability across decoupled services.",
+    },
+    quiz: {
+      question:
+        "In a 3-step Saga (`Inventory -> Payment -> Shipping`), if `Shipping` fails, which compensating actions run and in what order?",
+      options: [
+        "`['payment', 'inventory']` (reverse LIFO order of committed steps)",
+        "`['inventory', 'payment', 'shipping']` (all 3 steps forward)",
+        "None — previous services roll back automatically via SQL",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Only committed steps (`inventory`, `payment`) are compensated, in reverse LIFO order (`payment` then `inventory`).",
+    },
+  },
 ];

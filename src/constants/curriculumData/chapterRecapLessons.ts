@@ -1193,4 +1193,74 @@ __run_tests__()`,
       "On TTL miss/expiry, sort `ring_sorted = sorted(ring_nodes)`, pick first `name` where `pos >= key_hash` else `ring_sorted[0][1]`, and return `(True, f'MISS:{node}', active + [now_ts])`.",
     ],
   },
+  {
+    id: "sys-recap-ch7",
+    title: "Chapter VII Systems Recap: Secure Payment Webhook Gateway",
+    track: "system_design",
+    category: "🏆 CHAPTER VII RECAP",
+    difficulty: "Hard",
+    tree_row: 1007,
+    lesson_order: 107,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 7,
+    recap_topics: [
+      "HMAC-SHA256 Auth",
+      "Replay Window",
+      "Idempotency Ledger",
+      "Base62 Receipt ID",
+    ],
+    description:
+      "Conclusive Chapter VII capstone: build a Stripe/Polar-grade payment webhook gateway enforcing replay windows, constant-time HMAC-SHA256 verification, and idempotent ledger recording.",
+    content:
+      'Welcome to the **Chapter VII Backend & Security Capstone**!\n\nProduction payment gateways combine **Replay Protection**, **Constant-Time HMAC-SHA256**, and **Idempotent Deduplication** in one atomic pipeline:\n1. Reject stale or future timestamps when `abs(now_ts - timestamp) > 300` -> `("REJECTED", "STALE")`.\n2. Compute `hmac.new(secret.encode(), f"{timestamp}.{payload}".encode(), hashlib.sha256).hexdigest()` and verify with `hmac.compare_digest(...)`; if invalid -> `("REJECTED", "BAD_SIG")`.\n3. If `idem_key in ledger`: return `("DUPLICATE", ledger[idem_key])` without double-recording; otherwise store `receipt = f"rcpt_{len(ledger) + 1}"` in `ledger[idem_key]` and return `("PROCESSED", receipt)`!\n\n```python\n# Sibling pattern: signed audit-event receiver\nimport hashlib, hmac\n\ndef check_signed_ping(body, ts, sig, key, now_sec):\n    if abs(now_sec - ts) > 60:\n        return False\n    digest = hmac.new(key.encode(), f"{ts}.{body}".encode(), hashlib.sha256).hexdigest()\n    return hmac.compare_digest(digest, sig)\n```',
+    assignment:
+      'Complete `handle_payment_webhook(payload, timestamp, sig_hex, secret, idem_key, ledger, now_ts)` enforcing a `300`s replay window, `hmac.compare_digest` over `f"{timestamp}.{payload}"`, and idempotent receipt storage in `ledger`.',
+    constraints: [
+      'Return `("REJECTED", "STALE")` if `abs(now_ts - timestamp) > 300`',
+      'Verify HMAC-SHA256 hex digest of `f"{timestamp}.{payload}"` with `hmac.compare_digest`; return `("REJECTED", "BAD_SIG")` on mismatch',
+      'Return `("DUPLICATE", ledger[idem_key])` if `idem_key` already exists, else store `f"rcpt_{len(ledger) + 1}"` and return `("PROCESSED", receipt)`',
+    ],
+    examples: [
+      {
+        input: 'valid HMAC at now_ts=1000, timestamp=995, idem_key="evt_1"',
+        output: "('PROCESSED', 'rcpt_1') -> retry returns ('DUPLICATE', 'rcpt_1')",
+        explanation:
+          "First delivery passes replay + HMAC checks and creates 'rcpt_1'; retrying the same idem_key returns the cached receipt without double-charging.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def handle_payment_webhook(payload, timestamp, sig_hex, secret, idem_key, ledger, now_ts):
+    pass`,
+    expected_output: "('PROCESSED', 'rcpt_1')",
+    hidden_tests: `import hashlib, hmac, json
+def __run_tests__():
+    results = []
+    secret = "devy_live_sec"
+    body = '{"plan":"lifetime"}'
+    good_sig = hmac.new(secret.encode(), f"995.{body}".encode(), hashlib.sha256).hexdigest()
+    ledger = {}
+    r1 = handle_payment_webhook(body, 995, good_sig, secret, "evt_1", ledger, 1000)
+    results.append({"id": 1, "input": "fresh valid webhook", "expected": "('PROCESSED', 'rcpt_1')", "actual": str(r1), "passed": r1 == ("PROCESSED", "rcpt_1") and ledger.get("evt_1") == "rcpt_1"})
+    r2 = handle_payment_webhook(body, 995, good_sig, secret, "evt_1", ledger, 1002)
+    results.append({"id": 2, "input": "duplicate idem_key retry", "expected": "('DUPLICATE', 'rcpt_1')", "actual": str(r2), "passed": r2 == ("DUPLICATE", "rcpt_1") and len(ledger) == 1})
+    r3 = handle_payment_webhook(body, 995, "deadbeef", secret, "evt_2", ledger, 1000)
+    results.append({"id": 3, "input": "tampered signature", "expected": "('REJECTED', 'BAD_SIG')", "actual": str(r3), "passed": r3 == ("REJECTED", "BAD_SIG")})
+    stale_sig = hmac.new(secret.encode(), f"400.{body}".encode(), hashlib.sha256).hexdigest()
+    r4 = handle_payment_webhook(body, 400, stale_sig, secret, "evt_3", ledger, 1000)
+    results.append({"id": 4, "input": "replayed stale timestamp", "expected": "('REJECTED', 'STALE')", "actual": str(r4), "passed": r4 == ("REJECTED", "STALE")})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "|1000 - 995| <= 300", value: "5s drift -> FRESH ✓", type: "guard", address: "step 1" },
+      { label: "HMAC-SHA256", value: "compare_digest -> VALID ✓", type: "crypto", address: "step 2" },
+      { label: "ledger['evt_1']", value: "'rcpt_1' (idempotent)", type: "dict", address: "step 3" },
+    ],
+    hints: [
+      "Import `hashlib` and `hmac` inside your function (or at the top of the file).",
+      'Check `if abs(now_ts - timestamp) > 300: return ("REJECTED", "STALE")` first.',
+      'Compute `expected = hmac.new(secret.encode(), f"{timestamp}.{payload}".encode(), hashlib.sha256).hexdigest()` and check `if not hmac.compare_digest(expected, sig_hex): return ("REJECTED", "BAD_SIG")`.',
+    ],
+  },
 ];

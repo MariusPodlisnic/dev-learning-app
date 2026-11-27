@@ -1329,4 +1329,284 @@ __run_tests__()`,
       ],
     },
   ],
+  25: [
+    {
+      id: "sys-25-d2",
+      title: "Practice 2/3: Zero-Downtime Secret Rotation Verifier",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Complete `verify_rotated_webhook(payload, sig_hex, active_secret, previous_secret)`: return `True` if `sig_hex` matches the HMAC-SHA256 hex digest of `payload` under EITHER `active_secret` or (when non-empty) `previous_secret` using `hmac.compare_digest`.",
+      constraints: [
+        "Support zero-downtime secret rotation by checking `active_secret` and optional `previous_secret`",
+        "Use `hmac.compare_digest` for constant-time comparison",
+      ],
+      examples: [
+        {
+          input: 'payload = "evt", sig signed with previous_secret = "old_key"',
+          output: "True",
+          explanation: "During secret rotation, webhooks signed with the retiring key still verify cleanly.",
+        },
+      ],
+      initial_code: `def verify_rotated_webhook(payload, sig_hex, active_secret, previous_secret=""):
+    pass`,
+      expected_output: "True",
+      hidden_tests: `import hashlib, hmac, json
+def __run_tests__():
+    results = []
+    sig_new = hmac.new(b"new_k", b"evt", hashlib.sha256).hexdigest()
+    sig_old = hmac.new(b"old_k", b"evt", hashlib.sha256).hexdigest()
+    p1 = verify_rotated_webhook("evt", sig_new, "new_k", "old_k") is True
+    p2 = verify_rotated_webhook("evt", sig_old, "new_k", "old_k") is True
+    p3 = verify_rotated_webhook("evt", sig_old, "new_k", "") is False
+    results.append({"id": 1, "input": "active + rotated + revoked checks", "expected": "True, True, False", "actual": f"{p1}, {p2}, {p3}", "passed": p1 and p2 and p3})
+    return json.dumps({"is_test_suite": True, "all_passed": p1 and p2 and p3, "results": results})
+__run_tests__()`,
+      hints: [
+        "Check each non-empty secret in `[active_secret, previous_secret]` with `hmac.compare_digest`.",
+      ],
+    },
+    {
+      id: "sys-25-d3",
+      title: "Practice 3/3: Webhook Delivery Deduplicator",
+      difficultyLabel: "BOSS GAUNTLET",
+      assignment:
+        "Complete `deduplicate_webhook_batch(events, seen_ids)` where `events` is a list of `(event_id, payload)` tuples and `seen_ids` is a `set`. Mutate `seen_ids` to record newly processed `event_id`s and return a list of `payload`s for only the first occurrence of each `event_id`.",
+      constraints: [
+        "Skip any `event_id` already present in `seen_ids`",
+        "Add new `event_id`s to `seen_ids` as you iterate so duplicates within the same batch are also filtered",
+      ],
+      examples: [
+        {
+          input: 'events = [("e1", "A"), ("e1", "A"), ("e2", "B")], seen_ids = set()',
+          output: "['A', 'B']",
+          explanation: "Second 'e1' delivery is dropped as a duplicate.",
+        },
+      ],
+      initial_code: `def deduplicate_webhook_batch(events, seen_ids):
+    pass`,
+      expected_output: "['A', 'B']",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    seen = {"e0"}
+    out = deduplicate_webhook_batch([("e0", "OLD"), ("e1", "A"), ("e1", "A"), ("e2", "B")], seen)
+    p = (out == ["A", "B"] and seen == {"e0", "e1", "e2"})
+    results.append({"id": 1, "input": "batch with prior + inline duplicates", "expected": "['A', 'B']", "actual": str(out), "passed": p})
+    return json.dumps({"is_test_suite": True, "all_passed": p, "results": results})
+__run_tests__()`,
+      hints: [
+        "Loop `for event_id, payload in events:`: if `event_id not in seen_ids`, add to `seen_ids` and append `payload`.",
+      ],
+    },
+  ],
+  26: [
+    {
+      id: "sys-26-d2",
+      title: "Practice 2/3: In-Flight Idempotency Lock Guard",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Complete `acquire_idempotency_lock(locks, idem_key, now_ts, ttl_sec)`: if `idem_key` is in `locks` and `now_ts < locks[idem_key]`, return `False` (concurrent request still in-flight!); otherwise set `locks[idem_key] = now_ts + ttl_sec` and return `True`.",
+      constraints: [
+        "Allow re-acquiring expired locks when `now_ts >= locks[idem_key]`",
+      ],
+      examples: [
+        {
+          input: 'locks = {}, idem_key = "k1", now_ts = 10, ttl_sec = 30',
+          output: "True (then False at now_ts = 25)",
+          explanation: "Blocks concurrent duplicate requests until t=40.",
+        },
+      ],
+      initial_code: `def acquire_idempotency_lock(locks, idem_key, now_ts, ttl_sec):
+    pass`,
+      expected_output: "True False True",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    lk = {}
+    a1 = acquire_idempotency_lock(lk, "k1", 10, 30)
+    a2 = acquire_idempotency_lock(lk, "k1", 25, 30)
+    a3 = acquire_idempotency_lock(lk, "k1", 40, 30)
+    p = (a1 is True and a2 is False and a3 is True and lk["k1"] == 70)
+    results.append({"id": 1, "input": "acquire -> contention -> expired re-acquire", "expected": "True, False, True", "actual": f"{a1}, {a2}, {a3}", "passed": p})
+    return json.dumps({"is_test_suite": True, "all_passed": p, "results": results})
+__run_tests__()`,
+      hints: [
+        "Check `if idem_key in locks and now_ts < locks[idem_key]: return False`.",
+      ],
+    },
+    {
+      id: "sys-26-d3",
+      title: "Practice 3/3: Idempotent Wallet Debit",
+      difficultyLabel: "BOSS GAUNTLET",
+      assignment:
+        "Complete `debit_once(balances, seen_keys, user_id, amount, idem_key)`: if `idem_key in seen_keys`, return `seen_keys[idem_key]`; if `balances.get(user_id, 0) < amount`, cache and return `('INSUFFICIENT', balances.get(user_id, 0))`; otherwise subtract `amount`, cache `('DEBITED', new_bal)` in `seen_keys[idem_key]`, and return it.",
+      constraints: [
+        "Never deduct twice for the same `idem_key`",
+        "Cache the outcome tuple inside `seen_keys[idem_key]`",
+      ],
+      examples: [
+        {
+          input: 'balances = {"u1": 100}, amount = 40, idem_key = "tx1" (called twice)',
+          output: "('DEBITED', 60) both times",
+          explanation: "Balance stays 60 even when retried.",
+        },
+      ],
+      initial_code: `def debit_once(balances, seen_keys, user_id, amount, idem_key):
+    pass`,
+      expected_output: "('DEBITED', 60)",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    bal = {"u1": 100}
+    seen = {}
+    r1 = debit_once(bal, seen, "u1", 40, "tx1")
+    r2 = debit_once(bal, seen, "u1", 40, "tx1")
+    r3 = debit_once(bal, seen, "u1", 80, "tx2")
+    p = (r1 == ("DEBITED", 60) and r2 == ("DEBITED", 60) and bal["u1"] == 60 and r3 == ("INSUFFICIENT", 60))
+    results.append({"id": 1, "input": "debit + retry + overdraft", "expected": "('DEBITED', 60) & ('INSUFFICIENT', 60)", "actual": f"{r1}, {r2}, {r3}", "passed": p})
+    return json.dumps({"is_test_suite": True, "all_passed": p, "results": results})
+__run_tests__()`,
+      hints: [
+        "Check `if idem_key in seen_keys: return seen_keys[idem_key]` at the very top.",
+      ],
+    },
+  ],
+  27: [
+    {
+      id: "sys-27-d2",
+      title: "Practice 2/3: Base62 Slug Decoder",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        'Complete `decode_base62(slug)` to convert a Base62 string back into its original integer ID using `"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"` (return `-1` if `slug` is empty or contains an invalid character).',
+      constraints: [
+        "Accumulate `val = val * 62 + index` from left to right",
+        "Return `-1` on empty string or unknown characters",
+      ],
+      examples: [
+        {
+          input: 'slug = "21"',
+          output: "125",
+          explanation: "2 * 62 + 1 = 125.",
+        },
+      ],
+      initial_code: `def decode_base62(slug):
+    pass`,
+      expected_output: "125",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    p1 = decode_base62("21") == 125
+    p2 = decode_base62("Z") == 61
+    p3 = decode_base62("bad-slug!") == -1 and decode_base62("") == -1
+    ok = p1 and p2 and p3
+    results.append({"id": 1, "input": "'21', 'Z', invalid", "expected": "125, 61, -1", "actual": f"{decode_base62('21')}, {decode_base62('Z')}, {decode_base62('bad!')}", "passed": ok})
+    return json.dumps({"is_test_suite": True, "all_passed": ok, "results": results})
+__run_tests__()`,
+      hints: [
+        "Build a lookup dict `{ch: idx for idx, ch in enumerate(ALPHABET)}` for O(1) character decoding.",
+      ],
+    },
+    {
+      id: "sys-27-d3",
+      title: "Practice 3/3: Short-Link Redirect & Click Analytics",
+      difficultyLabel: "BOSS GAUNTLET",
+      assignment:
+        "Complete `resolve_short_link(routes, clicks, slug)`: if `slug not in routes`, return `(404, None)`; otherwise increment `clicks[slug] = clicks.get(slug, 0) + 1` and return `(302, routes[slug])`.",
+      constraints: [
+        "Do NOT increment `clicks` on `404` misses",
+        "Return HTTP `302` redirect tuple `(302, target_url)` on hits",
+      ],
+      examples: [
+        {
+          input: 'routes = {"g7": "https://devy.app"}, clicks = {}, slug = "g7"',
+          output: "(302, 'https://devy.app')",
+          explanation: "Redirects with 302 and increments clicks['g7'] to 1.",
+        },
+      ],
+      initial_code: `def resolve_short_link(routes, clicks, slug):
+    pass`,
+      expected_output: "(302, 'https://devy.app')",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    rt = {"g7": "https://devy.app"}
+    cl = {}
+    r1 = resolve_short_link(rt, cl, "g7")
+    r2 = resolve_short_link(rt, cl, "missing")
+    p = (r1 == (302, "https://devy.app") and cl == {"g7": 1} and r2 == (404, None))
+    results.append({"id": 1, "input": "hit + 404 miss", "expected": "(302, url) & (404, None)", "actual": f"{r1}, {r2}, clicks={cl}", "passed": p})
+    return json.dumps({"is_test_suite": True, "all_passed": p, "results": results})
+__run_tests__()`,
+      hints: [
+        "Check `if slug not in routes: return (404, None)` first.",
+      ],
+    },
+  ],
+  28: [
+    {
+      id: "sys-28-d2",
+      title: "Practice 2/3: Transactional Outbox Relay",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Complete `flush_transactional_outbox(outbox, max_batch)` where `outbox` is a list of dicts `{\"id\": str, \"sent\": bool}`: mark up to `max_batch` unsent rows (`not row[\"sent\"]`) as `row[\"sent\"] = True` in order and return the list of newly sent `\"id\"`s.",
+      constraints: [
+        "Respect `max_batch` limit and skip rows already marked `sent: True`",
+      ],
+      examples: [
+        {
+          input: 'outbox = [{"id": "e1", "sent": True}, {"id": "e2", "sent": False}, {"id": "e3", "sent": False}], max_batch = 1',
+          output: "['e2']",
+          explanation: "Skips already-sent e1, dispatches e2, and stops at max_batch=1.",
+        },
+      ],
+      initial_code: `def flush_transactional_outbox(outbox, max_batch):
+    pass`,
+      expected_output: "['e2']",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    box = [{"id": "e1", "sent": True}, {"id": "e2", "sent": False}, {"id": "e3", "sent": False}]
+    flushed = flush_transactional_outbox(box, 1)
+    p = (flushed == ["e2"] and box[1]["sent"] is True and box[2]["sent"] is False)
+    results.append({"id": 1, "input": "max_batch=1", "expected": "['e2']", "actual": str(flushed), "passed": p})
+    return json.dumps({"is_test_suite": True, "all_passed": p, "results": results})
+__run_tests__()`,
+      hints: [
+        "Stop looping as soon as `len(dispatched) >= max_batch`.",
+      ],
+    },
+    {
+      id: "sys-28-d3",
+      title: "Practice 3/3: Two-Phase Commit (2PC) Coordinator",
+      difficultyLabel: "BOSS GAUNTLET",
+      assignment:
+        'Complete `decide_two_phase_commit(votes, expected_nodes)` where `votes` is a dict `{node_name: "YES" | "NO"}` and `expected_nodes` is a list of required participant names. Return `"COMMIT"` ONLY if `expected_nodes` is non-empty and EVERY expected node voted `"YES"`; otherwise return `"ABORT"`.',
+      constraints: [
+        'Missing votes (timeout) or any `"NO"` vote must immediately trigger `"ABORT"`',
+      ],
+      examples: [
+        {
+          input: 'votes = {"db1": "YES", "db2": "YES"}, expected_nodes = ["db1", "db2"]',
+          output: "COMMIT",
+          explanation: "Unanimous YES from all expected participants.",
+        },
+      ],
+      initial_code: `def decide_two_phase_commit(votes, expected_nodes):
+    pass`,
+      expected_output: "COMMIT ABORT",
+      hidden_tests: `import json
+def __run_tests__():
+    results = []
+    c1 = decide_two_phase_commit({"n1": "YES", "n2": "YES"}, ["n1", "n2"]) == "COMMIT"
+    c2 = decide_two_phase_commit({"n1": "YES"}, ["n1", "n2"]) == "ABORT"
+    c3 = decide_two_phase_commit({}, []) == "ABORT"
+    ok = c1 and c2 and c3
+    results.append({"id": 1, "input": "unanimous vs timeout vs empty", "expected": "COMMIT, ABORT, ABORT", "actual": f"{c1}, {c2}, {c3}", "passed": ok})
+    return json.dumps({"is_test_suite": True, "all_passed": ok, "results": results})
+__run_tests__()`,
+      hints: [
+        'Check `if not expected_nodes: return "ABORT"`, then verify `all(votes.get(n) == "YES" for n in expected_nodes)`.',
+      ],
+    },
+  ],
 };

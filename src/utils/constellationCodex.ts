@@ -605,6 +605,37 @@ def is_feature_enabled(user_id, flag_name, rollout_pct):
       "Clamp elapsed = max(0.0, now - last_ts) so minor NTP clock skew never subtracts tokens.",
     keywords: ["token bucket", "rate limit", "burst", "sliding window", "hash ring"],
   },
+  {
+    id: "sys-ch7-webhooks-idempotency",
+    track: "system_design",
+    chapterId: 7,
+    chapterRoman: "VII",
+    constellationName: "SIGILLUM",
+    title: "HMAC Webhooks, Idempotency & Sagas",
+    badge: "CH. VII · FINTECH & SECURITY",
+    complexityLabel: "O(n) Crypto & Guard",
+    accent: StudioColors.coral,
+    summary:
+      "Verify inbound webhooks with constant-time HMAC-SHA256 + timestamp drift bounds, deduplicate retries via Idempotency-Key ledgers, and unwind partial multi-service failures in reverse LIFO saga order.",
+    codeSnippet: `import hashlib, hmac
+
+def verify_and_dedupe(raw_body, ts, sig_hex, secret, seen_ids, event_id, now_ts):
+    if abs(now_ts - ts) > 300:
+        return "EXPIRED"
+    msg = f"{ts}.{raw_body}".encode()
+    expected = hmac.new(secret.encode(), msg, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, sig_hex):
+        return "INVALID_SIGNATURE"
+    if event_id in seen_ids:
+        return "DUPLICATE"
+    seen_ids.add(event_id)
+    return "ACCEPTED"`,
+    keyInvariant:
+      "Always use hmac.compare_digest(a, b) instead of == so attackers cannot measure byte-by-byte timing leaks.",
+    pitfallWarning:
+      "Compute HMAC over the exact unparsed raw request body + timestamp so replaying an old captured signature fails after 5 minutes.",
+    keywords: ["webhook", "hmac", "sha256", "idempotency", "base62", "saga", "rollback"],
+  },
 ] as const;
 
 export interface ResolvedCodexEntry {
@@ -617,7 +648,7 @@ export interface ResolvedCodexEntry {
 }
 
 /**
- * Resolves unlock status, chapter progress, and pin state for all 21 Codex entries.
+ * Resolves unlock status, chapter progress, and pin state for all 22 Codex entries.
  * An entry unlocks automatically when `entry.alwaysUnlocked` is true, `unlockAllOverride` is set,
  * or the user has completed at least 1 lesson inside that track's matching chapter.
  */

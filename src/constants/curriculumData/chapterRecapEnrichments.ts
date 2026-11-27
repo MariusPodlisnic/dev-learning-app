@@ -1100,4 +1100,64 @@ if len(active_log) >= max_reqs:
         "Because a hash ring wraps 360° back to 0, hashes past the highest node land on the lowest-positioned node.",
     },
   },
+  {
+    matchTrack: "system_design",
+    matchOrder: 107,
+    matchKeywords: ["chapter vii systems recap", "payment webhook gateway", "handle_payment_webhook"],
+    realWorldUse:
+      "Mirrors the exact server-side webhook security pipeline powering Stripe, Polar, GitHub, and Slack integrations.",
+    analogyTitle: "Timestamp Gate -> Wax Seal Check -> Receipt Logbook",
+    analogyText:
+      "First check the envelope's postmark (`abs(now_ts - timestamp) <= 300`) so old intercepted messages are tossed. Next inspect the cryptographic HMAC seal with `hmac.compare_digest`. Finally check your receipt ledger so network retries never double-credit an order!",
+    cheatSheet: `import hashlib, hmac
+
+digest = hmac.new(key.encode(), f"{ts}.{raw}".encode(), hashlib.sha256).hexdigest()
+is_authentic = hmac.compare_digest(digest, header_sig)`,
+    commonPitfall: {
+      title: "Signing only the JSON body without binding the timestamp",
+      wrongCode:
+        "hmac.new(secret.encode(), payload.encode(), hashlib.sha256)  # Vulnerable to replay!",
+      rightCode:
+        'hmac.new(secret.encode(), f"{timestamp}.{payload}".encode(), hashlib.sha256)',
+      explanation:
+        "Binding `timestamp` inside the HMAC message prevents an attacker from taking an old valid payload+signature and changing the timestamp header.",
+    },
+    solutionCode: `import hashlib
+import hmac
+
+def handle_payment_webhook(payload, timestamp, sig_hex, secret, idem_key, ledger, now_ts):
+    if abs(now_ts - timestamp) > 300:
+        return ("REJECTED", "STALE")
+    signed = f"{timestamp}.{payload}".encode()
+    expected = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, sig_hex):
+        return ("REJECTED", "BAD_SIG")
+    if idem_key in ledger:
+        return ("DUPLICATE", ledger[idem_key])
+    receipt = f"rcpt_{len(ledger) + 1}"
+    ledger[idem_key] = receipt
+    return ("PROCESSED", receipt)
+
+_sec = "k"
+_sig = hmac.new(_sec.encode(), b"995.ok", hashlib.sha256).hexdigest()
+print(handle_payment_webhook("ok", 995, _sig, _sec, "e1", {}, 1000))`,
+    proInsights: {
+      timeComplexity: "O(n) payload length",
+      spaceComplexity: "O(1) per check",
+      tradeoff:
+        "Checking timestamp drift before computing SHA-256 cheaply drops stale replay floods, while `compare_digest` eliminates timing side-channels.",
+    },
+    quiz: {
+      question:
+        "Why do Stripe and Polar sign `f'{timestamp}.{payload}'` instead of `payload` alone?",
+      options: [
+        "So tampering with the timestamp header immediately invalidates the HMAC signature, blocking replay attacks",
+        "Because SHA-256 requires at least one period character",
+        "To compress the JSON body automatically",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Including the timestamp inside the signed bytes cryptographically binds when the event was sent to its body.",
+    },
+  },
 ];

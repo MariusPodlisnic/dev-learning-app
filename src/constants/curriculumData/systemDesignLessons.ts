@@ -1304,4 +1304,249 @@ except Exception as e:
       'Then check `if now_ts >= cache[key]["expires_at"]: del cache[key]; return "EXPIRED"`.',
     ],
   },
+  {
+    id: "exp-sys-25",
+    title: "Webhook Security: HMAC-SHA256 & Replay Guard",
+    track: "system_design",
+    category: "WEBHOOK SECURITY",
+    difficulty: "Medium",
+    tree_row: 25,
+    lesson_order: 25,
+    is_free: false,
+    description:
+      "Authenticate inbound payment and GitHub webhooks using constant-time HMAC-SHA256 verification and a replay timestamp window.",
+    content:
+      'Anyone on the internet can POST fake JSON to your `/webhook` URL. Providers like Polar, Stripe, and GitHub prove authenticity with **HMAC-SHA256** (`hmac` + `hashlib`) plus a **replay window**:\n\n1. Reject stale or future deliveries when `abs(now_ts - timestamp) > tolerance_sec`.\n2. Build the signed string `f"{timestamp}.{payload}".encode()` and compute `hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()`.\n3. Compare using **`hmac.compare_digest(expected, signature_hex)`** (constant-time, preventing timing attacks!).\n\n```python\n# Sibling pattern: verify a signed CDN URL token\nimport hashlib, hmac\n\ndef check_cdn_token(path, exp_ts, token_hex, key):\n    msg = f"{exp_ts}:{path}".encode()\n    expected = hmac.new(key.encode(), msg, hashlib.sha256).hexdigest()\n    return hmac.compare_digest(expected, token_hex)\n```',
+    assignment:
+      "Complete `verify_webhook_hmac(payload, timestamp, signature_hex, secret, now_ts, tolerance_sec=300)` to return `True` only when `abs(now_ts - timestamp) <= tolerance_sec` AND `signature_hex` matches the HMAC-SHA256 hex digest of `f\"{timestamp}.{payload}\"`.",
+    constraints: [
+      "Return `False` immediately if `abs(now_ts - timestamp) > tolerance_sec` or if `not signature_hex` or `not secret`",
+      'Compute `hmac.new(secret.encode(), f"{timestamp}.{payload}".encode(), hashlib.sha256).hexdigest()`',
+      "Compare digests safely using `hmac.compare_digest`",
+    ],
+    examples: [
+      {
+        input: 'payload = \'{"id":1}\', timestamp = 990, now_ts = 1000 (valid HMAC)',
+        output: "True",
+        explanation: "|1000 - 990| <= 300 and HMAC-SHA256 digest matches in constant time.",
+      },
+      {
+        input: 'timestamp = 500, now_ts = 1000 (tolerance_sec = 300)',
+        output: "False",
+        explanation: "|1000 - 500| = 500 > 300s replay window, so delivery is rejected.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(1)" },
+    initial_code: `def verify_webhook_hmac(payload, timestamp, signature_hex, secret, now_ts, tolerance_sec=300):
+    pass`,
+    expected_output: "True False",
+    hidden_tests: `import hashlib, hmac, json
+def __run_tests__():
+    try:
+        results = []
+        sec = "wh_test_key"
+        body = '{"event":"order.paid"}'
+        sig_ok = hmac.new(sec.encode(), f"990.{body}".encode(), hashlib.sha256).hexdigest()
+        r1 = verify_webhook_hmac(body, 990, sig_ok, sec, 1000, 300)
+        results.append({"id": 1, "input": "valid fresh signature", "expected": "True", "actual": str(r1), "passed": r1 is True})
+        r2 = verify_webhook_hmac(body + " ", 990, sig_ok, sec, 1000, 300)
+        results.append({"id": 2, "input": "tampered body", "expected": "False", "actual": str(r2), "passed": r2 is False})
+        sig_old = hmac.new(sec.encode(), f"500.{body}".encode(), hashlib.sha256).hexdigest()
+        r3 = verify_webhook_hmac(body, 500, sig_old, sec, 1000, 300)
+        results.append({"id": 3, "input": "expired replay (>300s)", "expected": "False", "actual": str(r3), "passed": r3 is False})
+        return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "|now - ts| <= 300", value: "10s <= 300s ✓", type: "guard", address: "window" },
+      { label: "HMAC-SHA256", value: "f'{ts}.{payload}'", type: "bytes", address: "digest" },
+      { label: "compare_digest", value: "True (constant-time)", type: "bool", address: "200 OK" },
+    ],
+    hints: [
+      "Import `hashlib` and `hmac`, and guard `if not secret or not signature_hex or abs(now_ts - timestamp) > tolerance_sec: return False`.",
+      'Compute `expected = hmac.new(secret.encode(), f"{timestamp}.{payload}".encode(), hashlib.sha256).hexdigest()` and return `hmac.compare_digest(expected, signature_hex)`.',
+    ],
+  },
+  {
+    id: "exp-sys-26",
+    title: "Payment Reliability: Idempotency Key Ledger",
+    track: "system_design",
+    category: "PAYMENT RELIABILITY",
+    difficulty: "Medium",
+    tree_row: 26,
+    lesson_order: 26,
+    is_free: false,
+    description:
+      "Prevent double-charging customers on network retries while catching mismatched-amount reuse via an Idempotency-Key ledger.",
+    content:
+      'When a mobile client times out right after tapping **Pay**, its retry sends the exact same **`Idempotency-Key`** header.\n\nA production payment API handles `idem_key` in **3 deterministic states**:\n• **First time seen:** Create charge `f"ch_{len(store) + 1}"`, save `{"amount": amount_cents, "charge_id": charge_id}` in `store[idem_key]`, and return `("CREATED", charge_id)`.\n• **Retry with SAME `amount_cents`:** Return `("REPLAYED", saved["charge_id"])` without creating a duplicate charge!\n• **Reused key with DIFFERENT `amount_cents`:** Reject parameter tampering with `("CONFLICT", None)` (HTTP 409)!\n\n```python\n# Sibling pattern: idempotent refund request tracker\ndef issue_refund_once(ledger, req_key, cents):\n    if req_key in ledger:\n        prev = ledger[req_key]\n        if prev["cents"] != cents:\n            return ("MISMATCH", None)\n        return ("CACHED", prev["id"])\n    ref_id = f"rf_{len(ledger) + 1}"\n    ledger[req_key] = {"cents": cents, "id": ref_id}\n    return ("NEW", ref_id)\n```',
+    assignment:
+      'Complete `process_idempotent_charge(store, idem_key, amount_cents)` returning `("CREATED", charge_id)` on first call, `("REPLAYED", charge_id)` on exact retry, or `("CONFLICT", None)` if `idem_key` was already used for a different `amount_cents`.',
+    constraints: [
+      'Generate sequential IDs as `f"ch_{len(store) + 1}"` only for brand-new keys',
+      'Store `{"amount": amount_cents, "charge_id": charge_id}` inside `store[idem_key]`',
+      'Return `("CONFLICT", None)` without mutating `store` when `store[idem_key]["amount"] != amount_cents`',
+    ],
+    examples: [
+      {
+        input: 'idem_key = "k1", amount_cents = 3900 (called twice)',
+        output: "('CREATED', 'ch_1') then ('REPLAYED', 'ch_1')",
+        explanation: "Second network retry replays ch_1 instead of charging $39 a second time.",
+      },
+      {
+        input: 'idem_key = "k1", amount_cents = 9900 (reused key, different price!)',
+        output: "('CONFLICT', None)",
+        explanation: "Reusing k1 with a different payload is flagged as a 409 CONFLICT.",
+      },
+    ],
+    complexities: { time: "O(1)", space: "O(k)" },
+    initial_code: `def process_idempotent_charge(store, idem_key, amount_cents):
+    pass`,
+    expected_output: "('CREATED', 'ch_1')",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        results = []
+        db = {}
+        r1 = process_idempotent_charge(db, "k1", 3900)
+        results.append({"id": 1, "input": "first charge k1=3900", "expected": "('CREATED', 'ch_1')", "actual": str(r1), "passed": r1 == ("CREATED", "ch_1")})
+        r2 = process_idempotent_charge(db, "k1", 3900)
+        results.append({"id": 2, "input": "safe retry k1=3900", "expected": "('REPLAYED', 'ch_1')", "actual": str(r2), "passed": r2 == ("REPLAYED", "ch_1") and len(db) == 1})
+        r3 = process_idempotent_charge(db, "k1", 9900)
+        results.append({"id": 3, "input": "conflicting amount k1=9900", "expected": "('CONFLICT', None)", "actual": str(r3), "passed": r3 == ("CONFLICT", None) and db["k1"]["amount"] == 3900})
+        return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: 'k1 (3900) #1', value: "('CREATED', 'ch_1')", address: "charged once" },
+      { label: 'k1 (3900) #2', value: "('REPLAYED', 'ch_1') ✓", address: "0xIDEMPOTENT" },
+      { label: 'k1 (9900)', value: "('CONFLICT', None) 409", address: "guarded" },
+    ],
+    hints: [
+      'If `idem_key in store`, compare `store[idem_key]["amount"] == amount_cents` to return `("REPLAYED", ...)` vs `("CONFLICT", None)`.',
+      'Otherwise create `charge_id = f"ch_{len(store) + 1}"`, save `store[idem_key] = {"amount": amount_cents, "charge_id": charge_id}`, and return `("CREATED", charge_id)`.',
+    ],
+  },
+  {
+    id: "exp-sys-27",
+    title: "Distributed IDs: Base62 URL Shortener Encoder",
+    track: "system_design",
+    category: "DISTRIBUTED IDS",
+    difficulty: "Medium",
+    tree_row: 27,
+    lesson_order: 27,
+    is_free: false,
+    description:
+      "Convert 64-bit database counter IDs into compact, collision-free URL slugs using Base62 division-remainder encoding.",
+    content:
+      'URL shorteners (Bitly) and video platforms compress large integer IDs like `125` into short, URL-safe **Base62** slugs using the 62-character alphabet `"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"`:\n\n1. Handle `num == 0` immediately by returning `ALPHABET[0]` (`"0"`).\n2. Loop `while num > 0:`: use `divmod(num, 62)` (or `num % 62` and `num //= 62`) to peel off each Base62 digit.\n3. Reverse the collected digits (`"".join(reversed(chars))`) so the most-significant character comes first!\n\n```python\n# Sibling pattern: convert a non-negative integer to Base16 hex\nHEX = "0123456789abcdef"\ndef to_hex_slug(n):\n    if n == 0:\n        return "0"\n    digits = []\n    while n > 0:\n        n, rem = divmod(n, 16)\n        digits.append(HEX[rem])\n    return "".join(reversed(digits))\n```',
+    assignment:
+      'Complete `encode_base62(num)` using `"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"` to convert any integer `num >= 0` into its compact Base62 string.',
+    constraints: [
+      'Return `"0"` when `num == 0`',
+      'Use integer division `// 62` (or `divmod(num, 62)`) so `num` stays an `int`',
+      "Reverse collected remainder characters before joining",
+    ],
+    examples: [
+      {
+        input: "num = 125",
+        output: "21",
+        explanation: "125 = 2 * 62 + 1 -> digits [ALPHABET[2], ALPHABET[1]] -> '21'.",
+      },
+      {
+        input: "num = 61",
+        output: "Z",
+        explanation: "Index 61 is the final character 'Z' of the 62-char alphabet.",
+      },
+    ],
+    complexities: { time: "O(log n)", space: "O(log n)" },
+    initial_code: `def encode_base62(num):
+    pass`,
+    expected_output: "21",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        results = []
+        cases = [(0, "0"), (61, "Z"), (62, "10"), (125, "21"), (3844, "100")]
+        for idx, (inp, exp) in enumerate(cases):
+            actual = encode_base62(inp)
+            results.append({"id": idx + 1, "input": f"num={inp}", "expected": exp, "actual": str(actual), "passed": actual == exp})
+        return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "array",
+    visual_data: [
+      { label: "125 divmod 62", value: "q=2, rem=1 -> '1'", address: "step 1" },
+      { label: "2 divmod 62", value: "q=0, rem=2 -> '2'", address: "step 2" },
+      { label: "reverse", value: "'21' (2 chars vs 3) ✓", address: "Base62" },
+    ],
+    hints: [
+      'Define `ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"` and check `if num == 0: return "0"`.',
+      'Loop `while num > 0:`, set `num, rem = divmod(num, 62)`, append `ALPHABET[rem]`, then return `"".join(reversed(chars))`.',
+    ],
+  },
+  {
+    id: "exp-sys-28",
+    title: "Distributed Transactions: Saga Rollback Coordinator",
+    track: "system_design",
+    category: "DISTRIBUTED TRANSACTIONS",
+    difficulty: "Hard",
+    tree_row: 28,
+    lesson_order: 28,
+    is_free: false,
+    description:
+      "Coordinate multi-microservice workflows and execute compensating rollbacks in reverse LIFO order whenever a downstream step fails.",
+    content:
+      'Across separate microservices (`Inventory`, `Payments`, `Shipping`), you cannot wrap a single SQL `BEGIN / ROLLBACK` transaction.\n\nInstead, the **Saga Pattern** tracks each completed service step, and if step `k` fails, immediately stops forward progress and runs **compensating undo actions in reverse LIFO order** (`completed[::-1]`):\n\n```python\n# Sibling pattern: multi-stage deployment pipeline with reverse undo\ndef deploy_with_undo(stages):\n    applied = []\n    for name, passed in stages:\n        if not passed:\n            return ("ABORTED", name, applied[::-1])\n        applied.append(name)\n    return ("LIVE", None, [])\n```',
+    assignment:
+      'Complete `run_checkout_saga(steps)` where `steps` is a list of `(service_name, succeeded)` tuples. If all succeed, return `{"ok": True, "completed": completed, "rolled_back": []}`. On the first `False` step, stop immediately and return `{"ok": False, "failed_at": service_name, "rolled_back": completed[::-1]}`.',
+    constraints: [
+      "Stop processing remaining steps immediately upon the first `not succeeded` failure",
+      "Roll back only previously succeeded steps in **reverse** (`LIFO`) order (`completed[::-1]`)",
+      "Return the exact dictionary keys specified for success vs failure",
+    ],
+    examples: [
+      {
+        input: 'steps = [("inventory", True), ("payment", True), ("shipping", False)]',
+        output: "{'ok': False, 'failed_at': 'shipping', 'rolled_back': ['payment', 'inventory']}",
+        explanation: "Shipping failed, so payment is refunded first, then inventory is released.",
+      },
+    ],
+    complexities: { time: "O(n)", space: "O(n)" },
+    initial_code: `def run_checkout_saga(steps):
+    pass`,
+    expected_output: "{'ok': False, 'failed_at': 'shipping', 'rolled_back': ['payment', 'inventory']}",
+    hidden_tests: `import json
+def __run_tests__():
+    try:
+        results = []
+        r1 = run_checkout_saga([("inventory", True), ("payment", True), ("shipping", False)])
+        exp1 = {"ok": False, "failed_at": "shipping", "rolled_back": ["payment", "inventory"]}
+        results.append({"id": 1, "input": "fail at step 3", "expected": str(exp1), "actual": str(r1), "passed": r1 == exp1})
+        r2 = run_checkout_saga([("inventory", True), ("payment", True), ("shipping", True)])
+        exp2 = {"ok": True, "completed": ["inventory", "payment", "shipping"], "rolled_back": []}
+        results.append({"id": 2, "input": "all steps succeed", "expected": str(exp2), "actual": str(r2), "passed": r2 == exp2})
+        r3 = run_checkout_saga([("inventory", False), ("payment", True)])
+        exp3 = {"ok": False, "failed_at": "inventory", "rolled_back": []}
+        results.append({"id": 3, "input": "fail on step 1 (nothing to undo)", "expected": str(exp3), "actual": str(r3), "passed": r3 == exp3})
+        return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+    except Exception as e:
+        return json.dumps({"is_test_suite": True, "error": str(e)})
+__run_tests__()`,
+    visual_type: "array",
+    visual_data: [
+      { label: "1. inventory", value: "OK -> committed", address: "push" },
+      { label: "2. payment", value: "OK -> committed", address: "push" },
+      { label: "3. shipping ✕", value: "UNDO ['payment', 'inventory']", address: "LIFO" },
+    ],
+    hints: [
+      "Track `completed = []` and loop `for service_name, succeeded in steps:`.",
+      'If `not succeeded`, immediately `return {"ok": False, "failed_at": service_name, "rolled_back": completed[::-1]}`.',
+    ],
+  },
 ];

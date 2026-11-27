@@ -10,9 +10,9 @@ const { getSystemDesignLabForLesson } = loadTsModule(
 test("every system_design core module resolves to an interactive lab whose recommendedPreset hits SLA HEALTHY", () => {
   const lessons = mergeCurriculumLessons([]);
   const sysCoreLessons = lessons.filter(
-    (l) => l.track === "system_design" && l.lesson_order <= 24,
+    (l) => l.track === "system_design" && l.lesson_order <= 28,
   );
-  assert.equal(sysCoreLessons.length, 24);
+  assert.equal(sysCoreLessons.length, 28);
 
   const archetypesSeen = new Set();
   for (const lesson of sysCoreLessons) {

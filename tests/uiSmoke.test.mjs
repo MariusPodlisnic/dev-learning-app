@@ -1599,7 +1599,7 @@ test("ConstellationCodexModal renders illumination meter, track filters, highlig
     ),
   );
   assert.ok(codexText.includes("Constellation Field Guide"));
-  assert.ok(codexText.includes("2 / 21 ILLUMINATED"));
+  assert.ok(codexText.includes("2 / 22 ILLUMINATED"));
   assert.ok(codexText.includes("Variables, Types & F-Strings"));
   assert.ok(codexText.includes("+ APPEND TO EDITOR"));
   assert.ok(codexText.includes("KEY INVARIANT"));

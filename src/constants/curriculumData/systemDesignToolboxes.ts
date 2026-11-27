@@ -700,4 +700,94 @@ export const SYSTEM_DESIGN_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
+  {
+    matchTrack: "system_design",
+    matchOrder: 25,
+    tools: [
+      {
+        toolName: "hmac.new & compare_digest — Webhook Signatures",
+        badge: "CRYPTO AUTH",
+        purpose:
+          "Computes keyed SHA-256 message authentication codes and compares digests in constant time.",
+        syntaxPattern: "hmac.new(key_bytes, msg_bytes, hashlib.sha256).hexdigest()",
+        variations: [
+          {
+            label: "1. Compute hex HMAC-SHA256",
+            code: 'import hashlib, hmac\nsig = hmac.new(b"key", b"990.hi", hashlib.sha256).hexdigest()',
+            output: "64-char hex digest",
+            note: "Encode strings to UTF-8 bytes with `.encode()` first.",
+          },
+          {
+            label: "2. Constant-time comparison",
+            code: "hmac.compare_digest(expected_hex, header_hex)",
+            output: "True / False",
+            note: "Prevents timing side-channel attacks.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 26,
+    tools: [
+      {
+        toolName: "Idempotency Ledger Dict — Safe Retries",
+        badge: "RELIABILITY",
+        purpose:
+          "Deduplicates retried mutations while catching conflicting parameter reuse.",
+        syntaxPattern: "if idem_key in store: ...",
+        variations: [
+          {
+            label: "1. Replay vs Conflict check",
+            code: 'if store[k]["amount"] != amount:\n    return ("CONFLICT", None)',
+            output: "409 Conflict guard",
+            note: "Always verify payload equality before replaying cached receipts.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 27,
+    tools: [
+      {
+        toolName: "divmod(n, 62) — Base Conversion",
+        badge: "ID ENCODING",
+        purpose:
+          "Returns `(quotient, remainder)` in a single step to peel off Base62 characters.",
+        syntaxPattern: "num, rem = divmod(num, 62)",
+        variations: [
+          {
+            label: "1. Peel Base62 digits",
+            code: "q, r = divmod(125, 62)\nprint(q, r)",
+            output: "2 1",
+            note: "Collect remainders in a list and reverse before joining.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "system_design",
+    matchOrder: 28,
+    tools: [
+      {
+        toolName: "completed[::-1] — LIFO Saga Compensation",
+        badge: "TRANSACTIONS",
+        purpose:
+          "Reverses committed steps so compensating undo actions run from most-recent back to first.",
+        syntaxPattern: "rolled_back = completed[::-1]",
+        variations: [
+          {
+            label: "1. Reverse committed history",
+            code: 'done = ["inv", "pay"]\nprint(done[::-1])',
+            output: "['pay', 'inv']",
+            note: "Leaves `done` unmutated while returning a reversed copy.",
+          },
+        ],
+      },
+    ],
+  },
 ];

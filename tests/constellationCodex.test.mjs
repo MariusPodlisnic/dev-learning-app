@@ -12,10 +12,10 @@ const {
 } = loadTsModule("src/utils/constellationCodex.ts");
 const { mergeCurriculumLessons } = loadTsModule("src/constants/curriculum.ts");
 
-test("CONSTELLATION_CODEX_ENTRIES defines 21 unique grimoire entries across all 3 tracks", () => {
-  assert.equal(CONSTELLATION_CODEX_ENTRIES.length, 21);
+test("CONSTELLATION_CODEX_ENTRIES defines 22 unique grimoire entries across all 3 tracks", () => {
+  assert.equal(CONSTELLATION_CODEX_ENTRIES.length, 22);
   const ids = new Set(CONSTELLATION_CODEX_ENTRIES.map((e) => e.id));
-  assert.equal(ids.size, 21);
+  assert.equal(ids.size, 22);
 
   const byTrack = {
     python_basics: CONSTELLATION_CODEX_ENTRIES.filter((e) => e.track === "python_basics").length,
@@ -25,7 +25,7 @@ test("CONSTELLATION_CODEX_ENTRIES defines 21 unique grimoire entries across all 
   assert.deepEqual(byTrack, {
     python_basics: 8,
     algorithms: 7,
-    system_design: 6,
+    system_design: 7,
   });
 
   for (const entry of CONSTELLATION_CODEX_ENTRIES) {
@@ -79,7 +79,7 @@ test("filterCodexEntries filters by track, pinned status, and multi-token search
 
   const resolved = resolveCodexEntries(lessons, {}, pins, true);
   assert.equal(filterCodexEntries(resolved, "pinned", "").length, 1);
-  assert.equal(filterCodexEntries(resolved, "system_design", "").length, 6);
+  assert.equal(filterCodexEntries(resolved, "system_design", "").length, 7);
 
   const searchHits = filterCodexEntries(resolved, "all", "sliding window");
   assert.ok(searchHits.some((r) => r.entry.id === "algo-ch1-sliding-two-ptr"));

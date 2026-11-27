@@ -240,6 +240,15 @@ export const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
       minOrder: 21,
       maxOrder: 24,
     },
+    {
+      id: 7,
+      roman: "VII",
+      title: "Webhooks, Idempotency & Sagas",
+      subtitle:
+        "HMAC-SHA256 signatures, idempotency ledgers, Base62 IDs, and saga rollbacks",
+      minOrder: 25,
+      maxOrder: 28,
+    },
   ],
 };
 
