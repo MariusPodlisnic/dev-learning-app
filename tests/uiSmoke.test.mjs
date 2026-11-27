@@ -542,6 +542,14 @@ test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) 
   assert.equal(cheatText.includes("CONCEPT CHECK · QUICK RECALL"), false);
   assert.equal(cheatText.includes("COMMON PITFALL TO AVOID"), false);
 
+  // Full Guide upgrades the example box with Live Tinker scenarios + X-Ray syntax toggle (0 extra tabs)
+  assert.ok(fullGuideText.includes("TINKER LIVE"));
+  assert.ok(fullGuideText.includes("X-RAY SYNTAX"));
+  assert.ok(fullGuideText.includes("PARAMETERS PASSED IN:"));
+  assert.ok(fullGuideText.includes("pet_name"));
+  assert.ok(fullGuideText.includes("bonus_energy"));
+  assert.ok(fullGuideText.includes("RETURNS:"));
+
   const missionText = visibleText(
     renderThemed(
       React.createElement(LessonProblemPanel, {

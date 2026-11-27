@@ -16,6 +16,7 @@ import {
   Lesson,
   TestCaseResult,
 } from "../types/lesson";
+import { buildConceptTinkerSpec } from "../utils/conceptTinkerXray";
 import { buildOrganizedLearnView } from "../utils/lessonContent";
 import type { PythonTraceResult } from "../utils/pythonTrace";
 import {
@@ -26,6 +27,7 @@ import {
 import FormattedText, { renderHighlightedPython } from "./FormattedText";
 import GuidedScaffoldingCard from "./GuidedScaffoldingCard";
 import HintAccordion from "./HintAccordion";
+import InteractiveConceptBox from "./InteractiveConceptBox";
 import { getLessonProblemStyles } from "./lessonProblemStyles";
 import ProSolutionCard from "./ProSolutionCard";
 import VisualLessonPanel from "./VisualLessonPanel";
@@ -97,6 +99,7 @@ export default function LessonProblemPanel({
     selectedLesson.content,
     lessonEnrichment,
   );
+  const tinkerSpec = buildConceptTinkerSpec(selectedLesson, lessonEnrichment);
 
   function scrollToTop() {
     onScrollTopRef.current?.();
@@ -684,29 +687,10 @@ export default function LessonProblemPanel({
                 />
 
                 {!!learnView.singleExampleCode && (
-                  <View style={styles.learnExampleSection}>
-                    <View style={styles.learnExampleMetaRow}>
-                      <View style={styles.learnExampleBadge}>
-                        <StudioIcon name="terminal" size={14} />
-                        <Text style={styles.learnExampleBadgeText}>
-                          SIMPLE EXAMPLE
-                        </Text>
-                      </View>
-                      <Text style={styles.learnExampleSub}>
-                        Matches this lesson&apos;s concept
-                      </Text>
-                    </View>
-                    <View style={styles.codeBlockContainer}>
-                      <View style={styles.codeBlockHeader}>
-                        <Text style={styles.codeBlockLang}>
-                          🐍 CONCEPT IN ACTION
-                        </Text>
-                      </View>
-                      <Text style={styles.codeBlockText}>
-                        {renderHighlightedPython(learnView.singleExampleCode)}
-                      </Text>
-                    </View>
-                  </View>
+                  <InteractiveConceptBox
+                    key={selectedLesson.id}
+                    spec={tinkerSpec}
+                  />
                 )}
               </View>
             )}

@@ -489,6 +489,7 @@ export const getLessonProblemStyles = (StudioColors: StudioThemeColors) =>
     },
     explainStyleSwitcher: {
       flexDirection: "row",
+      flexWrap: "wrap",
       backgroundColor: StudioColors.bg,
       padding: 3,
       borderRadius: 6,
@@ -497,7 +498,7 @@ export const getLessonProblemStyles = (StudioColors: StudioThemeColors) =>
       gap: 3,
     },
     explainStyleBtn: {
-      paddingHorizontal: 10,
+      paddingHorizontal: 8.5,
       paddingVertical: 5,
       borderRadius: 4,
       ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
