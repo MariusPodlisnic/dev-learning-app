@@ -476,6 +476,38 @@ test("LessonProblemPanel renders organized Full Guide (without Toolbox clutter) 
   assert.ok(fullGuideText.includes("CONCEPT CHECK · QUICK RECALL"));
   assert.ok(fullGuideText.includes(enrichment.quiz.question));
   assert.equal(fullGuideText.includes("WHY THIS MATTERS"), false);
+  assert.equal(
+    fullGuideText.includes("MODULE MASTERY RATING"),
+    false,
+    "Verbose mastery rating card should be replaced by compact header star pill",
+  );
+  assert.equal(
+    fullGuideText.includes("Core Cleared"),
+    false,
+    "Mastery criteria chips stay collapsed until user taps the star pill",
+  );
+  assert.ok(fullGuideText.includes("01 Core"));
+  assert.ok(fullGuideText.includes("02 Drill I"));
+
+  // Single-stage recap lessons omit the stage switcher strip completely
+  const recapLesson = mergeCurriculumLessons([]).find(
+    (l) => l.id === "py-recap-ch1",
+  );
+  assert.ok(recapLesson);
+  const recapText = visibleText(
+    renderThemed(
+      React.createElement(LessonProblemPanel, {
+        ...baseProps,
+        selectedLesson: recapLesson,
+        explainStyle: "guide",
+      }),
+    ),
+  );
+  assert.equal(
+    recapText.includes("01 Core"),
+    false,
+    "Single-stage recap modules should not render a stage strip bar",
+  );
   assert.equal(fullGuideText.includes("TOOLS USED IN THIS LESSON"), false);
   assert.equal(fullGuideText.includes("TOOLS NEEDED"), false);
   assert.equal(fullGuideText.includes("TOOLBOX"), false);

@@ -89,6 +89,7 @@ export default function LessonProblemPanel({
   const [quizAnswerByLesson, setQuizAnswerByLesson] = useState<
     Record<string, number>
   >({});
+  const [showMasteryInfo, setShowMasteryInfo] = useState<boolean>(false);
   const selectedQuizOpt = quizAnswerByLesson[selectedLesson.id] ?? null;
   const currentTrackTheme =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
@@ -178,53 +179,28 @@ export default function LessonProblemPanel({
             SPACE: {selectedLesson.complexities.space}
           </Text>
         )}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Module mastery ${starRating} of 3 stars`}
+          onPress={() => {
+            playKeyClick();
+            setShowMasteryInfo((prev) => !prev);
+          }}
+          style={({ pressed }) => [
+            styles.masteryStarsPill,
+            styles.masteryHeaderRightPill,
+            pressed && { opacity: 0.85 },
+          ]}
+        >
+          <Text style={styles.masteryStarsPillGlyph}>
+            {[1, 2, 3].map((s) => (s <= starRating ? "★" : "☆")).join("")}
+          </Text>
+          <Text style={styles.masteryStarsPillText}>{starRating}/3</Text>
+        </Pressable>
       </View>
 
-      <Text style={styles.title}>
-        {activePracticeDrill ? activePracticeDrill.title : selectedLesson.title}
-      </Text>
-      <Text style={styles.subtitleDesc}>
-        {activePracticeDrill
-          ? `Concept Practice for "${selectedLesson.title}" — Mission Brief & Clues only.`
-          : selectedLesson.description}
-      </Text>
-
-      {selectedLesson.is_recap &&
-        !activePracticeDrill &&
-        selectedLesson.recap_topics &&
-        selectedLesson.recap_topics.length > 0 && (
-          <View style={styles.recapTopicsCard}>
-            <Text style={styles.recapTopicsEyebrow}>
-              🏆 CUMULATIVE CHAPTER RECAP · COMBINES:
-            </Text>
-            <View style={styles.recapTopicsRow}>
-              {selectedLesson.recap_topics.map((topic, tIdx) => (
-                <View key={tIdx} style={styles.recapTopicChip}>
-                  <Text style={styles.recapTopicChipText}>{topic}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-      {/* 3-Star Mastery & Multi-Stage Practice Challenge Switcher */}
-      <View style={styles.practiceDeckCard}>
-        <View style={styles.practiceDeckHeaderRow}>
-          <Text style={styles.practiceDeckEyebrow}>
-            {hasMultipleChallenges
-              ? `⚡ CONCEPT PRACTICE STAGES (${solvedStagesCount}/${totalChallengeStages} CLEARED)`
-              : "⭐ MODULE MASTERY RATING"}
-          </Text>
-          <View style={styles.masteryStarsPill}>
-            <Text style={styles.masteryStarsPillGlyph}>
-              {[1, 2, 3].map((s) => (s <= starRating ? "★" : "☆")).join(" ")}
-            </Text>
-            <Text style={styles.masteryStarsPillText}>
-              {starRating}/3 STARS
-            </Text>
-          </View>
-        </View>
-
+      {showMasteryInfo && (
         <View style={styles.masteryCriteriaRow}>
           <View
             style={[
@@ -275,14 +251,43 @@ export default function LessonProblemPanel({
               {starRating >= 3 ? "★" : "☆"}{" "}
               {hasPeekedSolution && starRating < 3
                 ? "Re-solve w/o Solution"
-                : "All Stages · No Solution"}
+                : "No Solution Peek"}
             </Text>
           </View>
         </View>
+      )}
 
-        {hasMultipleChallenges && (
+      <Text style={styles.title}>
+        {activePracticeDrill ? activePracticeDrill.title : selectedLesson.title}
+      </Text>
+      <Text style={styles.subtitleDesc}>
+        {activePracticeDrill
+          ? `Concept Practice for "${selectedLesson.title}" — Mission Brief & Clues only.`
+          : selectedLesson.description}
+      </Text>
+
+      {selectedLesson.is_recap &&
+        !activePracticeDrill &&
+        selectedLesson.recap_topics &&
+        selectedLesson.recap_topics.length > 0 && (
+          <View style={styles.recapTopicsCard}>
+            <Text style={styles.recapTopicsEyebrow}>
+              🏆 CUMULATIVE CHAPTER RECAP · COMBINES:
+            </Text>
+            <View style={styles.recapTopicsRow}>
+              {selectedLesson.recap_topics.map((topic, tIdx) => (
+                <View key={tIdx} style={styles.recapTopicChip}>
+                  <Text style={styles.recapTopicChipText}>{topic}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+      {/* Slim Single-Row Stage Strip (rendered only when lesson has practice drills) */}
+      {hasMultipleChallenges && (
+        <View style={styles.stageStripBar}>
           <View style={styles.practiceStagePillsRow}>
-            {/* Stage 1: Core Lesson */}
             {(() => {
               const isStage0Selected = activeChallengeIdx === 0;
               const isStage0Solved = isLessonStageCompleted(
@@ -305,31 +310,20 @@ export default function LessonProblemPanel({
                       styles.practiceStagePillSolved,
                   ]}
                 >
+                  <StudioIcon name="practice_1" size={16} />
                   <Text
                     style={[
-                      styles.practiceStagePillIndex,
+                      styles.practiceStagePillLabel,
                       isStage0Selected && styles.practiceStagePillTextActive,
                     ]}
+                    numberOfLines={1}
                   >
-                    {isStage0Solved ? "✓ 01" : "01"}
+                    {isStage0Solved ? "✓ 01 Core" : "01 Core"}
                   </Text>
-                  <View style={styles.practiceStagePillLabelRow}>
-                    <StudioIcon name="practice_1" size={19} />
-                    <Text
-                      style={[
-                        styles.practiceStagePillLabel,
-                        isStage0Selected && styles.practiceStagePillTextActive,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      Core Lesson
-                    </Text>
-                  </View>
                 </Pressable>
               );
             })()}
 
-            {/* Stages 2..N: Practice Challenges */}
             {practiceDrills.map((drill, dIdx) => {
               const stageIdx = dIdx + 1;
               const isSelected = activeChallengeIdx === stageIdx;
@@ -348,10 +342,10 @@ export default function LessonProblemPanel({
                     : "practice_4";
               const shortTag =
                 stageIdx === 1
-                  ? "Practice I"
+                  ? "Drill I"
                   : stageIdx === 2
-                    ? "Practice II"
-                    : "Boss Drill";
+                    ? "Drill II"
+                    : "Boss";
               return (
                 <Pressable
                   key={drill.id}
@@ -365,32 +359,27 @@ export default function LessonProblemPanel({
                     isSolved && !isSelected && styles.practiceStagePillSolved,
                   ]}
                 >
+                  <StudioIcon name={stageIconName} size={16} />
                   <Text
                     style={[
-                      styles.practiceStagePillIndex,
+                      styles.practiceStagePillLabel,
                       isSelected && styles.practiceStagePillTextActive,
                     ]}
+                    numberOfLines={1}
                   >
-                    {isSolved ? `✓ ${stageNumber}` : stageNumber}
+                    {isSolved
+                      ? `✓ ${stageNumber} ${shortTag}`
+                      : `${stageNumber} ${shortTag}`}
                   </Text>
-                  <View style={styles.practiceStagePillLabelRow}>
-                    <StudioIcon name={stageIconName} size={19} />
-                    <Text
-                      style={[
-                        styles.practiceStagePillLabel,
-                        isSelected && styles.practiceStagePillTextActive,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {shortTag}
-                    </Text>
-                  </View>
                 </Pressable>
               );
             })}
           </View>
-        )}
-      </View>
+          <Text style={styles.stageProgressMicro}>
+            {solvedStagesCount}/{totalChallengeStages}
+          </Text>
+        </View>
+      )}
 
       {/* When on Practice Challenge 2..N: Focused Mission Brief + Clues Only (No Deep Explanation) */}
       {activePracticeDrill ? (
@@ -619,11 +608,7 @@ export default function LessonProblemPanel({
           {/* 3-Style Explanation Card */}
           <View style={styles.conceptBox}>
             <View style={styles.conceptTopRow}>
-              <View style={styles.sectionStickerBadge}>
-                <Text style={styles.sectionHeaderLabel}>
-                  📖 LEARN THE CONCEPT
-                </Text>
-              </View>
+              <Text style={styles.conceptLensMicro}>EXPLANATION LENS</Text>
               <View style={styles.explainStyleSwitcher}>
                 {(
                   [
