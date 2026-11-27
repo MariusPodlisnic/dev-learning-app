@@ -270,6 +270,30 @@ export function ArcadeLiveCrtDeck({
         ctx.font = "900 10px 'JetBrains Mono', ui-monospace, monospace";
         ctx.textAlign = "left";
         ctx.fillText("O(n^2) -> O(n) · EAGLE PAR", 20, 26);
+      } else if (cart.id === "interview") {
+        // Mock Technical Interview CRT preview: 2-round status + animated 100-pt Hiring Rubric
+        const pulse = 0.5 + 0.5 * Math.sin(t * 2.0);
+        ctx.fillStyle = "#C4B5FD";
+        ctx.font = "900 10px 'JetBrains Mono', ui-monospace, monospace";
+        ctx.textAlign = "left";
+        ctx.fillText("⏱ 25:00 LOOP · NO PEEKS", 18, 25);
+
+        const r1Done = true;
+        const r2Done = pulse > 0.35;
+        ctx.fillStyle = r1Done ? "#6EE7B7" : "#94A3B8";
+        ctx.fillText("R1 ALGO    [O(n)]   PASS ✓", 18, cy - 4);
+        ctx.fillStyle = r2Done ? "#6EE7B7" : "#FFDE59";
+        ctx.fillText(
+          r2Done ? "R2 SYSTEMS [O(n)]   PASS ✓" : "R2 SYSTEMS [O(n)]   RUN...",
+          18,
+          cy + 16,
+        );
+
+        const barW = W - 36;
+        ctx.fillStyle = "rgba(255,255,255,0.12)";
+        ctx.fillRect(18, H - 22, barW, 8);
+        ctx.fillStyle = r2Done ? "#6EE7B7" : "#C4B5FD";
+        ctx.fillRect(18, H - 22, barW * (r2Done ? 0.94 : 0.62), 8);
       } else {
         const fullCmd = ">>> [n*n for n in range(4)]";
         const chars = Math.floor((t * 9) % (fullCmd.length + 10));

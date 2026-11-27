@@ -129,6 +129,9 @@ const PythonScratchpad = React.lazy(
 const RefactorGolfArena = React.lazy(
   () => import("../components/RefactorGolfArena"),
 );
+const MockInterviewArena = React.lazy(
+  () => import("../components/MockInterviewArena"),
+);
 const SyntaxBlitzArena = React.lazy(
   () => import("../components/SyntaxBlitzArena"),
 );
@@ -1335,6 +1338,7 @@ export default function HomeScreen() {
         viewMode === "minibuilds" ||
         viewMode === "playground" ||
         viewMode === "refactor" ||
+        viewMode === "interview" ||
         viewMode === "algolab" ||
         viewMode === "achievements" ||
         viewMode === "league" ? (
@@ -1369,7 +1373,9 @@ export default function HomeScreen() {
                                   ? "Opening playground.py..."
                                   : viewMode === "refactor"
                                     ? "Teeing up Refactor Golf..."
-                                    : viewMode === "algolab"
+                                    : viewMode === "interview"
+                                      ? "Preparing Interview Packet..."
+                                      : viewMode === "algolab"
                                     ? "Loading Algorithm Lab..."
                                     : viewMode === "league"
                                       ? "Loading Weekly League..."
@@ -1502,6 +1508,25 @@ export default function HomeScreen() {
                   )
                 }
                 onAwardGolfXp={(earned) => handleAwardFlashcardXp(earned)}
+              />
+            ) : viewMode === "interview" ? (
+              <MockInterviewArena
+                pyodideReady={pyodideReady}
+                isPremium={effectiveIsPremium}
+                onRequirePro={() =>
+                  openPaywall({
+                    source: "arena",
+                    lessonTitle: "Pro Mock Technical Interview Loops",
+                  })
+                }
+                onVerifyCandidateCode={(userCode, harness) =>
+                  executeBugPatchVerification(
+                    pyodideRef.current,
+                    userCode,
+                    harness,
+                  )
+                }
+                onAwardInterviewXp={(earned) => handleAwardFlashcardXp(earned)}
               />
             ) : viewMode === "algolab" ? (
               <AlgorithmVisualizerLab

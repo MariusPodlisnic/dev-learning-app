@@ -353,8 +353,8 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.waitForSelector("text=Devy Mini-Game Arcade", { timeout: 10000 });
     const arcadeAlign = await page.evaluate(() => {
       const filterLabels = [
-        "ALL GAMES (7)",
-        "QUICK SPRINTS (2)",
+        "ALL GAMES (8)",
+        "QUICK SPRINTS (3)",
         "MEMORY & RECALL (2)",
         "SANDBOX & BUILDS (3)",
       ];
@@ -404,6 +404,16 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.waitForSelector("text=Hole 01: Two-Sum Hash Lookup", { timeout: 5000 });
     await page.getByLabel("Load optimal reference refactor").click();
     await page.waitForSelector("text=LIVE PAR: 8/8 LINES · O(n)", { timeout: 5000 });
+
+    // Switch to Mock Tech Interview (CART-08), start Junior Loop, and inspect live 2-round workspace + rubric scorecard
+    await page.getByLabel("Switch to Mock Tech Interview").click();
+    await page.waitForSelector("text=CART-08 · MOCK TECHNICAL INTERVIEW SIMULATOR", { timeout: 10000 });
+    await page.getByLabel("Start Junior Backend Loop: Stacks & Dedupe").click();
+    await page.waitForSelector("text=Balanced Delimiter Validator", { timeout: 5000 });
+    await page.getByLabel("Submit interview packet for grading").click();
+    await page.waitForSelector("text=HIRING COMMITTEE PACKET", { timeout: 5000 });
+    await page.getByLabel("Return to Interview Lobby").click();
+    await page.waitForSelector("text=25-Minute Engineering Interview Loops", { timeout: 5000 });
 
     // Switch to Output Detective (CART-04), answer case 1, inspect trace breakdown, advance to case 2
     await page.getByLabel("Switch to Output Detective").click();

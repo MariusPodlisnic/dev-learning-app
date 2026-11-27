@@ -112,8 +112,8 @@ export default function PaywallModal({
     },
     {
       icon: "03",
-      title: `Verified Solutions & Walkthroughs (${totalModules} Modules)`,
-      desc: "1-click official solutions, Pro Bug Hunt incidents & unlimited Speed Blitz",
+      title: `Mock Interviews & Verified Solutions (${totalModules} Modules)`,
+      desc: "25-min timed SWE Interview Loops, 1-click solutions & Pro Bug Hunt arenas",
     },
   ];
 

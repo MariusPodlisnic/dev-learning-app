@@ -1334,6 +1334,7 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(hubText.includes("Cozy Mini-Builds"));
   assert.ok(hubText.includes("Python Playground"));
   assert.ok(hubText.includes("Code Refactor Golf"));
+  assert.ok(hubText.includes("Mock Tech Interview"));
   assert.ok(hubText.includes("SANDBOX & BUILDS (3)"));
 
   const subNavText = visibleText(
@@ -1352,6 +1353,7 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(subNavText.includes("MINI-BUILDS"));
   assert.ok(subNavText.includes("PLAYGROUND"));
   assert.ok(subNavText.includes("BIG-O GOLF"));
+  assert.ok(subNavText.includes("INTERVIEW"));
 
   const detectiveText = visibleText(
     renderThemed(
@@ -1806,4 +1808,31 @@ test("PaywallModal displays Polar trust copy and checkout error feedback cleanly
   assert.ok(paywallText.includes("$24 billed yearly"));
   assert.ok(paywallText.includes("$39"));
   assert.ok(paywallText.includes("Checkout service temporarily unavailable."));
+});
+
+test("MockInterviewArena renders CART-08 25-minute loops, free Junior Loop, and Pro SWE loops cleanly", () => {
+  const { default: MockInterviewArena } = loadTsModule(
+    "src/components/MockInterviewArena.tsx",
+  );
+  const lobbyText = visibleText(
+    renderThemed(
+      React.createElement(MockInterviewArena, {
+        pyodideReady: true,
+        isPremium: false,
+        onRequirePro: () => {},
+        onVerifyCandidateCode: async () => ({
+          allPassed: true,
+          results: [],
+          stdout: "",
+        }),
+        onAwardInterviewXp: () => {},
+      }),
+    ),
+  );
+  assert.ok(lobbyText.includes("CART-08 · MOCK TECHNICAL INTERVIEW SIMULATOR"));
+  assert.ok(lobbyText.includes("25-Minute Engineering Interview Loops"));
+  assert.ok(lobbyText.includes("Junior Backend Loop: Stacks & Dedupe"));
+  assert.ok(lobbyText.includes("FREE TRY"));
+  assert.ok(lobbyText.includes("START 25:00 LOOP →"));
+  assert.ok(lobbyText.includes("UNLOCK PRO →"));
 });

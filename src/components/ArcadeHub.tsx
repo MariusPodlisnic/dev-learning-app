@@ -20,6 +20,11 @@ import {
 } from "../utils/arcadeRecords";
 import { readCompletedMiniBuilds } from "../utils/miniBuilds";
 import {
+  MOCK_INTERVIEW_LOOPS,
+  readMockInterviewRecords,
+  subscribeMockInterviewRecords,
+} from "../utils/mockInterview";
+import {
   readRefactorGolfRecords,
   REFACTOR_GOLF_HOLES,
   subscribeRefactorGolfRecords,
@@ -147,6 +152,20 @@ export const ARCADE_CARTRIDGES: readonly ArcadeCartridgeMeta[] = [
     highlightTag: "BIG-O GOLF",
     xpLabel: "+55–90 XP",
   },
+  {
+    id: "interview",
+    category: "sprints",
+    code: "CART-08",
+    title: "Mock Tech Interview",
+    shortTitle: "INTERVIEW",
+    tagline:
+      "Tackle a 25-minute realistic loop (1 Algo + 1 Systems round, no solution peeks) and earn a 100-pt Hiring Scorecard.",
+    durationBadge: "25 MIN · 2 ROUNDS",
+    icon: "briefcase",
+    accent: "#C4B5FD",
+    highlightTag: "PRO SIMULATOR",
+    xpLabel: "+110–160 XP",
+  },
 ] as const;
 
 interface ArcadeHubProps {
@@ -243,6 +262,9 @@ export default function ArcadeHub({
   const [refactorRecords, setRefactorRecords] = useState(() =>
     readRefactorGolfRecords(),
   );
+  const [interviewRecords, setInterviewRecords] = useState(() =>
+    readMockInterviewRecords(),
+  );
   const shippedMiniBuildsCount = useMemo(
     () => Object.values(readCompletedMiniBuilds()).filter(Boolean).length,
     [],
@@ -254,10 +276,12 @@ export default function ArcadeHub({
       setSavedSnippetCount(list.length),
     );
     const unsubRefactor = subscribeRefactorGolfRecords(setRefactorRecords);
+    const unsubInterview = subscribeMockInterviewRecords(setInterviewRecords);
     return () => {
       unsubRecords();
       unsubSnippets();
       unsubRefactor();
+      unsubInterview();
     };
   }, []);
 
@@ -306,6 +330,19 @@ export default function ArcadeHub({
       return cleared > 0
         ? `${cleared}/${REFACTOR_GOLF_HOLES.length} HOLES · ${eagles} EAGLES`
         : "6 HOLES · O(n²) → O(n) PAR";
+    }
+    if (cartId === "interview") {
+      const offers = Object.values(interviewRecords).filter(
+        (r) =>
+          r && (r.bestVerdict === "strong_hire" || r.bestVerdict === "hire"),
+      ).length;
+      const bestScore = Object.values(interviewRecords).reduce(
+        (acc, r) => (r ? Math.max(acc, r.bestScore) : acc),
+        0,
+      );
+      return offers > 0
+        ? `${offers}/${MOCK_INTERVIEW_LOOPS.length} OFFERS · BEST ${bestScore}/100`
+        : "4 LOOPS · ALGO + SYSTEMS";
     }
     return arcadeRecords.flashcardsMasteredTotal > 0
       ? `${arcadeRecords.flashcardsMasteredTotal} MASTERED · ${arcadeRecords.flashcardsRoundsCleared} ${arcadeRecords.flashcardsRoundsCleared === 1 ? "ROUND" : "ROUNDS"}`
