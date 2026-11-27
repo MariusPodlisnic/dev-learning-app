@@ -294,8 +294,8 @@ test("all local lessons, drills, and recaps have unique IDs, minimal starter stu
 
   assert.equal(
     pythonPayloads.length,
-    262,
-    `Expected all 262 local stages (105 lessons/recaps + 157 drills), got ${pythonPayloads.length}`,
+    275,
+    `Expected all 275 local stages (110 lessons/recaps + 165 drills), got ${pythonPayloads.length}`,
   );
 
   const outcomes = runPythonBatchedChecks(pythonPayloads);

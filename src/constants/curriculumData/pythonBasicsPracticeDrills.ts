@@ -1955,4 +1955,317 @@ __run_tests__()`,
       hints: ["Loop `for arg, exp in cases:`, wrap `if fn(arg) == exp: passed += 1` inside `try / except Exception: pass`."],
     },
   ],
+
+  // =========================================================================
+  // LESSON 29: SQL Foundations: SELECT, WHERE & ORDER BY
+  // =========================================================================
+  29: [
+    {
+      id: "py-29-d2",
+      title: "Practice 2/3: Top-N Leaderboard Slice (LIMIT)",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Given SQLite connection `con` with `players(handle TEXT, xp INTEGER)` and `limit_n`, complete `top_n_leaderboard(con, limit_n)` returning `(handle, xp)` tuples ordered by `xp DESC, handle ASC` capped at `LIMIT ?`.",
+      constraints: [
+        "Use `SELECT handle, xp FROM players ORDER BY xp DESC, handle ASC LIMIT ?` with `(limit_n,)`",
+      ],
+      examples: [
+        {
+          input: 'players=[("aria", 450), ("nova", 600), ("kai", 180)], limit_n=2',
+          output: "[('nova', 600), ('aria', 450)]",
+        },
+      ],
+      initial_code: `def top_n_leaderboard(con, limit_n):
+    pass`,
+      expected_output: "[('nova', 600), ('aria', 450)]",
+      hidden_tests: `import json, sqlite3
+def __run_tests__():
+    results = []
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE players (handle TEXT, xp INTEGER)")
+    con.executemany("INSERT INTO players VALUES (?, ?)", [("aria", 450), ("nova", 600), ("kai", 180), ("zed", 450)])
+    r1 = top_n_leaderboard(con, 2)
+    results.append({"id": 1, "input": "limit_n=2", "expected": "[('nova', 600), ('aria', 450)]", "actual": str(r1), "passed": r1 == [("nova", 600), ("aria", 450)]})
+    r2 = top_n_leaderboard(con, 3)
+    results.append({"id": 2, "input": "limit_n=3 (tie broken by handle)", "expected": "[('nova', 600), ('aria', 450), ('zed', 450)]", "actual": str(r2), "passed": r2 == [("nova", 600), ("aria", 450), ("zed", 450)]})
+    r3 = top_n_leaderboard(con, 0)
+    results.append({"id": 3, "input": "limit_n=0", "expected": "[]", "actual": str(r3), "passed": r3 == []})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: [
+        'Run `return con.execute("SELECT handle, xp FROM players ORDER BY xp DESC, handle ASC LIMIT ?", (limit_n,)).fetchall()`.',
+      ],
+    },
+    {
+      id: "py-29-d3",
+      title: "Practice 3/3: Range Filter with BETWEEN",
+      difficultyLabel: "EDGE-CASE DRILL",
+      assignment:
+        "Given SQLite connection `con` with `players(handle TEXT, xp INTEGER)`, complete `count_players_in_band(con, low_xp, high_xp)` returning the integer `COUNT(*)` of players with `xp BETWEEN ? AND ?` (inclusive).",
+      constraints: [
+        "Use `SELECT COUNT(*) FROM players WHERE xp BETWEEN ? AND ?` with `(low_xp, high_xp)`",
+      ],
+      examples: [
+        {
+          input: "players=[180, 450, 600], low_xp=200, high_xp=500",
+          output: "1",
+        },
+      ],
+      initial_code: `def count_players_in_band(con, low_xp, high_xp):
+    pass`,
+      expected_output: "1",
+      hidden_tests: `import json, sqlite3
+def __run_tests__():
+    results = []
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE players (handle TEXT, xp INTEGER)")
+    con.executemany("INSERT INTO players VALUES (?, ?)", [("a", 100), ("b", 250), ("c", 500), ("d", 800)])
+    r1 = count_players_in_band(con, 100, 500)
+    results.append({"id": 1, "input": "inclusive [100, 500]", "expected": "3", "actual": str(r1), "passed": r1 == 3})
+    r2 = count_players_in_band(con, 600, 700)
+    results.append({"id": 2, "input": "empty band [600, 700]", "expected": "0", "actual": str(r2), "passed": r2 == 0})
+    r3 = count_players_in_band(con, 800, 800)
+    results.append({"id": 3, "input": "exact boundary [800, 800]", "expected": "1", "actual": str(r3), "passed": r3 == 1})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: [
+        'Return `con.execute("SELECT COUNT(*) FROM players WHERE xp BETWEEN ? AND ?", (low_xp, high_xp)).fetchone()[0]`.',
+      ],
+    },
+  ],
+
+  // =========================================================================
+  // LESSON 30: Parameterized SQL: Injection-Safe Account Lookup
+  // =========================================================================
+  30: [
+    {
+      id: "py-30-d2",
+      title: "Practice 2/3: Safe Parameterized INSERT",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Given `con` with `notes(author TEXT, body TEXT)`, complete `insert_safe_note(con, author, body)` using `INSERT INTO notes VALUES (?, ?)` and return the updated total row count (`SELECT COUNT(*) FROM notes`).",
+      constraints: [
+        "Bind `(author, body)` safely with `(?, ?)` so quotes or semicolons in `body` never break SQL",
+      ],
+      examples: [
+        {
+          input: 'author="aria", body="It\'s live!; DROP TABLE notes;--"',
+          output: "1",
+        },
+      ],
+      initial_code: `def insert_safe_note(con, author, body):
+    pass`,
+      expected_output: "1",
+      hidden_tests: `import json, sqlite3
+def __run_tests__():
+    results = []
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE notes (author TEXT, body TEXT)")
+    r1 = insert_safe_note(con, "aria", "It's live!; DROP TABLE notes;--")
+    saved = con.execute("SELECT body FROM notes").fetchone()
+    results.append({"id": 1, "input": "quotes & DROP TABLE stored literally", "expected": "1", "actual": str(r1), "passed": r1 == 1 and saved == ("It's live!; DROP TABLE notes;--",)})
+    r2 = insert_safe_note(con, "nova", "shipped")
+    results.append({"id": 2, "input": "second insert increments count", "expected": "2", "actual": str(r2), "passed": r2 == 2})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: [
+        'Call `con.execute("INSERT INTO notes VALUES (?, ?)", (author, body))` and return `con.execute("SELECT COUNT(*) FROM notes").fetchone()[0]`.',
+      ],
+    },
+    {
+      id: "py-30-d3",
+      title: "Practice 3/3: Safe Tier Upgrade (cursor.rowcount)",
+      difficultyLabel: "APPLIED CHALLENGE",
+      assignment:
+        "Given `con` with `accounts(email TEXT PRIMARY KEY, tier TEXT)`, complete `upgrade_account_tier(con, email, new_tier)` running a parameterized `UPDATE` and returning `True` if exactly 1 row matched (`cur.rowcount == 1`), else `False`.",
+      constraints: [
+        "Use `cur = con.execute('UPDATE accounts SET tier = ? WHERE email = ?', (new_tier, email))`",
+      ],
+      examples: [
+        {
+          input: 'email="kai@devy.app", new_tier="pro"',
+          output: "True",
+        },
+      ],
+      initial_code: `def upgrade_account_tier(con, email, new_tier):
+    pass`,
+      expected_output: "True",
+      hidden_tests: `import json, sqlite3
+def __run_tests__():
+    results = []
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE accounts (email TEXT PRIMARY KEY, tier TEXT)")
+    con.executemany("INSERT INTO accounts VALUES (?, ?)", [("kai@devy.app", "free"), ("aria@devy.app", "free")])
+    r1 = upgrade_account_tier(con, "kai@devy.app", "pro")
+    tier_kai = con.execute("SELECT tier FROM accounts WHERE email = 'kai@devy.app'").fetchone()[0]
+    results.append({"id": 1, "input": "existing email updated", "expected": "True", "actual": str(r1), "passed": r1 is True and tier_kai == "pro"})
+    r2 = upgrade_account_tier(con, "' OR '1'='1", "staff")
+    tier_aria = con.execute("SELECT tier FROM accounts WHERE email = 'aria@devy.app'").fetchone()[0]
+    results.append({"id": 2, "input": "injection attempt updates 0 rows", "expected": "False", "actual": str(r2), "passed": r2 is False and tier_aria == "free"})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: [
+        'Run `cur = con.execute("UPDATE accounts SET tier = ? WHERE email = ?", (new_tier, email))` and `return cur.rowcount == 1`.',
+      ],
+    },
+  ],
+
+  // =========================================================================
+  // LESSON 31: SQL Analytics: GROUP BY, SUM & HAVING
+  // =========================================================================
+  31: [
+    {
+      id: "py-31-d2",
+      title: "Practice 2/3: Order Count Breakdown by Status",
+      difficultyLabel: "PRACTICE DRILL",
+      assignment:
+        "Given `con` with `orders(category TEXT, cents INTEGER, status TEXT)`, complete `count_orders_by_status(con)` returning a Python dict `{status: count}` across all statuses using `GROUP BY status`.",
+      constraints: [
+        "Use `SELECT status, COUNT(*) FROM orders GROUP BY status` and convert rows with `dict(rows)`",
+      ],
+      examples: [
+        {
+          input: "2 paid, 1 refunded",
+          output: "{'paid': 2, 'refunded': 1}",
+        },
+      ],
+      initial_code: `def count_orders_by_status(con):
+    pass`,
+      expected_output: "{'paid': 2, 'refunded': 1}",
+      hidden_tests: `import json, sqlite3
+def __run_tests__():
+    results = []
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE orders (category TEXT, cents INTEGER, status TEXT)")
+    con.executemany("INSERT INTO orders VALUES (?, ?, ?)", [("pro", 3900, "paid"), ("pro", 2400, "paid"), ("merch", 500, "refunded")])
+    r1 = count_orders_by_status(con)
+    results.append({"id": 1, "input": "2 paid, 1 refunded", "expected": "{'paid': 2, 'refunded': 1}", "actual": str(r1), "passed": r1 == {"paid": 2, "refunded": 1}})
+    con2 = sqlite3.connect(":memory:")
+    con2.execute("CREATE TABLE orders (category TEXT, cents INTEGER, status TEXT)")
+    r2 = count_orders_by_status(con2)
+    results.append({"id": 2, "input": "empty table", "expected": "{}", "actual": str(r2), "passed": r2 == {}})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: [
+        'Run `rows = con.execute("SELECT status, COUNT(*) FROM orders GROUP BY status").fetchall()` and `return dict(rows)`.',
+      ],
+    },
+    {
+      id: "py-31-d3",
+      title: "Practice 3/3: Slowest Endpoints with AVG & HAVING",
+      difficultyLabel: "APPLIED CHALLENGE",
+      assignment:
+        "Given `con` with `logs(route TEXT, latency_ms INTEGER)` and `min_avg_ms`, complete `slow_routes(con, min_avg_ms)` returning `route` strings whose `AVG(latency_ms) >= min_avg_ms`, ordered by `AVG(latency_ms) DESC, route ASC`.",
+      constraints: [
+        "Group by `route`, filter with `HAVING AVG(latency_ms) >= ?`, and return `[r[0] for r in rows]`",
+      ],
+      examples: [
+        {
+          input: "/search avg 140ms, /health avg 12ms, min_avg_ms=100",
+          output: "['/search']",
+        },
+      ],
+      initial_code: `def slow_routes(con, min_avg_ms):
+    pass`,
+      expected_output: "['/search']",
+      hidden_tests: `import json, sqlite3
+def __run_tests__():
+    results = []
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE logs (route TEXT, latency_ms INTEGER)")
+    con.executemany("INSERT INTO logs VALUES (?, ?)", [("/search", 120), ("/search", 160), ("/health", 12), ("/export", 250)])
+    r1 = slow_routes(con, 100)
+    results.append({"id": 1, "input": "min_avg_ms=100", "expected": "['/export', '/search']", "actual": str(r1), "passed": r1 == ["/export", "/search"]})
+    r2 = slow_routes(con, 300)
+    results.append({"id": 2, "input": "min_avg_ms=300", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: [
+        'Query `SELECT route FROM logs GROUP BY route HAVING AVG(latency_ms) >= ? ORDER BY AVG(latency_ms) DESC, route ASC` and unpack `[r[0] for r in rows]`.',
+      ],
+    },
+  ],
+
+  // =========================================================================
+  // LESSON 32: Relational Schemas: INNER JOIN Across Tables
+  // =========================================================================
+  32: [
+    {
+      id: "py-32-d2",
+      title: "Practice 2/3: LEFT JOIN + COALESCE Spend Rollup",
+      difficultyLabel: "APPLIED CHALLENGE",
+      assignment:
+        "Given `con` with `users(id INTEGER PRIMARY KEY, handle TEXT)` and `purchases(user_id INTEGER, cents INTEGER)`, complete `spend_per_user(con)` returning `(handle, total_cents)` for EVERY user (including `0` for users with zero purchases), ordered by `total_cents DESC, handle ASC`.",
+      constraints: [
+        "Use `LEFT JOIN purchases p ON p.user_id = u.id` and `COALESCE(SUM(p.cents), 0)` with `GROUP BY u.id`",
+      ],
+      examples: [
+        {
+          input: "aria spent 3900; kai has 0 purchases",
+          output: "[('aria', 3900), ('kai', 0)]",
+        },
+      ],
+      initial_code: `def spend_per_user(con):
+    pass`,
+      expected_output: "[('aria', 3900), ('kai', 0)]",
+      hidden_tests: `import json, sqlite3
+def __run_tests__():
+    results = []
+    con = sqlite3.connect(":memory:")
+    con.executescript("CREATE TABLE users (id INTEGER PRIMARY KEY, handle TEXT); CREATE TABLE purchases (user_id INTEGER, cents INTEGER);")
+    con.executemany("INSERT INTO users VALUES (?, ?)", [(1, "aria"), (2, "kai"), (3, "nova")])
+    con.executemany("INSERT INTO purchases VALUES (?, ?)", [(1, 1500), (1, 2400), (3, 900)])
+    r1 = spend_per_user(con)
+    exp1 = [("aria", 3900), ("nova", 900), ("kai", 0)]
+    results.append({"id": 1, "input": "includes 0-spend user via LEFT JOIN", "expected": str(exp1), "actual": str(r1), "passed": r1 == exp1})
+    con2 = sqlite3.connect(":memory:")
+    con2.executescript("CREATE TABLE users (id INTEGER PRIMARY KEY, handle TEXT); CREATE TABLE purchases (user_id INTEGER, cents INTEGER);")
+    r2 = spend_per_user(con2)
+    results.append({"id": 2, "input": "empty users table", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: [
+        'Use `SELECT u.handle, COALESCE(SUM(p.cents), 0) AS total FROM users u LEFT JOIN purchases p ON p.user_id = u.id GROUP BY u.id ORDER BY total DESC, u.handle ASC`.',
+      ],
+    },
+    {
+      id: "py-32-d3",
+      title: "Practice 3/3: Foreign-Key Index + Filtered Join",
+      difficultyLabel: "BOSS GAUNTLET",
+      assignment:
+        "Given `con` with `users(id INTEGER PRIMARY KEY, handle TEXT)` and `purchases(user_id INTEGER, item TEXT, cents INTEGER)`, complete `indexed_user_items(con, target_handle)`: create index `idx_purchases_user` on `purchases(user_id)` (`IF NOT EXISTS`), then return `[item, ...]` ordered by `cents DESC` for `target_handle`.",
+      constraints: [
+        "Run `CREATE INDEX IF NOT EXISTS idx_purchases_user ON purchases(user_id)` on `con`",
+        "Join `users` and `purchases` with parameterized `WHERE u.handle = ?`",
+      ],
+      examples: [
+        {
+          input: 'target_handle="aria" -> lifetime(3900), pack(500)',
+          output: "['lifetime', 'pack']",
+        },
+      ],
+      initial_code: `def indexed_user_items(con, target_handle):
+    pass`,
+      expected_output: "['lifetime', 'pack']",
+      hidden_tests: `import json, sqlite3
+def __run_tests__():
+    results = []
+    con = sqlite3.connect(":memory:")
+    con.executescript("CREATE TABLE users (id INTEGER PRIMARY KEY, handle TEXT); CREATE TABLE purchases (user_id INTEGER, item TEXT, cents INTEGER);")
+    con.executemany("INSERT INTO users VALUES (?, ?)", [(1, "aria"), (2, "kai")])
+    con.executemany("INSERT INTO purchases VALUES (?, ?, ?)", [(1, "pack", 500), (1, "lifetime", 3900), (2, "hat", 900)])
+    r1 = indexed_user_items(con, "aria")
+    idx_rows = con.execute("PRAGMA index_list('purchases')").fetchall()
+    has_idx = any("idx_purchases_user" in row for row in idx_rows)
+    results.append({"id": 1, "input": "creates index & returns aria's items", "expected": "(['lifetime', 'pack'], True)", "actual": str((r1, has_idx)), "passed": r1 == ["lifetime", "pack"] and has_idx})
+    r2 = indexed_user_items(con, "nobody")
+    results.append({"id": 2, "input": "idempotent IF NOT EXISTS + unknown user", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    return json.dumps({"is_test_suite": True, "all_passed": all(r["passed"] for r in results), "results": results})
+__run_tests__()`,
+      hints: [
+        'First call `con.execute("CREATE INDEX IF NOT EXISTS idx_purchases_user ON purchases(user_id)")`.',
+        'Then run `SELECT p.item FROM users u INNER JOIN purchases p ON p.user_id = u.id WHERE u.handle = ? ORDER BY p.cents DESC` with `(target_handle,)`.',
+      ],
+    },
+  ],
 };

@@ -122,6 +122,15 @@ export const TRACK_CHAPTERS: Record<string, ChapterTierMeta[]> = {
       minOrder: 25,
       maxOrder: 28,
     },
+    {
+      id: 8,
+      roman: "VIII",
+      title: "SQL & Relational Databases (sqlite3)",
+      subtitle:
+        "SELECT/WHERE queries, SQL injection guards, GROUP BY analytics, JOINs, and transactions",
+      minOrder: 29,
+      maxOrder: 32,
+    },
   ],
   algorithms: [
     {

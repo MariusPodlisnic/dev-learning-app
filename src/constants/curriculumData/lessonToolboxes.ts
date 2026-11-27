@@ -1002,6 +1002,108 @@ const PYTHON_BASICS_TOOLBOXES: LessonToolboxEntry[] = [
       },
     ],
   },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 29,
+    tools: [
+      {
+        toolName: "con.execute(sql, params).fetchall() — SQLite Query Runner",
+        badge: "SQLITE3",
+        purpose:
+          "Executes a SELECT query with bound parameters and returns matching rows as a list of Python tuples.",
+        syntaxPattern: 'rows = con.execute("SELECT col FROM tbl WHERE x >= ? ORDER BY x DESC", (val,)).fetchall()',
+        variations: [
+          {
+            label: "1. Filter & sort rows",
+            code: 'rows = con.execute("SELECT name FROM items WHERE price >= ? ORDER BY price DESC", (10,)).fetchall()',
+            output: "[('Sword',), ('Shield',)]",
+            note: "Each row is a tuple, even when selecting 1 column.",
+          },
+          {
+            label: "2. Unpack 1-column tuples into strings",
+            code: "names = [r[0] for r in rows]",
+            output: "['Sword', 'Shield']",
+            note: "List comprehension extracts index 0 from each row tuple.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 30,
+    tools: [
+      {
+        toolName: "? Placeholders & .fetchone() — SQL Injection Guard",
+        badge: "SQL SECURITY",
+        purpose:
+          "Binds untrusted user input as literal data values so SQL injection strings can never alter query logic.",
+        syntaxPattern: 'row = con.execute("SELECT role FROM users WHERE email = ?", (email,)).fetchone()',
+        variations: [
+          {
+            label: "1. Single bound parameter (trailing comma!)",
+            code: 'row = con.execute("SELECT role FROM users WHERE email = ?", (email,)).fetchone()',
+            output: "('pro',) or None",
+            note: ".fetchone() returns a single tuple when matched, or None when 0 rows match.",
+          },
+          {
+            label: "2. Fallback when row is None",
+            code: 'role = row[0] if row else "NOT_FOUND"',
+            output: "'pro' or 'NOT_FOUND'",
+            note: "Always check `if row:` before indexing `row[0]`.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 31,
+    tools: [
+      {
+        toolName: "GROUP BY + SUM() + HAVING — SQL Aggregations",
+        badge: "SQL ANALYTICS",
+        purpose:
+          "Buckets rows by a column, computes per-bucket totals, and filters aggregated buckets.",
+        syntaxPattern: "SELECT cat, SUM(cents) FROM orders WHERE status='paid' GROUP BY cat HAVING SUM(cents) >= ?",
+        variations: [
+          {
+            label: "1. WHERE vs HAVING order",
+            code: "WHERE status = 'paid' GROUP BY category HAVING SUM(cents) >= ?",
+            output: "[('pro', 7900)]",
+            note: "WHERE filters raw rows first; HAVING filters summed buckets after GROUP BY.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 32,
+    tools: [
+      {
+        toolName: "INNER JOIN & LEFT JOIN — Relational Queries",
+        badge: "SQL JOINS",
+        purpose:
+          "Links foreign keys (`purchases.user_id`) to primary keys (`users.id`) across normalized tables.",
+        syntaxPattern: "FROM users u INNER JOIN purchases p ON p.user_id = u.id",
+        variations: [
+          {
+            label: "1. INNER JOIN (matched rows only)",
+            code: "SELECT u.handle, p.item FROM users u INNER JOIN purchases p ON p.user_id = u.id",
+            output: "[('aria', 'lifetime')]",
+            note: "Excludes users who have zero matching rows in purchases.",
+          },
+          {
+            label: "2. LEFT JOIN + COALESCE (keep 0-row users)",
+            code: "SELECT u.handle, COALESCE(SUM(p.cents), 0) FROM users u LEFT JOIN purchases p ON p.user_id = u.id GROUP BY u.id",
+            output: "[('aria', 3900), ('kai', 0)]",
+            note: "COALESCE turns NULL sums into 0 for users without purchases.",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export const LESSON_TOOLBOXES: LessonToolboxEntry[] = [

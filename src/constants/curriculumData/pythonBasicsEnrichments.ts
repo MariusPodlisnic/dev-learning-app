@@ -1239,4 +1239,238 @@ def extract_error_codes(log_text):
         "`*args, **kwargs` transparently forwards whatever arguments the caller passes into the wrapped `fn`.",
     },
   },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 29,
+    matchKeywords: ["sql foundations", "query_top_players", "order by"],
+    realWorldUse:
+      "Every leaderboard, dashboard feed, and filtered user list translates directly into `SELECT ... WHERE ... ORDER BY`.",
+    analogyTitle: "Spreadsheet Filter + Sort in One Sentence",
+    analogyText:
+      "`WHERE` acts like hiding rows below a threshold, `ORDER BY ... DESC` sorts highest-first, and `SELECT handle` picks just the column you need.",
+    cheatSheet: `rows = con.execute(
+    "SELECT title FROM quests WHERE coins >= ? ORDER BY coins DESC, title ASC",
+    (min_coins,),
+).fetchall()
+titles = [r[0] for r in rows]`,
+    commonPitfall: {
+      title: "Returning raw 1-tuple rows `[('nova',)]` instead of strings `['nova']`",
+      wrongCode:
+        "return con.execute(sql, (min_xp,)).fetchall()  # [('nova',), ('aria',)]",
+      rightCode:
+        "rows = con.execute(sql, (min_xp,)).fetchall()\nreturn [r[0] for r in rows]  # ['nova', 'aria']",
+      explanation:
+        "SQLite always returns each row as a tuple — unpack `r[0]` when you want a flat list of single column values.",
+    },
+    solutionCode: `import sqlite3
+
+def query_top_players(con, min_xp):
+    rows = con.execute(
+        "SELECT handle FROM players WHERE xp >= ? ORDER BY xp DESC, handle ASC",
+        (min_xp,),
+    ).fetchall()
+    return [row[0] for row in rows]
+
+_db = sqlite3.connect(":memory:")
+_db.execute("CREATE TABLE players (handle TEXT, xp INTEGER)")
+_db.executemany("INSERT INTO players VALUES (?, ?)", [("aria", 450), ("nova", 600)])
+print(query_top_players(_db, 300))`,
+    proInsights: {
+      timeComplexity: "O(n log n) unindexed / O(log n + k) indexed",
+      spaceComplexity: "O(k) matching rows",
+      tradeoff:
+        "Filtering and sorting inside SQLite's C engine avoids pulling thousands of discarded rows into Python objects.",
+    },
+    quiz: {
+      question:
+        "What shape does `con.execute('SELECT handle FROM players').fetchall()` return in Python `sqlite3`?",
+      options: [
+        "A list of 1-element tuples like `[('nova',), ('aria',)]`",
+        "A comma-separated string `'nova,aria'`",
+        "A single integer row count",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Every row returned by `.fetchall()` is a tuple of its selected columns, even when selecting 1 column.",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 30,
+    matchKeywords: ["parameterized sql", "find_account_tier", "injection"],
+    realWorldUse:
+      "OWASP's #1 classic database defense: parameterized queries completely neutralize SQL injection in login, search, and billing APIs.",
+    analogyTitle: "Locked Cargo Box vs Editable Blueprint",
+    analogyText:
+      "String interpolation lets an attacker scribble new SQL commands onto the blueprint. A `?` placeholder locks user text inside a sealed data box.",
+    cheatSheet: `row = con.execute(
+    "SELECT role FROM members WHERE username = ?",
+    (username,),
+).fetchone()
+role = row[0] if row else "GUEST"`,
+    commonPitfall: {
+      title: "Forgetting the trailing comma on a 1-item parameter tuple `(email,)`",
+      wrongCode:
+        'con.execute("SELECT tier FROM accounts WHERE email = ?", (email))',
+      rightCode:
+        'con.execute("SELECT tier FROM accounts WHERE email = ?", (email,))',
+      explanation:
+        "In Python, `(email)` is just parentheses around a string, so SQLite tries to bind every character separately (`ProgrammingError`). Add the comma `(email,)`!",
+    },
+    solutionCode: `import sqlite3
+
+def find_account_tier(con, email):
+    row = con.execute(
+        "SELECT tier FROM accounts WHERE email = ?",
+        (email,),
+    ).fetchone()
+    return row[0] if row is not None else "NOT_FOUND"
+
+_db = sqlite3.connect(":memory:")
+_db.execute("CREATE TABLE accounts (email TEXT PRIMARY KEY, tier TEXT)")
+_db.execute("INSERT INTO accounts VALUES ('aria@devy.app', 'pro')")
+print(find_account_tier(_db, "aria@devy.app"))`,
+    proInsights: {
+      timeComplexity: "O(log n) B-Tree PRIMARY KEY lookup",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Prepared `?` bindings both eliminate SQL injection and allow SQLite to reuse query parse plans.",
+    },
+    quiz: {
+      question:
+        "Why does `find_account_tier(con, \"' OR '1'='1\")` safely return `'NOT_FOUND'` when `?` parameter binding is used?",
+      options: [
+        "SQLite compiles the SQL structure first and compares the `email` column literally against the string `\"' OR '1'='1\"`",
+        "SQLite automatically deletes single quotes from strings",
+        "`.fetchone()` ignores `OR` keywords",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Bound parameters never alter the parsed SQL AST — they are compared purely as literal column data.",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 31,
+    matchKeywords: ["group by", "having", "high_revenue_categories"],
+    realWorldUse:
+      "Stripe revenue dashboards, usage billing rollups, and telemetry alerts rely on `WHERE` + `GROUP BY` + `HAVING`.",
+    analogyTitle: "Sort Mail Into Bins, Then Weigh Each Bin",
+    analogyText:
+      "`WHERE status = 'paid'` tosses unpaid envelopes first; `GROUP BY category` drops paid orders into labeled bins; `HAVING SUM(cents) >= ?` keeps only bins heavy enough.",
+    cheatSheet: `sql = """
+    SELECT region, SUM(units) AS total_units
+    FROM shipments
+    WHERE delivered = 1
+    GROUP BY region
+    HAVING SUM(units) >= ?
+    ORDER BY total_units DESC, region ASC
+"""
+rows = con.execute(sql, (min_units,)).fetchall()`,
+    commonPitfall: {
+      title: "Putting aggregate functions like `SUM(cents)` inside `WHERE` instead of `HAVING`",
+      wrongCode:
+        "WHERE status = 'paid' AND SUM(cents) >= ?  # OperationalError: misuse of aggregate!",
+      rightCode:
+        "WHERE status = 'paid' GROUP BY category HAVING SUM(cents) >= ?",
+      explanation:
+        "`WHERE` runs row-by-row *before* buckets exist; `HAVING` filters bucket totals *after* `GROUP BY`.",
+    },
+    solutionCode: `import sqlite3
+
+def high_revenue_categories(con, min_cents):
+    sql = """
+        SELECT category, SUM(cents) AS total_cents
+        FROM orders
+        WHERE status = 'paid'
+        GROUP BY category
+        HAVING SUM(cents) >= ?
+        ORDER BY total_cents DESC, category ASC
+    """
+    return con.execute(sql, (min_cents,)).fetchall()
+
+_db = sqlite3.connect(":memory:")
+_db.execute("CREATE TABLE orders (category TEXT, cents INTEGER, status TEXT)")
+_db.executemany("INSERT INTO orders VALUES (?, ?, ?)", [("pro", 3900, "paid"), ("merch", 500, "paid")])
+print(high_revenue_categories(_db, 1000))`,
+    proInsights: {
+      timeComplexity: "O(n + k log k)",
+      spaceComplexity: "O(k) distinct categories",
+      tradeoff:
+        "Filtering `status = 'paid'` in `WHERE` shrinks the dataset before grouping, saving hash/sort work.",
+    },
+    quiz: {
+      question: "What is the key difference between `WHERE` and `HAVING` in SQL?",
+      options: [
+        "`WHERE` filters individual rows before `GROUP BY`, while `HAVING` filters aggregated groups after `GROUP BY`",
+        "`HAVING` only works on text columns",
+        "`WHERE` runs after `ORDER BY`",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Row predicates belong in `WHERE`; aggregate predicates (`SUM`, `COUNT`, `AVG`) belong in `HAVING`.",
+    },
+  },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 32,
+    matchKeywords: ["inner join", "list_pro_purchases", "relational"],
+    realWorldUse:
+      "Production apps store users in one table and orders/events in another, joining them on `user_id = users.id` without duplicating profile fields.",
+    analogyTitle: "Matching Coat-Check Tickets to Guest Badges",
+    analogyText:
+      "Each row in `purchases` holds a numeric `user_id` ticket. `INNER JOIN users u ON p.user_id = u.id` pairs each purchase with its owner's profile row.",
+    cheatSheet: `sql = """
+    SELECT t.slug, m.role
+    FROM teams t
+    INNER JOIN memberships m ON m.team_id = t.id
+    WHERE t.active = 1
+    ORDER BY t.slug ASC
+"""
+rows = con.execute(sql).fetchall()`,
+    commonPitfall: {
+      title: "Omitting the `ON p.user_id = u.id` join condition (accidental Cartesian product)",
+      wrongCode:
+        "SELECT u.handle, p.item FROM users u JOIN purchases p WHERE u.is_pro = 1",
+      rightCode:
+        "SELECT u.handle, p.item FROM users u INNER JOIN purchases p ON p.user_id = u.id WHERE u.is_pro = 1",
+      explanation:
+        "Without `ON p.user_id = u.id`, SQL pairs *every* user with *every* purchase (`N × M` cross join)!",
+    },
+    solutionCode: `import sqlite3
+
+def list_pro_purchases(con):
+    sql = """
+        SELECT u.handle, p.item, p.cents
+        FROM users u
+        INNER JOIN purchases p ON p.user_id = u.id
+        WHERE u.is_pro = 1
+        ORDER BY p.cents DESC, u.handle ASC
+    """
+    return con.execute(sql).fetchall()
+
+_db = sqlite3.connect(":memory:")
+_db.executescript("CREATE TABLE users (id INTEGER PRIMARY KEY, handle TEXT, is_pro INTEGER); CREATE TABLE purchases (user_id INTEGER, item TEXT, cents INTEGER);")
+_db.execute("INSERT INTO users VALUES (1, 'aria', 1)")
+_db.execute("INSERT INTO purchases VALUES (1, 'lifetime', 3900)")
+print(list_pro_purchases(_db))`,
+    proInsights: {
+      timeComplexity: "O(m log n) with PRIMARY KEY index on `users.id`",
+      spaceComplexity: "O(k) result rows",
+      tradeoff:
+        "`INNER JOIN` omits users with zero purchases; use `LEFT JOIN` when you also want `0`-order rows included.",
+    },
+    quiz: {
+      question:
+        "What happens to a Pro user in `users` who has `0` rows in `purchases` when using `INNER JOIN`?",
+      options: [
+        "They do not appear in the result because `INNER JOIN` requires a matching row on both sides",
+        "SQLite raises an `IntegrityError`",
+        "They appear with `cents = -1`",
+      ],
+      correctIndex: 0,
+      explanation:
+        "`INNER JOIN` emits rows only when the join predicate (`p.user_id = u.id`) matches in both tables.",
+    },
+  },
 ];

@@ -1412,6 +1412,7 @@ test("ArcadeHub and ArcadeSubNavBar render cozy retro cartridge shelf and quick 
   assert.ok(scratchpadText.includes("ASCII BOX"));
   assert.ok(scratchpadText.includes("DICE SIM"));
   assert.ok(scratchpadText.includes("ALGO BENCH"));
+  assert.ok(scratchpadText.includes("SQLITE DB"));
   assert.ok(scratchpadText.includes("RUN PLAYGROUND"));
   assert.ok(scratchpadText.includes("SAVED SNIPPETS"));
 });
@@ -1601,7 +1602,7 @@ test("ConstellationCodexModal renders illumination meter, track filters, highlig
     ),
   );
   assert.ok(codexText.includes("Constellation Field Guide"));
-  assert.ok(codexText.includes("2 / 22 ILLUMINATED"));
+  assert.ok(codexText.includes("2 / 23 ILLUMINATED"));
   assert.ok(codexText.includes("Variables, Types & F-Strings"));
   assert.ok(codexText.includes("+ APPEND TO EDITOR"));
   assert.ok(codexText.includes("KEY INVARIANT"));

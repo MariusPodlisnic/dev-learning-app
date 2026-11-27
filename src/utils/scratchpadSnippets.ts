@@ -5,7 +5,8 @@ export type ScratchpadTemplateId =
   | "ascii_art"
   | "dice_sim"
   | "algo_bench"
-  | "json_api";
+  | "json_api"
+  | "sql_explorer";
 
 export interface ScratchpadTemplate {
   id: ScratchpadTemplateId;
@@ -120,6 +121,32 @@ for ev in events:
 for route, times in sorted(totals.items()):
     avg = sum(times) / len(times)
     print(f"{route:10s} -> calls={len(times)} avg={avg:.1f}ms")`,
+  },
+  {
+    id: "sql_explorer",
+    title: "SQLite Relational Lab",
+    shortLabel: "SQLITE DB",
+    description: "Run real in-memory SQL tables, JOINs, and GROUP BY queries in Python.",
+    code: `import sqlite3
+
+con = sqlite3.connect(":memory:")
+con.executescript("""
+CREATE TABLE devs (id INTEGER PRIMARY KEY, handle TEXT, plan TEXT);
+CREATE TABLE solves (dev_id INTEGER, xp INTEGER);
+INSERT INTO devs VALUES (1, 'aria', 'pro'), (2, 'kai', 'free'), (3, 'nova', 'pro');
+INSERT INTO solves VALUES (1, 120), (1, 80), (2, 60), (3, 150);
+""")
+
+rows = con.execute("""
+    SELECT d.handle, d.plan, SUM(s.xp) AS total_xp
+    FROM devs d
+    INNER JOIN solves s ON s.dev_id = d.id
+    GROUP BY d.id
+    ORDER BY total_xp DESC
+""").fetchall()
+
+for handle, plan, total_xp in rows:
+    print(f"{handle:<6} [{plan.upper():<4}] -> {total_xp} XP")`,
   },
 ] as const;
 

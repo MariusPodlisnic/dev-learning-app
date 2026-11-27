@@ -1263,4 +1263,69 @@ __run_tests__()`,
       'Compute `expected = hmac.new(secret.encode(), f"{timestamp}.{payload}".encode(), hashlib.sha256).hexdigest()` and check `if not hmac.compare_digest(expected, sig_hex): return ("REJECTED", "BAD_SIG")`.',
     ],
   },
+  {
+    id: "py-recap-ch8",
+    title: "Chapter VIII SQL Recap: Atomic Wallet Transfer Ledger",
+    track: "python_basics",
+    category: "🏆 CHAPTER VIII RECAP",
+    difficulty: "Hard",
+    tree_row: 1008,
+    lesson_order: 108,
+    is_free: false,
+    is_recap: true,
+    recap_chapter: 8,
+    recap_topics: ["SELECT & WHERE", "? Placeholders", "UPDATE", "Atomic Validation"],
+    description:
+      "Conclusive Chapter VIII SQL capstone: validate wallet accounts and balances in SQLite and execute an atomic debit + credit transfer safely.",
+    content:
+      "Welcome to the **Chapter VIII SQL Boss Challenge**!\n\nReal banking and credit ledgers must never debit a sender if the receiver doesn't exist or if funds are insufficient:\n1. Reject invalid `amount <= 0` immediately as `(False, 'INVALID_AMOUNT')`.\n2. Query both `from_id` and `to_id` from `wallets(id TEXT PRIMARY KEY, balance INTEGER)` using `?` placeholders; if either row is missing, return `(False, 'MISSING_WALLET')`.\n3. If sender's `balance < amount`, return `(False, 'INSUFFICIENT_FUNDS')` without changing any row.\n4. Otherwise debit `from_id`, credit `to_id`, `con.commit()`, and return `(True, new_sender_balance)`!\n\n```python\n# Sibling pattern: atomic inventory move between warehouses\ndef move_stock_sql(con, src, dst, qty):\n    s_row = con.execute(\"SELECT units FROM stock WHERE wh = ?\", (src,)).fetchone()\n    d_row = con.execute(\"SELECT units FROM stock WHERE wh = ?\", (dst,)).fetchone()\n    if not s_row or not d_row or s_row[0] < qty:\n        return False\n    con.execute(\"UPDATE stock SET units = units - ? WHERE wh = ?\", (qty, src))\n    con.execute(\"UPDATE stock SET units = units + ? WHERE wh = ?\", (qty, dst))\n    con.commit()\n    return True\n```",
+    assignment:
+      "Given SQLite connection `con` with `wallets(id TEXT PRIMARY KEY, balance INTEGER)`, complete `transfer_wallet_funds(con, from_id, to_id, amount)` returning `(True, new_sender_balance)` on success, or `(False, reason)` (`'INVALID_AMOUNT'`, `'MISSING_WALLET'`, or `'INSUFFICIENT_FUNDS'`) with zero balance mutations on failure.",
+    constraints: [
+      "Return `(False, 'INVALID_AMOUNT')` if `amount <= 0`",
+      "Use parameterized `?` queries to verify both `from_id` and `to_id` exist (`'MISSING_WALLET'` if either is missing)",
+      "Return `(False, 'INSUFFICIENT_FUNDS')` if sender balance `< amount`; otherwise update both wallets, commit, and return `(True, updated_sender_balance)`",
+    ],
+    examples: [
+      {
+        input: "aria=500, nova=100; transfer(con, 'aria', 'nova', 150)",
+        output: "(True, 350)  # aria=350, nova=250",
+        explanation:
+          "Both wallets exist and 500 >= 150, so aria is debited 150 and nova is credited 150.",
+      },
+    ],
+    complexities: { time: "O(log n)", space: "O(1)" },
+    initial_code: `def transfer_wallet_funds(con, from_id, to_id, amount):
+    pass`,
+    expected_output: "(True, 350)",
+    hidden_tests: `import json, sqlite3
+def __run_tests__():
+    results = []
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE wallets (id TEXT PRIMARY KEY, balance INTEGER)")
+    con.executemany("INSERT INTO wallets VALUES (?, ?)", [("aria", 500), ("nova", 100)])
+    r1 = transfer_wallet_funds(con, "aria", "nova", 150)
+    bals1 = dict(con.execute("SELECT id, balance FROM wallets").fetchall())
+    results.append({"id": 1, "input": "valid transfer 150", "expected": "(True, 350)", "actual": str(r1), "passed": r1 == (True, 350) and bals1 == {"aria": 350, "nova": 250}})
+    r2 = transfer_wallet_funds(con, "aria", "nova", 900)
+    bals2 = dict(con.execute("SELECT id, balance FROM wallets").fetchall())
+    results.append({"id": 2, "input": "insufficient funds leaves balances untouched", "expected": "(False, 'INSUFFICIENT_FUNDS')", "actual": str(r2), "passed": r2 == (False, "INSUFFICIENT_FUNDS") and bals2 == {"aria": 350, "nova": 250}})
+    r3 = transfer_wallet_funds(con, "aria", "ghost", 50)
+    bals3 = dict(con.execute("SELECT id, balance FROM wallets").fetchall())
+    results.append({"id": 3, "input": "missing receiver leaves sender untouched", "expected": "(False, 'MISSING_WALLET')", "actual": str(r3), "passed": r3 == (False, "MISSING_WALLET") and bals3 == {"aria": 350, "nova": 250}})
+    r4 = transfer_wallet_funds(con, "aria", "nova", 0)
+    results.append({"id": 4, "input": "non-positive amount rejected", "expected": "(False, 'INVALID_AMOUNT')", "actual": str(r4), "passed": r4 == (False, "INVALID_AMOUNT")})
+    return json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results})
+__run_tests__()`,
+    visual_type: "memory",
+    visual_data: [
+      { label: "SELECT balances", value: "aria=500, nova=100 (>= 150 ✓)", type: "sql", address: "check" },
+      { label: "UPDATE + COMMIT", value: "aria=350, nova=250", type: "tx", address: "atomic" },
+    ],
+    hints: [
+      "Check `if amount <= 0: return (False, 'INVALID_AMOUNT')` first.",
+      "Fetch both balances with `SELECT balance FROM wallets WHERE id = ?`; if either `.fetchone()` is `None`, return `(False, 'MISSING_WALLET')`.",
+      "If `sender_bal < amount`, return `(False, 'INSUFFICIENT_FUNDS')`; otherwise run the two `UPDATE` statements, call `con.commit()`, and return `(True, new_bal)`.",
+    ],
+  },
 ];

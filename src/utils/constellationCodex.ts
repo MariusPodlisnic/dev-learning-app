@@ -636,6 +636,37 @@ def verify_and_dedupe(raw_body, ts, sig_hex, secret, seen_ids, event_id, now_ts)
       "Compute HMAC over the exact unparsed raw request body + timestamp so replaying an old captured signature fails after 5 minutes.",
     keywords: ["webhook", "hmac", "sha256", "idempotency", "base62", "saga", "rollback"],
   },
+  {
+    id: "py-ch8-sqlite-queries",
+    track: "python_basics",
+    chapterId: 8,
+    chapterRoman: "VIII",
+    constellationName: "TABULA",
+    title: "SQLite Queries, Joins & Injection Guards",
+    badge: "CH. VIII · SQL & DATABASES",
+    complexityLabel: "O(log n) B-Tree Index",
+    accent: "#38BDF8",
+    summary:
+      "Query relational SQLite tables with parameterized ? placeholders, aggregate metrics with GROUP BY / HAVING, and join normalized tables safely.",
+    codeSnippet: `import sqlite3
+
+def top_paid_customers(con: sqlite3.Connection, min_cents: int):
+    sql = """
+        SELECT u.handle, SUM(o.cents) AS total_cents
+        FROM users u
+        INNER JOIN orders o ON o.user_id = u.id
+        WHERE o.status = ?
+        GROUP BY u.id
+        HAVING total_cents >= ?
+        ORDER BY total_cents DESC
+    """
+    return con.execute(sql, ("paid", min_cents)).fetchall()`,
+    keyInvariant:
+      "Never interpolate user input into SQL with f-strings — always pass values as a tuple (val,) to ? placeholders so SQLite binds them as data, never executable SQL.",
+    pitfallWarning:
+      "A 1-element parameter tuple in Python requires a trailing comma: con.execute(sql, (email,)), NOT (email).",
+    keywords: ["sql", "sqlite3", "select", "where", "join", "group by", "injection"],
+  },
 ] as const;
 
 export interface ResolvedCodexEntry {
@@ -648,7 +679,7 @@ export interface ResolvedCodexEntry {
 }
 
 /**
- * Resolves unlock status, chapter progress, and pin state for all 22 Codex entries.
+ * Resolves unlock status, chapter progress, and pin state for all 23 Codex entries.
  * An entry unlocks automatically when `entry.alwaysUnlocked` is true, `unlockAllOverride` is set,
  * or the user has completed at least 1 lesson inside that track's matching chapter.
  */

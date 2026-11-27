@@ -171,11 +171,13 @@ function collectTopLevelStatements(code: string): {
       }
       continue;
     }
-    if (trimmed.startsWith('"""') && trimmed.slice(3).indexOf('"""') === -1) {
+    const doubleTripleMatches = trimmed.split('"""').length - 1;
+    if (doubleTripleMatches % 2 === 1) {
       insideTripleQuote = '"""';
       continue;
     }
-    if (trimmed.startsWith("'''") && trimmed.slice(3).indexOf("'''") === -1) {
+    const singleTripleMatches = trimmed.split("'''").length - 1;
+    if (singleTripleMatches % 2 === 1) {
       insideTripleQuote = "'''";
       continue;
     }

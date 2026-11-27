@@ -14,7 +14,7 @@ const {
 } = loadTsModule("src/utils/scratchpadSnippets.ts");
 
 test("scratchpadSnippets templates all execute cleanly in real python3 with non-empty output", () => {
-  assert.equal(SCRATCHPAD_TEMPLATES.length, 5);
+  assert.equal(SCRATCHPAD_TEMPLATES.length, 6);
   const ids = new Set();
 
   for (const tpl of SCRATCHPAD_TEMPLATES) {

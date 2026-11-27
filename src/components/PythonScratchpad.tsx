@@ -53,6 +53,7 @@ function getTemplateIcon(id: ScratchpadTemplateId): StudioIconName {
   if (id === "dice_sim") return "dice";
   if (id === "algo_bench") return "bolt";
   if (id === "json_api") return "arch";
+  if (id === "sql_explorer") return "lab";
   return "coffee";
 }
 

@@ -1568,4 +1568,255 @@ except Exception as e:
       "Set `wrapper.calls = 0` on `wrapper`, increment `wrapper.calls += 1` inside it, and `return wrapper`.",
     ],
   },
+  // =========================================================================
+  // CHAPTER VIII: SQL & RELATIONAL DATABASES IN PYTHON (sqlite3)
+  // =========================================================================
+  {
+    id: "exp-py-29",
+    title: "SQL Foundations: SELECT, WHERE & ORDER BY",
+    track: "python_basics",
+    category: "SQL & DATABASES",
+    difficulty: "Easy",
+    tree_row: 23,
+    lesson_order: 29,
+    is_free: true,
+    description:
+      "Query a live SQLite table using SELECT, WHERE, and ORDER BY DESC to fetch high-scoring player handles.",
+    content:
+      "Python's built-in **`sqlite3`** engine lets you run real SQL queries against relational tables with zero external servers! Given an open SQLite connection `con`, call **`con.execute(sql, params).fetchall()`** to get matching rows as tuples:\n\n```python\n# Sibling example: fetch quest titles worth at least min_reward coins\ndef high_reward_quests(con, min_reward):\n    rows = con.execute(\n        \"SELECT title FROM quests WHERE coins >= ? ORDER BY coins DESC\",\n        (min_reward,),\n    ).fetchall()\n    return [row[0] for row in rows]\n```",
+    assignment:
+      "Given an open SQLite connection `con` containing table `players(handle TEXT, xp INTEGER)` and an integer `min_xp`, complete `query_top_players(con, min_xp)` so it selects `handle` for all rows with `xp >= min_xp` ordered by `xp DESC, handle ASC`, returning a list of handle strings.",
+    constraints: [
+      "Filter rows in SQL with `WHERE xp >= ?` and pass `(min_xp,)` as the parameter tuple",
+      "Sort rows in SQL using `ORDER BY xp DESC, handle ASC`",
+      "Unpack the 1-column result tuples into a flat list of strings `[row[0] for row in rows]`",
+    ],
+    examples: [
+      {
+        input: 'players = [("aria", 450), ("kai", 180), ("nova", 600)], min_xp = 300',
+        output: "['nova', 'aria']",
+        explanation:
+          "nova (600) and aria (450) both have xp >= 300, ordered highest xp first.",
+      },
+    ],
+    complexities: { time: "O(n log n)", space: "O(k)" },
+    initial_code: `def query_top_players(con, min_xp):
+    pass`,
+    expected_output: "['nova', 'aria']",
+    hidden_tests: `import json, sqlite3
+results = []
+try:
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE players (handle TEXT, xp INTEGER)")
+    con.executemany("INSERT INTO players VALUES (?, ?)", [("aria", 450), ("kai", 180), ("nova", 600), ("zed", 450)])
+    r1 = query_top_players(con, 300)
+    results.append({"id": 1, "input": "min_xp=300 (with tie-breaker)", "expected": "['nova', 'aria', 'zed']", "actual": str(r1), "passed": r1 == ["nova", "aria", "zed"]})
+    r2 = query_top_players(con, 500)
+    results.append({"id": 2, "input": "min_xp=500", "expected": "['nova']", "actual": str(r2), "passed": r2 == ["nova"]})
+    r3 = query_top_players(con, 9999)
+    results.append({"id": 3, "input": "min_xp=9999 (empty result)", "expected": "[]", "actual": str(r3), "passed": r3 == []})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "array",
+    visual_data: [
+      { label: "WHERE xp >= 300", value: "nova(600), aria(450), zed(450)", type: "sql", address: "filter" },
+      { label: "ORDER BY xp DESC", value: "['nova', 'aria', 'zed']", type: "list", address: "fetch" },
+    ],
+    hints: [
+      'Run `rows = con.execute("SELECT handle FROM players WHERE xp >= ? ORDER BY xp DESC, handle ASC", (min_xp,)).fetchall()`.',
+      "Return `[row[0] for row in rows]`.",
+    ],
+  },
+  {
+    id: "exp-py-30",
+    title: "Parameterized SQL: Injection-Safe Account Lookup",
+    track: "python_basics",
+    category: "SQL SECURITY",
+    difficulty: "Medium",
+    tree_row: 23,
+    lesson_order: 30,
+    is_free: false,
+    description:
+      "Prevent SQL injection attacks by binding untrusted user input with ? placeholders instead of f-strings.",
+    content:
+      "Never glue user strings into SQL with `f\"... WHERE code = '{user_input}'\"` — an attacker passing `' OR '1'='1` rewrites your `WHERE` clause and dumps secret rows!\n\nAlways bind inputs with **`?` placeholders** and a 1-item tuple **`(value,)`** (note the trailing comma!):\n\n```python\n# Sibling example: injection-safe coupon lookup\ndef lookup_discount_pct(con, promo_code):\n    row = con.execute(\n        \"SELECT pct FROM coupons WHERE code = ?\",\n        (promo_code,),\n    ).fetchone()\n    return row[0] if row else 0\n```",
+    assignment:
+      "Given SQLite connection `con` with table `accounts(email TEXT PRIMARY KEY, tier TEXT)` and an untrusted `email` string, complete `find_account_tier(con, email)` using a parameterized `?` query. Return the matching `tier` string, or `'NOT_FOUND'` if no exact match exists.",
+    constraints: [
+      "MUST use a `?` placeholder with `(email,)` — never interpolate `email` into the SQL string",
+      "Use `.fetchone()` to read the single matching row (or `None`)",
+      "Return `'NOT_FOUND'` when no row matches — including SQL-injection payloads like `\"' OR '1'='1\"`",
+    ],
+    examples: [
+      {
+        input: 'email = "aria@devy.app" (pro) vs email = "\' OR \'1\'=\'1"',
+        output: "'pro' vs 'NOT_FOUND'",
+        explanation:
+          "Parameterized ? binding treats the injection string as literal email text, matching 0 rows safely.",
+      },
+    ],
+    complexities: { time: "O(log n)", space: "O(1)" },
+    initial_code: `def find_account_tier(con, email):
+    pass`,
+    expected_output: "pro",
+    hidden_tests: `import json, sqlite3
+results = []
+try:
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE accounts (email TEXT PRIMARY KEY, tier TEXT)")
+    con.executemany("INSERT INTO accounts VALUES (?, ?)", [("admin@devy.app", "staff"), ("aria@devy.app", "pro"), ("kai@devy.app", "free")])
+    r1 = find_account_tier(con, "aria@devy.app")
+    results.append({"id": 1, "input": "valid email 'aria@devy.app'", "expected": "pro", "actual": str(r1), "passed": r1 == "pro"})
+    r2 = find_account_tier(con, "missing@devy.app")
+    results.append({"id": 2, "input": "unknown email", "expected": "NOT_FOUND", "actual": str(r2), "passed": r2 == "NOT_FOUND"})
+    r3 = find_account_tier(con, "' OR '1'='1")
+    results.append({"id": 3, "input": "SQL injection payload (' OR '1'='1)", "expected": "NOT_FOUND", "actual": str(r3), "passed": r3 == "NOT_FOUND"})
+    r4 = find_account_tier(con, "admin@devy.app'; DROP TABLE accounts;--")
+    count_after = con.execute("SELECT COUNT(*) FROM accounts").fetchone()[0]
+    results.append({"id": 4, "input": "DROP TABLE injection blocked", "expected": "('NOT_FOUND', 3)", "actual": str((r4, count_after)), "passed": r4 == "NOT_FOUND" and count_after == 3})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "? = 'aria@devy.app'", value: "-> ('pro',) ✓", address: "bound param" },
+      { label: "? = \"' OR '1'='1\"", value: "-> None -> 'NOT_FOUND' 🛡️", address: "injection blocked" },
+    ],
+    hints: [
+      'Call `row = con.execute("SELECT tier FROM accounts WHERE email = ?", (email,)).fetchone()`.',
+      'Return `row[0] if row else "NOT_FOUND"`.',
+    ],
+  },
+  {
+    id: "exp-py-31",
+    title: "SQL Analytics: GROUP BY, SUM & HAVING",
+    track: "python_basics",
+    category: "SQL ANALYTICS",
+    difficulty: "Medium",
+    tree_row: 24,
+    lesson_order: 31,
+    is_free: false,
+    description:
+      "Aggregate paid order revenue per product category in SQL using WHERE, GROUP BY, SUM(), and HAVING.",
+    content:
+      "In SQL analytics, **`WHERE`** filters raw rows *before* grouping, **`GROUP BY`** buckets rows by a column, and **`HAVING`** filters aggregated bucket totals *after* grouping:\n\n```python\n# Sibling example: tracks with at least min_plays total plays\ndef popular_music_genres(con, min_plays):\n    sql = \"\"\"\n        SELECT genre, SUM(plays) AS total_plays\n        FROM streams\n        WHERE completed = 1\n        GROUP BY genre\n        HAVING SUM(plays) >= ?\n        ORDER BY total_plays DESC, genre ASC\n    \"\"\"\n    return con.execute(sql, (min_plays,)).fetchall()\n```",
+    assignment:
+      "Given SQLite connection `con` with table `orders(category TEXT, cents INTEGER, status TEXT)` and `min_cents`, complete `high_revenue_categories(con, min_cents)` returning `(category, total_cents)` tuples for `'paid'` orders only whose summed revenue is `>= min_cents`, sorted by `total_cents DESC, category ASC`.",
+    constraints: [
+      "Include ONLY rows where `status = 'paid'` (ignore `'refunded'` or `'pending'`)",
+      "Group by `category` and filter aggregated sums with `HAVING SUM(cents) >= ?`",
+      "Order results by summed revenue `DESC`, breaking ties by `category ASC`",
+    ],
+    examples: [
+      {
+        input: "paid: courses=5000, pro=7900, merch=1200; refunded: merch=9000; min_cents=4000",
+        output: "[('pro', 7900), ('courses', 5000)]",
+        explanation:
+          "Refunded merch is excluded by WHERE status = 'paid', leaving pro (7900) and courses (5000) >= 4000.",
+      },
+    ],
+    complexities: { time: "O(n log k)", space: "O(k)" },
+    initial_code: `def high_revenue_categories(con, min_cents):
+    pass`,
+    expected_output: "[('pro', 7900), ('courses', 5000)]",
+    hidden_tests: `import json, sqlite3
+results = []
+try:
+    con = sqlite3.connect(":memory:")
+    con.execute("CREATE TABLE orders (category TEXT, cents INTEGER, status TEXT)")
+    con.executemany("INSERT INTO orders VALUES (?, ?, ?)", [
+        ("courses", 3000, "paid"),
+        ("courses", 2000, "paid"),
+        ("pro", 3900, "paid"),
+        ("pro", 4000, "paid"),
+        ("merch", 1200, "paid"),
+        ("merch", 9000, "refunded"),
+    ])
+    r1 = high_revenue_categories(con, 4000)
+    results.append({"id": 1, "input": "min_cents=4000 (ignores refunded)", "expected": "[('pro', 7900), ('courses', 5000)]", "actual": str(r1), "passed": r1 == [("pro", 7900), ("courses", 5000)]})
+    r2 = high_revenue_categories(con, 1000)
+    results.append({"id": 2, "input": "min_cents=1000", "expected": "[('pro', 7900), ('courses', 5000), ('merch', 1200)]", "actual": str(r2), "passed": r2 == [("pro", 7900), ("courses", 5000), ("merch", 1200)]})
+    r3 = high_revenue_categories(con, 50000)
+    results.append({"id": 3, "input": "min_cents=50000 (none qualify)", "expected": "[]", "actual": str(r3), "passed": r3 == []})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "WHERE status='paid'", value: "drops merch(9000 refunded)", address: "row filter" },
+      { label: "GROUP BY + HAVING", value: "[('pro', 7900), ('courses', 5000)]", address: "bucket filter" },
+    ],
+    hints: [
+      "Filter `WHERE status = 'paid'` before `GROUP BY category`.",
+      "Use `HAVING SUM(cents) >= ?` with `(min_cents,)` and `ORDER BY SUM(cents) DESC, category ASC`.",
+    ],
+  },
+  {
+    id: "exp-py-32",
+    title: "Relational Schemas: INNER JOIN Across Tables",
+    track: "python_basics",
+    category: "SQL JOINS",
+    difficulty: "Medium",
+    tree_row: 24,
+    lesson_order: 32,
+    is_free: false,
+    description:
+      "Combine normalized users and purchases tables with INNER JOIN to build a Pro purchase report.",
+    content:
+      "Normalized databases split data into clean tables linked by foreign keys (`user_id -> users.id`). **`INNER JOIN`** stitches matching rows back together at query time:\n\n```python\n# Sibling example: join authors and articles for verified writers\ndef verified_article_feed(con):\n    sql = \"\"\"\n        SELECT a.name, p.headline, p.views\n        FROM authors a\n        INNER JOIN posts p ON p.author_id = a.id\n        WHERE a.verified = 1\n        ORDER BY p.views DESC, a.name ASC\n    \"\"\"\n    return con.execute(sql).fetchall()\n```",
+    assignment:
+      "Given SQLite connection `con` with `users(id INTEGER PRIMARY KEY, handle TEXT, is_pro INTEGER)` and `purchases(user_id INTEGER, item TEXT, cents INTEGER)`, complete `list_pro_purchases(con)` returning `(handle, item, cents)` tuples for Pro users (`is_pro = 1`), ordered by `cents DESC, handle ASC`.",
+    constraints: [
+      "Join `users u` and `purchases p` on `p.user_id = u.id`",
+      "Filter to Pro accounts only (`WHERE u.is_pro = 1`)",
+      "Order results by `p.cents DESC, u.handle ASC` and return `.fetchall()`",
+    ],
+    examples: [
+      {
+        input: "aria(pro) bought 'lifetime' (3900); kai(free) bought 'sticker' (500); nova(pro) bought 'annual' (2400)",
+        output: "[('aria', 'lifetime', 3900), ('nova', 'annual', 2400)]",
+        explanation:
+          "INNER JOIN links user_id -> users.id, and WHERE u.is_pro = 1 excludes free user kai.",
+      },
+    ],
+    complexities: { time: "O(n log n)", space: "O(k)" },
+    initial_code: `def list_pro_purchases(con):
+    pass`,
+    expected_output: "[('aria', 'lifetime', 3900), ('nova', 'annual', 2400)]",
+    hidden_tests: `import json, sqlite3
+results = []
+try:
+    con = sqlite3.connect(":memory:")
+    con.executescript("""
+        CREATE TABLE users (id INTEGER PRIMARY KEY, handle TEXT, is_pro INTEGER);
+        CREATE TABLE purchases (user_id INTEGER, item TEXT, cents INTEGER);
+    """)
+    con.executemany("INSERT INTO users VALUES (?, ?, ?)", [(1, "aria", 1), (2, "kai", 0), (3, "nova", 1), (4, "zed", 1)])
+    con.executemany("INSERT INTO purchases VALUES (?, ?, ?)", [(1, "lifetime", 3900), (2, "sticker", 500), (3, "annual", 2400), (4, "annual", 2400)])
+    r1 = list_pro_purchases(con)
+    exp1 = [("aria", "lifetime", 3900), ("nova", "annual", 2400), ("zed", "annual", 2400)]
+    results.append({"id": 1, "input": "joins pro users & sorts ties by handle", "expected": str(exp1), "actual": str(r1), "passed": r1 == exp1})
+    con2 = sqlite3.connect(":memory:")
+    con2.executescript("CREATE TABLE users (id INTEGER PRIMARY KEY, handle TEXT, is_pro INTEGER); CREATE TABLE purchases (user_id INTEGER, item TEXT, cents INTEGER);")
+    con2.execute("INSERT INTO users VALUES (1, 'solo', 1)")
+    r2 = list_pro_purchases(con2)
+    results.append({"id": 2, "input": "pro user with 0 purchases excluded by INNER JOIN", "expected": "[]", "actual": str(r2), "passed": r2 == []})
+    con2.execute("INSERT INTO users VALUES (2, 'free_user', 0)")
+    con2.execute("INSERT INTO purchases VALUES (2, 'pack', 999)")
+    r3 = list_pro_purchases(con2)
+    results.append({"id": 3, "input": "non-pro purchase excluded", "expected": "[]", "actual": str(r3), "passed": r3 == []})
+    print(json.dumps({"is_test_suite": True, "all_passed": all(x["passed"] for x in results), "results": results}))
+except Exception as e:
+    print(json.dumps({"is_test_suite": True, "error": str(e)}))`,
+    visual_type: "hashmap",
+    visual_data: [
+      { label: "purchases.user_id = 1", value: "JOIN users.id=1 -> 'aria' (pro=1)", address: "FK match" },
+      { label: "purchases.user_id = 2", value: "kai (pro=0) -> filtered out", address: "WHERE u.is_pro=1" },
+    ],
+    hints: [
+      "SELECT `u.handle, p.item, p.cents FROM users u INNER JOIN purchases p ON p.user_id = u.id`.",
+      "Add `WHERE u.is_pro = 1 ORDER BY p.cents DESC, u.handle ASC` and return `.fetchall()`.",
+    ],
+  },
 ];

@@ -213,6 +213,12 @@ async function runPythonScript(
   script: string,
 ): Promise<NativePythonExecutionResult | null> {
   if (Platform.OS === "web" && pyodideInstance) {
+    if (
+      /\bsqlite3\b/.test(script) &&
+      typeof pyodideInstance.loadPackagesFromImports === "function"
+    ) {
+      await pyodideInstance.loadPackagesFromImports(script);
+    }
     let stdoutBuffer = "";
     pyodideInstance.setStdout({
       batched: (str: string) => {

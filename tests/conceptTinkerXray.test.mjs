@@ -26,9 +26,9 @@ test("parseParameterAssignments splits top-level parameter assignments without b
   );
 });
 
-test("buildConceptTinkerSpec generates live scenarios, branch line traces, and X-Ray tokens for all 105 modules with zero spoilers", () => {
+test("buildConceptTinkerSpec generates live scenarios, branch line traces, and X-Ray tokens for all 110 modules with zero spoilers", () => {
   const allLessons = mergeCurriculumLessons([]);
-  assert.equal(allLessons.length, 105);
+  assert.equal(allLessons.length, 110);
 
   for (const lesson of allLessons) {
     const enrichment = getLessonEnrichment(lesson);

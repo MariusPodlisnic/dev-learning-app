@@ -12,10 +12,10 @@ const {
 } = loadTsModule("src/utils/constellationCodex.ts");
 const { mergeCurriculumLessons } = loadTsModule("src/constants/curriculum.ts");
 
-test("CONSTELLATION_CODEX_ENTRIES defines 22 unique grimoire entries across all 3 tracks", () => {
-  assert.equal(CONSTELLATION_CODEX_ENTRIES.length, 22);
+test("CONSTELLATION_CODEX_ENTRIES defines 23 unique grimoire entries across all 3 tracks", () => {
+  assert.equal(CONSTELLATION_CODEX_ENTRIES.length, 23);
   const ids = new Set(CONSTELLATION_CODEX_ENTRIES.map((e) => e.id));
-  assert.equal(ids.size, 22);
+  assert.equal(ids.size, 23);
 
   const byTrack = {
     python_basics: CONSTELLATION_CODEX_ENTRIES.filter((e) => e.track === "python_basics").length,
@@ -23,7 +23,7 @@ test("CONSTELLATION_CODEX_ENTRIES defines 22 unique grimoire entries across all 
     system_design: CONSTELLATION_CODEX_ENTRIES.filter((e) => e.track === "system_design").length,
   };
   assert.deepEqual(byTrack, {
-    python_basics: 8,
+    python_basics: 9,
     algorithms: 7,
     system_design: 7,
   });

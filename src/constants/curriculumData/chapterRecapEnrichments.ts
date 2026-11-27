@@ -1160,4 +1160,68 @@ print(handle_payment_webhook("ok", 995, _sig, _sec, "e1", {}, 1000))`,
         "Including the timestamp inside the signed bytes cryptographically binds when the event was sent to its body.",
     },
   },
+  {
+    matchTrack: "python_basics",
+    matchOrder: 108,
+    matchKeywords: ["wallet transfer", "transfer_wallet_funds"],
+    realWorldUse:
+      "Fintech wallets, game marketplaces, and quota transfers must validate both accounts and balances before committing debit/credit updates.",
+    analogyTitle: "Verify Both Vaults Before Moving Gold",
+    analogyText:
+      "Never deduct coins from Vault A until you've confirmed Vault B exists and Vault A holds enough gold — otherwise coins vanish into thin air!",
+    cheatSheet: `s = con.execute("SELECT units FROM stock WHERE wh = ?", (src,)).fetchone()
+d = con.execute("SELECT units FROM stock WHERE wh = ?", (dst,)).fetchone()
+if s and d and s[0] >= qty:
+    con.execute("UPDATE stock SET units = units - ? WHERE wh = ?", (qty, src))
+    con.execute("UPDATE stock SET units = units + ? WHERE wh = ?", (qty, dst))
+    con.commit()`,
+    commonPitfall: {
+      title: "Debiting the sender before checking whether the receiver wallet exists",
+      wrongCode:
+        "con.execute('UPDATE wallets SET balance = balance - ? WHERE id = ?', (amount, from_id))\n# Receiver missing -> sender already lost money!",
+      rightCode:
+        " Validate amount > 0, both rows exist, and sender_bal >= amount BEFORE running UPDATEs",
+      explanation:
+        "Validating preconditions first (or rolling back on failure) guarantees failed transfers leave every balance unchanged.",
+    },
+    solutionCode: `import sqlite3
+
+def transfer_wallet_funds(con, from_id, to_id, amount):
+    if amount <= 0:
+        return (False, "INVALID_AMOUNT")
+    sender = con.execute("SELECT balance FROM wallets WHERE id = ?", (from_id,)).fetchone()
+    receiver = con.execute("SELECT balance FROM wallets WHERE id = ?", (to_id,)).fetchone()
+    if sender is None or receiver is None:
+        return (False, "MISSING_WALLET")
+    if sender[0] < amount:
+        return (False, "INSUFFICIENT_FUNDS")
+    con.execute("UPDATE wallets SET balance = balance - ? WHERE id = ?", (amount, from_id))
+    con.execute("UPDATE wallets SET balance = balance + ? WHERE id = ?", (amount, to_id))
+    con.commit()
+    new_bal = con.execute("SELECT balance FROM wallets WHERE id = ?", (from_id,)).fetchone()[0]
+    return (True, new_bal)
+
+_db = sqlite3.connect(":memory:")
+_db.execute("CREATE TABLE wallets (id TEXT PRIMARY KEY, balance INTEGER)")
+_db.executemany("INSERT INTO wallets VALUES (?, ?)", [("aria", 500), ("nova", 100)])
+print(transfer_wallet_funds(_db, "aria", "nova", 150))`,
+    proInsights: {
+      timeComplexity: "O(log n) PRIMARY KEY lookups & updates",
+      spaceComplexity: "O(1)",
+      tradeoff:
+        "Handling `from_id == to_id` cleanly by re-reading `SELECT balance` after both updates guarantees accuracy even on self-transfers.",
+    },
+    quiz: {
+      question:
+        "Why do we re-query `SELECT balance` (or guard `from_id == to_id`) instead of blindly returning `sender[0] - amount`?",
+      options: [
+        "If `from_id == to_id`, debiting and crediting the same wallet leaves its balance unchanged (`sender[0]`), not `sender[0] - amount`",
+        "Because SQLite deletes rows after `UPDATE`",
+        "Because `INTEGER` columns return strings",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Reading the post-update balance reflects the true database state even in edge cases like self-transfers.",
+    },
+  },
 ];
