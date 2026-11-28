@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   Animated,
   Easing,
@@ -233,6 +233,7 @@ export default function StudioCodeEditor({
     getPomodoroState(),
   );
   const inputRef = useRef<any>(null);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     void hydrateTypingSoundProfile();
@@ -241,6 +242,9 @@ export default function StudioCodeEditor({
     return () => {
       unsubTyping();
       unsubPomo();
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current);
+      }
     };
   }, []);
   const activeTypingMeta = getTypingSoundProfileMeta(typingProfile);
@@ -248,7 +252,6 @@ export default function StudioCodeEditor({
   const defaultShowSymbolBar = Platform.OS !== "web" || !isStickyDesktop;
   const showSymbolBar =
     symbolBarOverride !== null ? symbolBarOverride : defaultShowSymbolBar;
-  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<{ start: number; end: number }>({
     start: 0,
     end: 0,
@@ -380,7 +383,15 @@ export default function StudioCodeEditor({
 
   const totalLines = (code || "").split("\n").length;
   const lineCount = Math.max(totalLines, 11);
-  const unfilledScaffoldLines = findUnfilledScaffoldLines(code || "");
+  const unfilledScaffoldLines = useMemo(
+    () => findUnfilledScaffoldLines(code || ""),
+    [code],
+  );
+  const highlightedCode = useMemo(() => renderHighlightedPython(code), [code]);
+  const beginnerHint = useMemo(
+    () => translatePythonError(output, totalLines),
+    [output, totalLines],
+  );
   const safeCursor = Math.min(Math.max(0, cursorPos), (code || "").length);
   const linesBeforeCursor = (code || "").slice(0, safeCursor).split("\n");
   const activeLine = linesBeforeCursor.length;
@@ -984,7 +995,7 @@ export default function StudioCodeEditor({
               ]}
             >
               <Text style={styles.syntaxHighlightText}>
-                {renderHighlightedPython(code)}
+                {highlightedCode}
                 {code.endsWith("\n") ? " " : ""}
               </Text>
             </View>
@@ -1369,10 +1380,7 @@ export default function StudioCodeEditor({
           {bottomTab === "console" ? (
             output ? (
               <View style={styles.consoleOutputWrap}>
-                {(() => {
-                  const beginnerHint = translatePythonError(output, totalLines);
-                  if (!beginnerHint) return null;
-                  return (
+                {beginnerHint ? (
                     <View style={styles.debugErrorCard}>
                       <View style={styles.debugErrorHeader}>
                         <View style={styles.debugErrorBadge}>
@@ -1403,8 +1411,7 @@ export default function StudioCodeEditor({
                         </Text>
                       </View>
                     </View>
-                  );
-                })()}
+                ) : null}
                 {(() => {
                   const isRunningMsg =
                     output.startsWith("Running code") ||

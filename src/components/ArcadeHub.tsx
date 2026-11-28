@@ -31,6 +31,7 @@ import {
 } from "../utils/refactorGolf";
 import {
   readSavedSnippets,
+  SCRATCHPAD_TEMPLATES,
   subscribeScratchpadSnippets,
 } from "../utils/scratchpadSnippets";
 import { playKeyClick } from "../utils/soundEffects";
@@ -131,7 +132,7 @@ export const ARCADE_CARTRIDGES: readonly ArcadeCartridgeMeta[] = [
     title: "Python Playground",
     shortTitle: "PLAYGROUND",
     tagline:
-      "Experiment freely in a full-screen Python 3.11 scratchpad with 5 starter templates, instant output, and saved snippets.",
+      "Experiment freely in a full-screen Python 3.11 scratchpad with 6 starter templates (including SQLite), instant output, and saved snippets.",
     durationBadge: "FREE PLAY · PY 3.11",
     icon: "terminal",
     accent: StudioColors.yellow,
@@ -318,9 +319,10 @@ export default function ArcadeHub({
         : "3 LIVE PYTHON TOOLS";
     }
     if (cartId === "playground") {
+      const tplCount = SCRATCHPAD_TEMPLATES.length;
       return savedSnippetCount > 0
-        ? `${savedSnippetCount} SAVED ${savedSnippetCount === 1 ? "SNIPPET" : "SNIPPETS"} · 5 TEMPLATES`
-        : "5 TEMPLATES · SAVED SNIPPETS";
+        ? `${savedSnippetCount} SAVED ${savedSnippetCount === 1 ? "SNIPPET" : "SNIPPETS"} · ${tplCount} TEMPLATES`
+        : `${tplCount} TEMPLATES · SAVED SNIPPETS`;
     }
     if (cartId === "refactor") {
       const cleared = Object.keys(refactorRecords).length;

@@ -180,7 +180,7 @@ export function buildCommandPaletteItems(
       id: "arc-playground",
       group: "ARCADE",
       title: "Python Playground (playground.py)",
-      subtitle: "CART-06 · Free Python 3.11 sandbox with 5 templates & saved snippets",
+      subtitle: "CART-06 · Free Python 3.11 sandbox with 6 templates (incl. SQLite) & snippets",
       keywords: ["playground", "scratchpad", "sandbox", "free", "python", "snippets"],
       icon: "terminal",
       badge: "CART-06",

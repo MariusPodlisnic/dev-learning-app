@@ -155,6 +155,7 @@ function getSectionPhaseShift(section?: ViewMode): number {
     case "minibuilds":
     case "playground":
     case "refactor":
+    case "interview":
       return 2.5;
     case "algolab":
       return 3.7;

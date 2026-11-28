@@ -441,6 +441,132 @@ export async function executeLessonVerification(
   }
 }
 
+const AUTO_TEST_CASES_EVAL_TRAILER = `
+import json as __devy_json__
+__devy_results__ = []
+__devy_all_ok__ = True
+for __devy_i__, (__devy_lbl__, __devy_fn__, __devy_exp__) in enumerate(__test_cases__):
+    try:
+        __devy_act__ = __devy_fn__()
+        __devy_ok__ = __devy_act__ == __devy_exp__
+    except Exception as __devy_err__:
+        __devy_act__ = f"{type(__devy_err__).__name__}: {__devy_err__}"
+        __devy_ok__ = False
+    if not __devy_ok__:
+        __devy_all_ok__ = False
+    __devy_results__.append({
+        "id": __devy_i__ + 1,
+        "input": str(__devy_lbl__),
+        "expected": repr(__devy_exp__),
+        "actual": repr(__devy_act__),
+        "passed": __devy_ok__,
+    })
+__devy_json__.dumps({"is_test_suite": True, "all_passed": __devy_all_ok__, "results": __devy_results__})
+`;
+
+/**
+ * Combines user Python code with any verification harness format:
+ * - JSON-returning harnesses (Bug Hunt, Mock Interview)
+ * - `TEST_RESULT|...` stdout harnesses (Refactor Golf)
+ * - Declarative `__test_cases__ = [...]` harnesses (Mini-Builds, 3-Stage Blueprints)
+ */
+export function buildVerificationScript(
+  userCode: string,
+  testHarness: string,
+): string {
+  const needsAutoCasesRunner =
+    testHarness.includes("__test_cases__") &&
+    !testHarness.includes("TEST_RESULT|") &&
+    !testHarness.includes("json.dumps");
+
+  return needsAutoCasesRunner
+    ? `${userCode}\n${testHarness}\n${AUTO_TEST_CASES_EVAL_TRAILER}`
+    : `${userCode}\n${testHarness}`;
+}
+
+/**
+ * Parses verification results from either JSON return values or `TEST_RESULT|` stdout lines.
+ */
+export function parseVerificationExecutionOutput(
+  resultValue: unknown,
+  stdout: string,
+): {
+  allPassed: boolean;
+  results: TestCaseResult[];
+  error?: string;
+} {
+  const rawResult =
+    resultValue !== undefined && resultValue !== null
+      ? String(resultValue).trim()
+      : "";
+
+  if (rawResult.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(rawResult);
+      const results: TestCaseResult[] = Array.isArray(parsed.results)
+        ? parsed.results
+        : [];
+      return {
+        allPassed: Boolean(parsed.all_passed),
+        results,
+        error: parsed.error ? String(parsed.error) : undefined,
+      };
+    } catch {
+      // Fall through to stdout parsers below
+    }
+  }
+
+  const lines = (stdout || "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  // Check if stdout emitted a JSON test suite line
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    if (lines[i].startsWith("{") && lines[i].includes('"is_test_suite"')) {
+      try {
+        const parsed = JSON.parse(lines[i]);
+        return {
+          allPassed: Boolean(parsed.all_passed),
+          results: Array.isArray(parsed.results) ? parsed.results : [],
+          error: parsed.error ? String(parsed.error) : undefined,
+        };
+      } catch {
+        break;
+      }
+    }
+  }
+
+  // Parse pipe-delimited TEST_RESULT|label|expected|actual|True lines (Refactor Golf)
+  const pipeLines = lines.filter((l) => l.startsWith("TEST_RESULT|"));
+  if (pipeLines.length > 0) {
+    const results: TestCaseResult[] = pipeLines.map((line, idx) => {
+      const parts = line.split("|");
+      const passedRaw = parts[parts.length - 1];
+      const actual = parts[parts.length - 2] ?? "";
+      const expected = parts[parts.length - 3] ?? "";
+      const input = parts.slice(1, parts.length - 3).join("|");
+      return {
+        id: idx + 1,
+        input,
+        expected,
+        actual,
+        passed: passedRaw === "True",
+      };
+    });
+    return {
+      allPassed: results.every((r) => r.passed),
+      results,
+    };
+  }
+
+  return {
+    allPassed: false,
+    results: [],
+    error: "Verification harness did not emit structured test results.",
+  };
+}
+
 export async function executeBugPatchVerification(
   pyodideInstance: any,
   userCode: string,
@@ -450,6 +576,7 @@ export async function executeBugPatchVerification(
   results: TestCaseResult[];
   stdout: string;
   error?: string;
+  errorMessage?: string;
 }> {
   const status = getPythonRuntimeStatus(Boolean(pyodideInstance));
   if (!status.available) {
@@ -458,10 +585,11 @@ export async function executeBugPatchVerification(
       results: [],
       stdout: "",
       error: status.unavailableMessage,
+      errorMessage: status.unavailableMessage,
     };
   }
   try {
-    const fullScript = `${userCode}\n${testHarness}`;
+    const fullScript = buildVerificationScript(userCode, testHarness);
     const execRes = await runPythonScript(pyodideInstance, fullScript);
     if (!execRes) {
       return {
@@ -469,20 +597,28 @@ export async function executeBugPatchVerification(
         results: [],
         stdout: "",
         error: status.unavailableMessage,
+        errorMessage: status.unavailableMessage,
       };
     }
-    const parsed = JSON.parse(String(execRes.result));
+    const parsed = parseVerificationExecutionOutput(
+      execRes.result,
+      execRes.stdout,
+    );
     return {
-      allPassed: Boolean(parsed.all_passed),
-      results: parsed.results || [],
+      allPassed: parsed.allPassed,
+      results: parsed.results,
       stdout: execRes.stdout,
+      error: parsed.error,
+      errorMessage: parsed.error,
     };
   } catch (err: any) {
+    const msg = err.message || String(err);
     return {
       allPassed: false,
       results: [],
       stdout: "",
-      error: err.message || String(err),
+      error: msg,
+      errorMessage: msg,
     };
   }
 }

@@ -5,6 +5,7 @@ import React, {
   Suspense,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -285,11 +286,17 @@ export default function HomeScreen() {
   );
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
   const syncNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftPersistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   useEffect(() => {
     return () => {
       if (syncNoticeTimerRef.current) {
         clearTimeout(syncNoticeTimerRef.current);
+      }
+      if (draftPersistTimerRef.current) {
+        clearTimeout(draftPersistTimerRef.current);
       }
     };
   }, []);
@@ -485,7 +492,14 @@ export default function HomeScreen() {
       setHasSavedDraft(false);
       usedSolutionInAttemptRef.current = false;
     }
-    writeLocalJson(STORAGE_DRAFTS_KEY, codeDraftsRef.current);
+    if (draftPersistTimerRef.current) {
+      clearTimeout(draftPersistTimerRef.current);
+    }
+    const draftsSnapshot = { ...codeDraftsRef.current };
+    draftPersistTimerRef.current = setTimeout(() => {
+      draftPersistTimerRef.current = null;
+      writeLocalJson(STORAGE_DRAFTS_KEY, draftsSnapshot);
+    }, 280);
     latestGuestStateRef.current = {
       ...latestGuestStateRef.current,
       codeDrafts: codeDraftsRef.current,
@@ -862,9 +876,10 @@ export default function HomeScreen() {
     );
   }
 
-  const lessonEnrichment = selectedLesson
-    ? getLessonEnrichment(selectedLesson)
-    : null;
+  const lessonEnrichment = useMemo(
+    () => (selectedLesson ? getLessonEnrichment(selectedLesson) : null),
+    [selectedLesson],
+  );
 
   const {
     recordActiveDevSession,

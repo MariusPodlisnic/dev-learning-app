@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { StudioIcon, Text } from "./StudioIcon";
 import { LessonEnrichment } from "../constants/curriculum";
@@ -95,11 +95,14 @@ export default function LessonProblemPanel({
   const selectedQuizOpt = quizAnswerByLesson[selectedLesson.id] ?? null;
   const currentTrackTheme =
     TrackThemes[activeTrack] || TrackThemes.python_basics;
-  const learnView = buildOrganizedLearnView(
-    selectedLesson.content,
-    lessonEnrichment,
+  const learnView = useMemo(
+    () => buildOrganizedLearnView(selectedLesson.content, lessonEnrichment),
+    [selectedLesson.content, lessonEnrichment],
   );
-  const tinkerSpec = buildConceptTinkerSpec(selectedLesson, lessonEnrichment);
+  const tinkerSpec = useMemo(
+    () => buildConceptTinkerSpec(selectedLesson, lessonEnrichment),
+    [selectedLesson, lessonEnrichment],
+  );
 
   function scrollToTop() {
     onScrollTopRef.current?.();

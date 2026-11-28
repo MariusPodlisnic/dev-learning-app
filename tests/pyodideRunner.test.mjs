@@ -4,12 +4,14 @@ import test from "node:test";
 import { loadTsModule, setMockPlatformOS } from "./helpers/loadTs.mjs";
 
 const {
+  buildVerificationScript,
   executeBugPatchVerification,
   executeLessonVerification,
   executePlaygroundPython,
   getPythonRuntimeStatus,
   isNativePythonSupported,
   loadPyodideScript,
+  parseVerificationExecutionOutput,
   registerNativePythonExecutor,
   setNativeBridgeState,
 } = loadTsModule("src/utils/pyodideRunner.ts");
@@ -32,14 +34,22 @@ function createPython3MockPyodide() {
         [
           "-c",
           `
-import io, json, sys
+import ast, io, json, sys
 from contextlib import redirect_stdout
 src = sys.stdin.read()
 buf = io.StringIO()
 ns = {}
+tree = ast.parse(src, "<student>", "exec")
 with redirect_stdout(buf):
-    exec(compile(src, "<student>", "exec"), ns, ns)
-    ret = ns["__run_tests__"]() if "__run_tests__" in ns and callable(ns["__run_tests__"]) else None
+    if tree.body and isinstance(tree.body[-1], ast.Expr):
+        last_expr = tree.body.pop()
+        exec(compile(tree, "<student>", "exec"), ns, ns)
+        ret = eval(compile(ast.Expression(last_expr.value), "<expr>", "eval"), ns, ns)
+    else:
+        exec(compile(tree, "<student>", "exec"), ns, ns)
+        ret = None
+    if "__run_tests__" in ns and callable(ns["__run_tests__"]):
+        ret = ns["__run_tests__"]()
 print(json.dumps({"stdout": buf.getvalue(), "ret": ret}))
 `,
         ],
@@ -209,4 +219,65 @@ test("native bridge lifecycle notifies subscribed listeners on ready and error t
   registerNativePythonExecutor(null);
   setNativeBridgeState("unmounted");
   setMockPlatformOS("web");
+});
+
+test("executeBugPatchVerification handles Mini-Builds (__test_cases__), Refactor Golf (TEST_RESULT|), and JSON harnesses cleanly", async () => {
+  const pyodide = createPython3MockPyodide();
+  const { MINI_BUILD_PROJECTS } = loadTsModule("src/utils/miniBuilds.ts");
+  const { REFACTOR_GOLF_HOLES } = loadTsModule("src/utils/refactorGolf.ts");
+  const { TOOL_BLUEPRINT_PROJECTS } = loadTsModule("src/utils/toolBlueprints.ts");
+
+  // 1. Mini-Builds declarative __test_cases__ harness
+  const pwProj = MINI_BUILD_PROJECTS[0];
+  assert.ok(
+    buildVerificationScript(pwProj.solutionCode, pwProj.verificationHarness).includes(
+      "__devy_json__",
+    ),
+  );
+  const miniRes = await executeBugPatchVerification(
+    pyodide,
+    pwProj.solutionCode,
+    pwProj.verificationHarness,
+  );
+  assert.equal(miniRes.allPassed, true);
+  assert.equal(miniRes.results.length, 4);
+
+  // 2. 3-Stage Blueprints declarative __test_cases__ harness
+  const bpStage = TOOL_BLUEPRINT_PROJECTS[0].stages[0];
+  const bpRes = await executeBugPatchVerification(
+    pyodide,
+    bpStage.solutionCode,
+    bpStage.verificationHarness,
+  );
+  assert.equal(bpRes.allPassed, true);
+  assert.equal(bpRes.results.length, 3);
+
+  // 3. Refactor Golf TEST_RESULT| stdout harness
+  const hole = REFACTOR_GOLF_HOLES[0];
+  const golfRes = await executeBugPatchVerification(
+    pyodide,
+    hole.optimalCode,
+    hole.verificationHarness,
+  );
+  assert.equal(golfRes.allPassed, true);
+  assert.equal(golfRes.results.length, 5);
+
+  // 4. Error message surfaces cleanly on both error & errorMessage
+  const syntaxErrRes = await executeBugPatchVerification(
+    pyodide,
+    "def broken(:\n    pass",
+    hole.verificationHarness,
+  );
+  assert.equal(syntaxErrRes.allPassed, false);
+  assert.ok(syntaxErrRes.error && syntaxErrRes.errorMessage === syntaxErrRes.error);
+
+  // 5. parseVerificationExecutionOutput parses mixed pipe values safely
+  const parsedPipe = parseVerificationExecutionOutput(
+    undefined,
+    "TEST_RESULT|case a|10|10|True\nTEST_RESULT|case b|20|19|False",
+  );
+  assert.equal(parsedPipe.allPassed, false);
+  assert.equal(parsedPipe.results.length, 2);
+  assert.equal(parsedPipe.results[0].passed, true);
+  assert.equal(parsedPipe.results[1].passed, false);
 });
