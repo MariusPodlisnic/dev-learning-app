@@ -49,10 +49,10 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
     id: "feat-arcade",
     icon: "nav_arcade",
     accent: "#FF90E8",
-    tag: "7 CARTRIDGES",
+    tag: "8 CARTRIDGES",
     title: "Cozy Mini-Game Arcade",
     description:
-      "Play 60s Syntax Blitz, Bug Hunt Incidents, Output Detective, Rapid Flashcards, Python Playground, and playable Cozy Mini-Builds.",
+      "Play 60s Syntax Blitz, Bug Hunt Incidents, Output Detective, Rapid Flashcards, Python Playground, Mock Interviews, and Cozy Mini-Builds.",
     shape: "gamepad",
   },
   {
@@ -89,8 +89,8 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
 
 const FREE_TRACK_POINTS = [
   {
-    lead: "Complete Track 01 (28 Modules):",
-    detail: "7 chapters + practice drills + Chapter VI playable mini-apps",
+    lead: "Complete Track 01 (32 Modules):",
+    detail: "8 chapters + SQLite + practice drills + playable mini-apps",
   },
   {
     lead: "Browser Python 3.11 IDE:",
@@ -290,7 +290,7 @@ export default function ShowcaseLandingScreen({
             <View style={styles.heroEyebrow}>
               <View style={styles.liveDot} />
               <Text style={styles.heroEyebrowText}>
-                LO-FI CODING STUDIO · 249 INTERACTIVE LESSONS & DRILLS
+                LO-FI CODING STUDIO · 275 INTERACTIVE LESSONS & DRILLS
               </Text>
             </View>
 
@@ -324,7 +324,7 @@ export default function ShowcaseLandingScreen({
               ]}
             >
               Cozy retro vibes meet serious engineering — write live Python 3.11
-              in your browser, step through 8 visual algorithm engines, play 6
+              in your browser, step through 8 visual algorithm engines, play 8
               coding mini-games, and earn track diplomas.
             </Text>
 
@@ -345,16 +345,41 @@ export default function ShowcaseLandingScreen({
             </Pressable>
 
             <View style={styles.microStatsRow}>
-              {[
-                "PYTHON 3.11 IN BROWSER",
-                "8 VISUALIZER ENGINES",
-                "6 ARCADE CARTRIDGES",
-                "3 CAREER TRACKS",
-              ].map((stat) => (
-                <View key={stat} style={styles.microPill}>
-                  <Text style={styles.microPillText}>{stat}</Text>
-                </View>
-              ))}
+              {(
+                [
+                  { label: "PYTHON 3.11 IN BROWSER", shape: "cyber_desk" },
+                  { label: "8 VISUALIZER ENGINES", shape: "neural_crown" },
+                  { label: "8 ARCADE CARTRIDGES", shape: "gamepad" },
+                  { label: "3 CAREER TRACKS", shape: "code_orrery" },
+                ] as const
+              ).map((item) => {
+                const isSelected = activeShape === item.shape;
+                return (
+                  <Pressable
+                    key={item.label}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Preview ${item.label} 3D hologram`}
+                    style={[
+                      styles.microPill,
+                      isSelected && styles.microPillActive,
+                    ]}
+                    onHoverIn={() => setActiveShape(item.shape)}
+                    onPress={() => {
+                      playKeyClick();
+                      setActiveShape(item.shape);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.microPillText,
+                        isSelected && styles.microPillTextActive,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
         </View>
@@ -940,6 +965,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(18, 12, 36, 0.92)",
     borderWidth: 1.5,
     borderColor: "rgba(255, 255, 255, 0.22)",
+    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
+  },
+  microPillActive: {
+    borderColor: "rgba(255, 222, 89, 0.78)",
+    backgroundColor: "rgba(32, 21, 58, 0.95)",
   },
   microPillText: {
     color: "#F3EEFF",
@@ -949,6 +979,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontFamily: MonoFont,
     letterSpacing: 0.5,
+  },
+  microPillTextActive: {
+    color: "#FFDE59",
   },
   sectionWrap: {
     width: "100%",

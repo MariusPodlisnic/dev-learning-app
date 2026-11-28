@@ -507,6 +507,20 @@ test("Showcase route (/explore) renders Lo-Fi Arcade Orbit showcase cleanly and 
     );
     assert.ok(overflowX <= 1, `Expected no overflow on /explore, got ${overflowX}`);
 
+    // Verify WebGL 3D particle hologram program linked, drew cleanly, and morphs across hero pills
+    await page.waitForSelector(
+      '[data-testid="showcase-orbit-backdrop"] [data-webgl-ready="1"][data-webgl-drawn="1"]',
+      { timeout: 5000 },
+    );
+    const backdropCanvasCount = await page
+      .getByTestId("showcase-orbit-backdrop")
+      .locator("canvas")
+      .count();
+    assert.equal(backdropCanvasCount, 2);
+    await page.getByLabel("Preview PYTHON 3.11 IN BROWSER 3D hologram").click();
+    await page.getByLabel("Preview 8 VISUALIZER ENGINES 3D hologram").click();
+    await page.getByLabel("Preview 8 ARCADE CARTRIDGES 3D hologram").click();
+
     // Clicking Begin Your Adventure warps and teleports directly to HOME
     await page.getByLabel("Begin Your Adventure", { exact: true }).click();
     await page.getByTestId("home-loft-stage").waitFor({ timeout: 10000 });
