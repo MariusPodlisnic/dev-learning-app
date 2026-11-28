@@ -92,6 +92,7 @@ interface StudioCodeEditorProps {
   onAdvanceNextStage?: () => void;
   testRunGeneration?: number;
   isStickyDesktop?: boolean;
+  isZenMode?: boolean;
 }
 
 const EMPTY_SUBSCRIBE = () => () => {};
@@ -187,6 +188,7 @@ export default function StudioCodeEditor({
   onAdvanceNextStage,
   testRunGeneration = 0,
   isStickyDesktop = false,
+  isZenMode = false,
 }: StudioCodeEditorProps) {
   const styles = useThemedStyles(getStudioCodeEditorStyles);
   const isMounted = useSyncExternalStore(
@@ -553,6 +555,7 @@ export default function StudioCodeEditor({
       style={[
         styles.editorPanel,
         isStickyDesktop && styles.editorPanelSticky,
+        isStickyDesktop && isZenMode && styles.editorPanelStickyZen,
       ]}
     >
       <View

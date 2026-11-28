@@ -111,6 +111,13 @@ export const getStudioScreenStyles = (StudioColors: StudioThemeColors) =>
       fontWeight: "900",
       fontFamily: MonoFont,
     },
+    zenBtnActive: {
+      backgroundColor: StudioColors.lime,
+      borderColor: StudioColors.ink,
+    },
+    zenBtnTextActive: {
+      color: StudioColors.ink,
+    },
     lessonNavCounter: {
       color: StudioColors.textPrimary,
       fontSize: 11,

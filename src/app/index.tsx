@@ -297,6 +297,7 @@ export default function HomeScreen() {
     source: "header",
   });
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [studioZenMode, setStudioZenMode] = useState<boolean>(false);
   const [drillClearBanner, setDrillClearBanner] =
     useState<DrillClearBannerState | null>(null);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
@@ -1013,9 +1014,15 @@ export default function HomeScreen() {
         setShowCodexModal((prev) => !prev);
         return;
       }
+      if ((event.metaKey || event.ctrlKey) && event.key === ".") {
+        event.preventDefault();
+        setStudioZenMode((prev) => !prev);
+        return;
+      }
       if (event.key === "Escape") {
         setShowCommandPalette((prev) => (prev ? false : prev));
         setShowCodexModal((prev) => (prev ? false : prev));
+        setStudioZenMode((prev) => (prev ? false : prev));
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -1065,6 +1072,10 @@ export default function HomeScreen() {
         return;
       case "toggle_pomodoro":
         togglePomodoro();
+        return;
+      case "toggle_zen":
+        setViewMode("studio");
+        setStudioZenMode((prev) => !prev);
         return;
       case "open_settings":
         setShowSettingsModal(true);
@@ -1221,25 +1232,27 @@ export default function HomeScreen() {
           section={viewMode}
         />
       )}
-      <AppHeader
-        viewMode={viewMode}
-        onChangeViewMode={setViewMode}
-        isCompactHeader={isCompactHeader}
-        pyodideReady={pyodideReady}
-        themeMode={themeMode}
-        onToggleTheme={toggleTheme}
-        devRank={devRank}
-        streakCount={streakCount}
-        isPremium={effectiveIsPremium}
-        session={session}
-        onOpenProfile={() => setShowProfileModal(true)}
-        onOpenSettings={() => setShowSettingsModal(true)}
-        onOpenCommandPalette={() => setShowCommandPalette(true)}
-        onOpenCodex={() => setShowCodexModal(true)}
-        onOpenPaywall={() => openPaywall({ source: "header" })}
-        onOpenAuth={() => openAuthModal()}
-        onSignOut={() => supabase.auth.signOut()}
-      />
+      {!(viewMode === "studio" && studioZenMode) && (
+        <AppHeader
+          viewMode={viewMode}
+          onChangeViewMode={setViewMode}
+          isCompactHeader={isCompactHeader}
+          pyodideReady={pyodideReady}
+          themeMode={themeMode}
+          onToggleTheme={toggleTheme}
+          devRank={devRank}
+          streakCount={streakCount}
+          isPremium={effectiveIsPremium}
+          session={session}
+          onOpenProfile={() => setShowProfileModal(true)}
+          onOpenSettings={() => setShowSettingsModal(true)}
+          onOpenCommandPalette={() => setShowCommandPalette(true)}
+          onOpenCodex={() => setShowCodexModal(true)}
+          onOpenPaywall={() => openPaywall({ source: "header" })}
+          onOpenAuth={() => openAuthModal()}
+          onSignOut={() => supabase.auth.signOut()}
+        />
+      )}
 
       {syncNotice ? (
         <Pressable
@@ -1582,7 +1595,7 @@ export default function HomeScreen() {
         <View style={styles.content}>
           <StudioSidebar
             isCompactStudio={isCompactStudio}
-            sidebarCollapsed={sidebarCollapsed}
+            sidebarCollapsed={sidebarCollapsed || studioZenMode}
             mobileDrawerOpen={mobileDrawerOpen}
             onCloseMobileDrawer={() => setMobileDrawerOpen(false)}
             onBackToMap={() => setViewMode("roadmap")}
@@ -1618,14 +1631,47 @@ export default function HomeScreen() {
                     </Text>
                   </Pressable>
                 ) : (
-                  <Pressable
-                    style={styles.sidebarToggleBtn}
-                    onPress={() => setSidebarCollapsed((prev) => !prev)}
-                  >
-                    <Text style={styles.sidebarToggleText}>
-                      {sidebarCollapsed ? "☰ SHOW MODULES" : "✕ HIDE SIDEBAR"}
-                    </Text>
-                  </Pressable>
+                  <>
+                    <Pressable
+                      style={styles.sidebarToggleBtn}
+                      onPress={() => {
+                        if (studioZenMode) {
+                          setStudioZenMode(false);
+                          setSidebarCollapsed(false);
+                        } else {
+                          setSidebarCollapsed((prev) => !prev);
+                        }
+                      }}
+                    >
+                      <Text style={styles.sidebarToggleText}>
+                        {sidebarCollapsed || studioZenMode
+                          ? "☰ SHOW MODULES"
+                          : "✕ HIDE SIDEBAR"}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        studioZenMode
+                          ? "Exit Studio Focus Zen Mode"
+                          : "Enter Studio Focus Zen Mode"
+                      }
+                      style={[
+                        styles.lessonNavBtn,
+                        studioZenMode && styles.zenBtnActive,
+                      ]}
+                      onPress={() => setStudioZenMode((prev) => !prev)}
+                    >
+                      <Text
+                        style={[
+                          styles.lessonNavBtnText,
+                          studioZenMode && styles.zenBtnTextActive,
+                        ]}
+                      >
+                        {studioZenMode ? "✕ EXIT ZEN" : "⛶ ZEN"}
+                      </Text>
+                    </Pressable>
+                  </>
                 )}
 
                 {isCompactStudio && (
@@ -1833,6 +1879,7 @@ export default function HomeScreen() {
                     onAdvanceNextStage={handleNextLesson}
                     testRunGeneration={testRunGeneration}
                     isStickyDesktop={!isCompactStudio}
+                    isZenMode={studioZenMode}
                   />
                 )}
               </ScrollView>

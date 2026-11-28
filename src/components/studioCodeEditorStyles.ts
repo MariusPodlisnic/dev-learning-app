@@ -19,6 +19,12 @@ export const getStudioCodeEditorStyles = (StudioColors: StudioThemeColors) =>
       },
       default: {},
     }) as any,
+    editorPanelStickyZen: Platform.select({
+      web: {
+        height: "calc(100vh - 96px)" as any,
+      },
+      default: {},
+    }) as any,
     ideFrame: {
       minHeight: 280,
       backgroundColor: StudioColors.codeBg,

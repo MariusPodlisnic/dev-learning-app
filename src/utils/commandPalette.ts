@@ -22,6 +22,7 @@ export type CommandAction =
   | { type: "toggle_lofi" }
   | { type: "ambient_preset"; presetId: AmbientPresetId }
   | { type: "toggle_pomodoro" }
+  | { type: "toggle_zen" }
   | { type: "open_settings" }
   | { type: "open_profile" }
   | { type: "open_codex" };
@@ -285,6 +286,18 @@ export function buildCommandPaletteItems(
       badge: ctx.pomodoroRunning ? "LIVE" : "FOCUS",
       featured: true,
       action: { type: "toggle_pomodoro" },
+    },
+    {
+      id: "ctrl-zen",
+      group: "AUDIO & FOCUS",
+      title: "Toggle Studio Zen / Focus Mode",
+      subtitle: "Hide header & sidebar chrome for pure 50/50 coding focus",
+      keywords: ["zen", "focus", "fullscreen", "distraction", "clean", "hide"],
+      icon: "stretch",
+      badge: "ZEN",
+      shortcut: "⌘.",
+      featured: true,
+      action: { type: "toggle_zen" },
     },
     {
       id: "ctrl-theme",

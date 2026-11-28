@@ -447,6 +447,12 @@ test("Desktop browser layout: header boxes align uniformly, themes toggle, and l
     await page.waitForSelector("text=TEST RUN", { timeout: 5000 });
     await page.waitForSelector("text=TRACE", { timeout: 5000 });
 
+    // Studio Focus / Zen Mode toggles header & sidebar chrome cleanly
+    await page.getByLabel("Enter Studio Focus Zen Mode").click();
+    await page.waitForSelector("text=✕ EXIT ZEN", { timeout: 5000 });
+    await page.getByLabel("Exit Studio Focus Zen Mode").click();
+    await page.waitForSelector("text=⛶ ZEN", { timeout: 5000 });
+
     // Verify Code Studio workspace scrolls vertically (not static/locked)
     const studioScrollCheck = await page.evaluate(() => {
       const scrollEl = [...document.querySelectorAll("div")].find((d) => {
