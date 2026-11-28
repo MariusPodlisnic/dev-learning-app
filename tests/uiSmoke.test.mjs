@@ -459,6 +459,48 @@ test("StudioCodeEditor renders editor chrome, quick inserts, trace control, and 
   assert.ok(drillClearedText.includes("✓ DRILL 2/3 CLEARED"));
   assert.ok(drillClearedText.includes("+35 XP"));
   assert.ok(drillClearedText.includes("STAGE 3/3 →"));
+
+  const mobileGoalEditorText = visibleText(
+    renderThemed(
+      React.createElement(StudioCodeEditor, {
+        selectedLesson: {
+          id: "test-mob",
+          track: "python_basics",
+          lesson_order: 29,
+          title: "SQL Foundations",
+          description: "Desc",
+          initial_code: "def query_top_players(con, min_xp):\n    pass",
+          is_free: true,
+        },
+        code: "def query_top_players(con, min_xp):\n    pass",
+        onChangeCode: () => {},
+        hasSavedDraft: false,
+        pyodideReady: true,
+        isExecuting: false,
+        onRunPlaygroundOnly: () => {},
+        onRunPythonCode: () => {},
+        bottomTab: "tests",
+        onChangeBottomTab: () => {},
+        output: "",
+        onClearOutput: () => {},
+        testResults: null,
+        selectedTestIndex: 0,
+        onSelectTestIndex: () => {},
+        mobileGoalSummary: {
+          signature: "query_top_players(con, min_xp)",
+          targetOutput: "[nova, aria]",
+          assignment: "Return handles ordered by xp DESC.",
+        },
+        onJumpToLessonPane: () => {},
+      }),
+    ),
+  );
+  assert.ok(mobileGoalEditorText.includes("GOAL"));
+  assert.ok(
+    mobileGoalEditorText.includes(
+      "query_top_players(con, min_xp) → [nova, aria]",
+    ),
+  );
   assert.ok(editorText.includes("TRACE"));
   assert.ok(editorText.includes("TEST RUN"));
   assert.ok(editorText.includes("SUBMIT CODE (+50 XP)"));

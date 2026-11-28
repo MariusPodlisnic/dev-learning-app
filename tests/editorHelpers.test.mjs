@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildMobileGoalSummary,
   computeAssertionDiff,
   computePythonAutoEdit,
   computeSmartEnter,
@@ -265,4 +266,17 @@ test("translatePythonError and diagnoseFailedTest coach SQLite errors and extra 
     actual: "[('nova',), ('aria',)]",
   });
   assert.equal(sqlTupleDiag?.badge, "UNPACK SQL TUPLE ROWS");
+
+  const goal = buildMobileGoalSummary(
+    {
+      title: "SQL Foundations",
+      assignment: "Complete `query_top_players(con, min_xp)`.",
+      initial_code: "class Solution:\n    def query_top_players(self, con, min_xp):\n        pass",
+      examples: [{ input: "min_xp=300", output: "['nova', 'aria']" }],
+    },
+    0,
+  );
+  assert.equal(goal?.signature, "query_top_players(con, min_xp)");
+  assert.equal(goal?.targetOutput, "['nova', 'aria']");
+  assert.equal(goal?.assignment, "Complete query_top_players(con, min_xp).");
 });

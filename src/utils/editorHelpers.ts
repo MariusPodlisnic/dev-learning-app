@@ -29,6 +29,12 @@ export interface BeginnerErrorHint {
   howToFix: string;
 }
 
+export interface MobileGoalSummary {
+  signature: string;
+  targetOutput: string;
+  assignment: string;
+}
+
 function clampOffset(offset: number, length: number): number {
   return Math.min(Math.max(0, offset), length);
 }
@@ -870,4 +876,64 @@ export function translatePythonError(
   }
 
   return null;
+}
+
+/**
+ * Extracts a compact 1-line mobile coding goal summary (function signature,
+ * target output preview, and concise assignment text) for the mobile Code pane.
+ */
+export function buildMobileGoalSummary(
+  lesson: {
+    title?: string;
+    description?: string;
+    assignment?: string;
+    initial_code?: string;
+    expected_output?: string;
+    examples?: { input: string; output: string }[];
+    practiceChallenges?: {
+      title?: string;
+      assignment?: string;
+      initial_code?: string;
+      expected_output?: string;
+      examples?: { input: string; output: string }[];
+    }[];
+  } | null,
+  activeChallengeIdx: number = 0,
+): MobileGoalSummary | null {
+  if (!lesson) return null;
+  const activeStage =
+    activeChallengeIdx > 0 && lesson.practiceChallenges?.[activeChallengeIdx - 1]
+      ? lesson.practiceChallenges[activeChallengeIdx - 1]
+      : lesson;
+
+  const rawCode = (activeStage.initial_code || "").replace(/\\n/g, "\n");
+  const defMatch = rawCode.match(/def\s+([a-zA-Z_]\w*\s*\([^)]*\))/);
+  const rawSig = defMatch
+    ? defMatch[1].replace(/\bself\s*,\s*/, "").replace(/\s+/g, " ").trim()
+    : activeStage.title || lesson.title || "Solve challenge";
+
+  const rawTarget = (
+    activeStage.examples?.[0]?.output ||
+    activeStage.expected_output ||
+    ""
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+  const targetOutput =
+    rawTarget.length > 36 ? `${rawTarget.slice(0, 35)}…` : rawTarget;
+
+  const assignment = (
+    activeStage.assignment ||
+    lesson.assignment ||
+    lesson.description ||
+    ""
+  )
+    .replace(/`/g, "")
+    .trim();
+
+  return {
+    signature: rawSig,
+    targetOutput,
+    assignment,
+  };
 }

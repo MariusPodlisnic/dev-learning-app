@@ -90,6 +90,7 @@ import {
   trackFunnelMilestone,
 } from "../utils/attribution";
 import { buildCloudSyncFeedback } from "../utils/authHelpers";
+import { buildMobileGoalSummary } from "../utils/editorHelpers";
 import { type CommandAction } from "../utils/commandPalette";
 import { toggleLofiRadio } from "../utils/lofiRadio";
 import {
@@ -1880,6 +1881,19 @@ export default function HomeScreen() {
                     testRunGeneration={testRunGeneration}
                     isStickyDesktop={!isCompactStudio}
                     isZenMode={studioZenMode}
+                    mobileGoalSummary={
+                      isCompactStudio
+                        ? buildMobileGoalSummary(
+                            selectedLesson,
+                            activeChallengeIdx,
+                          )
+                        : null
+                    }
+                    onJumpToLessonPane={
+                      isCompactStudio
+                        ? () => setMobileStudioPane("learn")
+                        : undefined
+                    }
                   />
                 )}
               </ScrollView>

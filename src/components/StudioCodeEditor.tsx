@@ -43,6 +43,7 @@ import {
   EditorSelectionResult,
   extractErrorLineNumber,
   indentSelection,
+  type MobileGoalSummary,
   toggleLineComment,
   translatePythonError,
 } from "../utils/editorHelpers";
@@ -93,6 +94,8 @@ interface StudioCodeEditorProps {
   testRunGeneration?: number;
   isStickyDesktop?: boolean;
   isZenMode?: boolean;
+  mobileGoalSummary?: MobileGoalSummary | null;
+  onJumpToLessonPane?: () => void;
 }
 
 const EMPTY_SUBSCRIBE = () => () => {};
@@ -189,6 +192,8 @@ export default function StudioCodeEditor({
   testRunGeneration = 0,
   isStickyDesktop = false,
   isZenMode = false,
+  mobileGoalSummary = null,
+  onJumpToLessonPane,
 }: StudioCodeEditorProps) {
   const styles = useThemedStyles(getStudioCodeEditorStyles);
   const isMounted = useSyncExternalStore(
@@ -212,6 +217,7 @@ export default function StudioCodeEditor({
   const [copiedOutput, setCopiedOutput] = useState<boolean>(false);
   const [confirmReset, setConfirmReset] = useState<boolean>(false);
   const [showToolsDrawer, setShowToolsDrawer] = useState<boolean>(false);
+  const [goalStripExpanded, setGoalStripExpanded] = useState<boolean>(false);
   const [symbolBarOverride, setSymbolBarOverride] = useState<boolean | null>(
     null,
   );
@@ -558,6 +564,59 @@ export default function StudioCodeEditor({
         isStickyDesktop && isZenMode && styles.editorPanelStickyZen,
       ]}
     >
+      {mobileGoalSummary && (
+        <View style={styles.mobileGoalCard}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              goalStripExpanded
+                ? "Collapse pinned goal reminder"
+                : "Expand pinned goal reminder"
+            }
+            accessibilityState={{ expanded: goalStripExpanded }}
+            style={styles.mobileGoalRow}
+            onPress={() => {
+              playKeyClick();
+              setGoalStripExpanded((prev) => !prev);
+            }}
+          >
+            <Text style={styles.mobileGoalTag}>GOAL</Text>
+            <Text style={styles.mobileGoalText} numberOfLines={1}>
+              {mobileGoalSummary.signature}
+              {mobileGoalSummary.targetOutput
+                ? ` → ${mobileGoalSummary.targetOutput}`
+                : ""}
+            </Text>
+            <Text style={styles.mobileGoalChevron}>
+              {goalStripExpanded ? "▴" : "▾"}
+            </Text>
+          </Pressable>
+          {goalStripExpanded && (
+            <View style={styles.mobileGoalDetails}>
+              {mobileGoalSummary.assignment ? (
+                <Text style={styles.mobileGoalDesc}>
+                  {mobileGoalSummary.assignment}
+                </Text>
+              ) : null}
+              {onJumpToLessonPane ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Switch back to full Lesson pane"
+                  style={styles.mobileGoalLessonLink}
+                  onPress={() => {
+                    playKeyClick();
+                    onJumpToLessonPane();
+                  }}
+                >
+                  <Text style={styles.mobileGoalLessonLinkText}>
+                    OPEN FULL LESSON →
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          )}
+        </View>
+      )}
       <View
         style={[
           styles.ideFrame,
