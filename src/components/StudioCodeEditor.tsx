@@ -44,6 +44,7 @@ import {
   extractErrorLineNumber,
   indentSelection,
   toggleLineComment,
+  translatePythonError,
 } from "../utils/editorHelpers";
 import { findUnfilledScaffoldLines } from "../utils/scaffolding";
 import { renderHighlightedPython } from "./FormattedText";
@@ -60,135 +61,6 @@ const AUTO_PAIR_MAP: Record<string, string> = {
 };
 
 const CLOSING_CHARS = new Set([")", "]", "}", '"', "'"]);
-
-interface BeginnerErrorHint {
-  badge: string;
-  lineNumber: number | null;
-  whatHappened: string;
-  howToFix: string;
-}
-
-function translatePythonError(
-  rawOutput: string,
-  maxLines?: number,
-): BeginnerErrorHint | null {
-  if (!rawOutput) return null;
-
-  const lineNumber = extractErrorLineNumber(rawOutput, maxLines);
-
-  if (rawOutput.includes("IndentationError")) {
-    return {
-      badge: "INDENTATION FIX",
-      lineNumber,
-      whatHappened:
-        "Python expects code inside a block (after a colon ':') to be indented by 4 spaces.",
-      howToFix:
-        "Add 4 spaces (or tap '⇥ Tab') at the start of the line right below your 'def', 'if', 'else', or 'for' line.",
-    };
-  }
-
-  if (rawOutput.includes("SyntaxError")) {
-    return {
-      badge: "SYNTAX TYPO",
-      lineNumber,
-      whatHappened:
-        "Python spotted a punctuation typo and couldn't read this line.",
-      howToFix:
-        "Check for a missing colon ':' at the end of 'def/if/else/for', unclosed quotes \" \", or using single '=' instead of '==' inside an 'if' check.",
-    };
-  }
-
-  if (rawOutput.includes("NameError")) {
-    const nameMatch = rawOutput.match(/name\s+'([^']+)'\s+is not defined/i);
-    const unknownName = nameMatch ? nameMatch[1] : "that name";
-    if (unknownName === "___") {
-      return {
-        badge: "FILL IN ___ BLANKS",
-        lineNumber,
-        whatHappened:
-          "You left a Guided Scaffolding `___` blank placeholder in your Python code.",
-        howToFix:
-          "Replace `___` on that line with your real Python variable, condition, or return expression.",
-      };
-    }
-    return {
-      badge: `UNKNOWN NAME '${unknownName}'`,
-      lineNumber,
-      whatHappened: `Python doesn't recognize '${unknownName}' as a variable or function.`,
-      howToFix:
-        unknownName === "true" || unknownName === "false"
-          ? "In Python, booleans must start with a capital letter: write True or False."
-          : `Check the spelling of '${unknownName}', or wrap it in quotes ("${unknownName}") if you meant it as text!`,
-    };
-  }
-
-  if (rawOutput.includes("TypeError")) {
-    return {
-      badge: "DATA TYPE MISMATCH",
-      lineNumber,
-      whatHappened:
-        "You combined two incompatible data types (like adding text to a number) or passed the wrong number of arguments.",
-      howToFix:
-        "Make sure numbers aren't wrapped in quotes when doing math, and check that functions like len() or round() receive the right inputs.",
-    };
-  }
-
-  if (rawOutput.includes("KeyError")) {
-    return {
-      badge: "MISSING DICTIONARY KEY",
-      lineNumber,
-      whatHappened:
-        "Your code looked up a key in a dictionary Using [ ], but that key wasn't found.",
-      howToFix:
-        "Use dict.get(key, default) so Python returns a safe fallback value when a key is missing!",
-    };
-  }
-
-  if (rawOutput.includes("IndexError")) {
-    return {
-      badge: "INDEX OUT OF RANGE",
-      lineNumber,
-      whatHappened:
-        "Your code tried to read an index position past the end of the list.",
-      howToFix:
-        "Remember that Python lists start counting at index 0 (a 3-item list only has indices 0, 1, and 2).",
-    };
-  }
-
-  if (rawOutput.includes("AttributeError")) {
-    return {
-      badge: "METHOD NAME CHECK",
-      lineNumber,
-      whatHappened:
-        "That dot-method doesn't exist on this type of value.",
-      howToFix:
-        "Double-check the spelling (e.g., .startswith() has an 's' in the middle, and .join() is called on the separator string like \"-\".join(words)).",
-    };
-  }
-
-  if (rawOutput.includes("ZeroDivisionError")) {
-    return {
-      badge: "DIVISION BY ZERO",
-      lineNumber,
-      whatHappened: "Your code divided a number by 0, which isn't allowed in math!",
-      howToFix:
-        "Wrap the division inside a 'try: ... except ZeroDivisionError:' block or check if the denominator is 0 first.",
-    };
-  }
-
-  if (rawOutput.includes("✕ Output mismatch")) {
-    return {
-      badge: "ALMOST THERE · OUTPUT CHECK",
-      lineNumber: null,
-      whatHappened:
-        "Your code ran without errors, but the printed result didn't match the expected output yet.",
-      howToFix:
-        "Compare your output below with the Expected Output—check exact spelling, capitalization, and make sure your function returns the result!",
-    };
-  }
-
-  return null;
-}
 
 interface StudioCodeEditorProps {
   selectedLesson: Lesson;

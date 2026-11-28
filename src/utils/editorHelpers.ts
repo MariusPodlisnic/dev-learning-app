@@ -22,6 +22,13 @@ export interface FailedTestDiagnosis {
   tip: string;
 }
 
+export interface BeginnerErrorHint {
+  badge: string;
+  lineNumber: number | null;
+  whatHappened: string;
+  howToFix: string;
+}
+
 function clampOffset(offset: number, length: number): number {
   return Math.min(Math.max(0, offset), length);
 }
@@ -617,6 +624,18 @@ export function diagnoseFailedTest(
   }
 
   if (
+    expected.startsWith("[") &&
+    !expected.startsWith("[(") &&
+    actual.startsWith("[(") &&
+    actual.includes(",)")
+  ) {
+    return {
+      badge: "UNPACK SQL TUPLE ROWS",
+      tip: "SQLite `.fetchall()` returns 1-column rows as tuples like `[('nova',)]` — unpack them with `[row[0] for row in rows]`.",
+    };
+  }
+
+  if (
     (expected.startsWith("[") && actual.startsWith("(")) ||
     (expected.startsWith("(") && actual.startsWith("["))
   ) {
@@ -625,6 +644,228 @@ export function diagnoseFailedTest(
       tip: expected.startsWith("[")
         ? "Expected a Python `list [...]` rather than a `tuple (...)` — wrap or convert with `[...]` or `list(...)`."
         : "Expected a Python `tuple (...)` rather than a `list [...]` — return comma-separated values or `tuple(...)`.",
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Translates raw Python & SQLite tracebacks into plain-English coaching hints
+ * paired with the best student-code line number for 1-tap "Jump to Line".
+ */
+export function translatePythonError(
+  rawOutput: string,
+  maxLines?: number,
+): BeginnerErrorHint | null {
+  if (!rawOutput) return null;
+
+  const lineNumber = extractErrorLineNumber(rawOutput, maxLines);
+
+  // SQLite-specific coaching (prioritized before generic Python errors)
+  if (
+    /Incorrect number of bindings supplied|parameters are of unsupported type/i.test(
+      rawOutput,
+    )
+  ) {
+    return {
+      badge: "SQL PARAMETER TUPLE",
+      lineNumber,
+      whatHappened:
+        "SQLite received a different number of bound parameters than `?` placeholders in your query.",
+      howToFix:
+        "For a 1-value query, add a trailing comma so Python builds a 1-item tuple: `con.execute(sql, (email,))` — NOT `(email)`!",
+    };
+  }
+
+  if (/misuse of aggregate/i.test(rawOutput)) {
+    return {
+      badge: "SQL WHERE VS HAVING",
+      lineNumber,
+      whatHappened:
+        "An aggregate function like `SUM()`, `COUNT()`, or `AVG()` was used inside `WHERE`.",
+      howToFix:
+        "Use `WHERE` for raw row filters before `GROUP BY`, and move `SUM(...)` / `AVG(...)` conditions into `HAVING` after `GROUP BY`!",
+    };
+  }
+
+  const schemaMatch = rawOutput.match(/no such (table|column):\s*([^\n\r]+)/i);
+  if (schemaMatch) {
+    const kind = schemaMatch[1].toLowerCase();
+    const missingName = schemaMatch[2].trim();
+    return {
+      badge: `SQL UNKNOWN ${kind.toUpperCase()}`,
+      lineNumber,
+      whatHappened: `SQLite couldn't find ${kind} '${missingName}' in the database schema.`,
+      howToFix:
+        "Check the exact table and column spelling in the Mission Brief (and make sure table aliases like `u.` or `p.` match your `FROM`/`JOIN` clause).",
+    };
+  }
+
+  const sqlSyntaxMatch = rawOutput.match(/near\s+"([^"]+)":\s*syntax error/i);
+  if (sqlSyntaxMatch) {
+    return {
+      badge: "SQL SYNTAX CHECK",
+      lineNumber,
+      whatHappened: `SQLite hit a SQL syntax error right near "${sqlSyntaxMatch[1]}".`,
+      howToFix:
+        "Check clause order (`SELECT → FROM → JOIN → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT`), commas between columns, and matching quotes.",
+    };
+  }
+
+  if (/IntegrityError/i.test(rawOutput)) {
+    return {
+      badge: "SQL CONSTRAINT CHECK",
+      lineNumber,
+      whatHappened:
+        "A database constraint (PRIMARY KEY, UNIQUE, or NOT NULL) rejected this write.",
+      howToFix:
+        "Check whether a row with that primary key already exists or a required column value is missing.",
+    };
+  }
+
+  if (rawOutput.includes("IndentationError")) {
+    return {
+      badge: "INDENTATION FIX",
+      lineNumber,
+      whatHappened:
+        "Python expects code inside a block (after a colon ':') to be indented by 4 spaces.",
+      howToFix:
+        "Add 4 spaces (or tap '⇥ Tab') at the start of the line right below your 'def', 'if', 'else', or 'for' line.",
+    };
+  }
+
+  if (rawOutput.includes("SyntaxError")) {
+    return {
+      badge: "SYNTAX TYPO",
+      lineNumber,
+      whatHappened:
+        "Python spotted a punctuation typo and couldn't read this line.",
+      howToFix:
+        "Check for a missing colon ':' at the end of 'def/if/else/for', unclosed quotes \" \", or using single '=' instead of '==' inside an 'if' check.",
+    };
+  }
+
+  if (rawOutput.includes("UnboundLocalError")) {
+    const varMatch = rawOutput.match(/local variable '([^']+)'/i);
+    const varName = varMatch ? varMatch[1] : "a variable";
+    return {
+      badge: `INITIALIZE '${varName}' FIRST`,
+      lineNumber,
+      whatHappened: `Your code read or updated '${varName}' before giving it a starting value inside the function.`,
+      howToFix: `Initialize \`${varName} = 0\` (or \`[]\` / \`{}\`) before your loop or \`if\` branch.`,
+    };
+  }
+
+  if (rawOutput.includes("NameError")) {
+    const nameMatch = rawOutput.match(/name\s+'([^']+)'\s+is not defined/i);
+    const unknownName = nameMatch ? nameMatch[1] : "that name";
+    if (unknownName === "___") {
+      return {
+        badge: "FILL IN ___ BLANKS",
+        lineNumber,
+        whatHappened:
+          "You left a Guided Scaffolding `___` blank placeholder in your Python code.",
+        howToFix:
+          "Replace `___` on that line with your real Python variable, condition, or return expression.",
+      };
+    }
+    return {
+      badge: `UNKNOWN NAME '${unknownName}'`,
+      lineNumber,
+      whatHappened: `Python doesn't recognize '${unknownName}' as a variable or function.`,
+      howToFix:
+        unknownName === "true" || unknownName === "false"
+          ? "In Python, booleans must start with a capital letter: write True or False."
+          : `Check the spelling of '${unknownName}', or wrap it in quotes ("${unknownName}") if you meant it as text!`,
+    };
+  }
+
+  if (rawOutput.includes("TypeError")) {
+    return {
+      badge: "DATA TYPE MISMATCH",
+      lineNumber,
+      whatHappened:
+        "You combined two incompatible data types (like adding text to a number) or passed the wrong number of arguments.",
+      howToFix:
+        "Make sure numbers aren't wrapped in quotes when doing math, and check that functions like len() or round() receive the right inputs.",
+    };
+  }
+
+  if (rawOutput.includes("ValueError")) {
+    return {
+      badge: "VALUE CONVERSION CHECK",
+      lineNumber,
+      whatHappened:
+        "A function received the right type, but an invalid value (like `int('N/A')` or unpacking the wrong number of items).",
+      howToFix:
+        "Guard unsafe conversions with `try / except ValueError:`, or check how many items are returned before unpacking.",
+    };
+  }
+
+  if (rawOutput.includes("KeyError")) {
+    return {
+      badge: "MISSING DICTIONARY KEY",
+      lineNumber,
+      whatHappened:
+        "Your code looked up a key in a dictionary using [ ], but that key wasn't found.",
+      howToFix:
+        "Use dict.get(key, default) so Python returns a safe fallback value when a key is missing!",
+    };
+  }
+
+  if (rawOutput.includes("IndexError")) {
+    return {
+      badge: "INDEX OUT OF RANGE",
+      lineNumber,
+      whatHappened:
+        "Your code tried to read an index position past the end of the list.",
+      howToFix:
+        "Remember that Python lists start counting at index 0 (a 3-item list only has indices 0, 1, and 2).",
+    };
+  }
+
+  if (rawOutput.includes("AttributeError")) {
+    return {
+      badge: "METHOD NAME CHECK",
+      lineNumber,
+      whatHappened:
+        "That dot-method doesn't exist on this type of value.",
+      howToFix:
+        "Double-check the spelling (e.g., .startswith() has an 's' in the middle, and .join() is called on the separator string like \"-\".join(words)).",
+    };
+  }
+
+  if (rawOutput.includes("ZeroDivisionError")) {
+    return {
+      badge: "DIVISION BY ZERO",
+      lineNumber,
+      whatHappened:
+        "Your code divided a number by 0, which isn't allowed in math!",
+      howToFix:
+        "Wrap the division inside a 'try: ... except ZeroDivisionError:' block or check if the denominator is 0 first.",
+    };
+  }
+
+  if (rawOutput.includes("RecursionError")) {
+    return {
+      badge: "INFINITE RECURSION",
+      lineNumber,
+      whatHappened:
+        "Your recursive function kept calling itself without reaching a stopping base case.",
+      howToFix:
+        "Add a base-case `if ...: return ...` at the top and ensure every recursive call shrinks the problem toward it.",
+    };
+  }
+
+  if (rawOutput.includes("✕ Output mismatch")) {
+    return {
+      badge: "ALMOST THERE · OUTPUT CHECK",
+      lineNumber: null,
+      whatHappened:
+        "Your code ran without errors, but the printed result didn't match the expected output yet.",
+      howToFix:
+        "Compare your output below with the Expected Output—check exact spelling, capitalization, and make sure your function returns the result!",
     };
   }
 

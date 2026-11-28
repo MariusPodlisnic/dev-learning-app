@@ -9,6 +9,7 @@ import {
   indentSelection,
   suggestQuickTestExpression,
   toggleLineComment,
+  translatePythonError,
 } from "../src/utils/editorHelpers.ts";
 
 test("extractErrorLineNumber prefers student-code lines over hidden test lines", () => {
@@ -220,4 +221,48 @@ test("computePythonAutoEdit handles auto-pairs, selection wrapping, pair backspa
     metaOrCtrlKey: true,
   });
   assert.equal(commentRes?.code, "# x = 1");
+});
+
+test("translatePythonError and diagnoseFailedTest coach SQLite errors and extra Python tracebacks cleanly", () => {
+  const bindHint = translatePythonError(
+    'File "<exec>", line 3, in find_account_tier\nsqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 1, and there are 13 supplied.',
+    8,
+  );
+  assert.equal(bindHint?.badge, "SQL PARAMETER TUPLE");
+  assert.equal(bindHint?.lineNumber, 3);
+  assert.ok(bindHint?.howToFix.includes("(email,)"));
+
+  const aggHint = translatePythonError(
+    'sqlite3.OperationalError: misuse of aggregate: SUM()',
+  );
+  assert.equal(aggHint?.badge, "SQL WHERE VS HAVING");
+
+  const colHint = translatePythonError(
+    'sqlite3.OperationalError: no such column: user_handle',
+  );
+  assert.equal(colHint?.badge, "SQL UNKNOWN COLUMN");
+  assert.ok(colHint?.whatHappened.includes("user_handle"));
+
+  const synHint = translatePythonError(
+    'sqlite3.OperationalError: near "GROUP": syntax error',
+  );
+  assert.equal(synHint?.badge, "SQL SYNTAX CHECK");
+  assert.ok(synHint?.whatHappened.includes("GROUP"));
+
+  const unboundHint = translatePythonError(
+    "UnboundLocalError: local variable 'total' referenced before assignment",
+  );
+  assert.equal(unboundHint?.badge, "INITIALIZE 'total' FIRST");
+
+  const recHint = translatePythonError(
+    "RecursionError: maximum recursion depth exceeded",
+  );
+  assert.equal(recHint?.badge, "INFINITE RECURSION");
+
+  const sqlTupleDiag = diagnoseFailedTest({
+    input: "min_xp=300",
+    expected: "['nova', 'aria']",
+    actual: "[('nova',), ('aria',)]",
+  });
+  assert.equal(sqlTupleDiag?.badge, "UNPACK SQL TUPLE ROWS");
 });
