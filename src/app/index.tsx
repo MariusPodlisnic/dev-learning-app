@@ -59,7 +59,10 @@ import {
 } from "../constants/theme";
 import { useTheme, useThemedStyles } from "../constants/themeContext";
 import { useArenaRewards } from "../hooks/useArenaRewards";
-import { useLessonExecution } from "../hooks/useLessonExecution";
+import {
+  type DrillClearBannerState,
+  useLessonExecution,
+} from "../hooks/useLessonExecution";
 import { useStudioSync } from "../hooks/useStudioSync";
 import {
   ExplainStyle,
@@ -294,6 +297,8 @@ export default function HomeScreen() {
     source: "header",
   });
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [drillClearBanner, setDrillClearBanner] =
+    useState<DrillClearBannerState | null>(null);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showCommandPalette, setShowCommandPalette] = useState<boolean>(false);
@@ -612,6 +617,7 @@ export default function HomeScreen() {
     setHasSavedDraft(draft !== undefined && draft !== defaultCode);
     setOutput("");
     setTestResults(null);
+    setDrillClearBanner(null);
     setLiveTraceResult(null);
     setTracedLineNumber(null);
     setActiveTab(
@@ -634,6 +640,7 @@ export default function HomeScreen() {
     setHasSavedDraft(draft !== undefined && draft !== defaultCode);
     setOutput("");
     setTestResults(null);
+    setDrillClearBanner(null);
     setLiveTraceResult(null);
     setTracedLineNumber(null);
     setActiveTab(completedLessons[fullLesson.id] ? "mission" : "problem");
@@ -760,6 +767,7 @@ export default function HomeScreen() {
       setHasSavedDraft(draft !== undefined && draft !== defaultCode);
       setOutput("");
       setTestResults(null);
+      setDrillClearBanner(null);
       setLiveTraceResult(null);
       setTracedLineNumber(null);
       setActiveTab(completedLessons[firstInTrack.id] ? "mission" : "problem");
@@ -791,6 +799,7 @@ export default function HomeScreen() {
 
   function handleNextLesson() {
     setShowSuccessModal(false);
+    setDrillClearBanner(null);
     if (!selectedLesson) return;
     const practiceDrills = selectedLesson.practiceChallenges || [];
     if (activeChallengeIdx < practiceDrills.length) {
@@ -902,6 +911,7 @@ export default function HomeScreen() {
       setMobileStudioPane,
       setLiveTraceResult,
       setShowSuccessModal,
+      onDrillCleared: setDrillClearBanner,
       usedSolutionInAttemptRef,
       usedScaffoldInAttemptRef,
       failedAttemptsByLessonRef,
@@ -1819,6 +1829,8 @@ export default function HomeScreen() {
                         : selectedLesson.hints
                     }
                     onOpenCodex={() => setShowCodexModal(true)}
+                    drillClearBanner={drillClearBanner}
+                    onAdvanceNextStage={handleNextLesson}
                     testRunGeneration={testRunGeneration}
                     isStickyDesktop={!isCompactStudio}
                   />

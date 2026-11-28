@@ -212,6 +212,12 @@ interface StudioCodeEditorProps {
   failedAttemptCount?: number;
   lessonHints?: string[];
   onOpenCodex?: () => void;
+  drillClearBanner?: {
+    stageLabel: string;
+    xpEarned: number;
+    nextStageLabel: string;
+  } | null;
+  onAdvanceNextStage?: () => void;
   testRunGeneration?: number;
   isStickyDesktop?: boolean;
 }
@@ -305,6 +311,8 @@ export default function StudioCodeEditor({
   failedAttemptCount = 0,
   lessonHints = [],
   onOpenCodex,
+  drillClearBanner = null,
+  onAdvanceNextStage,
   testRunGeneration = 0,
   isStickyDesktop = false,
 }: StudioCodeEditorProps) {
@@ -1266,6 +1274,41 @@ export default function StudioCodeEditor({
           )}
         </HoverLiftButton>
       </View>
+
+      {drillClearBanner && (
+        <View style={styles.drillVictoryStrip}>
+          <View style={styles.drillVictoryLeft}>
+            <Text style={styles.drillVictoryTitle}>
+              ✓ {drillClearBanner.stageLabel}
+            </Text>
+            {drillClearBanner.xpEarned > 0 ? (
+              <View style={styles.drillVictoryXpPill}>
+                <Text style={styles.drillVictoryXpText}>
+                  +{drillClearBanner.xpEarned} XP
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          {onAdvanceNextStage ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Advance to ${drillClearBanner.nextStageLabel}`}
+              style={({ pressed }) => [
+                styles.drillVictoryNextBtn,
+                pressed && { transform: [{ translateY: 1 }] },
+              ]}
+              onPress={() => {
+                playKeyClick();
+                onAdvanceNextStage();
+              }}
+            >
+              <Text style={styles.drillVictoryNextBtnText}>
+                {drillClearBanner.nextStageLabel}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
 
       <View
         style={[

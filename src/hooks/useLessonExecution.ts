@@ -27,6 +27,25 @@ import {
   pushCloudProgressState,
 } from "../utils/supabaseSync";
 import { computeTestCascadePlan } from "../utils/studioMicroMoments";
+import { playSuccessChime } from "../utils/soundEffects";
+
+export interface DrillClearBannerState {
+  stageLabel: string;
+  xpEarned: number;
+  nextStageLabel: string;
+}
+
+/**
+ * Intermediate Practice Drills (Stage 2 of 3, etc.) use a lightweight inline
+ * victory strip so learners stay in coding flow; Core clears and final 3-star
+ * module completions still trigger the full celebration modal.
+ */
+export function shouldUseInlineDrillVictory(
+  activeChallengeIdx: number,
+  allStagesNowDone: boolean,
+): boolean {
+  return activeChallengeIdx > 0 && !allStagesNowDone;
+}
 
 export interface UseLessonExecutionOptions {
   code: string;
@@ -45,6 +64,7 @@ export interface UseLessonExecutionOptions {
   setMobileStudioPane: Dispatch<SetStateAction<"learn" | "code">>;
   setLiveTraceResult: Dispatch<SetStateAction<PythonTraceResult | null>>;
   setShowSuccessModal: Dispatch<SetStateAction<boolean>>;
+  onDrillCleared?: (banner: DrillClearBannerState | null) => void;
   usedSolutionInAttemptRef: MutableRefObject<boolean>;
   usedScaffoldInAttemptRef: MutableRefObject<boolean>;
   failedAttemptsByLessonRef: MutableRefObject<Record<string, number>>;
@@ -91,6 +111,7 @@ export function useLessonExecution({
   setMobileStudioPane,
   setLiveTraceResult,
   setShowSuccessModal,
+  onDrillCleared,
   usedSolutionInAttemptRef,
   usedScaffoldInAttemptRef,
   failedAttemptsByLessonRef,
@@ -162,6 +183,7 @@ export function useLessonExecution({
 
   async function runPythonCode() {
     setIsExecuting(true);
+    onDrillCleared?.(null);
     setOutput("Running verification suite...");
     setTestResults(null);
     trackFunnelMilestone("first_code_run");
@@ -205,13 +227,6 @@ export function useLessonExecution({
       }
 
       if (outcome.allPassed && selectedLesson) {
-        if (cascadePlan.totalCount > 1 && cascadePlan.totalDurationMs > 0) {
-          setTimeout(() => {
-            setShowSuccessModal(true);
-          }, cascadePlan.totalDurationMs);
-        } else {
-          setShowSuccessModal(true);
-        }
         trackFunnelMilestone("first_lesson_solved");
         const stageKey =
           activeChallengeIdx === 0
@@ -253,10 +268,11 @@ export function useLessonExecution({
             : 0;
 
         const stageXp = activePractice?.xpReward || 50;
+        const awardedXp =
+          (isStageAlreadyCompleted ? 0 : stageXp) + reviewBonusXp;
         recordDailyQuestStep("lesson");
-        const { newXp, newStreak, newLastActiveDate } = recordActiveDevSession(
-          (isStageAlreadyCompleted ? 0 : stageXp) + reviewBonusXp,
-        );
+        const { newXp, newStreak, newLastActiveDate } =
+          recordActiveDevSession(awardedXp);
 
         const nextCompletedChallenges = {
           ...completedChallenges,
@@ -265,6 +281,7 @@ export function useLessonExecution({
         setCompletedChallenges(nextCompletedChallenges);
 
         const practiceList = selectedLesson.practiceChallenges || [];
+        const totalStages = 1 + practiceList.length;
         const allStagesNowDone =
           practiceList.length === 0 ||
           (Boolean(
@@ -279,6 +296,27 @@ export function useLessonExecution({
                   ],
               ),
             ));
+
+        if (shouldUseInlineDrillVictory(activeChallengeIdx, allStagesNowDone)) {
+          playSuccessChime();
+          const hasNextStage = activeChallengeIdx < practiceList.length;
+          onDrillCleared?.({
+            stageLabel: `DRILL ${activeChallengeIdx + 1}/${totalStages} CLEARED`,
+            xpEarned: awardedXp,
+            nextStageLabel: hasNextStage
+              ? `STAGE ${activeChallengeIdx + 2}/${totalStages} →`
+              : "NEXT LESSON →",
+          });
+        } else if (
+          cascadePlan.totalCount > 1 &&
+          cascadePlan.totalDurationMs > 0
+        ) {
+          setTimeout(() => {
+            setShowSuccessModal(true);
+          }, cascadePlan.totalDurationMs);
+        } else {
+          setShowSuccessModal(true);
+        }
 
         const nextPeekedSolutions = { ...peekedSolutions };
         if (usedSolutionInAttemptRef.current) {

@@ -413,6 +413,52 @@ test("StudioCodeEditor renders editor chrome, quick inserts, trace control, and 
   assert.ok(desktopEditorText.includes("⋯ TOOLS"));
   assert.equal(desktopEditorText.includes("INSERT"), false);
   assert.equal(desktopEditorText.includes("25:00"), false);
+
+  const { shouldUseInlineDrillVictory } = loadTsModule(
+    "src/hooks/useLessonExecution.ts",
+  );
+  assert.equal(shouldUseInlineDrillVictory(0, false), false);
+  assert.equal(shouldUseInlineDrillVictory(1, false), true);
+  assert.equal(shouldUseInlineDrillVictory(2, true), false);
+
+  const drillClearedText = visibleText(
+    renderThemed(
+      React.createElement(StudioCodeEditor, {
+        selectedLesson: {
+          id: "test-drill",
+          track: "python_basics",
+          lesson_order: 1,
+          title: "Test Drill",
+          description: "Desc",
+          initial_code: "def solve():\n    pass",
+          is_free: true,
+        },
+        code: "def solve():\n    return 42",
+        onChangeCode: () => {},
+        hasSavedDraft: false,
+        pyodideReady: true,
+        isExecuting: false,
+        onRunPlaygroundOnly: () => {},
+        onRunPythonCode: () => {},
+        bottomTab: "tests",
+        onChangeBottomTab: () => {},
+        output: "",
+        onClearOutput: () => {},
+        testResults: null,
+        selectedTestIndex: 0,
+        onSelectTestIndex: () => {},
+        drillClearBanner: {
+          stageLabel: "DRILL 2/3 CLEARED",
+          xpEarned: 35,
+          nextStageLabel: "STAGE 3/3 →",
+        },
+        onAdvanceNextStage: () => {},
+      }),
+    ),
+  );
+  assert.ok(drillClearedText.includes("✓ DRILL 2/3 CLEARED"));
+  assert.ok(drillClearedText.includes("+35 XP"));
+  assert.ok(drillClearedText.includes("STAGE 3/3 →"));
   assert.ok(editorText.includes("TRACE"));
   assert.ok(editorText.includes("TEST RUN"));
   assert.ok(editorText.includes("SUBMIT CODE (+50 XP)"));
