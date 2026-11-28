@@ -9,7 +9,6 @@ import {
   View,
 } from "react-native";
 import { HardShadow, HardShadowSm, MonoFont, StudioColors } from "../constants/theme";
-import type { HologramShapeId } from "../utils/hologramShapes";
 import { playKeyClick } from "../utils/soundEffects";
 import ShowcaseOrbitBackdrop from "./ShowcaseOrbitBackdrop";
 import { StudioIcon, type StudioIconName, Text } from "./StudioIcon";
@@ -21,7 +20,6 @@ interface ShowcaseFeatureItem {
   tag: string;
   title: string;
   description: string;
-  shape: HologramShapeId;
 }
 
 const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
@@ -33,7 +31,6 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
     title: "Live Python 3.11 Studio",
     description:
       "Run real Python instantly via WebAssembly Pyodide with automated unit tests, assertion diffs, smart indentation, and zero setup.",
-    shape: "cyber_desk",
   },
   {
     id: "feat-algo",
@@ -43,7 +40,6 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
     title: "Visual Algorithm Lab",
     description:
       "Step frame-by-frame through Two Pointers, Binary Search, Recursion Stacks, Min-Heaps, Graph BFS, DP Tables, and live Big-O Races.",
-    shape: "neural_crown",
   },
   {
     id: "feat-arcade",
@@ -53,7 +49,6 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
     title: "Cozy Mini-Game Arcade",
     description:
       "Play 60s Syntax Blitz, Bug Hunt Incidents, Output Detective, Rapid Flashcards, Python Playground, Mock Interviews, and Cozy Mini-Builds.",
-    shape: "gamepad",
   },
   {
     id: "feat-map",
@@ -63,7 +58,6 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
     title: "Guided Skill Map",
     description:
       "Follow a clear progression from Python Basics through Algorithms & Data Structures into Hyperscale System Design architecture labs.",
-    shape: "code_orrery",
   },
   {
     id: "feat-lofi",
@@ -73,7 +67,6 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
     title: "Lo-Fi Dev Loft & Focus",
     description:
       "Code inside a living 2.5D isometric desk loft with a Pomodoro sprint timer, mechanical keycap acoustics, Lo-Fi radio, and 4 studio themes.",
-    shape: "cyber_desk",
   },
   {
     id: "feat-garden",
@@ -83,7 +76,6 @@ const SHOWCASE_FEATURES: readonly ShowcaseFeatureItem[] = [
     title: "Spaced Review & Pixel Garden",
     description:
       "Lock concepts into long-term memory with automatic spaced review queues, Weekly Leagues, PNG developer cards, and track diplomas.",
-    shape: "neural_crown",
   },
 ] as const;
 
@@ -153,7 +145,6 @@ export default function ShowcaseLandingScreen({
   const isCompact = windowWidth > 0 && windowWidth < 860;
   const isPhone = windowWidth > 0 && windowWidth < 560;
 
-  const [activeShape, setActiveShape] = useState<HologramShapeId>("code_orrery");
   const [activeSection, setActiveSection] = useState<"top" | "features" | "tracks">("top");
   const [isWarping, setIsWarping] = useState<boolean>(false);
 
@@ -199,8 +190,8 @@ export default function ShowcaseLandingScreen({
 
   return (
     <View style={styles.root}>
-      {/* Live 3D WebGL Lo-Fi Arcade Orbit + Cel-Shaded Parallax Backdrop */}
-      <ShowcaseOrbitBackdrop activeShape={activeShape} isWarping={isWarping} />
+      {/* Live 3D WebGL Floating Lo-Fi Dev Island + Cel-Shaded Parallax Backdrop */}
+      <ShowcaseOrbitBackdrop isWarping={isWarping} />
 
       {/* Minimal Top Navigation Bar */}
       <View
@@ -335,7 +326,6 @@ export default function ShowcaseLandingScreen({
                 styles.adventureBtn,
                 pressed && { transform: [{ translateX: 2 }, { translateY: 2 }] },
               ]}
-              onHoverIn={() => setActiveShape("cyber_desk")}
               onPress={handleBeginAdventure}
             >
               <Text style={styles.adventureBtnText}>Begin Your Adventure</Text>
@@ -345,41 +335,16 @@ export default function ShowcaseLandingScreen({
             </Pressable>
 
             <View style={styles.microStatsRow}>
-              {(
-                [
-                  { label: "PYTHON 3.11 IN BROWSER", shape: "cyber_desk" },
-                  { label: "8 VISUALIZER ENGINES", shape: "neural_crown" },
-                  { label: "8 ARCADE CARTRIDGES", shape: "gamepad" },
-                  { label: "3 CAREER TRACKS", shape: "code_orrery" },
-                ] as const
-              ).map((item) => {
-                const isSelected = activeShape === item.shape;
-                return (
-                  <Pressable
-                    key={item.label}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Preview ${item.label} 3D hologram`}
-                    style={[
-                      styles.microPill,
-                      isSelected && styles.microPillActive,
-                    ]}
-                    onHoverIn={() => setActiveShape(item.shape)}
-                    onPress={() => {
-                      playKeyClick();
-                      setActiveShape(item.shape);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.microPillText,
-                        isSelected && styles.microPillTextActive,
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+              {[
+                "PYTHON 3.11 IN BROWSER",
+                "8 VISUALIZER ENGINES",
+                "8 ARCADE CARTRIDGES",
+                "3 CAREER TRACKS",
+              ].map((stat) => (
+                <View key={stat} style={styles.microPill}>
+                  <Text style={styles.microPillText}>{stat}</Text>
+                </View>
+              ))}
             </View>
           </View>
         </View>
@@ -417,25 +382,20 @@ export default function ShowcaseLandingScreen({
                   : null,
               ]}
             >
-              Hover any card to morph the live 3D particle sculpture behind the
-              page. Every studio mode syncs XP, streaks, and your 12-week Cozy
+              Six studio modes designed for deep flow — every lesson, visualizer
+              trace, and arcade sprint syncs XP, streaks, and your 12-week Cozy
               Pixel Garden.
             </Text>
           </View>
 
           <View style={styles.featuresGrid}>
             {SHOWCASE_FEATURES.map((feat) => (
-              <Pressable
+              <View
                 key={feat.id}
-                accessibilityRole="button"
-                accessibilityLabel={feat.title}
-                style={({ pressed }) => [
+                style={[
                   styles.featureCard,
                   isCompact && styles.featureCardCompact,
-                  pressed && { transform: [{ translateY: 1 }] },
                 ]}
-                onHoverIn={() => setActiveShape(feat.shape)}
-                onPress={() => setActiveShape(feat.shape)}
               >
                 <View style={styles.featureTopRow}>
                   <View
@@ -452,7 +412,7 @@ export default function ShowcaseLandingScreen({
                 </View>
                 <Text style={styles.featureTitle}>{feat.title}</Text>
                 <Text style={styles.featureDesc}>{feat.description}</Text>
-              </Pressable>
+              </View>
             ))}
           </View>
         </View>
@@ -498,9 +458,8 @@ export default function ShowcaseLandingScreen({
 
           <View style={[styles.tracksGrid, isCompact && styles.tracksGridCompact]}>
             {/* FREE TRACK CARD */}
-            <Pressable
+            <View
               style={[styles.trackCard, isCompact && styles.trackCardCompact]}
-              onHoverIn={() => setActiveShape("cyber_desk")}
             >
               <View style={styles.trackTopRow}>
                 <View style={styles.tierPillFree}>
@@ -541,16 +500,15 @@ export default function ShowcaseLandingScreen({
               >
                 <Text style={styles.trackCtaFreeText}>START FREE ADVENTURE →</Text>
               </Pressable>
-            </Pressable>
+            </View>
 
             {/* PRO TRACK CARD */}
-            <Pressable
+            <View
               style={[
                 styles.trackCard,
                 styles.trackCardPro,
                 isCompact && styles.trackCardCompact,
               ]}
-              onHoverIn={() => setActiveShape("neural_crown")}
             >
               <View style={styles.trackTopRow}>
                 <View style={styles.tierPillPro}>
@@ -591,7 +549,7 @@ export default function ShowcaseLandingScreen({
               >
                 <Text style={styles.trackCtaProText}>EXPLORE STUDIO & PRO →</Text>
               </Pressable>
-            </Pressable>
+            </View>
           </View>
         </View>
 
@@ -965,11 +923,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(18, 12, 36, 0.92)",
     borderWidth: 1.5,
     borderColor: "rgba(255, 255, 255, 0.22)",
-    ...Platform.select({ web: { cursor: "pointer", userSelect: "none" } }),
-  },
-  microPillActive: {
-    borderColor: "rgba(255, 222, 89, 0.78)",
-    backgroundColor: "rgba(32, 21, 58, 0.95)",
   },
   microPillText: {
     color: "#F3EEFF",
@@ -979,9 +932,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontFamily: MonoFont,
     letterSpacing: 0.5,
-  },
-  microPillTextActive: {
-    color: "#FFDE59",
   },
   sectionWrap: {
     width: "100%",

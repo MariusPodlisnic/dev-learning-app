@@ -2,31 +2,18 @@ import React, { useEffect, useRef } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import {
   createIdleDisperseState,
-  getHologramShapeData,
+  getFloatingDevIslandData,
   HOLOGRAM_PARTICLE_COUNT,
-  HOLOGRAM_SHAPES_META,
   stepIdleDisperseState,
-  type HologramShapeData,
-  type HologramShapeId,
   type IdleDisperseState,
 } from "../utils/hologramShapes";
 
 interface ShowcaseOrbitBackdropProps {
-  activeShape: HologramShapeId;
   isWarping: boolean;
 }
 
-const SHOWCASE_PARTICLE_COUNT = HOLOGRAM_PARTICLE_COUNT;
-
-const LOFI_ORBIT_PALETTE = {
-  deep: [0.26, 0.15, 0.56] as [number, number, number],
-  mid: [0.96, 0.52, 0.85] as [number, number, number],
-  cyan: [0.24, 0.88, 1.0] as [number, number, number],
-  bright: [1.0, 0.95, 0.99] as [number, number, number],
-  accent: [1.0, 0.87, 0.35] as [number, number, number],
-  bgGradientCss:
-    "radial-gradient(ellipse 82% 58% at 50% 76%, rgba(255, 144, 232, 0.24) 0%, transparent 56%), radial-gradient(ellipse 72% 56% at 50% 34%, rgba(99, 102, 241, 0.34) 0%, rgba(20, 12, 44, 0.92) 58%, #090616 100%)",
-};
+const SHOWCASE_BG_GRADIENT =
+  "radial-gradient(ellipse 82% 58% at 50% 76%, rgba(255, 144, 232, 0.24) 0%, transparent 56%), radial-gradient(ellipse 72% 56% at 50% 34%, rgba(99, 102, 241, 0.34) 0%, rgba(20, 12, 44, 0.92) 58%, #090616 100%)";
 
 const PRECISION_HEADER = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -38,16 +25,13 @@ const PRECISION_HEADER = `
 
 const VS_SOURCE = `
 ${PRECISION_HEADER}
-  attribute vec3 aPosA;
-  attribute vec3 aPosB;
-  attribute float aLumA;
-  attribute float aLumB;
-  attribute float aAccA;
-  attribute float aAccB;
+  attribute vec3 aPos;
+  attribute vec3 aNorm;
+  attribute vec3 aCol;
+  attribute vec2 aMeta;
   attribute float aSeed;
   attribute vec4 aScatter;
 
-  uniform float uMorph;
   uniform float uDisperse;
   uniform float uWarp;
   uniform float uTime;
@@ -57,24 +41,29 @@ ${PRECISION_HEADER}
   uniform float uPointScale;
   uniform vec2 uOffset;
 
-  varying float vLum;
-  varying float vAcc;
-  varying float vDepth;
-  varying float vPulse;
-  varying float vScan;
-  varying float vChroma;
+  varying vec3 vCol;
+  varying float vAlpha;
 
   void main() {
-    float t = uMorph * uMorph * (3.0 - 2.0 * uMorph);
-    vec3 pos = mix(aPosA, aPosB, t);
+    vec3 pos = aPos;
+    vec3 nrm = aNorm;
+    float sizeMult = aMeta.x;
+    float part = aMeta.y;
 
-    if (t > 0.001 && t < 0.999) {
-      float swirl = sin(t * 3.1415926) * 0.45 * (aSeed * 2.0 - 1.0);
-      float ca = cos(swirl);
-      float sa = sin(swirl);
-      pos.xz = mat2(ca, -sa, sa, ca) * pos.xz;
+    // Independent living motion per sub-part of the Floating Lo-Fi Dev Island
+    if (part > 0.5 && part < 1.5) {
+      // Part 1: Planetary astrolabe ring & orbital moons spin continuously
+      float oa = uTime * 0.42;
+      float co = cos(oa), so = sin(oa);
+      pos.xz = mat2(co, -so, so, co) * pos.xz;
+      nrm.xz = mat2(co, -so, so, co) * nrm.xz;
+    } else if (part > 1.5 && part < 2.5) {
+      // Part 2: Detached crystal islets, sakura petals, coffee steam & stardust waterfall
+      pos.y += 0.032 * sin(uTime * 2.0 + aSeed * 6.283);
+    } else {
+      // Gentle levitation breath on main sky-island & sakura tree
+      pos.y += 0.010 * sin(uTime * 1.35);
     }
-    pos.y += 0.010 * sin(uTime * 1.4 + aSeed * 6.283);
 
     float spreadAmt = max(uDisperse, uWarp);
     if (spreadAmt > 0.00001) {
@@ -92,69 +81,53 @@ ${PRECISION_HEADER}
     vec3 p1 = vec3(pos.x * cy - pos.z * sy, pos.y, pos.x * sy + pos.z * cy);
     vec3 p2 = vec3(p1.x, p1.y * cx - p1.z * sx, p1.y * sx + p1.z * cx);
 
-    float camZ = 2.60;
-    float zDist = max(0.85, camZ - p2.z);
-    float fov = 2.06 * min(1.0, uAspect);
+    vec3 n1 = vec3(nrm.x * cy - nrm.z * sy, nrm.y, nrm.x * sy + nrm.z * cy);
+    vec3 n2 = vec3(n1.x, n1.y * cx - n1.z * sx, n1.y * sx + n1.z * cx);
+
+    float camZ = 2.58;
+    float zDist = max(0.80, camZ - p2.z);
+    float fov = 2.08 * min(1.0, uAspect);
     vec2 proj = vec2((p2.x * fov) / (zDist * uAspect), (p2.y * fov) / zDist) + uOffset;
-    gl_Position = vec4(proj, (p2.z / 3.0) * -0.5, 1.0);
+    gl_Position = vec4(proj, (p2.z / 3.2) * -0.5, 1.0);
 
-    float depthNorm = clamp((p2.z + 1.15) / 2.3, 0.0, 1.0);
-    float wave = 0.5 + 0.5 * sin(pos.x * 3.6 + pos.y * 3.1 - uTime * 2.1 + aSeed * 1.6);
-    float twinkle = 0.5 + 0.5 * sin(uTime * 6.8 + aSeed * 41.0);
-    float w2 = wave * wave;
-    vPulse = clamp(w2 * w2 * wave + spreadAmt * (0.36 + 0.38 * twinkle), 0.0, 1.15);
-    vLum = mix(aLumA, aLumB, t);
-    vAcc = mix(aAccA, aAccB, t);
-    vDepth = depthNorm;
+    float depthNorm = clamp((p2.z + 1.25) / 2.5, 0.0, 1.0);
+    // 3D Fresnel Rim-Light boost on curved grazing silhouettes
+    float rim = 1.0 - abs(n2.z);
+    float fresnel = rim * rim * 0.38;
 
-    float scanCoord = fract(pos.y * 0.52 - uTime * 0.17);
-    float scanDist = scanCoord - 0.5;
-    vScan = exp(-scanDist * scanDist * 62.0);
-    vChroma = fract(aSeed * 19.37);
+    // Smooth upward holographic scan-plane wave
+    float sc = fract(pos.y * 0.55 - uTime * 0.16) - 0.5;
+    float scan = exp(-sc * sc * 68.0);
 
-    gl_PointSize = mix(1.08, 2.65, depthNorm) * (0.74 + vLum * 0.44 + vPulse * 0.28 + vScan * 0.20) * uPointScale;
+    // Part 3: Emissive CRT code pixels, golden lantern & crystal veins
+    float ledBoost = (part > 2.5) ? (0.28 + 0.14 * sin(uTime * 4.4 + aSeed * 12.0)) : 0.0;
+    float twinkle = spreadAmt * (0.35 + 0.35 * sin(uTime * 6.5 + aSeed * 37.0));
+
+    float shade = clamp(0.54 + 0.42 * depthNorm + fresnel + scan * 0.28 + ledBoost + twinkle, 0.0, 1.35);
+    vCol = mix(aCol * shade, vec3(0.88, 0.97, 1.0), scan * 0.28);
+    vAlpha = clamp((0.36 + 0.62 * depthNorm + ledBoost * 0.5) * (0.76 + fresnel), 0.0, 1.0);
+
+    gl_PointSize = mix(1.26, 2.92, depthNorm) * sizeMult * (1.0 + scan * 0.18 + ledBoost * 0.24) * uPointScale;
   }
 `;
 
 const FS_SOURCE = `
 ${PRECISION_HEADER}
-  uniform vec3 uDeep;
-  uniform vec3 uMid;
-  uniform vec3 uCyan;
-  uniform vec3 uBright;
-  uniform vec3 uAccent;
-
-  varying float vLum;
-  varying float vAcc;
-  varying float vDepth;
-  varying float vPulse;
-  varying float vScan;
-  varying float vChroma;
+  varying vec3 vCol;
+  varying float vAlpha;
 
   void main() {
     vec2 d = gl_PointCoord - vec2(0.5);
     float rSq = dot(d, d);
     if (rSq > 0.25) discard;
 
-    // Dual-lobe crisp pinpoint core + delicate optical bloom halo
-    float halo = smoothstep(0.25, 0.035, rSq) * 0.44;
-    float pinpoint = smoothstep(0.068, 0.0, rSq) * 0.86;
-    float core = clamp(halo + pinpoint, 0.0, 1.22);
+    // Crisp pinpoint jewel core + soft optical bloom halo
+    float halo = smoothstep(0.25, 0.036, rSq) * 0.42;
+    float core = smoothstep(0.072, 0.0, rSq) * 0.88;
+    float shape = clamp(halo + core, 0.0, 1.24);
 
-    float lit = clamp(vLum * (0.42 + 0.70 * vDepth) + vPulse * 0.30 + vScan * 0.26, 0.0, 1.0);
-    vec3 spectralMid = mix(uMid, uCyan, step(0.68, vChroma) * 0.78);
-
-    vec3 primaryCol = mix(uDeep, spectralMid, smoothstep(0.06, 0.63, lit));
-    primaryCol = mix(primaryCol, uBright, smoothstep(0.65, 1.0, lit));
-
-    vec3 accentCol = mix(uAccent * 0.60, uAccent, smoothstep(0.14, 0.84, lit));
-    accentCol = mix(accentCol, vec3(1.0, 0.99, 0.92), smoothstep(0.83, 1.0, lit));
-
-    vec3 finalCol = mix(primaryCol, accentCol, clamp(vAcc, 0.0, 1.0));
-    finalCol = mix(finalCol, mix(uCyan, uBright, 0.58), vScan * 0.30);
-
-    float alpha = core * (0.24 + 0.74 * vDepth) * (0.45 + 0.55 * lit);
-    gl_FragColor = vec4(finalCol * alpha, alpha);
+    float alpha = shape * vAlpha;
+    gl_FragColor = vec4(vCol * alpha, alpha);
   }
 `;
 
@@ -210,35 +183,29 @@ function drawRoundedRectPath(
 }
 
 export default function ShowcaseOrbitBackdrop({
-  activeShape,
   isWarping,
 }: ShowcaseOrbitBackdropProps) {
   const hostRef = useRef<any>(null);
 
   const engineRef = useRef<{
-    currentShape: HologramShapeId;
-    targetShape: HologramShapeId;
-    morph: number;
     rotY: number;
     rotX: number;
     mouseX: number;
     mouseY: number;
     smoothMouseX: number;
     smoothMouseY: number;
+    pointerMovedRecently: boolean;
     idleDisperse: IdleDisperseState;
     warping: boolean;
     warpAmt: number;
-    uploadPair?: (fromData: HologramShapeData, toData: HologramShapeData) => void;
   }>({
-    currentShape: activeShape,
-    targetShape: activeShape,
-    morph: 1,
-    rotY: -0.34,
-    rotX: 0.2,
+    rotY: -0.42,
+    rotX: 0.24,
     mouseX: 0,
     mouseY: 0,
     smoothMouseX: 0,
     smoothMouseY: 0,
+    pointerMovedRecently: false,
     idleDisperse: createIdleDisperseState(),
     warping: isWarping,
     warpAmt: 0,
@@ -247,21 +214,6 @@ export default function ShowcaseOrbitBackdrop({
   useEffect(() => {
     engineRef.current.warping = isWarping;
   }, [isWarping]);
-
-  useEffect(() => {
-    const st = engineRef.current;
-    if (activeShape === st.targetShape) return;
-    st.currentShape = st.targetShape;
-    st.targetShape = activeShape;
-    st.morph = 0;
-    st.idleDisperse.idleElapsedSec = 0;
-    if (st.uploadPair) {
-      st.uploadPair(
-        getHologramShapeData(st.currentShape, SHOWCASE_PARTICLE_COUNT),
-        getHologramShapeData(st.targetShape, SHOWCASE_PARTICLE_COUNT),
-      );
-    }
-  }, [activeShape]);
 
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
@@ -290,37 +242,7 @@ export default function ShowcaseOrbitBackdrop({
     let prog: WebGLProgram | null = null;
     let programLinked = false;
     let firstFrameVerified = false;
-    const bufs: Record<string, WebGLBuffer | null> = {};
     const locs: Record<string, WebGLUniformLocation | null> = {};
-    const attrLocs: Record<string, number> = {};
-    let buffersAllocated = false;
-
-    const uploadAttr = (name: string, arr: Float32Array, size: number) => {
-      if (!gl || !prog || !programLinked || !bufs[name]) return;
-      const loc = attrLocs[name];
-      if (loc === undefined || loc < 0) return;
-      gl.bindBuffer(gl.ARRAY_BUFFER, bufs[name]);
-      if (!buffersAllocated) {
-        gl.bufferData(gl.ARRAY_BUFFER, arr, gl.DYNAMIC_DRAW);
-        gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
-      } else {
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, arr);
-      }
-    };
-
-    const uploadPair = (
-      fromData: HologramShapeData,
-      toData: HologramShapeData,
-    ) => {
-      uploadAttr("aPosA", fromData.positions, 3);
-      uploadAttr("aPosB", toData.positions, 3);
-      uploadAttr("aLumA", fromData.luminance, 1);
-      uploadAttr("aLumB", toData.luminance, 1);
-      uploadAttr("aAccA", fromData.accentMix, 1);
-      uploadAttr("aAccB", toData.accentMix, 1);
-      buffersAllocated = true;
-    };
 
     if (gl) {
       const compile = (type: number, src: string) => {
@@ -348,26 +270,32 @@ export default function ShowcaseOrbitBackdrop({
           programLinked = true;
           gl.useProgram(prog);
 
-          for (const key of [
-            "aPosA",
-            "aPosB",
-            "aLumA",
-            "aLumB",
-            "aAccA",
-            "aAccB",
-            "aSeed",
-            "aScatter",
-          ]) {
-            bufs[key] = gl.createBuffer();
-            attrLocs[key] = gl.getAttribLocation(prog, key);
-          }
+          const bindStaticAttr = (
+            name: string,
+            arr: Float32Array,
+            size: number,
+          ) => {
+            if (!prog) return;
+            const loc = gl.getAttribLocation(prog, name);
+            if (loc < 0) return;
+            const buf = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+            gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(loc);
+            gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+          };
 
-          const seedArr = new Float32Array(SHOWCASE_PARTICLE_COUNT);
-          const scatterArr = new Float32Array(SHOWCASE_PARTICLE_COUNT * 4);
+          const island = getFloatingDevIslandData(HOLOGRAM_PARTICLE_COUNT);
+          bindStaticAttr("aPos", island.positions, 3);
+          bindStaticAttr("aNorm", island.normals, 3);
+          bindStaticAttr("aCol", island.colors, 3);
+          bindStaticAttr("aMeta", island.meta, 2);
+
+          const seedArr = new Float32Array(HOLOGRAM_PARTICLE_COUNT);
+          const scatterArr = new Float32Array(HOLOGRAM_PARTICLE_COUNT * 4);
           const seedRng = makeDeterministicRng(777);
-          for (let i = 0; i < SHOWCASE_PARTICLE_COUNT; i += 1) {
-            const s = seedRng();
-            seedArr[i] = s;
+          for (let i = 0; i < HOLOGRAM_PARTICLE_COUNT; i += 1) {
+            seedArr[i] = seedRng();
             const zCos = seedRng() * 1.96 - 0.98;
             const sinPhi = Math.sqrt(Math.max(0, 1 - zCos * zCos));
             const theta = seedRng() * Math.PI * 2;
@@ -376,23 +304,10 @@ export default function ShowcaseOrbitBackdrop({
             scatterArr[i * 4 + 2] = sinPhi * Math.sin(theta);
             scatterArr[i * 4 + 3] = 0.45 + 0.95 * seedRng();
           }
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, bufs.aSeed);
-          gl.bufferData(gl.ARRAY_BUFFER, seedArr, gl.STATIC_DRAW);
-          if (attrLocs.aSeed >= 0) {
-            gl.enableVertexAttribArray(attrLocs.aSeed);
-            gl.vertexAttribPointer(attrLocs.aSeed, 1, gl.FLOAT, false, 0, 0);
-          }
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, bufs.aScatter);
-          gl.bufferData(gl.ARRAY_BUFFER, scatterArr, gl.STATIC_DRAW);
-          if (attrLocs.aScatter >= 0) {
-            gl.enableVertexAttribArray(attrLocs.aScatter);
-            gl.vertexAttribPointer(attrLocs.aScatter, 4, gl.FLOAT, false, 0, 0);
-          }
+          bindStaticAttr("aSeed", seedArr, 1);
+          bindStaticAttr("aScatter", scatterArr, 4);
 
           for (const uniformName of [
-            "uMorph",
             "uDisperse",
             "uWarp",
             "uTime",
@@ -401,11 +316,6 @@ export default function ShowcaseOrbitBackdrop({
             "uAspect",
             "uPointScale",
             "uOffset",
-            "uDeep",
-            "uMid",
-            "uCyan",
-            "uBright",
-            "uAccent",
           ]) {
             locs[uniformName] = gl.getUniformLocation(prog, uniformName);
           }
@@ -413,12 +323,6 @@ export default function ShowcaseOrbitBackdrop({
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
           gl.disable(gl.DEPTH_TEST);
-
-          const initialData = getHologramShapeData(
-            engineRef.current.targetShape,
-            SHOWCASE_PARTICLE_COUNT,
-          );
-          uploadPair(initialData, initialData);
           hostEl.setAttribute("data-webgl-ready", "1");
         } else {
           console.error(
@@ -428,19 +332,6 @@ export default function ShowcaseOrbitBackdrop({
         }
       }
     }
-
-    engineRef.current.uploadPair = uploadPair;
-
-    // Pre-warm remaining 3D shapes staggered off the critical path so hover morphs have 0ms stutter
-    const warmupTimers: ReturnType<typeof setTimeout>[] = [];
-    HOLOGRAM_SHAPES_META.forEach((meta, idx) => {
-      if (meta.id === engineRef.current.targetShape) return;
-      warmupTimers.push(
-        setTimeout(() => {
-          getHologramShapeData(meta.id, SHOWCASE_PARTICLE_COUNT);
-        }, 120 + idx * 90),
-      );
-    });
 
     // Deterministic cel-shaded Lo-Fi Arcade Orbit artifacts + subtle code glyphs
     const artRng = makeDeterministicRng(9001);
@@ -496,6 +387,7 @@ export default function ShowcaseOrbitBackdrop({
     const onPointerMove = (e: PointerEvent) => {
       engineRef.current.mouseX = (e.clientX / Math.max(1, vw)) * 2 - 1;
       engineRef.current.mouseY = (e.clientY / Math.max(1, vh)) * 2 - 1;
+      engineRef.current.pointerMovedRecently = true;
     };
     window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("resize", syncSize);
@@ -518,18 +410,13 @@ export default function ShowcaseOrbitBackdrop({
       st.smoothMouseX += (st.mouseX - st.smoothMouseX) * Math.min(1, dt * 4.5);
       st.smoothMouseY += (st.mouseY - st.smoothMouseY) * Math.min(1, dt * 4.5);
 
-      if (st.morph < 1) {
-        st.morph = Math.min(1, st.morph + dt * 1.45);
-      }
-      st.rotY += dt * (st.warping ? 2.6 : 0.24);
-      const targetRotX = 0.2 + st.smoothMouseY * 0.14;
+      st.rotY += dt * (st.warping ? 2.6 : 0.21);
+      const targetRotX = 0.24 + st.smoothMouseY * 0.12;
       st.rotX += (targetRotX - st.rotX) * Math.min(1, dt * 4);
 
-      const disperseAmt = stepIdleDisperseState(
-        st.idleDisperse,
-        dt,
-        st.morph < 0.99 || st.warping,
-      );
+      const interacted = st.pointerMovedRecently || st.warping;
+      st.pointerMovedRecently = false;
+      const disperseAmt = stepIdleDisperseState(st.idleDisperse, dt, interacted);
       st.warpAmt += ((st.warping ? 1 : 0) - st.warpAmt) * Math.min(1, dt * 6);
 
       if (artCtx) {
@@ -672,7 +559,6 @@ export default function ShowcaseOrbitBackdrop({
       if (gl && prog && programLinked) {
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.uniform1f(locs.uMorph, st.morph);
         gl.uniform1f(locs.uDisperse, disperseAmt);
         gl.uniform1f(locs.uWarp, st.warpAmt);
         gl.uniform1f(locs.uTime, tSec);
@@ -686,14 +572,9 @@ export default function ShowcaseOrbitBackdrop({
         gl.uniform2f(
           locs.uOffset,
           -st.smoothMouseX * 0.05,
-          0.03 + st.smoothMouseY * 0.035,
+          0.02 + st.smoothMouseY * 0.035,
         );
-        gl.uniform3fv(locs.uDeep, LOFI_ORBIT_PALETTE.deep);
-        gl.uniform3fv(locs.uMid, LOFI_ORBIT_PALETTE.mid);
-        gl.uniform3fv(locs.uCyan, LOFI_ORBIT_PALETTE.cyan);
-        gl.uniform3fv(locs.uBright, LOFI_ORBIT_PALETTE.bright);
-        gl.uniform3fv(locs.uAccent, LOFI_ORBIT_PALETTE.accent);
-        gl.drawArrays(gl.POINTS, 0, SHOWCASE_PARTICLE_COUNT);
+        gl.drawArrays(gl.POINTS, 0, HOLOGRAM_PARTICLE_COUNT);
 
         if (!firstFrameVerified) {
           firstFrameVerified = true;
@@ -708,7 +589,6 @@ export default function ShowcaseOrbitBackdrop({
 
     return () => {
       window.cancelAnimationFrame(rafId);
-      warmupTimers.forEach((t) => clearTimeout(t));
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("resize", syncSize);
       if (glCanvas.parentNode === hostEl) hostEl.removeChild(glCanvas);
@@ -725,7 +605,7 @@ export default function ShowcaseOrbitBackdrop({
         Platform.OS === "web"
           ? ({
               position: "fixed",
-              backgroundImage: LOFI_ORBIT_PALETTE.bgGradientCss,
+              backgroundImage: SHOWCASE_BG_GRADIENT,
             } as any)
           : null,
       ]}
