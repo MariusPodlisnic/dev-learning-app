@@ -141,6 +141,18 @@ export const getStudioCodeEditorStyles = (StudioColors: StudioThemeColors) =>
       fontWeight: "800",
       fontFamily: MonoFont,
     },
+    toolsDrawerBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      flexWrap: "wrap",
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      backgroundColor: "#161614",
+      borderBottomWidth: 1,
+      borderBottomColor: StudioColors.codeBorder,
+    },
     symbolBar: {
       flexDirection: "row",
       alignItems: "center",

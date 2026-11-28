@@ -374,11 +374,45 @@ test("StudioCodeEditor renders editor chrome, quick inserts, trace control, and 
     ),
   );
   assert.ok(editorText.includes("solution.py"));
-  assert.ok(editorText.includes("25:00"));
-  assert.ok(editorText.includes("THOCK"));
+  assert.ok(editorText.includes("⋯ TOOLS"));
   assert.ok(editorText.includes("DRAFT SAVED"));
   assert.ok(editorText.includes("# Comment"));
   assert.ok(!editorText.includes("EVAL"));
+
+  // Desktop sticky mode keeps the symbol bar tucked away by default to maximize coding space
+  const desktopEditorText = visibleText(
+    renderThemed(
+      React.createElement(StudioCodeEditor, {
+        selectedLesson: {
+          id: "test-desk",
+          track: "python_basics",
+          lesson_order: 1,
+          title: "Test Desktop",
+          description: "Desc",
+          initial_code: "def solve():\n    pass",
+          is_free: true,
+        },
+        code: "def solve():\n    return 42",
+        onChangeCode: () => {},
+        hasSavedDraft: false,
+        pyodideReady: true,
+        isExecuting: false,
+        onRunPlaygroundOnly: () => {},
+        onRunPythonCode: () => {},
+        bottomTab: "tests",
+        onChangeBottomTab: () => {},
+        output: "",
+        onClearOutput: () => {},
+        testResults: null,
+        selectedTestIndex: 0,
+        onSelectTestIndex: () => {},
+        isStickyDesktop: true,
+      }),
+    ),
+  );
+  assert.ok(desktopEditorText.includes("⋯ TOOLS"));
+  assert.equal(desktopEditorText.includes("INSERT"), false);
+  assert.equal(desktopEditorText.includes("25:00"), false);
   assert.ok(editorText.includes("TRACE"));
   assert.ok(editorText.includes("TEST RUN"));
   assert.ok(editorText.includes("SUBMIT CODE (+50 XP)"));

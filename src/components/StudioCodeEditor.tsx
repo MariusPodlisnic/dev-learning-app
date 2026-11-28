@@ -329,6 +329,10 @@ export default function StudioCodeEditor({
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
   const [copiedOutput, setCopiedOutput] = useState<boolean>(false);
   const [confirmReset, setConfirmReset] = useState<boolean>(false);
+  const [showToolsDrawer, setShowToolsDrawer] = useState<boolean>(false);
+  const [symbolBarOverride, setSymbolBarOverride] = useState<boolean | null>(
+    null,
+  );
   const [consoleExpanded, setConsoleExpanded] = useState<boolean>(false);
   const [clueOffset, setClueOffset] = useState<number>(0);
   const [cursorPos, setCursorPos] = useState<number>(0);
@@ -353,6 +357,9 @@ export default function StudioCodeEditor({
   }, []);
   const activeTypingMeta = getTypingSoundProfileMeta(typingProfile);
   const activePomoMeta = getPomodoroPresetMeta(pomodoro.presetId);
+  const defaultShowSymbolBar = Platform.OS !== "web" || !isStickyDesktop;
+  const showSymbolBar =
+    symbolBarOverride !== null ? symbolBarOverride : defaultShowSymbolBar;
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionRef = useRef<{ start: number; end: number }>({
     start: 0,
@@ -718,6 +725,88 @@ export default function StudioCodeEditor({
             )}
           </View>
           <View style={styles.ideHeaderActions}>
+            {pomodoro.isRunning ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Pause ${activePomoMeta.label} timer`}
+                style={[
+                  styles.copyCodeBtn,
+                  styles.copyCodeBtnSuccess,
+                  { borderColor: activePomoMeta.accent },
+                ]}
+                onPress={() => {
+                  playKeyClick();
+                  togglePomodoro();
+                }}
+              >
+                <Text
+                  style={[
+                    styles.copyCodeBtnText,
+                    { color: activePomoMeta.accent },
+                  ]}
+                >
+                  ❚❚ {formatPomodoroClock(pomodoro.remainingSeconds)}
+                </Text>
+              </Pressable>
+            ) : null}
+            {onOpenCodex ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open Constellation Field Guide Codex"
+                style={styles.copyCodeBtn}
+                onPress={() => {
+                  playKeyClick();
+                  onOpenCodex();
+                }}
+              >
+                <Text style={styles.copyCodeBtnText}>✦ CODEX</Text>
+              </Pressable>
+            ) : null}
+            <Pressable
+              style={[
+                styles.resetBtn,
+                confirmReset && styles.resetBtnConfirm,
+              ]}
+              onPress={handleResetPress}
+            >
+              <Text
+                style={[
+                  styles.resetBtnText,
+                  confirmReset && { color: StudioColors.ink },
+                ]}
+              >
+                {confirmReset ? "SURE?" : "RESET"}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                showToolsDrawer ? "Close editor tools" : "Open editor tools"
+              }
+              accessibilityState={{ expanded: showToolsDrawer }}
+              style={[
+                styles.copyCodeBtn,
+                showToolsDrawer && styles.copyCodeBtnSuccess,
+              ]}
+              onPress={() => {
+                playKeyClick();
+                setShowToolsDrawer((prev) => !prev);
+              }}
+            >
+              <Text
+                style={[
+                  styles.copyCodeBtnText,
+                  showToolsDrawer && { color: StudioColors.lime },
+                ]}
+              >
+                {showToolsDrawer ? "✕ TOOLS" : "⋯ TOOLS"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {showToolsDrawer && (
+          <View style={styles.toolsDrawerBar}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
@@ -769,20 +858,10 @@ export default function StudioCodeEditor({
                 {activeTypingMeta.chipLabel}
               </Text>
             </Pressable>
-            {onOpenCodex ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open Constellation Field Guide Codex"
-                style={styles.copyCodeBtn}
-                onPress={() => {
-                  playKeyClick();
-                  onOpenCodex();
-                }}
-              >
-                <Text style={styles.copyCodeBtnText}>✦ CODEX</Text>
-              </Pressable>
-            ) : null}
+
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Copy editor code"
               style={[
                 styles.copyCodeBtn,
                 copiedCode && styles.copyCodeBtnSuccess,
@@ -798,25 +877,36 @@ export default function StudioCodeEditor({
                 {copiedCode ? "✓ COPIED" : "COPY"}
               </Text>
             </Pressable>
+
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                showSymbolBar
+                  ? "Hide quick-insert symbol bar"
+                  : "Show quick-insert symbol bar"
+              }
               style={[
-                styles.resetBtn,
-                confirmReset && styles.resetBtnConfirm,
+                styles.copyCodeBtn,
+                showSymbolBar && styles.copyCodeBtnSuccess,
               ]}
-              onPress={handleResetPress}
+              onPress={() => {
+                playKeyClick();
+                setSymbolBarOverride(!showSymbolBar);
+              }}
             >
               <Text
                 style={[
-                  styles.resetBtnText,
-                  confirmReset && { color: StudioColors.ink },
+                  styles.copyCodeBtnText,
+                  showSymbolBar && { color: StudioColors.lime },
                 ]}
               >
-                {confirmReset ? "SURE?" : "RESET"}
+                {showSymbolBar ? "⌨ SYMBOLS: ON" : "⌨ SYMBOLS: OFF"}
               </Text>
             </Pressable>
           </View>
-        </View>
+        )}
 
+        {showSymbolBar && (
         <View style={styles.symbolBar}>
           <Text style={styles.quickInsertLabel}>INSERT</Text>
           {[
@@ -871,6 +961,7 @@ export default function StudioCodeEditor({
             </Pressable>
           )}
         </View>
+        )}
 
         <ScrollView
           style={styles.editorScroll}
